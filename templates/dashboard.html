@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+</head>
+<body>
+  <h2>Welcome, {{.User}}</h2>
+  <p>Role: {{.Role}}</p>
+
+  {{if eq .Role "manager"}}
+    <h3>Manager Options</h3>
+    <ul>
+      <li><a href="#">View Reports</a></li>
+      <li><a href="#">Manage Drivers</a></li>
+      <li><a href="#">Manage Students</a></li>
+    </ul>
+  {{else}}
+    <h3>Driver Options</h3>
+    <ul>
+      <li><a href="#">Start Route</a></li>
+      <li><a href="#">Log Attendance</a></li>
+    </ul>
+  {{end}}
+</body>
+</html>
