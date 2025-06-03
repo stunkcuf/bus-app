@@ -1,12 +1,11 @@
-// main.go
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
 	"os"
-	"encoding/json"
 )
 
 type User struct {
@@ -65,15 +64,14 @@ func dashboardPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-
 	ensureDataFiles()
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/", loginPage)
 	http.HandleFunc("/dashboard", dashboardPage)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 	fmt.Println("Server running on port:", port)
 	http.ListenAndServe(":"+port, nil)
 }
