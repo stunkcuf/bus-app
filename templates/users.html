@@ -1,0 +1,7 @@
+<h2>User List</h2>
+<a href="/add-user">Add New User</a>
+<ul>
+  {{range .}}
+    <li>{{.Username}} ({{.Role}})</li>
+  {{end}}
+</ul>
