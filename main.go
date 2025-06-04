@@ -7,7 +7,6 @@ import (
 	"html/template"
 	"net/http"
 	"os"
-	"strings"
 )
 
 type User struct {
