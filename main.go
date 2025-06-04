@@ -1,3 +1,4 @@
+// main.go with session, edit/delete user functionality
 package main
 
 import (
@@ -6,6 +7,7 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type User struct {
@@ -26,7 +28,75 @@ func ensureDataFiles() {
 	}
 }
 
+func loadUsers() []User {
+	file, err := os.Open("data/users.json")
+	if err != nil {
+		return nil
+	}
+	defer file.Close()
+	var users []User
+	json.NewDecoder(file).Decode(&users)
+	return users
+}
+
+func saveUsers(users []User) {
+	file, _ := os.Create("data/users.json")
+	json.NewEncoder(file).Encode(users)
+	file.Close()
+}
+
+func getUserFromSession(r *http.Request) *User {
+	cookie, err := r.Cookie("session_user")
+	if err != nil {
+		return nil
+	}
+	uname := cookie.Value
+	for _, user := range loadUsers() {
+		if user.Username == uname {
+			return &user
+		}
+	}
+	return nil
+}
+
+func loginPage(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		r.ParseForm()
+		username := r.FormValue("username")
+		password := r.FormValue("password")
+		for _, user := range loadUsers() {
+			if user.Username == username && user.Password == password {
+				http.SetCookie(w, &http.Cookie{Name: "session_user", Value: username, Path: "/"})
+				http.Redirect(w, r, "/dashboard", http.StatusFound)
+				return
+			}
+		}
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		return
+	}
+	templates.ExecuteTemplate(w, "login.html", nil)
+}
+
+func logout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{Name: "session_user", Value: "", MaxAge: -1, Path: "/"})
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+func dashboardPage(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	templates.ExecuteTemplate(w, "dashboard.html", user)
+}
+
 func usersPage(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
 	users := loadUsers()
 	templates.ExecuteTemplate(w, "users.html", users)
 }
@@ -41,51 +111,67 @@ func addUserPage(w http.ResponseWriter, r *http.Request) {
 		}
 		users := loadUsers()
 		users = append(users, newUser)
-
-		f, _ := os.Create("data/users.json")
-		json.NewEncoder(f).Encode(users)
-		f.Close()
-
+		saveUsers(users)
 		http.Redirect(w, r, "/users", http.StatusFound)
 		return
 	}
 	templates.ExecuteTemplate(w, "add_user.html", nil)
 }
 
-
-func loginPage(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		r.ParseForm()
-		username := r.FormValue("username")
-		password := r.FormValue("password")
-		for _, user := range loadUsers() {
-			if user.Username == username && user.Password == password {
-				http.Redirect(w, r, "/dashboard?role="+user.Role+"&user="+user.Username, http.StatusFound)
-				return
-			}
+func deleteUser(w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Query().Get("username")
+	users := loadUsers()
+	newUsers := []User{}
+	for _, u := range users {
+		if u.Username != username {
+			newUsers = append(newUsers, u)
 		}
-		fmt.Fprintf(w, "Invalid credentials")
-		return
 	}
-	templates.ExecuteTemplate(w, "login.html", nil)
+	saveUsers(newUsers)
+	http.Redirect(w, r, "/users", http.StatusFound)
 }
 
-func dashboardPage(w http.ResponseWriter, r *http.Request) {
-	role := r.URL.Query().Get("role")
-	user := r.URL.Query().Get("user")
-	templates.ExecuteTemplate(w, "dashboard.html", map[string]string{
-		"Role": role,
-		"User": user,
-	})
+func editUserPage(w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Query().Get("username")
+	users := loadUsers()
+	var userToEdit *User
+	for _, u := range users {
+		if u.Username == username {
+			userToEdit = &u
+			break
+		}
+	}
+	if userToEdit == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		r.ParseForm()
+		for i, u := range users {
+			if u.Username == username {
+				users[i].Password = r.FormValue("password")
+				users[i].Role = r.FormValue("role")
+				break
+			}
+		}
+		saveUsers(users)
+		http.Redirect(w, r, "/users", http.StatusFound)
+		return
+	}
+	templates.ExecuteTemplate(w, "edit_user.html", userToEdit)
 }
 
 func main() {
 	ensureDataFiles()
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/", loginPage)
 	http.HandleFunc("/dashboard", dashboardPage)
+	http.HandleFunc("/logout", logout)
 	http.HandleFunc("/users", usersPage)
 	http.HandleFunc("/add-user", addUserPage)
+	http.HandleFunc("/edit-user", editUserPage)
+	http.HandleFunc("/delete-user", deleteUser)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
