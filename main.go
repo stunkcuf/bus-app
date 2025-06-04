@@ -26,16 +26,32 @@ func ensureDataFiles() {
 	}
 }
 
-func loadUsers() []User {
-	file, err := os.Open("data/users.json")
-	if err != nil {
-		return nil
-	}
-	defer file.Close()
-	var users []User
-	json.NewDecoder(file).Decode(&users)
-	return users
+func usersPage(w http.ResponseWriter, r *http.Request) {
+	users := loadUsers()
+	templates.ExecuteTemplate(w, "users.html", users)
 }
+
+func addUserPage(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		r.ParseForm()
+		newUser := User{
+			Username: r.FormValue("username"),
+			Password: r.FormValue("password"),
+			Role:     r.FormValue("role"),
+		}
+		users := loadUsers()
+		users = append(users, newUser)
+
+		f, _ := os.Create("data/users.json")
+		json.NewEncoder(f).Encode(users)
+		f.Close()
+
+		http.Redirect(w, r, "/users", http.StatusFound)
+		return
+	}
+	templates.ExecuteTemplate(w, "add_user.html", nil)
+}
+
 
 func loginPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
@@ -68,6 +84,8 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/", loginPage)
 	http.HandleFunc("/dashboard", dashboardPage)
+	http.HandleFunc("/users", usersPage)
+	http.HandleFunc("/add-user", addUserPage)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
