@@ -16,18 +16,42 @@ type User struct {
 	Role     string `json:"role"`
 }
 
+type DriverSummary struct {
+	Name              string
+	TotalMorning      int
+	TotalEvening      int
+	TotalMiles        float64
+	MonthlyAvgMiles   float64
+	MonthlyAttendance int
+}
+
+type RouteStats struct {
+	RouteName        string
+	TotalMiles       float64
+	AvgMiles         float64
+	AttendanceDay    int
+	AttendanceWeek   int
+	AttendanceMonth  int
+}
+
+type Activity struct {
+	Date       string
+	Driver     string
+	TripName   string
+	Attendance int
+	Miles      float64
+	Notes      string
+}
+
 var templates = template.Must(template.ParseGlob("templates/*.html"))
 
 func ensureDataFiles() {
 	os.MkdirAll("data", os.ModePerm)
 	if _, err := os.Stat("data/users.json"); os.IsNotExist(err) {
 		defaultUsers := []User{{"admin", "adminpass", "manager"}}
-		file, err := os.Create("data/users.json")
-		if err != nil {
-			panic("cannot create users.json")
-		}
-		defer file.Close()
+		file, _ := os.Create("data/users.json")
 		json.NewEncoder(file).Encode(defaultUsers)
+		file.Close()
 	}
 }
 
@@ -38,20 +62,14 @@ func loadUsers() []User {
 	}
 	defer file.Close()
 	var users []User
-	if err := json.NewDecoder(file).Decode(&users); err != nil {
-		return nil
-	}
+	json.NewDecoder(file).Decode(&users)
 	return users
 }
 
 func saveUsers(users []User) {
-	file, err := os.Create("data/users.json")
-	if err != nil {
-		fmt.Println("Failed to save users:", err)
-		return
-	}
-	defer file.Close()
+	file, _ := os.Create("data/users.json")
 	json.NewEncoder(file).Encode(users)
+	file.Close()
 }
 
 func getUserFromSession(r *http.Request) *User {
@@ -59,9 +77,9 @@ func getUserFromSession(r *http.Request) *User {
 	if err != nil {
 		return nil
 	}
-	username := strings.TrimSpace(cookie.Value)
+	uname := strings.TrimSpace(cookie.Value)
 	for _, user := range loadUsers() {
-		if user.Username == username {
+		if user.Username == uname {
 			return &user
 		}
 	}
@@ -75,12 +93,7 @@ func loginPage(w http.ResponseWriter, r *http.Request) {
 		password := r.FormValue("password")
 		for _, user := range loadUsers() {
 			if user.Username == username && user.Password == password {
-				http.SetCookie(w, &http.Cookie{
-					Name:     "session_user",
-					Value:    username,
-					Path:     "/",
-					HttpOnly: true,
-				})
+				http.SetCookie(w, &http.Cookie{Name: "session_user", Value: username, Path: "/", HttpOnly: true})
 				http.Redirect(w, r, "/dashboard", http.StatusFound)
 				return
 			}
@@ -92,22 +105,45 @@ func loginPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, &http.Cookie{
-		Name:   "session_user",
-		Value:  "",
-		MaxAge: -1,
-		Path:   "/",
-	})
+	http.SetCookie(w, &http.Cookie{Name: "session_user", Value: "", MaxAge: -1, Path: "/"})
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func dashboardPage(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
-	if user == nil {
+	if user == nil || user.Role != "manager" {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
-	templates.ExecuteTemplate(w, "dashboard.html", user)
+
+	driverSummaries := []DriverSummary{
+		{"Alice Johnson", 20, 18, 145.6, 72.8, 38},
+		{"Bob Smith", 22, 22, 160.0, 80.0, 44},
+	}
+
+	routeStats := []RouteStats{
+		{"Route A", 300.5, 30.1, 12, 55, 230},
+		{"Route B", 280.0, 28.0, 10, 48, 210},
+	}
+
+	activities := []Activity{
+		{"2025-06-03", "Alice Johnson", "Field Trip - Zoo", 30, 14.2, "Went well"},
+		{"2025-06-04", "Bob Smith", "Sports Event", 25, 18.6, "Late return"},
+	}
+
+	templates.ExecuteTemplate(w, "dashboard.html", struct {
+		Username        string
+		Role            string
+		DriverSummaries []DriverSummary
+		RouteStats      []RouteStats
+		Activities      []Activity
+	}{
+		Username:        user.Username,
+		Role:            user.Role,
+		DriverSummaries: driverSummaries,
+		RouteStats:      routeStats,
+		Activities:      activities,
+	})
 }
 
 func usersPage(w http.ResponseWriter, r *http.Request) {
@@ -116,7 +152,8 @@ func usersPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
-	templates.ExecuteTemplate(w, "users.html", loadUsers())
+	users := loadUsers()
+	templates.ExecuteTemplate(w, "users.html", users)
 }
 
 func addUserPage(w http.ResponseWriter, r *http.Request) {
