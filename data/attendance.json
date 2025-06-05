@@ -1,0 +1,26 @@
+[
+  {
+    "date": "2025-06-01",
+    "driver": "Alice Johnson",
+    "route": "Route A",
+    "type": "morning",
+    "students": 22,
+    "mileage": 7.4
+  },
+  {
+    "date": "2025-06-01",
+    "driver": "Bob Smith",
+    "route": "Route B",
+    "type": "evening",
+    "students": 18,
+    "mileage": 6.2
+  },
+  {
+    "date": "2025-06-03",
+    "driver": "Alice Johnson",
+    "route": "Field Trip - Zoo",
+    "type": "activity",
+    "students": 30,
+    "mileage": 14.2
+  }
+]
