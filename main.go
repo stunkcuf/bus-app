@@ -1,4 +1,4 @@
-// main.go with session, edit/delete user functionality
+// main.go
 package main
 
 import (
@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type User struct {
@@ -21,9 +22,12 @@ func ensureDataFiles() {
 	os.MkdirAll("data", os.ModePerm)
 	if _, err := os.Stat("data/users.json"); os.IsNotExist(err) {
 		defaultUsers := []User{{"admin", "adminpass", "manager"}}
-		file, _ := os.Create("data/users.json")
+		file, err := os.Create("data/users.json")
+		if err != nil {
+			panic("cannot create users.json")
+		}
+		defer file.Close()
 		json.NewEncoder(file).Encode(defaultUsers)
-		file.Close()
 	}
 }
 
@@ -34,14 +38,20 @@ func loadUsers() []User {
 	}
 	defer file.Close()
 	var users []User
-	json.NewDecoder(file).Decode(&users)
+	if err := json.NewDecoder(file).Decode(&users); err != nil {
+		return nil
+	}
 	return users
 }
 
 func saveUsers(users []User) {
-	file, _ := os.Create("data/users.json")
+	file, err := os.Create("data/users.json")
+	if err != nil {
+		fmt.Println("Failed to save users:", err)
+		return
+	}
+	defer file.Close()
 	json.NewEncoder(file).Encode(users)
-	file.Close()
 }
 
 func getUserFromSession(r *http.Request) *User {
@@ -49,9 +59,9 @@ func getUserFromSession(r *http.Request) *User {
 	if err != nil {
 		return nil
 	}
-	uname := cookie.Value
+	username := strings.TrimSpace(cookie.Value)
 	for _, user := range loadUsers() {
-		if user.Username == uname {
+		if user.Username == username {
 			return &user
 		}
 	}
@@ -61,11 +71,16 @@ func getUserFromSession(r *http.Request) *User {
 func loginPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseForm()
-		username := r.FormValue("username")
+		username := strings.TrimSpace(r.FormValue("username"))
 		password := r.FormValue("password")
 		for _, user := range loadUsers() {
 			if user.Username == username && user.Password == password {
-				http.SetCookie(w, &http.Cookie{Name: "session_user", Value: username, Path: "/"})
+				http.SetCookie(w, &http.Cookie{
+					Name:     "session_user",
+					Value:    username,
+					Path:     "/",
+					HttpOnly: true,
+				})
 				http.Redirect(w, r, "/dashboard", http.StatusFound)
 				return
 			}
@@ -77,7 +92,12 @@ func loginPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, &http.Cookie{Name: "session_user", Value: "", MaxAge: -1, Path: "/"})
+	http.SetCookie(w, &http.Cookie{
+		Name:   "session_user",
+		Value:  "",
+		MaxAge: -1,
+		Path:   "/",
+	})
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
@@ -96,20 +116,34 @@ func usersPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
-	users := loadUsers()
-	templates.ExecuteTemplate(w, "users.html", users)
+	templates.ExecuteTemplate(w, "users.html", loadUsers())
 }
 
 func addUserPage(w http.ResponseWriter, r *http.Request) {
+	currentUser := getUserFromSession(r)
+	if currentUser == nil || currentUser.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
 	if r.Method == http.MethodPost {
 		r.ParseForm()
-		newUser := User{
-			Username: r.FormValue("username"),
-			Password: r.FormValue("password"),
-			Role:     r.FormValue("role"),
+		username := strings.TrimSpace(r.FormValue("username"))
+		password := r.FormValue("password")
+		role := r.FormValue("role")
+
+		if username == "" || password == "" {
+			http.Error(w, "Username and password cannot be empty", http.StatusBadRequest)
+			return
 		}
+
 		users := loadUsers()
-		users = append(users, newUser)
+		for _, u := range users {
+			if u.Username == username {
+				http.Error(w, "Username already exists", http.StatusConflict)
+				return
+			}
+		}
+		users = append(users, User{Username: username, Password: password, Role: role})
 		saveUsers(users)
 		http.Redirect(w, r, "/users", http.StatusFound)
 		return
@@ -118,7 +152,16 @@ func addUserPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteUser(w http.ResponseWriter, r *http.Request) {
+	currentUser := getUserFromSession(r)
+	if currentUser == nil || currentUser.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
 	username := r.URL.Query().Get("username")
+	if username == "admin" {
+		http.Error(w, "Cannot delete admin user", http.StatusForbidden)
+		return
+	}
 	users := loadUsers()
 	newUsers := []User{}
 	for _, u := range users {
@@ -131,12 +174,17 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func editUserPage(w http.ResponseWriter, r *http.Request) {
+	currentUser := getUserFromSession(r)
+	if currentUser == nil || currentUser.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
 	username := r.URL.Query().Get("username")
 	users := loadUsers()
 	var userToEdit *User
-	for _, u := range users {
-		if u.Username == username {
-			userToEdit = &u
+	for i := range users {
+		if users[i].Username == username {
+			userToEdit = &users[i]
 			break
 		}
 	}
@@ -147,13 +195,10 @@ func editUserPage(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodPost {
 		r.ParseForm()
-		for i, u := range users {
-			if u.Username == username {
-				users[i].Password = r.FormValue("password")
-				users[i].Role = r.FormValue("role")
-				break
-			}
-		}
+		password := r.FormValue("password")
+		role := r.FormValue("role")
+		userToEdit.Password = password
+		userToEdit.Role = role
 		saveUsers(users)
 		http.Redirect(w, r, "/users", http.StatusFound)
 		return
