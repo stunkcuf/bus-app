@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: bus-app
-    env: go
-    buildCommand: go build -o bus-app
-    startCommand: ./bus-app
-    plan: free
