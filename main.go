@@ -34,6 +34,15 @@ type RouteStats struct {
 	AttendanceMonth  int
 }
 
+type AttendanceLog struct {
+	Date     string  `json:"date"`
+	Driver   string  `json:"driver"`
+	Route    string  `json:"route"`
+	Type     string  `json:"type"` // morning, evening, activity
+	Students int     `json:"students"`
+	Mileage  float64 `json:"mileage"`
+}
+
 type Activity struct {
 	Date       string
 	Driver     string
@@ -70,6 +79,17 @@ func saveUsers(users []User) {
 	file, _ := os.Create("data/users.json")
 	json.NewEncoder(file).Encode(users)
 	file.Close()
+}
+
+func loadAttendanceLogs() []AttendanceLog {
+	file, err := os.Open("data/attendance.json")
+	if err != nil {
+		return nil
+	}
+	defer file.Close()
+	var logs []AttendanceLog
+	json.NewDecoder(file).Decode(&logs)
+	return logs
 }
 
 func getUserFromSession(r *http.Request) *User {
