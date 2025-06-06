@@ -112,18 +112,22 @@ func dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.Role != "manager" {
-		templates.ExecuteTemplate(w, "dashboard.html", struct {
-			User *User
-		}{User: nil})
-		return
+	type DashboardData struct {
+		User             *User
+		Role             string
+		DriverSummaries  []DriverSummary
+		RouteStats       []RouteStat
+		Activities       []Activity
 	}
 
-	data := struct {
-		User *User
-	}{
-		User: user,
+	data := DashboardData{
+		User:            user,
+		Role:            user.Role,
+		DriverSummaries: loadDriverSummaries(), // Placeholder
+		RouteStats:      loadRouteStats(),      // Placeholder
+		Activities:      loadActivities(),      // Placeholder
 	}
+
 	templates.ExecuteTemplate(w, "dashboard.html", data)
 }
 	attendance, _ := loadJSON[Attendance]("data/attendance.json")
