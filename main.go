@@ -56,6 +56,29 @@ type RouteStats struct {
 	AttendanceWeek  int
 	AttendanceMonth int
 }
+type Route struct {
+	BusNumber string `json:"bus_number"`
+	RouteName string `json:"route_name"`
+	Positions []struct {
+		Position int    `json:"position"`
+		Student  string `json:"student"`
+	} `json:"positions"`
+}
+
+type DriverLog struct {
+	Driver       string `json:"driver"`
+	BusNumber    string `json:"bus_number"`
+	Date         string `json:"date"`
+	Period       string `json:"period"` // morning or afternoon
+	Departure    string `json:"departure_time"`
+	Arrival      string `json:"arrival_time"`
+	Mileage      float64 `json:"mileage"`
+	Attendance   []struct {
+		Position    int    `json:"position"`
+		Present     bool   `json:"present"`
+		PickupTime  string `json:"pickup_time,omitempty"`
+	} `json:"attendance"`
+}
 
 var templates = template.Must(template.ParseGlob("templates/*.html"))
 
@@ -78,6 +101,14 @@ func loadUsers() []User {
 	var users []User
 	json.NewDecoder(f).Decode(&users)
 	return users
+}
+
+func loadRoutes() ([]Route, error) {
+	return loadJSON[Route]("data/routes.json")
+}
+
+func loadDriverLogs() ([]DriverLog, error) {
+	return loadJSON[DriverLog]("data/driver_logs.json")
 }
 
 func loadJSON[T any](filename string) ([]T, error) {
@@ -207,6 +238,60 @@ func dashboard(w http.ResponseWriter, r *http.Request) {
 	templates.ExecuteTemplate(w, "dashboard.html", data)
 }
 
+func driverDashboard(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "driver" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	date := r.URL.Query().Get("date")
+	if date == "" {
+		date = time.Now().Format("2006-01-02")
+	}
+	period := r.URL.Query().Get("period")
+	if period == "" {
+		period = "morning"
+	}
+
+	routes, _ := loadRoutes()
+	logs, _ := loadDriverLogs()
+
+	var driverLog *DriverLog
+	for _, log := range logs {
+		if log.Driver == user.Username && log.Date == date && log.Period == period {
+			driverLog = &log
+			break
+		}
+	}
+
+	type PageData struct {
+		User      *User
+		Date      string
+		Period    string
+		Route     *Route
+		DriverLog *DriverLog
+	}
+
+	var driverRoute *Route
+	for _, r := range routes {
+		if driverLog != nil && r.BusNumber == driverLog.BusNumber {
+			driverRoute = &r
+			break
+		}
+	}
+
+	data := PageData{
+		User:      user,
+		Date:      date,
+		Period:    period,
+		Route:     driverRoute,
+		DriverLog: driverLog,
+	}
+
+	templates.ExecuteTemplate(w, "driver_dashboard.html", data)
+}
+
 func loginPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseForm()
@@ -332,6 +417,7 @@ func main() {
 	ensureDataFiles()
 	http.HandleFunc("/", loginPage)
 	http.HandleFunc("/dashboard", dashboard)
+	http.HandleFunc("/driver-dashboard", driverDashboard)
 	http.HandleFunc("/logout", logout)
 	http.HandleFunc("/users", usersPage)
 	http.HandleFunc("/add-user", addUserPage)
