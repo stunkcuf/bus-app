@@ -112,33 +112,10 @@ func dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type DashboardData struct {
-		User            *User
-		Role            string
-		DriverSummaries []DriverSummary
-		RouteStats      []RouteStat
-		Activities      []Activity
-	}
-
-	driverSummaries, _ := loadJSON[DriverSummary]("data/attendance.json")
-	routeStats, _ := loadJSON[RouteStat]("data/mileage.json")
-	activities, _ := loadJSON[Activity]("data/activities.json")
-
-	data := DashboardData{
-		User:            user,
-		Role:            user.Role,
-		DriverSummaries: driverSummaries,
-		RouteStats:      routeStats,
-		Activities:      activities,
-	}
-
-	templates.ExecuteTemplate(w, "dashboard.html", data)
-}
 	attendance, _ := loadJSON[Attendance]("data/attendance.json")
 	mileage, _ := loadJSON[Mileage]("data/mileage.json")
 	activities, _ := loadJSON[Activity]("data/activities.json")
 
-	// Summary per driver
 	driverData := make(map[string]*DriverSummary)
 	routeData := make(map[string]*RouteStats)
 	now := time.Now()
@@ -195,14 +172,15 @@ func dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, s := range driverData {
-		s.MonthlyAvgMiles = s.MonthlyAvgMiles / float64(30)
+		s.MonthlyAvgMiles /= 30
 	}
 	for _, r := range routeData {
-		r.AvgMiles = r.TotalMiles / float64(30)
+		r.AvgMiles = r.TotalMiles / 30
 	}
 
 	data := map[string]interface{}{
 		"User":            user,
+		"Role":            user.Role,
 		"DriverSummaries": driverData,
 		"RouteStats":      routeData,
 		"Activities":      activities,
@@ -210,6 +188,7 @@ func dashboard(w http.ResponseWriter, r *http.Request) {
 
 	templates.ExecuteTemplate(w, "dashboard.html", data)
 }
+
 
 func loginPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
