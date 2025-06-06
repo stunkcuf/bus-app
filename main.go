@@ -306,7 +306,6 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 	saveUsers(newUsers)
 	http.Redirect(w, r, "/users", http.StatusFound)
 }
-
 func runPullHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
@@ -317,19 +316,21 @@ func runPullHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cmd := exec.Command("git", "fetch", "origin")
-	cmd2 := exec.Command("git", "reset", "--hard", "origin/main")
-
-	output, _ := cmd.CombinedOutput()
-	output2, err := cmd2.CombinedOutput()
+	cmd := exec.Command("git", "pull", "origin", "main")
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		http.Error(w, "Git pull failed: "+string(output)+string(output2), http.StatusInternalServerError)
+		http.Error(w, "Git pull failed:\n"+string(output), http.StatusInternalServerError)
 		return
 	}
 
-	w.Write([]byte("✅ Synced:\n" + string(output) + string(output2)))
-}
+	// Optional: Restart Go process
+	go func() {
+		time.Sleep(2 * time.Second)
+		exec.Command("kill", "-1", fmt.Sprint(os.Getpid())).Run()
+	}()
 
+	w.Write([]byte("✅ Git pull complete:\n" + string(output)))
+}
 func main() {
 	ensureDataFiles()
 	http.HandleFunc("/", loginPage)
