@@ -34,25 +34,75 @@ type RouteStats struct {
 	AttendanceMonth  int
 }
 
-type AttendanceLog struct {
-	Date     string  `json:"date"`
-	Driver   string  `json:"driver"`
-	Route    string  `json:"route"`
-	Type     string  `json:"type"` // morning, evening, activity
-	Students int     `json:"students"`
-	Mileage  float64 `json:"mileage"`
+type Attendance struct {
+	Driver   string    `json:"driver"`
+	Route    string    `json:"route"` // e.g., "morning", "evening", "activity"
+	Date     string    `json:"date"`  // YYYY-MM-DD
+	Mileage  float64   `json:"mileage"`
+	Type     string    `json:"type"` // normal/activity/other
 }
 
-type Activity struct {
-	Date       string
-	Driver     string
-	TripName   string
-	Attendance int
-	Miles      float64
-	Notes      string
+type DashboardSummary struct {
+	User       string
+	Role       string
+	Summaries  map[string]DriverSummary
 }
 
-var templates = template.Must(template.ParseGlob("templates/*.html"))
+type DriverSummary struct {
+	TotalRides   int
+	TotalMileage float64
+	Routes       map[string]RouteSummary
+}
+
+type RouteSummary struct {
+	Rides        int
+	TotalMileage float64
+}
+
+func dashboardPage(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	summary := DashboardSummary{
+		User:      user.Username,
+		Role:      user.Role,
+		Summaries: make(map[string]DriverSummary),
+	}
+
+	if user.Role == "manager" {
+		data, err := os.ReadFile("data/attendance.json")
+		if err == nil {
+			var records []Attendance
+			if json.Unmarshal(data, &records) == nil {
+				for _, rec := range records {
+					driver := rec.Driver
+					if _, exists := summary.Summaries[driver]; !exists {
+						summary.Summaries[driver] = DriverSummary{
+							Routes: make(map[string]RouteSummary),
+						}
+					}
+
+					ds := summary.Summaries[driver]
+					rs := ds.Routes[rec.Route]
+
+					ds.TotalRides++
+					ds.TotalMileage += rec.Mileage
+
+					rs.Rides++
+					rs.TotalMileage += rec.Mileage
+
+					ds.Routes[rec.Route] = rs
+					summary.Summaries[driver] = ds
+				}
+			}
+		}
+	}
+
+	templates.ExecuteTemplate(w, "dashboard.html", summary)
+}
 
 func ensureDataFiles() {
 	os.MkdirAll("data", os.ModePerm)
