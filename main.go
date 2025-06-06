@@ -320,6 +320,9 @@ func runPullHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write([]byte("✅ Git pull complete:\n" + string(output)))
 }
+func testHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("✅ Go server is alive"))
+}
 
 func main() {
 	ensureDataFiles()
