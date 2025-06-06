@@ -1,0 +1,18 @@
+[
+  {
+    "date": "2025-06-01",
+    "driver": "Alice",
+    "tripName": "Field Trip to Museum",
+    "attendance": 25,
+    "miles": 18.5,
+    "notes": "Smooth trip, no issues"
+  },
+  {
+    "date": "2025-06-02",
+    "driver": "Bob",
+    "tripName": "Camp Drop-off",
+    "attendance": 30,
+    "miles": 20.0,
+    "notes": "Late start, traffic delay"
+  }
+]
