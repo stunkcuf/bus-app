@@ -1,3 +1,4 @@
+// main.go
 package main
 
 import (
@@ -7,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"time"
 )
 
 type User struct {
@@ -15,33 +17,79 @@ type User struct {
 	Role     string `json:"role"`
 }
 
+type Attendance struct {
+	Date     string `json:"date"`
+	Driver   string `json:"driver"`
+	Route    string `json:"route"` // "morning", "evening", etc.
+	Present  int    `json:"present"`
+}
+
+type Mileage struct {
+	Date     string  `json:"date"`
+	Driver   string  `json:"driver"`
+	Route    string  `json:"route"`
+	Miles    float64 `json:"miles"`
+}
+
+type Activity struct {
+	Date      string  `json:"date"`
+	Driver    string  `json:"driver"`
+	TripName  string  `json:"trip_name"`
+	Attendance int    `json:"attendance"`
+	Miles     float64 `json:"miles"`
+	Notes     string  `json:"notes"`
+}
+
+type DriverSummary struct {
+	Name             string
+	TotalMorning     int
+	TotalEvening     int
+	TotalMiles       float64
+	MonthlyAvgMiles  float64
+	MonthlyAttendance int
+}
+
+type RouteStats struct {
+	RouteName       string
+	TotalMiles      float64
+	AvgMiles        float64
+	AttendanceDay   int
+	AttendanceWeek  int
+	AttendanceMonth int
+}
+
 var templates = template.Must(template.ParseGlob("templates/*.html"))
 
 func ensureDataFiles() {
 	os.MkdirAll("data", os.ModePerm)
 	if _, err := os.Stat("data/users.json"); os.IsNotExist(err) {
 		defaultUsers := []User{{"admin", "adminpass", "manager"}}
-		file, _ := os.Create("data/users.json")
-		json.NewEncoder(file).Encode(defaultUsers)
-		file.Close()
+		f, _ := os.Create("data/users.json")
+		json.NewEncoder(f).Encode(defaultUsers)
+		f.Close()
 	}
 }
 
 func loadUsers() []User {
-	file, err := os.Open("data/users.json")
+	f, err := os.Open("data/users.json")
 	if err != nil {
 		return nil
 	}
-	defer file.Close()
+	defer f.Close()
 	var users []User
-	json.NewDecoder(file).Decode(&users)
+	json.NewDecoder(f).Decode(&users)
 	return users
 }
 
-func saveUsers(users []User) {
-	file, _ := os.Create("data/users.json")
-	json.NewEncoder(file).Encode(users)
-	file.Close()
+func loadJSON[T any](filename string) ([]T, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	var data []T
+	err = json.NewDecoder(f).Decode(&data)
+	return data, err
 }
 
 func getUserFromSession(r *http.Request) *User {
@@ -50,12 +98,101 @@ func getUserFromSession(r *http.Request) *User {
 		return nil
 	}
 	uname := cookie.Value
-	for _, user := range loadUsers() {
-		if user.Username == uname {
-			return &user
+	for _, u := range loadUsers() {
+		if u.Username == uname {
+			return &u
 		}
 	}
 	return nil
+}
+
+func dashboardPage(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	if user.Role != "manager" {
+		templates.ExecuteTemplate(w, "dashboard.html", user)
+		return
+	}
+
+	attendance, _ := loadJSON[Attendance]("data/attendance.json")
+	mileage, _ := loadJSON[Mileage]("data/mileage.json")
+	activities, _ := loadJSON[Activity]("data/activities.json")
+
+	// Summary per driver
+	driverData := make(map[string]*DriverSummary)
+	routeData := make(map[string]*RouteStats)
+	now := time.Now()
+
+	for _, att := range attendance {
+		s := driverData[att.Driver]
+		if s == nil {
+			s = &DriverSummary{Name: att.Driver}
+			driverData[att.Driver] = s
+		}
+		if att.Route == "morning" {
+			s.TotalMorning += att.Present
+		} else if att.Route == "evening" {
+			s.TotalEvening += att.Present
+		}
+		parsed, _ := time.Parse("2006-01-02", att.Date)
+		if parsed.Month() == now.Month() && parsed.Year() == now.Year() {
+			s.MonthlyAttendance += att.Present
+		}
+
+		route := routeData[att.Route]
+		if route == nil {
+			route = &RouteStats{RouteName: att.Route}
+			routeData[att.Route] = route
+		}
+		route.AttendanceMonth += att.Present
+		if now.Sub(parsed).Hours() < 24 {
+			route.AttendanceDay += att.Present
+		}
+		if now.Sub(parsed).Hours() < 168 {
+			route.AttendanceWeek += att.Present
+		}
+	}
+
+	for _, m := range mileage {
+		s := driverData[m.Driver]
+		if s == nil {
+			s = &DriverSummary{Name: m.Driver}
+			driverData[m.Driver] = s
+		}
+		s.TotalMiles += m.Miles
+
+		parsed, _ := time.Parse("2006-01-02", m.Date)
+		if parsed.Month() == now.Month() && parsed.Year() == now.Year() {
+			s.MonthlyAvgMiles += m.Miles
+		}
+
+		route := routeData[m.Route]
+		if route == nil {
+			route = &RouteStats{RouteName: m.Route}
+			routeData[m.Route] = route
+		}
+		route.TotalMiles += m.Miles
+	}
+
+	for _, s := range driverData {
+		s.MonthlyAvgMiles = s.MonthlyAvgMiles / float64(30)
+	}
+	for _, r := range routeData {
+		r.AvgMiles = r.TotalMiles / float64(30)
+	}
+
+	data := map[string]interface{}{
+		"User":            user,
+		"DriverSummaries": driverData,
+		"RouteStats":      routeData,
+		"Activities":      activities,
+	}
+
+	templates.ExecuteTemplate(w, "dashboard.html", data)
 }
 
 func loginPage(w http.ResponseWriter, r *http.Request) {
@@ -63,8 +200,8 @@ func loginPage(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		username := r.FormValue("username")
 		password := r.FormValue("password")
-		for _, user := range loadUsers() {
-			if user.Username == username && user.Password == password {
+		for _, u := range loadUsers() {
+			if u.Username == username && u.Password == password {
 				http.SetCookie(w, &http.Cookie{Name: "session_user", Value: username, Path: "/"})
 				http.Redirect(w, r, "/dashboard", http.StatusFound)
 				return
@@ -81,13 +218,27 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-func dashboardPage(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil {
-		http.Redirect(w, r, "/", http.StatusFound)
+func addUserPage(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		r.ParseForm()
+		u := User{
+			Username: r.FormValue("username"),
+			Password: r.FormValue("password"),
+			Role:     r.FormValue("role"),
+		}
+		users := loadUsers()
+		users = append(users, u)
+		saveUsers(users)
+		http.Redirect(w, r, "/users", http.StatusFound)
 		return
 	}
-	templates.ExecuteTemplate(w, "dashboard.html", user)
+	templates.ExecuteTemplate(w, "add_user.html", nil)
+}
+
+func saveUsers(users []User) {
+	f, _ := os.Create("data/users.json")
+	defer f.Close()
+	json.NewEncoder(f).Encode(users)
 }
 
 func usersPage(w http.ResponseWriter, r *http.Request) {
@@ -100,21 +251,31 @@ func usersPage(w http.ResponseWriter, r *http.Request) {
 	templates.ExecuteTemplate(w, "users.html", users)
 }
 
-func addUserPage(w http.ResponseWriter, r *http.Request) {
+func editUserPage(w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Query().Get("username")
+	users := loadUsers()
+	var target *User
+	for i := range users {
+		if users[i].Username == username {
+			target = &users[i]
+			break
+		}
+	}
+	if target == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
 	if r.Method == http.MethodPost {
 		r.ParseForm()
-		newUser := User{
-			Username: r.FormValue("username"),
-			Password: r.FormValue("password"),
-			Role:     r.FormValue("role"),
-		}
-		users := loadUsers()
-		users = append(users, newUser)
+		target.Password = r.FormValue("password")
+		target.Role = r.FormValue("role")
 		saveUsers(users)
 		http.Redirect(w, r, "/users", http.StatusFound)
 		return
 	}
-	templates.ExecuteTemplate(w, "add_user.html", nil)
+
+	templates.ExecuteTemplate(w, "edit_user.html", target)
 }
 
 func deleteUser(w http.ResponseWriter, r *http.Request) {
@@ -130,38 +291,6 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/users", http.StatusFound)
 }
 
-func editUserPage(w http.ResponseWriter, r *http.Request) {
-	username := r.URL.Query().Get("username")
-	users := loadUsers()
-	var userToEdit *User
-	for _, u := range users {
-		if u.Username == username {
-			userToEdit = &u
-			break
-		}
-	}
-	if userToEdit == nil {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	}
-
-	if r.Method == http.MethodPost {
-		r.ParseForm()
-		for i, u := range users {
-			if u.Username == username {
-				users[i].Password = r.FormValue("password")
-				users[i].Role = r.FormValue("role")
-				break
-			}
-		}
-		saveUsers(users)
-		http.Redirect(w, r, "/users", http.StatusFound)
-		return
-	}
-	templates.ExecuteTemplate(w, "edit_user.html", userToEdit)
-}
-
-// ✅ GitHub Pull Triggered by Cloudflare Worker
 func runPullHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
@@ -171,13 +300,18 @@ func runPullHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
-	cmd := exec.Command("git", "pull", "origin", "main")
-	output, err := cmd.CombinedOutput()
+
+	cmd := exec.Command("git", "fetch", "origin")
+	cmd2 := exec.Command("git", "reset", "--hard", "origin/main")
+
+	output, _ := cmd.CombinedOutput()
+	output2, err := cmd2.CombinedOutput()
 	if err != nil {
-		http.Error(w, "Git pull failed:\n"+string(output), http.StatusInternalServerError)
+		http.Error(w, "Git pull failed: "+string(output)+string(output2), http.StatusInternalServerError)
 		return
 	}
-	w.Write([]byte("✅ Git pull complete:\n" + string(output)))
+
+	w.Write([]byte("✅ Synced:\n" + string(output) + string(output2)))
 }
 
 func main() {
@@ -189,8 +323,6 @@ func main() {
 	http.HandleFunc("/add-user", addUserPage)
 	http.HandleFunc("/edit-user", editUserPage)
 	http.HandleFunc("/delete-user", deleteUser)
-
-	// ✅ Add pull sync endpoint
 	http.HandleFunc("/run-pull", runPullHandler)
 
 	port := os.Getenv("PORT")
