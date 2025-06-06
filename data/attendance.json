@@ -1,26 +1,37 @@
 [
   {
-    "date": "2025-06-01",
-    "driver": "Alice Johnson",
-    "route": "Route A",
-    "type": "morning",
-    "students": 22,
-    "mileage": 7.4
-  },
-  {
-    "date": "2025-06-01",
-    "driver": "Bob Smith",
-    "route": "Route B",
-    "type": "evening",
-    "students": 18,
-    "mileage": 6.2
-  },
-  {
+    "driver": "Alice",
+    "route": "morning",
     "date": "2025-06-03",
-    "driver": "Alice Johnson",
-    "route": "Field Trip - Zoo",
-    "type": "activity",
-    "students": 30,
-    "mileage": 14.2
+    "mileage": 12.5,
+    "type": "normal"
+  },
+  {
+    "driver": "Alice",
+    "route": "evening",
+    "date": "2025-06-03",
+    "mileage": 12.8,
+    "type": "normal"
+  },
+  {
+    "driver": "Bob",
+    "route": "morning",
+    "date": "2025-06-04",
+    "mileage": 15.0,
+    "type": "normal"
+  },
+  {
+    "driver": "Bob",
+    "route": "activity",
+    "date": "2025-06-02",
+    "mileage": 20.0,
+    "type": "activity"
+  },
+  {
+    "driver": "Alice",
+    "route": "activity",
+    "date": "2025-06-01",
+    "mileage": 18.5,
+    "type": "activity"
   }
 ]
