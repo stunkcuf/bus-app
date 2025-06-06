@@ -9,87 +9,94 @@
   <div class="container mt-5">
     <div class="card p-4 shadow-sm">
       <h2 class="mb-4">Manager Dashboard</h2>
+      <p class="text-muted">Welcome, {{.User}} ({{.Role}})</p>
 
-      <!-- Driver Summary Section -->
-      <h4>Driver Summary</h4>
-      <table class="table table-bordered table-striped">
-        <thead class="table-light">
-          <tr>
-            <th>Driver</th>
-            <th>Morning Attendance</th>
-            <th>Evening Attendance</th>
-            <th>Total Miles</th>
-            <th>Monthly Avg Miles</th>
-            <th>Monthly Attendance</th>
-          </tr>
-        </thead>
-        <tbody>
-          {{range .DriverSummaries}}
-          <tr>
-            <td>{{.Name}}</td>
-            <td>{{.TotalMorning}}</td>
-            <td>{{.TotalEvening}}</td>
-            <td>{{.TotalMiles}}</td>
-            <td>{{.MonthlyAvgMiles}}</td>
-            <td>{{.MonthlyAttendance}}</td>
-          </tr>
-          {{end}}
-        </tbody>
-      </table>
+      {{if eq .Role "manager"}}
+        <!-- Driver Summary Section -->
+        <h4>Driver Summary</h4>
+        <table class="table table-bordered table-striped">
+          <thead class="table-light">
+            <tr>
+              <th>Driver</th>
+              <th>Morning Attendance</th>
+              <th>Evening Attendance</th>
+              <th>Total Miles</th>
+              <th>Monthly Avg Miles</th>
+              <th>Monthly Attendance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .DriverSummaries}}
+            <tr>
+              <td>{{.Name}}</td>
+              <td>{{.TotalMorning}}</td>
+              <td>{{.TotalEvening}}</td>
+              <td>{{printf "%.1f" .TotalMiles}}</td>
+              <td>{{printf "%.1f" .MonthlyAvgMiles}}</td>
+              <td>{{.MonthlyAttendance}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
 
-      <!-- Route Analytics Section -->
-      <h4 class="mt-5">Route Analytics</h4>
-      <table class="table table-bordered">
-        <thead class="table-light">
-          <tr>
-            <th>Route</th>
-            <th>Total Miles</th>
-            <th>Average Miles</th>
-            <th>Attendance (Day)</th>
-            <th>Attendance (Week)</th>
-            <th>Attendance (Month)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {{range .RouteStats}}
-          <tr>
-            <td>{{.RouteName}}</td>
-            <td>{{.TotalMiles}}</td>
-            <td>{{.AvgMiles}}</td>
-            <td>{{.AttendanceDay}}</td>
-            <td>{{.AttendanceWeek}}</td>
-            <td>{{.AttendanceMonth}}</td>
-          </tr>
-          {{end}}
-        </tbody>
-      </table>
+        <!-- Route Analytics Section -->
+        <h4 class="mt-5">Route Analytics</h4>
+        <table class="table table-bordered">
+          <thead class="table-light">
+            <tr>
+              <th>Route</th>
+              <th>Total Miles</th>
+              <th>Average Miles</th>
+              <th>Attendance (Day)</th>
+              <th>Attendance (Week)</th>
+              <th>Attendance (Month)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .RouteStats}}
+            <tr>
+              <td>{{.RouteName}}</td>
+              <td>{{printf "%.1f" .TotalMiles}}</td>
+              <td>{{printf "%.1f" .AvgMiles}}</td>
+              <td>{{.AttendanceDay}}</td>
+              <td>{{.AttendanceWeek}}</td>
+              <td>{{.AttendanceMonth}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
 
-      <!-- Activity Section -->
-      <h4 class="mt-5">Activities / Field Trips</h4>
-      <table class="table table-bordered">
-        <thead class="table-light">
-          <tr>
-            <th>Date</th>
-            <th>Driver</th>
-            <th>Trip Name</th>
-            <th>Attendance</th>
-            <th>Miles</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {{range .Activities}}
-          <tr>
-            <td>{{.Date}}</td>
-            <td>{{.Driver}}</td>
-            <td>{{.TripName}}</td>
-            <td>{{.Attendance}}</td>
-            <td>{{.Miles}}</td>
-            <td>{{.Notes}}</td>
-          </tr>
-          {{end}}
-        </tbody>
-      </table>
+        <!-- Activity Section -->
+        <h4 class="mt-5">Activities / Field Trips</h4>
+        <table class="table table-bordered">
+          <thead class="table-light">
+            <tr>
+              <th>Date</th>
+              <th>Driver</th>
+              <th>Trip Name</th>
+              <th>Attendance</th>
+              <th>Miles</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Activities}}
+            <tr>
+              <td>{{.Date}}</td>
+              <td>{{.Driver}}</td>
+              <td>{{.TripName}}</td>
+              <td>{{.Attendance}}</td>
+              <td>{{printf "%.1f" .Miles}}</td>
+              <td>{{.Notes}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      {{else}}
+        <div class="alert alert-warning mt-4">
+          You do not have access to view this dashboard.
+        </div>
+      {{end}}
     </div>
   </div>
 </body>
