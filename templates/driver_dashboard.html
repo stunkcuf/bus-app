@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Driver Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <div class="container mt-4">
+    <h2 class="mb-3">Driver Dashboard - {{.User.Username}}</h2>
+    <p><strong>Date:</strong> {{.Date}} | <strong>Period:</strong> {{.Period}}</p>
+
+    {{if .Route}}
+    <div class="card p-4">
+      <h4>Bus #{{.Route.BusNumber}} - {{.Route.RouteName}}</h4>
+      <form method="POST" action="/save-log">
+        <input type="hidden" name="date" value="{{.Date}}">
+        <input type="hidden" name="period" value="{{.Period}}">
+        <input type="hidden" name="bus_number" value="{{.Route.BusNumber}}">
+
+        <div class="mb-3">
+          <label>Departure Time</label>
+          <input type="time" name="departure" value="{{.DriverLog.Departure}}" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label>Arrival Time</label>
+          <input type="time" name="arrival" value="{{.DriverLog.Arrival}}" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label>Mileage</label>
+          <input type="number" step="0.1" name="mileage" value="{{.DriverLog.Mileage}}" class="form-control">
+        </div>
+
+        <h5 class="mt-4">Attendance & Pickups</h5>
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>Position</th>
+              <th>Student</th>
+              <th>Present</th>
+              <th>Pickup Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $i, $p := .Route.Positions}}
+            <tr>
+              <td>{{$p.Position}}</td>
+              <td>{{$p.Student}}</td>
+              <td>
+                <input type="checkbox" name="present_{{$p.Position}}" {{range $.DriverLog.Attendance}}{{if and (eq .Position $p.Position) .Present}}checked{{end}}{{end}}>
+              </td>
+              <td>
+                <input type="time" name="pickup_{{$p.Position}}" value="{{range $.DriverLog.Attendance}}{{if eq .Position $p.Position}}{{.PickupTime}}{{end}}{{end}}" class="form-control">
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+
+        <button type="submit" class="btn btn-primary">💾 Save Log</button>
+      </form>
+    </div>
+    {{else}}
+    <div class="alert alert-warning">No route assigned for this driver.</div>
+    {{end}}
+  </div>
+</body>
+</html>
