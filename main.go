@@ -105,8 +105,7 @@ func getUserFromSession(r *http.Request) *User {
 	}
 	return nil
 }
-
-func dashboardPage(w http.ResponseWriter, r *http.Request) {
+func dashboard(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil {
 		http.Redirect(w, r, "/", http.StatusFound)
@@ -114,10 +113,19 @@ func dashboardPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Role != "manager" {
-		templates.ExecuteTemplate(w, "dashboard.html", user)
+		templates.ExecuteTemplate(w, "dashboard.html", struct {
+			User *User
+		}{User: nil})
 		return
 	}
 
+	data := struct {
+		User *User
+	}{
+		User: user,
+	}
+	templates.ExecuteTemplate(w, "dashboard.html", data)
+}
 	attendance, _ := loadJSON[Attendance]("data/attendance.json")
 	mileage, _ := loadJSON[Mileage]("data/mileage.json")
 	activities, _ := loadJSON[Activity]("data/activities.json")
@@ -317,7 +325,7 @@ func runPullHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	ensureDataFiles()
 	http.HandleFunc("/", loginPage)
-	http.HandleFunc("/dashboard", dashboardPage)
+	http.HandleFunc("/dashboard", dashboard)
 	http.HandleFunc("/logout", logout)
 	http.HandleFunc("/users", usersPage)
 	http.HandleFunc("/add-user", addUserPage)
