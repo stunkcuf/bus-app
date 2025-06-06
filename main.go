@@ -312,7 +312,6 @@ func runPullHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
-
 	cmd := exec.Command("git", "pull", "origin", "main")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -320,13 +319,13 @@ func runPullHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Restart only Go app
+	// Restart Go app
 	go func() {
 		time.Sleep(2 * time.Second)
 		exec.Command("bash", "restart_app.sh").Run()
 	}()
 
-	w.Write([]byte("✅ Pulled latest changes.\n" + string(output)))
+	w.Write([]byte("✅ Git pull complete:\n" + string(output)))
 }
 
 func main() {
@@ -346,6 +345,5 @@ func main() {
 	}
 	log.Println("Server running on port:", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
-	log.Println("✅ main.go updated at", time.Now())
 
 }
