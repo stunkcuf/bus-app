@@ -1,10 +1,10 @@
-// main.go
 package main
 
 import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -18,34 +18,34 @@ type User struct {
 }
 
 type Attendance struct {
-	Date     string `json:"date"`
-	Driver   string `json:"driver"`
-	Route    string `json:"route"` // "morning", "evening", etc.
-	Present  int    `json:"present"`
+	Date    string `json:"date"`
+	Driver  string `json:"driver"`
+	Route   string `json:"route"`
+	Present int    `json:"present"`
 }
 
 type Mileage struct {
-	Date     string  `json:"date"`
-	Driver   string  `json:"driver"`
-	Route    string  `json:"route"`
-	Miles    float64 `json:"miles"`
+	Date   string  `json:"date"`
+	Driver string  `json:"driver"`
+	Route  string  `json:"route"`
+	Miles  float64 `json:"miles"`
 }
 
 type Activity struct {
-	Date      string  `json:"date"`
-	Driver    string  `json:"driver"`
-	TripName  string  `json:"trip_name"`
-	Attendance int    `json:"attendance"`
-	Miles     float64 `json:"miles"`
-	Notes     string  `json:"notes"`
+	Date       string  `json:"date"`
+	Driver     string  `json:"driver"`
+	TripName   string  `json:"trip_name"`
+	Attendance int     `json:"attendance"`
+	Miles      float64 `json:"miles"`
+	Notes      string  `json:"notes"`
 }
 
 type DriverSummary struct {
-	Name             string
-	TotalMorning     int
-	TotalEvening     int
-	TotalMiles       float64
-	MonthlyAvgMiles  float64
+	Name              string
+	TotalMorning      int
+	TotalEvening      int
+	TotalMiles        float64
+	MonthlyAvgMiles   float64
 	MonthlyAttendance int
 }
 
@@ -105,6 +105,7 @@ func getUserFromSession(r *http.Request) *User {
 	}
 	return nil
 }
+
 func dashboard(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil {
@@ -172,23 +173,40 @@ func dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, s := range driverData {
-		s.MonthlyAvgMiles /= 30
+		s.MonthlyAvgMiles = s.MonthlyAvgMiles / float64(30)
 	}
 	for _, r := range routeData {
-		r.AvgMiles = r.TotalMiles / 30
+		r.AvgMiles = r.TotalMiles / float64(30)
 	}
 
-	data := map[string]interface{}{
-		"User":            user,
-		"Role":            user.Role,
-		"DriverSummaries": driverData,
-		"RouteStats":      routeData,
-		"Activities":      activities,
+	type DashboardData struct {
+		User            *User
+		Role            string
+		DriverSummaries []*DriverSummary
+		RouteStats      []*RouteStats
+		Activities      []Activity
+	}
+
+	// Convert map to slices
+	driverSummaries := []*DriverSummary{}
+	for _, v := range driverData {
+		driverSummaries = append(driverSummaries, v)
+	}
+	routeStats := []*RouteStats{}
+	for _, v := range routeData {
+		routeStats = append(routeStats, v)
+	}
+
+	data := DashboardData{
+		User:            user,
+		Role:            user.Role,
+		DriverSummaries: driverSummaries,
+		RouteStats:      routeStats,
+		Activities:      activities,
 	}
 
 	templates.ExecuteTemplate(w, "dashboard.html", data)
 }
-
 
 func loginPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
@@ -285,6 +303,7 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 	saveUsers(newUsers)
 	http.Redirect(w, r, "/users", http.StatusFound)
 }
+
 func runPullHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
@@ -294,24 +313,15 @@ func runPullHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
-
-	fmt.Println("🔥 Pull triggered by Cloudflare")
-
 	cmd := exec.Command("git", "pull", "origin", "main")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		http.Error(w, "Git pull failed:\n"+string(output), http.StatusInternalServerError)
 		return
 	}
-
-	go func() {
-		time.Sleep(1 * time.Second)
-		fmt.Println("🔁 Restarting app...")
-		_ = exec.Command("kill", fmt.Sprint(os.Getpid())).Run()
-	}()
-
 	w.Write([]byte("✅ Git pull complete:\n" + string(output)))
 }
+
 func main() {
 	ensureDataFiles()
 	http.HandleFunc("/", loginPage)
@@ -327,6 +337,6 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	fmt.Println("Server running on port:", port)
-	http.ListenAndServe(":"+port, nil)
+	log.Println("Server running on port:", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
