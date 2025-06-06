@@ -13,7 +13,7 @@ fi
 
 # Start Go app
 echo "🟢 Launching Go app..."
-go run main.go > server.log 2>&1 &
+nohup go run main.go > server.log 2>&1 &
 GO_PID=$!
 
 # Wait for Go app to open port 8080
