@@ -295,7 +295,7 @@ func runPullHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("🔥 Cloudflare webhook triggered pull")
+	fmt.Println("🔥 Pull triggered by Cloudflare")
 
 	cmd := exec.Command("git", "pull", "origin", "main")
 	output, err := cmd.CombinedOutput()
@@ -304,7 +304,12 @@ func runPullHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Restart Go app (optional, handled by start.sh typically)
+	go func() {
+		time.Sleep(1 * time.Second)
+		fmt.Println("🔁 Restarting app...")
+		_ = exec.Command("kill", fmt.Sprint(os.Getpid())).Run()
+	}()
+
 	w.Write([]byte("✅ Git pull complete:\n" + string(output)))
 }
 func main() {
