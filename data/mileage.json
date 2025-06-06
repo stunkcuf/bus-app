@@ -1,1 +1,33 @@
+[
+  {
+    "date": "2025-06-01",
+    "driver": "Alice",
+    "route": "morning",
+    "miles": 12.5
+  },
+  {
+    "date": "2025-06-01",
+    "driver": "Bob",
+    "route": "evening",
+    "miles": 14.3
+  },
+  {
+    "date": "2025-06-02",
+    "driver": "Alice",
+    "route": "evening",
+    "miles": 13.7
+  },
+  {
+    "date": "2025-06-02",
+    "driver": "Charlie",
+    "route": "morning",
+    "miles": 15.2
+  },
+  {
+    "date": "2025-06-03",
+    "driver": "Bob",
+    "route": "morning",
+    "miles": 11.9
+  }
+]
 
