@@ -312,16 +312,21 @@ func runPullHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
+
 	cmd := exec.Command("git", "pull", "origin", "main")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		http.Error(w, "Git pull failed:\n"+string(output), http.StatusInternalServerError)
 		return
 	}
-	w.Write([]byte("✅ Git pull complete:\n" + string(output)))
-}
-func testHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("✅ Go server is alive"))
+
+	// Restart only Go app
+	go func() {
+		time.Sleep(2 * time.Second)
+		exec.Command("bash", "restart_app.sh").Run()
+	}()
+
+	w.Write([]byte("✅ Pulled latest changes.\n" + string(output)))
 }
 
 func main() {
@@ -334,7 +339,6 @@ func main() {
 	http.HandleFunc("/edit-user", editUserPage)
 	http.HandleFunc("/delete-user", deleteUser)
 	http.HandleFunc("/run-pull", runPullHandler)
-	http.HandleFunc("/test", testHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
