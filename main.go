@@ -143,6 +143,18 @@ func dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Redirect based on user role
+	if user.Role == "manager" {
+		http.Redirect(w, r, "/dashboard", http.StatusFound)
+	} else if user.Role == "driver" {
+		http.Redirect(w, r, "/driver-dashboard", http.StatusFound)
+	} else {
+		http.Redirect(w, r, "/", http.StatusFound)
+	}
+}
+		return
+	}
+
 	attendance, _ := loadJSON[Attendance]("data/attendance.json")
 	mileage, _ := loadJSON[Mileage]("data/mileage.json")
 	activities, _ := loadJSON[Activity]("data/activities.json")
