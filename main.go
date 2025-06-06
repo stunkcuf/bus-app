@@ -113,19 +113,23 @@ func dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type DashboardData struct {
-		User             *User
-		Role             string
-		DriverSummaries  []DriverSummary
-		RouteStats       []RouteStat
-		Activities       []Activity
+		User            *User
+		Role            string
+		DriverSummaries []DriverSummary
+		RouteStats      []RouteStat
+		Activities      []Activity
 	}
+
+	driverSummaries, _ := loadJSON[DriverSummary]("data/attendance.json")
+	routeStats, _ := loadJSON[RouteStat]("data/mileage.json")
+	activities, _ := loadJSON[Activity]("data/activities.json")
 
 	data := DashboardData{
 		User:            user,
 		Role:            user.Role,
-		DriverSummaries: loadDriverSummaries(), // Placeholder
-		RouteStats:      loadRouteStats(),      // Placeholder
-		Activities:      loadActivities(),      // Placeholder
+		DriverSummaries: driverSummaries,
+		RouteStats:      routeStats,
+		Activities:      activities,
 	}
 
 	templates.ExecuteTemplate(w, "dashboard.html", data)
