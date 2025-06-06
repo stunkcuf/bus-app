@@ -1,37 +1,32 @@
 [
   {
+    "date": "2025-06-01",
     "driver": "Alice",
     "route": "morning",
-    "date": "2025-06-03",
-    "mileage": 12.5,
-    "type": "normal"
+    "present": 22
   },
   {
+    "date": "2025-06-01",
+    "driver": "Bob",
+    "route": "evening",
+    "present": 19
+  },
+  {
+    "date": "2025-06-02",
     "driver": "Alice",
     "route": "evening",
-    "date": "2025-06-03",
-    "mileage": 12.8,
-    "type": "normal"
+    "present": 21
   },
   {
+    "date": "2025-06-02",
+    "driver": "Charlie",
+    "route": "morning",
+    "present": 23
+  },
+  {
+    "date": "2025-06-03",
     "driver": "Bob",
     "route": "morning",
-    "date": "2025-06-04",
-    "mileage": 15.0,
-    "type": "normal"
-  },
-  {
-    "driver": "Bob",
-    "route": "activity",
-    "date": "2025-06-02",
-    "mileage": 20.0,
-    "type": "activity"
-  },
-  {
-    "driver": "Alice",
-    "route": "activity",
-    "date": "2025-06-01",
-    "mileage": 18.5,
-    "type": "activity"
+    "present": 18
   }
 ]
