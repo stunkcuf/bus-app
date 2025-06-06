@@ -1,19 +1,43 @@
-// main.go
 package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"net/http"
 	"os"
-	"strings"
+	"path/filepath"
+	"time"
 )
 
 type User struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Role     string `json:"role"`
+}
+
+type Attendance struct {
+	Driver  string  `json:"driver"`
+	Route   string  `json:"route"`
+	Date    string  `json:"date"`
+	Mileage float64 `json:"mileage"`
+	Type    string  `json:"type"`
+}
+
+type Activity struct {
+	Date       string  `json:"date"`
+	Driver     string  `json:"driver"`
+	TripName   string  `json:"tripName"`
+	Attendance int     `json:"attendance"`
+	Miles      float64 `json:"miles"`
+	Notes      string  `json:"notes"`
+}
+
+type DashboardData struct {
+	User            string
+	Role            string
+	DriverSummaries []DriverSummary
+	RouteStats      []RouteStat
+	Activities      []Activity
 }
 
 type DriverSummary struct {
@@ -25,7 +49,7 @@ type DriverSummary struct {
 	MonthlyAttendance int
 }
 
-type RouteStats struct {
+type RouteStat struct {
 	RouteName        string
 	TotalMiles       float64
 	AvgMiles         float64
@@ -34,75 +58,7 @@ type RouteStats struct {
 	AttendanceMonth  int
 }
 
-type Attendance struct {
-	Driver   string    `json:"driver"`
-	Route    string    `json:"route"` // e.g., "morning", "evening", "activity"
-	Date     string    `json:"date"`  // YYYY-MM-DD
-	Mileage  float64   `json:"mileage"`
-	Type     string    `json:"type"` // normal/activity/other
-}
-
-type DashboardSummary struct {
-	User       string
-	Role       string
-	Summaries  map[string]DriverSummary
-}
-
-type DriverSummary struct {
-	TotalRides   int
-	TotalMileage float64
-	Routes       map[string]RouteSummary
-}
-
-type RouteSummary struct {
-	Rides        int
-	TotalMileage float64
-}
-
-func dashboardPage(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	summary := DashboardSummary{
-		User:      user.Username,
-		Role:      user.Role,
-		Summaries: make(map[string]DriverSummary),
-	}
-
-	if user.Role == "manager" {
-		data, err := os.ReadFile("data/attendance.json")
-		if err == nil {
-			var records []Attendance
-			if json.Unmarshal(data, &records) == nil {
-				for _, rec := range records {
-					driver := rec.Driver
-					if _, exists := summary.Summaries[driver]; !exists {
-						summary.Summaries[driver] = DriverSummary{
-							Routes: make(map[string]RouteSummary),
-						}
-					}
-
-					ds := summary.Summaries[driver]
-					rs := ds.Routes[rec.Route]
-
-					ds.TotalRides++
-					ds.TotalMileage += rec.Mileage
-
-					rs.Rides++
-					rs.TotalMileage += rec.Mileage
-
-					ds.Routes[rec.Route] = rs
-					summary.Summaries[driver] = ds
-				}
-			}
-		}
-	}
-
-	templates.ExecuteTemplate(w, "dashboard.html", summary)
-}
+var templates = template.Must(template.ParseGlob("templates/*.html"))
 
 func ensureDataFiles() {
 	os.MkdirAll("data", os.ModePerm)
@@ -131,23 +87,12 @@ func saveUsers(users []User) {
 	file.Close()
 }
 
-func loadAttendanceLogs() []AttendanceLog {
-	file, err := os.Open("data/attendance.json")
-	if err != nil {
-		return nil
-	}
-	defer file.Close()
-	var logs []AttendanceLog
-	json.NewDecoder(file).Decode(&logs)
-	return logs
-}
-
 func getUserFromSession(r *http.Request) *User {
 	cookie, err := r.Cookie("session_user")
 	if err != nil {
 		return nil
 	}
-	uname := strings.TrimSpace(cookie.Value)
+	uname := cookie.Value
 	for _, user := range loadUsers() {
 		if user.Username == uname {
 			return &user
@@ -159,11 +104,11 @@ func getUserFromSession(r *http.Request) *User {
 func loginPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseForm()
-		username := strings.TrimSpace(r.FormValue("username"))
+		username := r.FormValue("username")
 		password := r.FormValue("password")
 		for _, user := range loadUsers() {
 			if user.Username == username && user.Password == password {
-				http.SetCookie(w, &http.Cookie{Name: "session_user", Value: username, Path: "/", HttpOnly: true})
+				http.SetCookie(w, &http.Cookie{Name: "session_user", Value: username, Path: "/"})
 				http.Redirect(w, r, "/dashboard", http.StatusFound)
 				return
 			}
@@ -181,39 +126,85 @@ func logout(w http.ResponseWriter, r *http.Request) {
 
 func dashboardPage(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
+	if user == nil {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
-	driverSummaries := []DriverSummary{
-		{"Alice Johnson", 20, 18, 145.6, 72.8, 38},
-		{"Bob Smith", 22, 22, 160.0, 80.0, 44},
+	data := DashboardData{
+		User: user.Username,
+		Role: user.Role,
 	}
 
-	routeStats := []RouteStats{
-		{"Route A", 300.5, 30.1, 12, 55, 230},
-		{"Route B", 280.0, 28.0, 10, 48, 210},
+	if user.Role == "manager" {
+		attendancePath := filepath.Join("data", "attendance.json")
+		activityPath := filepath.Join("data", "activities.json")
+
+		var records []Attendance
+		var activities []Activity
+
+		if f, err := os.ReadFile(attendancePath); err == nil {
+			_ = json.Unmarshal(f, &records)
+		}
+
+		if f, err := os.ReadFile(activityPath); err == nil {
+			_ = json.Unmarshal(f, &activities)
+		}
+
+		driverMap := make(map[string]*DriverSummary)
+		routeMap := make(map[string]*RouteStat)
+		now := time.Now()
+
+		for _, rec := range records {
+			// Driver summary
+			ds := driverMap[rec.Driver]
+			if ds == nil {
+				ds = &DriverSummary{Name: rec.Driver}
+				driverMap[rec.Driver] = ds
+			}
+			if rec.Route == "morning" {
+				ds.TotalMorning++
+			}
+			if rec.Route == "evening" {
+				ds.TotalEvening++
+			}
+			ds.TotalMiles += rec.Mileage
+			ds.MonthlyAttendance++
+
+			// Route stats
+			rs := routeMap[rec.Route]
+			if rs == nil {
+				rs = &RouteStat{RouteName: rec.Route}
+				routeMap[rec.Route] = rs
+			}
+			rs.TotalMiles += rec.Mileage
+			rs.AttendanceMonth++
+			if recDate, err := time.Parse("2006-01-02", rec.Date); err == nil {
+				if now.Format("2006-01-02") == recDate.Format("2006-01-02") {
+					rs.AttendanceDay++
+				}
+				if now.Sub(recDate).Hours() <= 7*24 {
+					rs.AttendanceWeek++
+				}
+			}
+		}
+
+		for _, ds := range driverMap {
+			ds.MonthlyAvgMiles = ds.TotalMiles / float64(ds.MonthlyAttendance)
+			data.DriverSummaries = append(data.DriverSummaries, *ds)
+		}
+
+		for _, rs := range routeMap {
+			if rs.AttendanceMonth > 0 {
+				rs.AvgMiles = rs.TotalMiles / float64(rs.AttendanceMonth)
+			}
+			data.RouteStats = append(data.RouteStats, *rs)
+		}
+
+		data.Activities = activities
 	}
 
-	activities := []Activity{
-		{"2025-06-03", "Alice Johnson", "Field Trip - Zoo", 30, 14.2, "Went well"},
-		{"2025-06-04", "Bob Smith", "Sports Event", 25, 18.6, "Late return"},
-	}
-
-	templates.ExecuteTemplate(w, "dashboard.html", struct {
-		Username        string
-		Role            string
-		DriverSummaries []DriverSummary
-		RouteStats      []RouteStats
-		Activities      []Activity
-	}{
-		Username:        user.Username,
-		Role:            user.Role,
-		DriverSummaries: driverSummaries,
-		RouteStats:      routeStats,
-		Activities:      activities,
-	})
+	templates.ExecuteTemplate(w, "dashboard.html", data)
 }
 
 func usersPage(w http.ResponseWriter, r *http.Request) {
@@ -227,30 +218,15 @@ func usersPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func addUserPage(w http.ResponseWriter, r *http.Request) {
-	currentUser := getUserFromSession(r)
-	if currentUser == nil || currentUser.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
 	if r.Method == http.MethodPost {
 		r.ParseForm()
-		username := strings.TrimSpace(r.FormValue("username"))
-		password := r.FormValue("password")
-		role := r.FormValue("role")
-
-		if username == "" || password == "" {
-			http.Error(w, "Username and password cannot be empty", http.StatusBadRequest)
-			return
+		newUser := User{
+			Username: r.FormValue("username"),
+			Password: r.FormValue("password"),
+			Role:     r.FormValue("role"),
 		}
-
 		users := loadUsers()
-		for _, u := range users {
-			if u.Username == username {
-				http.Error(w, "Username already exists", http.StatusConflict)
-				return
-			}
-		}
-		users = append(users, User{Username: username, Password: password, Role: role})
+		users = append(users, newUser)
 		saveUsers(users)
 		http.Redirect(w, r, "/users", http.StatusFound)
 		return
@@ -259,16 +235,7 @@ func addUserPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteUser(w http.ResponseWriter, r *http.Request) {
-	currentUser := getUserFromSession(r)
-	if currentUser == nil || currentUser.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
 	username := r.URL.Query().Get("username")
-	if username == "admin" {
-		http.Error(w, "Cannot delete admin user", http.StatusForbidden)
-		return
-	}
 	users := loadUsers()
 	newUsers := []User{}
 	for _, u := range users {
@@ -281,17 +248,12 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func editUserPage(w http.ResponseWriter, r *http.Request) {
-	currentUser := getUserFromSession(r)
-	if currentUser == nil || currentUser.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
 	username := r.URL.Query().Get("username")
 	users := loadUsers()
 	var userToEdit *User
-	for i := range users {
-		if users[i].Username == username {
-			userToEdit = &users[i]
+	for _, u := range users {
+		if u.Username == username {
+			userToEdit = &u
 			break
 		}
 	}
@@ -302,10 +264,13 @@ func editUserPage(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodPost {
 		r.ParseForm()
-		password := r.FormValue("password")
-		role := r.FormValue("role")
-		userToEdit.Password = password
-		userToEdit.Role = role
+		for i, u := range users {
+			if u.Username == username {
+				users[i].Password = r.FormValue("password")
+				users[i].Role = r.FormValue("role")
+				break
+			}
+		}
 		saveUsers(users)
 		http.Redirect(w, r, "/users", http.StatusFound)
 		return
@@ -327,6 +292,5 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	fmt.Println("Server running on port:", port)
 	http.ListenAndServe(":"+port, nil)
 }
