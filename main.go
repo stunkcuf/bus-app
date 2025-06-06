@@ -346,4 +346,6 @@ func main() {
 	}
 	log.Println("Server running on port:", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Println("✅ main.go updated at", time.Now())
+
 }
