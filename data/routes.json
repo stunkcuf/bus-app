@@ -1,0 +1,11 @@
+// routes.json
+[
+  {
+    "bus_number": "22",
+    "route_name": "North Loop",
+    "positions": [
+      { "position": 1, "student": "Alice Smith" },
+      { "position": 2, "student": "Bob Jones" }
+    ]
+  }
+]
