@@ -334,6 +334,7 @@ func main() {
 	http.HandleFunc("/edit-user", editUserPage)
 	http.HandleFunc("/delete-user", deleteUser)
 	http.HandleFunc("/run-pull", runPullHandler)
+	http.HandleFunc("/test", testHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
