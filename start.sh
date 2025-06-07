@@ -19,7 +19,7 @@ sleep 2
 # Wait for Go app to start
 echo "⏳ Waiting for port 8080..."
 for i in {1..15}; do
-  if curl -s http://localhost:8080 > /dev/null; then
+  if curl -s http://localhost:3000 > /dev/null; then
     echo "✅ Go server is responding"
     break
   fi
