@@ -10,7 +10,7 @@ sleep 2
 
 echo "⏳ Waiting for Go server on port 8080..."
 for i in {1..10}; do
-  if curl -s http://localhost:8080 > /dev/null; then
+  if curl -s http://localhost:3000 > /dev/null; then
     echo "✅ Go server is live on port 8080"
     exit 0
   fi
