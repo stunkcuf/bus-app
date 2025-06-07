@@ -1,37 +1,23 @@
-// restarts app and tunnel
 #!/bin/bash
 set -euo pipefail
 
-echo "🔄 Pulling latest changes from GitHub..."
-git pull origin main || echo "⚠️ Git pull failed — check remote connection"
+echo "🛑 Stopping existing Go app (if any)..."
+pkill -f "go run main.go" 2>/dev/null || echo "⚠️ No Go app running"
 
-# Ensure cloudflared is downloaded
-if [ ! -f ./cloudflared ]; then
-  echo "⬇️ Downloading cloudflared..."
-  curl -L -o cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
-  chmod +x cloudflared
-fi
-
-# Start Go app
-echo "🟢 Launching Go app..."
+echo "🟢 Starting Go app..."
 nohup go run main.go > server.log 2>&1 &
 sleep 2
 
-# Wait for Go app to start
-echo "⏳ Waiting for port 8080..."
-for i in {1..15}; do
+echo "⏳ Waiting for Go server on port 8080..."
+for i in {1..10}; do
   if curl -s http://localhost:8080 > /dev/null; then
-    echo "✅ Go server is responding"
-    break
+    echo "✅ Go server is live on port 8080"
+    exit 0
   fi
-  echo "🔁 [$i] Still waiting for Go server..."
+  echo "🔁 Still waiting ($i)..."
   sleep 2
 done
 
-# Start tunnel only if not running
-if ! pgrep -f "cloudflared.*run" > /dev/null; then
-  echo "🚀 Starting Cloudflare Tunnel..."
-  nohup ./cloudflared tunnel --config ~/.cloudflared/config.yml run > tunnel.log 2>&1 &
-else
-  echo "✅ Tunnel already running"
-fi
+echo "❌ Go server failed to start after multiple attempts."
+exit 1
+
