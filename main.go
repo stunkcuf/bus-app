@@ -56,6 +56,7 @@ type RouteStats struct {
 	AttendanceWeek  int
 	AttendanceMonth int
 }
+
 type Route struct {
 	BusNumber string `json:"bus_number"`
 	RouteName string `json:"route_name"`
@@ -66,17 +67,17 @@ type Route struct {
 }
 
 type DriverLog struct {
-	Driver       string `json:"driver"`
-	BusNumber    string `json:"bus_number"`
-	Date         string `json:"date"`
-	Period       string `json:"period"` // morning or afternoon
-	Departure    string `json:"departure_time"`
-	Arrival      string `json:"arrival_time"`
-	Mileage      float64 `json:"mileage"`
-	Attendance   []struct {
-		Position    int    `json:"position"`
-		Present     bool   `json:"present"`
-		PickupTime  string `json:"pickup_time,omitempty"`
+	Driver    string `json:"driver"`
+	BusNumber string `json:"bus_number"`
+	Date      string `json:"date"`
+	Period    string `json:"period"`
+	Departure string `json:"departure_time"`
+	Arrival   string `json:"arrival_time"`
+	Mileage   float64
+	Attendance []struct {
+		Position   int    `json:"position"`
+		Present    bool   `json:"present"`
+		PickupTime string `json:"pickup_time,omitempty"`
 	} `json:"attendance"`
 }
 
@@ -136,22 +137,25 @@ func getUserFromSession(r *http.Request) *User {
 	return nil
 }
 
-func dashboard(w http.ResponseWriter, r *http.Request) {
+func dashboardRouter(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
-
-	// Redirect based on user role
 	if user.Role == "manager" {
-		http.Redirect(w, r, "/dashboard", http.StatusFound)
+		http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
 	} else if user.Role == "driver" {
 		http.Redirect(w, r, "/driver-dashboard", http.StatusFound)
 	} else {
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
+
+func managerDashboard(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
@@ -229,7 +233,6 @@ func dashboard(w http.ResponseWriter, r *http.Request) {
 		Activities      []Activity
 	}
 
-	// Convert map to slices
 	driverSummaries := []*DriverSummary{}
 	for _, v := range driverData {
 		driverSummaries = append(driverSummaries, v)
@@ -317,9 +320,8 @@ func loginPage(w http.ResponseWriter, r *http.Request) {
 					Path:  "/",
 				})
 
-				// Redirect by role
 				if u.Role == "manager" {
-					http.Redirect(w, r, "/dashboard", http.StatusFound)
+					http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
 				} else if u.Role == "driver" {
 					http.Redirect(w, r, "/driver-dashboard", http.StatusFound)
 				} else {
@@ -339,115 +341,13 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-func addUserPage(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		r.ParseForm()
-		u := User{
-			Username: r.FormValue("username"),
-			Password: r.FormValue("password"),
-			Role:     r.FormValue("role"),
-		}
-		users := loadUsers()
-		users = append(users, u)
-		saveUsers(users)
-		http.Redirect(w, r, "/users", http.StatusFound)
-		return
-	}
-	templates.ExecuteTemplate(w, "add_user.html", nil)
-}
-
-func saveUsers(users []User) {
-	f, _ := os.Create("data/users.json")
-	defer f.Close()
-	json.NewEncoder(f).Encode(users)
-}
-
-func usersPage(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-	users := loadUsers()
-	templates.ExecuteTemplate(w, "users.html", users)
-}
-
-func editUserPage(w http.ResponseWriter, r *http.Request) {
-	username := r.URL.Query().Get("username")
-	users := loadUsers()
-	var target *User
-	for i := range users {
-		if users[i].Username == username {
-			target = &users[i]
-			break
-		}
-	}
-	if target == nil {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	}
-
-	if r.Method == http.MethodPost {
-		r.ParseForm()
-		target.Password = r.FormValue("password")
-		target.Role = r.FormValue("role")
-		saveUsers(users)
-		http.Redirect(w, r, "/users", http.StatusFound)
-		return
-	}
-
-	templates.ExecuteTemplate(w, "edit_user.html", target)
-}
-
-func deleteUser(w http.ResponseWriter, r *http.Request) {
-	username := r.URL.Query().Get("username")
-	users := loadUsers()
-	newUsers := []User{}
-	for _, u := range users {
-		if u.Username != username {
-			newUsers = append(newUsers, u)
-		}
-	}
-	saveUsers(newUsers)
-	http.Redirect(w, r, "/users", http.StatusFound)
-}
-
-func runPullHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	if r.Header.Get("x-trigger-source") != "cloudflare" {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-	cmd := exec.Command("git", "pull", "origin", "main")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		http.Error(w, "Git pull failed:\n"+string(output), http.StatusInternalServerError)
-		return
-	}
-
-	// Restart Go app
-	go func() {
-		time.Sleep(2 * time.Second)
-		exec.Command("bash", "restart_app.sh").Run()
-	}()
-
-	w.Write([]byte("✅ Git pull complete:\n" + string(output)))
-}
-
 func main() {
 	ensureDataFiles()
 	http.HandleFunc("/", loginPage)
-	http.HandleFunc("/dashboard", dashboard)
+	http.HandleFunc("/dashboard", dashboardRouter)
+	http.HandleFunc("/manager-dashboard", managerDashboard)
 	http.HandleFunc("/driver-dashboard", driverDashboard)
 	http.HandleFunc("/logout", logout)
-	http.HandleFunc("/users", usersPage)
-	http.HandleFunc("/add-user", addUserPage)
-	http.HandleFunc("/edit-user", editUserPage)
-	http.HandleFunc("/delete-user", deleteUser)
-	http.HandleFunc("/run-pull", runPullHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -455,5 +355,4 @@ func main() {
 	}
 	log.Println("Server running on port:", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
-
 }
