@@ -309,12 +309,15 @@ func loginPage(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		username := r.FormValue("username")
 		password := r.FormValue("password")
-
 		for _, u := range loadUsers() {
 			if u.Username == username && u.Password == password {
-				http.SetCookie(w, &http.Cookie{Name: "session_user", Value: username, Path: "/"})
-				
-				// Redirect based on role
+				http.SetCookie(w, &http.Cookie{
+					Name:  "session_user",
+					Value: username,
+					Path:  "/",
+				})
+
+				// Redirect by role
 				if u.Role == "manager" {
 					http.Redirect(w, r, "/dashboard", http.StatusFound)
 				} else if u.Role == "driver" {
@@ -328,7 +331,6 @@ func loginPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
-
 	templates.ExecuteTemplate(w, "login.html", nil)
 }
 
