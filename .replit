@@ -1,0 +1,25 @@
+run = "bash start.sh"
+
+[env]
+PORT = "8080"
+GOPATH = "$REPL_HOME/gopath"
+
+[nix]
+channel = "stable-24_05"
+packages = ["go_1_21", "curl", "cloudflared", "git"]
+
+[gitHubImport]
+requiredFiles = [".replit", "replit.nix"]
+
+[workflows]
+runButton = "start "
+
+[[workflows.workflow]]
+name = "start "
+mode = "sequential"
+author = 41523044
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash start.sh"
+
