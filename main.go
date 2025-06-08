@@ -335,6 +335,32 @@ func loginPage(w http.ResponseWriter, r *http.Request) {
 	templates.ExecuteTemplate(w, "login.html", nil)
 }
 
+func runPullHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if r.Header.Get("x-trigger-source") != "cloudflare" {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	cmd := exec.Command("git", "pull", "origin", "main")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		http.Error(w, "Git pull failed:\n"+string(output), http.StatusInternalServerError)
+		return
+	}
+
+	go func() {
+		time.Sleep(1 * time.Second)
+		exec.Command("bash", "restart_app.sh").Run()
+	}()
+
+	w.Write([]byte("✅ Git pulled and app restarted\n" + string(output)))
+}
+
 func logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{Name: "session_user", Value: "", MaxAge: -1, Path: "/"})
 	http.Redirect(w, r, "/", http.StatusFound)
