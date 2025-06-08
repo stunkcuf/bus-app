@@ -9,7 +9,6 @@ import (
 	"time"
 
 	git "github.com/go-git/go-git/v5"
-	transporthttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 )
 
 type User struct {
