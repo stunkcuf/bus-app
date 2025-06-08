@@ -5,8 +5,11 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 	"time"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 )
 
 type User struct {
@@ -335,22 +338,6 @@ func loginPage(w http.ResponseWriter, r *http.Request) {
 	templates.ExecuteTemplate(w, "login.html", nil)
 }
 
-func runPullHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	if r.Header.Get("x-trigger-source") != "cloudflare" {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-
-import (
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/transport/http"
-)
-
 func pullLatest() string {
 	repo, err := git.PlainOpen(".")
 	if err != nil {
@@ -373,17 +360,25 @@ func pullLatest() string {
 	return "✅ Git pull complete"
 }
 
-	if err != nil {
-		http.Error(w, "Git pull failed:\n"+string(output), http.StatusInternalServerError)
+func runPullHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	if r.Header.Get("x-trigger-source") != "cloudflare" {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	output := pullLatest()
 
 	go func() {
 		time.Sleep(1 * time.Second)
 		exec.Command("bash", "restart_app.sh").Run()
 	}()
 
-	w.Write([]byte("✅ Git pulled and app restarted\n" + string(output)))
+	w.Write([]byte("✅ Git pulled and app restarted\n" + output))
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
@@ -397,6 +392,7 @@ func main() {
 	http.HandleFunc("/dashboard", dashboardRouter)
 	http.HandleFunc("/manager-dashboard", managerDashboard)
 	http.HandleFunc("/driver-dashboard", driverDashboard)
+	http.HandleFunc("/pull", runPullHandler)
 	http.HandleFunc("/logout", logout)
 
 	port := os.Getenv("PORT")
@@ -404,5 +400,5 @@ func main() {
 		port = "8080"
 	}
 	log.Println("Server running on port:", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServe("0.0.0.0:"+port, nil))
 }
