@@ -5,7 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"os"
+	"os/exec"
 	"time"
 )
 
@@ -346,8 +346,33 @@ func runPullHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cmd := exec.Command("git", "pull", "origin", "main")
-	output, err := cmd.CombinedOutput()
+import (
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
+)
+
+func pullLatest() string {
+	repo, err := git.PlainOpen(".")
+	if err != nil {
+		return "❌ Failed to open repo: " + err.Error()
+	}
+
+	w, err := repo.Worktree()
+	if err != nil {
+		return "❌ Failed to get worktree: " + err.Error()
+	}
+
+	err = w.Pull(&git.PullOptions{
+		RemoteName: "origin",
+		Auth:       nil, // Add credentials if needed
+		Force:      true,
+	})
+	if err != nil && err != git.NoErrAlreadyUpToDate {
+		return "❌ Git pull failed: " + err.Error()
+	}
+	return "✅ Git pull complete"
+}
+
 	if err != nil {
 		http.Error(w, "Git pull failed:\n"+string(output), http.StatusInternalServerError)
 		return
