@@ -397,7 +397,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "5000"
 	}
 	log.Println("Server running on port:", port)
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+port, nil))
