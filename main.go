@@ -8,8 +8,9 @@ import (
 	"os"
 	"os/exec"
 	"time"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/transport/http"
+
+	git "github.com/go-git/go-git/v5"
+	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 )
 
 type User struct {
