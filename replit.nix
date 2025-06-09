@@ -1,5 +1,7 @@
 { pkgs }: {
   deps = [
+    pkgs.procps
+    pkgs.wget
     pkgs.nano
     pkgs.lsof
     pkgs.go
