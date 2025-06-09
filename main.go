@@ -234,6 +234,8 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 		DriverSummaries []*DriverSummary
 		RouteStats      []*RouteStats
 		Activities      []Activity
+		Routes		[]Route
+		Users		[]User
 	}
 
 	driverSummaries := []*DriverSummary{}
@@ -245,13 +247,19 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 		routeStats = append(routeStats, v)
 	}
 
+	routes, _ := loadRoutes()
+	users := loadUsers()
+	
 	data := DashboardData{
 		User:            user,
 		Role:            user.Role,
 		DriverSummaries: driverSummaries,
 		RouteStats:      routeStats,
 		Activities:      activities,
-	}
+		Routes:          routes,
+		Users:           users,
+}
+
 
 	templates.ExecuteTemplate(w, "dashboard.html", data)
 }
