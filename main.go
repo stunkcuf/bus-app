@@ -549,6 +549,7 @@ func logout(w http.ResponseWriter, r *http.Request) {
 func main() {
 	ensureDataFiles()
 	http.HandleFunc("/", loginPage)
+	http.HandleFunc("/new-user", newUserPage)
 	http.HandleFunc("/dashboard", dashboardRouter)
 	http.HandleFunc("/manager-dashboard", managerDashboard)
 	http.HandleFunc("/driver-dashboard", driverDashboard)
