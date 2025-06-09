@@ -1,1 +1,9 @@
-Victory Square, Airportway, NELC, Irrigon, PELC, Umatilla
+
+[
+  {"bus_number": "1", "route_name": "Victory Square", "positions": []},
+  {"bus_number": "2", "route_name": "Airportway", "positions": []},
+  {"bus_number": "3", "route_name": "NELC", "positions": []},
+  {"bus_number": "4", "route_name": "Irrigon", "positions": []},
+  {"bus_number": "5", "route_name": "PELC", "positions": []},
+  {"bus_number": "6", "route_name": "Umatilla", "positions": []}
+]

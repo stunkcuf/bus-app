@@ -86,6 +86,16 @@ type DriverLog struct {
 	} `json:"attendance"`
 }
 
+type DashboardData struct {
+	User            *User
+	Role            string
+	DriverSummaries []*DriverSummary
+	RouteStats      []*RouteStats
+	Activities      []Activity
+	Routes          []Route
+	Users           []User
+}
+
 var templates = template.Must(template.ParseGlob("templates/*.html"))
 
 func ensureDataFiles() {
@@ -393,6 +403,10 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 		DriverLog: driverLog,
 	}
 
+	if driverRoute == nil && driverLog != nil {
+		log.Printf("Warning: No route found for bus number %s", driverLog.BusNumber)
+	}
+
 	templates.ExecuteTemplate(w, "driver_dashboard.html", data)
 }
 
@@ -558,6 +572,22 @@ func saveDriverLog(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(f).Encode(logs)
 
 	http.Redirect(w, r, "/driver-dashboard?date="+date+"&period="+period, http.StatusSeeOther)
+}
+
+func dashboardRouter(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	if user.Role == "manager" {
+		managerDashboard(w, r)
+	} else if user.Role == "driver" {
+		driverDashboard(w, r)
+	} else {
+		http.Redirect(w, r, "/", http.StatusFound)
+	}
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
