@@ -169,50 +169,51 @@ func getUserFromSession(r *http.Request) *User {
 	return nil
 }
 
-func dashboardRouter(w http.ResponseWriter, r *http.Request) {
+func managerDashboard(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
-	if user == nil {
+	if user == nil || user.Role != "manager" {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
-	if user.Role == "manager" {
-		http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
-	} else if user.Role == "driver" {
-		http.Redirect(w, r, "/driver-dashboard", http.StatusFound)
-	} else {
-		http.Redirect(w, r, "/", http.StatusFound)
-	}
-}
 
-	func managerDashboard(w http.ResponseWriter, r *http.Request) {
-		user := getUserFromSession(r)
-		if user == nil || user.Role != "manager" {
-			http.Redirect(w, r, "/", http.StatusFound)
-			return
+	attendance, _ := loadJSON[Attendance]("data/attendance.json")
+	mileage, _ := loadJSON[Mileage]("data/mileage.json")
+	activities, _ := loadJSON[Activity]("data/activities.json")
+	users := loadUsers()
+	routes, _ := loadRoutes()
+
+	// Filtered active routes
+	activeRouteNames := map[string]bool{
+		"Victory Square": true,
+		"Airportway":     true,
+		"NELC":           true,
+		"Irrigon":        true,
+		"PELC":           true,
+		"Umatilla":       true,
+	}
+	filteredRoutes := []Route{}
+	for _, r := range routes {
+		if activeRouteNames[r.RouteName] {
+			filteredRoutes = append(filteredRoutes, r)
 		}
-
-		attendance, _ := loadJSON[Attendance]("data/attendance.json")
-		mileage, _ := loadJSON[Mileage]("data/mileage.json")
-		activities, _ := loadJSON[Activity]("data/activities.json")
-		users := loadUsers()
-		routes, _ := loadRoutes()
-
-		// ✅ Move this BEFORE using nameMap
-	nameMap := make(map[string]string)
-for _, u := range users {
-	if u.Role == "driver" {
-		nameMap[strings.ToLower(u.Username)] = u.Username
 	}
-}
+
+	// Prepare name map
+	nameMap := make(map[string]string)
+	for _, u := range users {
+		if u.Role == "driver" {
+			nameMap[strings.ToLower(u.Username)] = u.Username
+		}
+	}
 
 	driverData := make(map[string]*DriverSummary)
-
-// Pre-populate driverData with all known drivers
-for _, u := range loadUsers() {
-	if u.Role == "driver" {
-		driverData[u.Username] = &DriverSummary{Name: u.Username}
+	// Pre-populate all known drivers
+	for _, u := range users {
+		if u.Role == "driver" {
+			driverData[u.Username] = &DriverSummary{Name: u.Username}
+		}
 	}
-}
+
 	routeData := make(map[string]*RouteStats)
 	now := time.Now()
 
@@ -246,7 +247,6 @@ for _, u := range loadUsers() {
 			log.Println("Failed to parse date:", att.Date, err)
 			continue
 		}
-
 		if now.Sub(parsed).Hours() < 24 {
 			route.AttendanceDay += att.Present
 		}
@@ -288,16 +288,7 @@ for _, u := range loadUsers() {
 		r.AvgMiles = r.TotalMiles / float64(30)
 	}
 
-	type DashboardData struct {
-		User            *User
-		Role            string
-		DriverSummaries []*DriverSummary
-		RouteStats      []*RouteStats
-		Activities      []Activity
-		Routes          []Route
-		Users           []User
-	}
-
+	// Build slices for template
 	driverSummaries := []*DriverSummary{}
 	for _, v := range driverData {
 		driverSummaries = append(driverSummaries, v)
@@ -313,12 +304,13 @@ for _, u := range loadUsers() {
 		DriverSummaries: driverSummaries,
 		RouteStats:      routeStats,
 		Activities:      activities,
-		Routes:          routes,
+		Routes:          filteredRoutes, // ✅ Only active routes passed to template
 		Users:           users,
 	}
 
 	templates.ExecuteTemplate(w, "dashboard.html", data)
 }
+
 
 func driverProfileHandler(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimPrefix(r.URL.Path, "/driver/")
