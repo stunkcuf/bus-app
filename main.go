@@ -267,9 +267,33 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func driverProfileHandler(w http.ResponseWriter, r *http.Request) {
-	username := strings.TrimPrefix(r.URL.Path, "/driver/")
-	// lookup and render driver info
-	_ = username // temporarily ignore unused variable
+	name := strings.TrimPrefix(r.URL.Path, "/driver/")
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	// Lookup logs or summaries for the driver
+	logs, _ := loadDriverLogs()
+	var driverLogs []DriverLog
+	for _, l := range logs {
+		if l.Driver == name {
+			driverLogs = append(driverLogs, l)
+		}
+	}
+
+	data := struct {
+		User   *User
+		Name   string
+		Logs   []DriverLog
+	}{
+		User: user,
+		Name: name,
+		Logs: driverLogs,
+	}
+
+	templates.ExecuteTemplate(w, "driver_profile.html", data)
 }
 
 func driverDashboard(w http.ResponseWriter, r *http.Request) {
