@@ -2,7 +2,7 @@ run = "bash start.sh"
 modules = ["go-1.21", "web", "bash", "nix"]
 
 [env]
-PORT = "8080"
+PORT = "5000"
 GOPATH = "$REPL_HOME/gopath"
 
 [nix]
