@@ -198,15 +198,12 @@ func dashboardRouter(w http.ResponseWriter, r *http.Request) {
 		routes, _ := loadRoutes()
 
 		// ✅ Move this BEFORE using nameMap
-		nameMap := make(map[string]string)
-		for _, u := range users {
-			if u.Role == "driver" {
-				nameMap[strings.ToLower(u.Username)] = u.Username
-				nameMap[strings.ToLower(u.Username)] = u.Username
-				nameMap[strings.ToLower(u.Username)] = u.Name // safest
-				nameMap[strings.ToLower(u.Name)] = u.Name
-			}
-		}
+	nameMap := make(map[string]string)
+for _, u := range users {
+	if u.Role == "driver" {
+		nameMap[strings.ToLower(u.Username)] = u.Username
+	}
+}
 
 	driverData := make(map[string]*DriverSummary)
 	routeData := make(map[string]*RouteStats)

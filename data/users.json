@@ -1,6 +1,22 @@
 [
-{"username":"admin","password":"adminpass","role":"manager"},
-{"username": "driver1","role": "driver","name": "Alice Johnson"},
-{"username": "driver2","role": "driver","name": "Bob Smith"},
-{"username": "manager1","role": "manager","name": "Sandra Lee"}
+  {
+    "username": "admin",
+    "password": "adminpass",
+    "role": "manager"
+  },
+  {
+    "username": "alice",
+    "password": "alicepass",
+    "role": "driver"
+  },
+  {
+    "username": "bob",
+    "password": "bobpass",
+    "role": "driver"
+  },
+  {
+    "username": "carlos",
+    "password": "carlospass",
+    "role": "driver"
+  }
 ]
