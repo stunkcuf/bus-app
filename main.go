@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 	"os/exec"  //run start.sh 
 	"strconv" // add to importblock
@@ -268,6 +269,7 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 func driverProfileHandler(w http.ResponseWriter, r *http.Request) {
 	username := strings.TrimPrefix(r.URL.Path, "/driver/")
 	// lookup and render driver info
+	_ = username // temporarily ignore unused variable
 }
 
 func driverDashboard(w http.ResponseWriter, r *http.Request) {
@@ -507,7 +509,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "5000"
+		port = "8080"
 	}
 	log.Println("Watching for changes...")
 	log.Println("Server running on port:", port)
