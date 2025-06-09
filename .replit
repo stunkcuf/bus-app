@@ -22,8 +22,8 @@ exposeLocalhost = true
 
 [deployment]
 deploymentTarget = "cloudrun"
+run = ["sh", "-c", "git reset --hard && git pull origin main && go build -o app main.go && ./app"]
 build = ["sh", "-c", "go build -o app ."]
-run = ["sh", "-c", "export PORT=8080 && ./app"]
 
 [workflows]
 runButton = "start"
