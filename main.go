@@ -7,7 +7,8 @@ import (
 	"net/http"
 	"os"
 	"time"
-	"os/exec"
+	"os/exec"  //run start.sh 
+	"strconv" // add to importblock
 
 	git "github.com/go-git/go-git/v5"
 )
@@ -381,6 +382,86 @@ func runPullHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("✅ Git pulled and app restarted\n" + output))
 }
 
+func saveDriverLog(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "driver" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	date := r.FormValue("date")
+	period := r.FormValue("period")
+	busNumber := r.FormValue("bus_number")
+	departure := r.FormValue("departure")
+	arrival := r.FormValue("arrival")
+	mileage, _ := strconv.ParseFloat(r.FormValue("mileage"), 64)
+
+	routes, _ := loadRoutes()
+	var positions []struct {
+		Position int    `json:"position"`
+		Student  string `json:"student"`
+	}
+	for _, rt := range routes {
+		if rt.BusNumber == busNumber {
+			positions = rt.Positions
+			break
+		}
+	}
+
+	var attendance []struct {
+		Position   int    `json:"position"`
+		Present    bool   `json:"present"`
+		PickupTime string `json:"pickup_time,omitempty"`
+	}
+	for _, p := range positions {
+		present := r.FormValue("present_"+strconv.Itoa(p.Position)) == "on"
+		pickup := r.FormValue("pickup_" + strconv.Itoa(p.Position))
+		attendance = append(attendance, struct {
+			Position   int    `json:"position"`
+			Present    bool   `json:"present"`
+			PickupTime string `json:"pickup_time,omitempty"`
+		}{p.Position, present, pickup})
+	}
+
+	logs, _ := loadDriverLogs()
+	updated := false
+	for i := range logs {
+		if logs[i].Driver == user.Username && logs[i].Date == date && logs[i].Period == period {
+			logs[i].BusNumber = busNumber
+			logs[i].Departure = departure
+			logs[i].Arrival = arrival
+			logs[i].Mileage = mileage
+			logs[i].Attendance = attendance
+			updated = true
+			break
+		}
+	}
+	if !updated {
+		logs = append(logs, DriverLog{
+			Driver:     user.Username,
+			BusNumber:  busNumber,
+			Date:       date,
+			Period:     period,
+			Departure:  departure,
+			Arrival:    arrival,
+			Mileage:    mileage,
+			Attendance: attendance,
+		})
+	}
+
+	f, _ := os.Create("data/driver_logs.json")
+	defer f.Close()
+	json.NewEncoder(f).Encode(logs)
+
+	http.Redirect(w, r, "/driver-dashboard?date="+date+"&period="+period, http.StatusSeeOther)
+}
+
 func logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{Name: "session_user", Value: "", MaxAge: -1, Path: "/"})
 	http.Redirect(w, r, "/", http.StatusFound)
@@ -393,6 +474,7 @@ func main() {
 	http.HandleFunc("/manager-dashboard", managerDashboard)
 	http.HandleFunc("/driver-dashboard", driverDashboard)
 	http.HandleFunc("/pull", runPullHandler)
+	http.HandleFunc("/save-log", saveDriverLog)
 	http.HandleFunc("/logout", logout)
 
 	port := os.Getenv("PORT")
