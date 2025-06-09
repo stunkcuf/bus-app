@@ -184,27 +184,29 @@ func dashboardRouter(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func managerDashboard(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	attendance, _ := loadJSON[Attendance]("data/attendance.json")
-	mileage, _ := loadJSON[Mileage]("data/mileage.json")
-	activities, _ := loadJSON[Activity]("data/activities.json")
-	users := loadUsers()
-	routes, _ := loadRoutes()
-
-	// ✅ Prepare name map before using it
-	nameMap := make(map[string]string)
-	for _, u := range users {
-		if u.Role == "driver" {
-			nameMap[strings.ToLower(u.Username)] = u.Username
-			nameMap[strings.ToLower(u.Username)] = u.Username
+	func managerDashboard(w http.ResponseWriter, r *http.Request) {
+		user := getUserFromSession(r)
+		if user == nil || user.Role != "manager" {
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
 		}
-	}
+
+		attendance, _ := loadJSON[Attendance]("data/attendance.json")
+		mileage, _ := loadJSON[Mileage]("data/mileage.json")
+		activities, _ := loadJSON[Activity]("data/activities.json")
+		users := loadUsers()
+		routes, _ := loadRoutes()
+
+		// ✅ Move this BEFORE using nameMap
+		nameMap := make(map[string]string)
+		for _, u := range users {
+			if u.Role == "driver" {
+				nameMap[strings.ToLower(u.Username)] = u.Username
+				nameMap[strings.ToLower(u.Username)] = u.Username
+				nameMap[strings.ToLower(u.Username)] = u.Name // safest
+				nameMap[strings.ToLower(u.Name)] = u.Name
+			}
+		}
 
 	driverData := make(map[string]*DriverSummary)
 	routeData := make(map[string]*RouteStats)
