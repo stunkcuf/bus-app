@@ -1,1 +1,3 @@
-[{"username":"admin","password":"adminpass","role":"manager"},{"username":"alice","password":"alicepass","role":"driver"},{"username":"bob","password":"bobpass","role":"driver"},{"username":"carlos","password":"carlospass","role":"driver"},{"username":"driver","password":"password","role":"driver"}]
+[{"username":"barb","password":"adminpass","role":"manager"},{"username":"jeniffer","password":"jenpass","role":"driver"},
+  {"username":"maria","password":"mapass","role":"driver"},
+  {"username":"jerry","password":"jerrypass","role":"driver"},{"username":"sherri","password":"shepass","role":"driver"},{"username":"jessica","password":"jespass","role":"driver"}]
