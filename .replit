@@ -11,15 +11,33 @@ packages = ["go_1_21", "curl", "cloudflared", "git"]
 [gitHubImport]
 requiredFiles = [".replit", "replit.nix"]
 
+[[ports]]
+localPort = 8080
+externalPort = 80
+
+[[ports]]
+localPort = 41933
+externalPort = 5000
+exposeLocalhost = true
+
+[deployment]
+deploymentTarget = "cloudrun"
+build = ["sh", "-c", "go build -o app ."]
+run = ["sh", "-c", "export PORT=8080 && ./app"]
+
 [workflows]
-runButton = "start "
+runButton = "start"
 
 [[workflows.workflow]]
-name = "start "
+name = "Start"
 mode = "sequential"
-author = 41523044
-
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash start.sh"
 
+[[workflows.workflow]]
+name = "Force Reset & Pull"
+mode = "sequential"
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "git reset --hard && git pull origin main && ./app"
