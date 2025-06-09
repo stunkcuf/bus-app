@@ -1,1 +1,24 @@
+[
+  {
+    "id": "stu001",
+    "name": "Alice Johnson",
+    "grade": "10",
+    "route": "North Route",
+    "present": true
+  },
+  {
+    "id": "stu002",
+    "name": "Bob Smith",
+    "grade": "11",
+    "route": "South Route",
+    "present": false
+  },
+  {
+    "id": "stu003",
+    "name": "Charlie Nguyen",
+    "grade": "12",
+    "route": "East Route",
+    "present": true
+  }
+]
 

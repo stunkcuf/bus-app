@@ -194,16 +194,32 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 	attendance, _ := loadJSON[Attendance]("data/attendance.json")
 	mileage, _ := loadJSON[Mileage]("data/mileage.json")
 	activities, _ := loadJSON[Activity]("data/activities.json")
+	users := loadUsers()
+	routes, _ := loadRoutes()
+
+	// ✅ Prepare name map before using it
+	nameMap := make(map[string]string)
+	for _, u := range users {
+		if u.Role == "driver" {
+			nameMap[strings.ToLower(u.Username)] = u.Username
+			nameMap[strings.ToLower(u.Username)] = u.Username
+		}
+	}
 
 	driverData := make(map[string]*DriverSummary)
 	routeData := make(map[string]*RouteStats)
 	now := time.Now()
 
 	for _, att := range attendance {
-		s := driverData[att.Driver]
+		displayName := nameMap[strings.ToLower(att.Driver)]
+		if displayName == "" {
+			displayName = att.Driver
+		}
+
+		s := driverData[displayName]
 		if s == nil {
-			s = &DriverSummary{Name: att.Driver}
-			driverData[att.Driver] = s
+			s = &DriverSummary{Name: displayName}
+			driverData[displayName] = s
 		}
 
 		if strings.Contains(strings.ToLower(att.Route), "morning") {
@@ -219,7 +235,6 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 		}
 		route.AttendanceMonth += att.Present
 
-		// ✅ Parse the date from attendance record
 		parsed, err := time.Parse("2006-01-02", att.Date)
 		if err != nil {
 			log.Println("Failed to parse date:", att.Date, err)
@@ -235,10 +250,15 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, m := range mileage {
-		s := driverData[m.Driver]
+		displayName := nameMap[strings.ToLower(m.Driver)]
+		if displayName == "" {
+			displayName = m.Driver
+		}
+
+		s := driverData[displayName]
 		if s == nil {
-			s = &DriverSummary{Name: m.Driver}
-			driverData[m.Driver] = s
+			s = &DriverSummary{Name: displayName}
+			driverData[displayName] = s
 		}
 		s.TotalMiles += m.Miles
 
@@ -268,8 +288,8 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 		DriverSummaries []*DriverSummary
 		RouteStats      []*RouteStats
 		Activities      []Activity
-		Routes		[]Route
-		Users		[]User
+		Routes          []Route
+		Users           []User
 	}
 
 	driverSummaries := []*DriverSummary{}
@@ -281,9 +301,6 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 		routeStats = append(routeStats, v)
 	}
 
-	routes, _ := loadRoutes()
-	users := loadUsers()
-	
 	data := DashboardData{
 		User:            user,
 		Role:            user.Role,
@@ -292,8 +309,7 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 		Activities:      activities,
 		Routes:          routes,
 		Users:           users,
-}
-
+	}
 
 	templates.ExecuteTemplate(w, "dashboard.html", data)
 }
