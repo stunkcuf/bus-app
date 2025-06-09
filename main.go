@@ -264,6 +264,11 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 	templates.ExecuteTemplate(w, "dashboard.html", data)
 }
 
+func driverProfileHandler(w http.ResponseWriter, r *http.Request) {
+	username := strings.TrimPrefix(r.URL.Path, "/driver/")
+	// lookup and render driver info
+}
+
 func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "driver" {
@@ -481,6 +486,7 @@ func main() {
 	http.HandleFunc("/dashboard", dashboardRouter)
 	http.HandleFunc("/manager-dashboard", managerDashboard)
 	http.HandleFunc("/driver-dashboard", driverDashboard)
+	http.HandleFunc("/driver/", driverProfileHandler)
 	http.HandleFunc("/pull", runPullHandler)
 	http.HandleFunc("/save-log", saveDriverLog)
 	http.HandleFunc("/logout", logout)
