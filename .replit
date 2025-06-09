@@ -1,4 +1,5 @@
 run = "bash start.sh"
+modules = ["go-1.21", "web", "bash", "nix"]
 
 [env]
 PORT = "8080"
@@ -13,24 +14,19 @@ requiredFiles = [".replit", "replit.nix"]
 
 [[ports]]
 localPort = 8080
-externalPort = 80
-
-[[ports]]
-localPort = 41933
 externalPort = 5000
-exposeLocalhost = true
 
 [deployment]
 deploymentTarget = "cloudrun"
-run = ["sh", "-c", "git reset --hard && git pull origin main && go build -o app main.go && ./app"]
-build = ["sh", "-c", "go build -o app ."]
+run = ["sh", "-c", "bash start.sh"]
 
 [workflows]
-runButton = "start"
+runButton = "Start"
 
 [[workflows.workflow]]
 name = "Start"
 mode = "sequential"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash start.sh"
@@ -38,6 +34,7 @@ args = "bash start.sh"
 [[workflows.workflow]]
 name = "Force Reset & Pull"
 mode = "sequential"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "git reset --hard && git pull origin main && go run main.go"

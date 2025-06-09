@@ -205,18 +205,27 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 			s = &DriverSummary{Name: att.Driver}
 			driverData[att.Driver] = s
 		}
-		
+
 		if strings.Contains(strings.ToLower(att.Route), "morning") {
-		    s.TotalMorning += att.Present
+			s.TotalMorning += att.Present
 		} else {
-		    s.TotalEvening += att.Present
+			s.TotalEvening += att.Present
 		}
-			route := routeData[att.Route]
+
+		route := routeData[att.Route]
 		if route == nil {
 			route = &RouteStats{RouteName: att.Route}
 			routeData[att.Route] = route
 		}
 		route.AttendanceMonth += att.Present
+
+		// ✅ Parse the date from attendance record
+		parsed, err := time.Parse("2006-01-02", att.Date)
+		if err != nil {
+			log.Println("Failed to parse date:", att.Date, err)
+			continue
+		}
+
 		if now.Sub(parsed).Hours() < 24 {
 			route.AttendanceDay += att.Present
 		}
@@ -542,18 +551,31 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
+func withRecovery(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Printf("Recovered from panic in handler: %v", err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+			}
+		}()
+		h(w, r)
+	}
+}
+
 func main() {
 	ensureDataFiles()
-	http.HandleFunc("/", loginPage)
-	http.HandleFunc("/new-user", newUserPage)
-	http.HandleFunc("/dashboard", dashboardRouter)
-	http.HandleFunc("/manager-dashboard", managerDashboard)
-	http.HandleFunc("/driver-dashboard", driverDashboard)
-	http.HandleFunc("/driver/", driverProfileHandler)
-	http.HandleFunc("/webhook", handleWebhook)
-	http.HandleFunc("/pull", runPullHandler)
-	http.HandleFunc("/save-log", saveDriverLog)
-	http.HandleFunc("/logout", logout)
+	http.HandleFunc("/", withRecovery(loginPage))
+	http.HandleFunc("/new-user", withRecovery(newUserPage))
+	http.HandleFunc("/dashboard", withRecovery(dashboardRouter))
+	http.HandleFunc("/manager-dashboard", withRecovery(managerDashboard))
+	http.HandleFunc("/driver-dashboard", withRecovery(driverDashboard))
+	http.HandleFunc("/driver/", withRecovery(driverProfileHandler))
+	http.HandleFunc("/webhook", withRecovery(handleWebhook))
+	http.HandleFunc("/pull", withRecovery(runPullHandler))
+	http.HandleFunc("/save-log", withRecovery(saveDriverLog))
+	http.HandleFunc("/logout", withRecovery(logout))
+
 
 	port := os.Getenv("PORT")
 	if port == "" {
