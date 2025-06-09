@@ -205,17 +205,13 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 			s = &DriverSummary{Name: att.Driver}
 			driverData[att.Driver] = s
 		}
-		if att.Route == "morning" {
-			s.TotalMorning += att.Present
-		} else if att.Route == "evening" {
-			s.TotalEvening += att.Present
+		
+		if strings.Contains(strings.ToLower(att.Route), "morning") {
+		    s.TotalMorning += att.Present
+		} else {
+		    s.TotalEvening += att.Present
 		}
-		parsed, _ := time.Parse("2006-01-02", att.Date)
-		if parsed.Month() == now.Month() && parsed.Year() == now.Year() {
-			s.MonthlyAttendance += att.Present
-		}
-
-		route := routeData[att.Route]
+			route := routeData[att.Route]
 		if route == nil {
 			route = &RouteStats{RouteName: att.Route}
 			routeData[att.Route] = route
@@ -564,6 +560,7 @@ func main() {
 		port = "8080"
 	}
 	log.Println("Watching for changes...")
+	log.Printf("Created new user: %s", username)
 	log.Println("Server running on port:", port)
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+port, nil))
 }
