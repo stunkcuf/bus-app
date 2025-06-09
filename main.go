@@ -582,6 +582,6 @@ func main() {
 		port = "5000"
 	}
 	log.Println("Watching for changes...")
-	log.Println("Server running on port:", port)
+	log.Printf("Server starting on 0.0.0.0:%s", port)
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+port, nil))
 }
