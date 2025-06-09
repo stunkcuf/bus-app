@@ -128,6 +128,33 @@ func loadJSON[T any](filename string) ([]T, error) {
 	return data, err
 }
 
+func newUserPage(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		r.ParseForm()
+		username := r.FormValue("username")
+		password := r.FormValue("password")
+		role := r.FormValue("role")
+
+		users := loadUsers()
+		users = append(users, User{Username: username, Password: password, Role: role})
+
+		f, _ := os.Create("data/users.json")
+		defer f.Close()
+		json.NewEncoder(f).Encode(users)
+
+		http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
+		return
+	}
+
+	templates.ExecuteTemplate(w, "new_user.html", nil)
+}
+
 func getUserFromSession(r *http.Request) *User {
 	cookie, err := r.Cookie("session_user")
 	if err != nil {
