@@ -10,9 +10,8 @@ pkill -f "go run main.go" || echo "⚠️ No Go app running"
 echo "🟢 Launching Go app..."
 nohup go run main.go > server.log 2>&1 &
 
-echo "⏳ Waiting for port 5000..."
 for i in {1..15}; do
-  if curl -s http://0.0.0.0:5000 > /dev/null 2>&1; then
+  if curl -s "http://localhost:8080" > /dev/null 2>&1; then
     echo "✅ Go server is responding"
     break
   fi

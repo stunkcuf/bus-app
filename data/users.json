@@ -1,1 +1,1 @@
-[{"username":"admin","password":"adminpass","role":"manager"},{"username":"alice","password":"alice123","role":"driver"},{"username":"driver1","password":"password","role":"driver"}]
+[{"username":"admin","password":"adminpass","role":"manager"},{"username":"alice","password":"alice123","role":"driver"},{"username":"driver1","password":"password","role":"driver"},{"username":"driver1","password":"password","role":"driver"}]
