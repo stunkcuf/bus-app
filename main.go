@@ -206,6 +206,13 @@ for _, u := range users {
 }
 
 	driverData := make(map[string]*DriverSummary)
+
+// Pre-populate driverData with all known drivers
+for _, u := range loadUsers() {
+	if u.Role == "driver" {
+		driverData[u.Username] = &DriverSummary{Name: u.Username}
+	}
+}
 	routeData := make(map[string]*RouteStats)
 	now := time.Now()
 
