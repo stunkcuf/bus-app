@@ -40,4 +40,4 @@ name = "Force Reset & Pull"
 mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "git reset --hard && git pull origin main && ./app"
+args = "git reset --hard && git pull origin main && go run main.go"
