@@ -8,10 +8,10 @@ echo "🛑 Stopping any existing Go app..."
 pkill -f "go run main.go" || echo "⚠️ No Go app running"
 
 echo "🟢 Launching Go app..."
-nohup go run main.go > server.log 2>&1 &
+PORT=5000 nohup go run main.go > server.log 2>&1 &
 
 for i in {1..15}; do
-  if curl -s "http://localhost:8080" > /dev/null 2>&1; then
+  if curl -s "http://localhost:5000" > /dev/null 2>&1; then
     echo "✅ Go server is responding"
     break
   fi
@@ -19,7 +19,7 @@ for i in {1..15}; do
   sleep 2
 done
 
-if ! curl -s http://0.0.0.0:5000 > /dev/null 2>&1; then
+if ! curl -s http://localhost:5000 > /dev/null 2>&1; then
   echo "❌ Server failed to start on port 5000"
   echo "📋 Checking server logs:"
   tail -20 server.log
