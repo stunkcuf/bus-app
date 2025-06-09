@@ -13,6 +13,10 @@ packages = ["go_1_21", "curl", "cloudflared", "git"]
 requiredFiles = [".replit", "replit.nix"]
 
 [[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
 localPort = 8080
 externalPort = 5000
 
