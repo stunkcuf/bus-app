@@ -395,6 +395,18 @@ func runPullHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("✅ Git pulled and app restarted\n" + output))
 }
 
+func handleWebhook(w http.ResponseWriter, r *http.Request) {
+	// Optional: Validate GitHub signature
+	cmd := exec.Command("git", "pull", "origin", "main")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		http.Error(w, "Git pull failed: "+err.Error(), 500)
+		return
+	}
+	exec.Command("kill", "1").Run() // triggers a Replit restart
+	fmt.Fprintf(w, "Updated:\n%s", string(output))
+}
+
 func saveDriverLog(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -487,6 +499,7 @@ func main() {
 	http.HandleFunc("/manager-dashboard", managerDashboard)
 	http.HandleFunc("/driver-dashboard", driverDashboard)
 	http.HandleFunc("/driver/", driverProfileHandler)
+	http.HandleFunc("/webhook", handleWebhook)
 	http.HandleFunc("/pull", runPullHandler)
 	http.HandleFunc("/save-log", saveDriverLog)
 	http.HandleFunc("/logout", logout)
