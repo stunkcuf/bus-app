@@ -155,7 +155,12 @@ type StudentData struct {
 	Routes   []Route
 }
 
-var templates = template.Must(template.ParseGlob("templates/*.html"))
+var templates = template.Must(template.New("").Funcs(template.FuncMap{
+	"json": func(v interface{}) string {
+		b, _ := json.Marshal(v)
+		return string(b)
+	},
+}).ParseGlob("templates/*.html"))
 
 func ensureDataFiles() {
 	os.MkdirAll("data", os.ModePerm)
