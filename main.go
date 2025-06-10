@@ -1024,7 +1024,8 @@ func saveBuses(buses []*Bus) error {
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
 	return enc.Encode(buses)
-}```go
+}
+
 func loadStudents() []Student {
 	f, err := os.Open("data/students.json")
 	if err != nil {
