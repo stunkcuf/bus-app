@@ -1319,6 +1319,11 @@ func loadBuses() []*Bus {
 	return buses
 }
 
+// addMaintenanceLog
+func addMaintenanceLog(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintf(w, "addMaintenanceLog endpoint hit!")
+}
+
 func main() {
 	ensureDataFiles()
 
@@ -1403,13 +1408,14 @@ func main() {
 	http.HandleFunc("/add-student", withRecovery(addStudent))
 	http.HandleFunc("/edit-student", withRecovery(editStudent))
 	http.HandleFunc("/remove-student", withRecovery(removeStudent))
+	http.HandleFunc("/add-maintenance-log", withRecovery(addMaintenanceLog))
 	http.HandleFunc("/logout", withRecovery(logout))
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "5000"
 	}
-	log.Println("Watching for changes...")
-	log.Printf("Server starting on 0.0.0.0:%s", port)
+
+	log.Printf("Server starting on port %s", port)
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+port, nil))
 }
