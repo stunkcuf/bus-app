@@ -1417,12 +1417,24 @@ func main() {
 	http.HandleFunc("/remove-student", withRecovery(removeStudent))
 	http.HandleFunc("/add-maintenance-log", withRecovery(addMaintenanceLog))
 	http.HandleFunc("/logout", withRecovery(logout))
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "5000"
 	}
 
+	server := &http.Server{
+		Addr:         "0.0.0.0:" + port,
+		Handler:      nil,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
 	log.Printf("Server starting on port %s", port)
-	log.Fatal(http.ListenAndServe("0.0.0.0:"+port, nil))
+	log.Fatal(server.ListenAndServe())
 }
