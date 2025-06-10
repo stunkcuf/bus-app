@@ -80,7 +80,7 @@
               </div>
               <div class="mb-3">
                 <label class="form-label">Bus</label>
-                <select name="bus_number" class="form-select" required>
+                <select name="bus_id" class="form-select" required>
                   <option value="">Select Bus</option>
                   {{range .AvailableBuses}}
                   <option value="{{.BusNumber}}">Bus #{{.BusNumber}} ({{.Status}})</option>
