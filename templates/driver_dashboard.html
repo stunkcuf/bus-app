@@ -23,7 +23,7 @@
               <strong>Date:</strong> {{.Date}}<br>
               <strong>Period:</strong> {{.Period}}<br>
               {{if .Route}}<strong>Route:</strong> {{.Route.RouteName}}{{else}}<span class="text-warning">No route assigned</span>{{end}}<br>
-              {{if .Bus}}<strong>Bus:</strong> #{{.Bus.BusNumber}} ({{.Bus.Status}}){{else}}<span class="text-warning">No bus assigned</span>{{end}}
+              {{if .Bus}}<strong>Bus:</strong> #{{.Bus.BusID}} ({{.Bus.Status}}){{else}}<span class="text-warning">No bus assigned</span>{{end}}
             </p>
           </div>
         </div>
@@ -56,7 +56,7 @@
 
     {{if .Route}}
     <div class="card p-4">
-      <h4>{{if .Bus}}Bus #{{.Bus.BusNumber}}{{else}}Bus #N/A{{end}} - {{.Route.RouteName}}</h4>
+      <h4>{{if .Bus}}Bus #{{.Bus.BusID}}{{else}}Bus #N/A{{end}} - {{.Route.RouteName}}</h4>
       {{if .Bus}}
       <div class="alert alert-info mb-3">
         <strong>Bus Details:</strong> {{.Bus.Model}} | Capacity: {{.Bus.Capacity}} | Status: {{.Bus.Status}}
@@ -68,19 +68,19 @@
       <form method="POST" action="/save-log">
         <input type="hidden" name="date" value="{{.Date}}">
         <input type="hidden" name="period" value="{{.Period}}">
-        <input type="hidden" name="bus_id" value="{{if .Bus}}{{.Bus.BusNumber}}{{else}}{{.DriverLog.BusNumber}}{{end}}">
+        <input type="hidden" name="bus_id" value="{{if .Bus}}{{.Bus.BusID}}{{else}}{{if .DriverLog}}{{.DriverLog.BusID}}{{end}}{{end}}">
 
         <div class="mb-3">
           <label>Departure Time</label>
-          <input type="time" name="departure" value="{{.DriverLog.Departure}}" class="form-control" required>
+          <input type="time" name="departure" value="{{if .DriverLog}}{{.DriverLog.Departure}}{{end}}" class="form-control" required>
         </div>
         <div class="mb-3">
           <label>Arrival Time</label>
-          <input type="time" name="arrival" value="{{.DriverLog.Arrival}}" class="form-control" required>
+          <input type="time" name="arrival" value="{{if .DriverLog}}{{.DriverLog.Arrival}}{{end}}" class="form-control" required>
         </div>
         <div class="mb-3">
           <label>Mileage</label>
-          <input type="number" step="0.1" name="mileage" value="{{.DriverLog.Mileage}}" class="form-control">
+          <input type="number" step="0.1" name="mileage" value="{{if .DriverLog}}{{.DriverLog.Mileage}}{{end}}" class="form-control">
         </div>
 
         <h5 class="mt-4">Attendance & Pickups</h5>
@@ -101,10 +101,10 @@
                 <td><strong>{{$p.Position}}</strong></td>
                 <td>{{$p.Student}}</td>
                 <td class="text-center">
-                  <input type="checkbox" name="present_{{$p.Position}}" class="form-check-input" {{range $.DriverLog.Attendance}}{{if and (eq .Position $p.Position) .Present}}checked{{end}}{{end}}>
+                  <input type="checkbox" name="present_{{$p.Position}}" class="form-check-input" {{if $.DriverLog}}{{range $.DriverLog.Attendance}}{{if and (eq .Position $p.Position) .Present}}checked{{end}}{{end}}{{end}}>
                 </td>
                 <td>
-                  <input type="time" name="pickup_{{$p.Position}}" value="{{range $.DriverLog.Attendance}}{{if eq .Position $p.Position}}{{.PickupTime}}{{end}}{{end}}" class="form-control form-control-sm">
+                  <input type="time" name="pickup_{{$p.Position}}" value="{{if $.DriverLog}}{{range $.DriverLog.Attendance}}{{if eq .Position $p.Position}}{{.PickupTime}}{{end}}{{end}}{{end}}" class="form-control form-control-sm">
                 </td>
               </tr>
               {{end}}
@@ -123,292 +123,7 @@
       <h5>No Route Assignment Found</h5>
       <p>You don't have a route assigned for today. Please contact your manager to get a route and bus assignment.</p>
       {{if .Bus}}
-      <p><strong>Assigned Bus:</strong> #{{.Bus.BusNumber}} ({{.Bus.Status}})</p>
-      {{end}}
-    </div>
-    {{end}}
-  </div>
-</body>
-</html>
-```
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Driver Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-  <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 class="mb-0">Driver Dashboard - {{.User.Username}}</h2>
-      <div>
-        <a href="/logout" class="btn btn-outline-danger">Logout</a>
-      </div>
-    </div>
-
-    <div class="row mb-4">
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">Current Assignment</h5>
-            <p class="card-text">
-              <strong>Date:</strong> {{.Date}}<br>
-              <strong>Period:</strong> {{.Period}}<br>
-              {{if .Route}}<strong>Route:</strong> {{.Route.RouteName}}{{else}}<span class="text-warning">No route assigned</span>{{end}}<br>
-              {{if .Bus}}<strong>Bus:</strong> #{{.Bus.BusNumber}} ({{.Bus.Status}}){{else}}<span class="text-warning">No bus assigned</span>{{end}}
-            </p>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">Quick Navigation</h5>
-            <form method="GET" class="mb-2">
-              <div class="row">
-                <div class="col-md-6">
-                  <input type="date" name="date" value="{{.Date}}" class="form-control form-control-sm">
-                </div>
-                <div class="col-md-6">
-                  <select name="period" class="form-select form-select-sm">
-                    <option value="morning" {{if eq .Period "morning"}}selected{{end}}>Morning</option>
-                    <option value="evening" {{if eq .Period "evening"}}selected{{end}}>Evening</option>
-                  </select>
-                </div>
-              </div>
-              <button type="submit" class="btn btn-sm btn-primary mt-2">Change Date/Period</button>
-            </form>
-            <div class="mt-3">
-              <a href="/students" class="btn btn-sm btn-outline-info">👥 Manage Students</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {{if .Route}}
-    <div class="card p-4">
-      <h4>{{if .Bus}}Bus #{{.Bus.BusNumber}}{{else}}Bus #N/A{{end}} - {{.Route.RouteName}}</h4>
-      {{if .Bus}}
-      <div class="alert alert-info mb-3">
-        <strong>Bus Details:</strong> {{.Bus.Model}} | Capacity: {{.Bus.Capacity}} | Status: {{.Bus.Status}}
-        {{if ne .Bus.MaintenanceNotes ""}}
-        <br><strong>Notes:</strong> {{.Bus.MaintenanceNotes}}
-        {{end}}
-      </div>
-      {{end}}
-      <form method="POST" action="/save-log">
-        <input type="hidden" name="date" value="{{.Date}}">
-        <input type="hidden" name="period" value="{{.Period}}">
-        <input type="hidden" name="bus_id" value="{{if .Bus}}{{.Bus.BusNumber}}{{else}}{{.DriverLog.BusNumber}}{{end}}">
-
-        <div class="mb-3">
-          <label>Departure Time</label>
-          <input type="time" name="departure" value="{{.DriverLog.Departure}}" class="form-control" required>
-        </div>
-        <div class="mb-3">
-          <label>Arrival Time</label>
-          <input type="time" name="arrival" value="{{.DriverLog.Arrival}}" class="form-control" required>
-        </div>
-        <div class="mb-3">
-          <label>Mileage</label>
-          <input type="number" step="0.1" name="mileage" value="{{.DriverLog.Mileage}}" class="form-control">
-        </div>
-
-        <h5 class="mt-4">Attendance & Pickups</h5>
-        {{if .Route.Positions}}
-        <div class="table-responsive">
-          <table class="table table-bordered table-striped">
-            <thead class="table-dark">
-              <tr>
-                <th>Position</th>
-                <th>Student</th>
-                <th>Present</th>
-                <th>Pickup Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {{range $i, $p := .Route.Positions}}
-              <tr>
-                <td><strong>{{$p.Position}}</strong></td>
-                <td>{{$p.Student}}</td>
-                <td class="text-center">
-                  <input type="checkbox" name="present_{{$p.Position}}" class="form-check-input" {{range $.DriverLog.Attendance}}{{if and (eq .Position $p.Position) .Present}}checked{{end}}{{end}}>
-                </td>
-                <td>
-                  <input type="time" name="pickup_{{$p.Position}}" value="{{range $.DriverLog.Attendance}}{{if eq .Position $p.Position}}{{.PickupTime}}{{end}}{{end}}" class="form-control form-control-sm">
-                </td>
-              </tr>
-              {{end}}
-            </tbody>
-          </table>
-        </div>
-        {{else}}
-        <div class="alert alert-warning">No student positions defined for this route.</div>
-        {{end}}
-
-        <button type="submit" class="btn btn-primary">💾 Save Log</button>
-      </form>
-    </div>
-    {{else}}
-    <div class="alert alert-warning">
-      <h5>No Route Assignment Found</h5>
-      <p>You don't have a route assigned for today. Please contact your manager to get a route and bus assignment.</p>
-      {{if .Bus}}
-      <p><strong>Assigned Bus:</strong> #{{.Bus.BusNumber}} ({{.Bus.Status}})</p>
-      {{end}}
-    </div>
-    {{end}}
-  </div>
-</body>
-</html>
-```
-
-```
-Replacing
-<old_str>
-<input type="hidden" name="student" value="{{.StudentID}}">
-</old_str>
-with
-<new_str>
-<input type="hidden" name="student_id" value="{{.StudentID}}">
-</new_str>
-```
-
-Because the provided HTML does not contain the string `<input type="hidden" name="student" value="{{.StudentID}}">`, the requested replacement cannot be performed. The provided intention was to update student_id references in the driver dashboard, specifically changing the `name` attribute of a hidden input field. Since the original code does not contain this field, I will add it to the table within the `{{if .Route.Positions}}` block, as that is where student information is displayed. This assumes that the `StudentID` is relevant in this context.
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Driver Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-  <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 class="mb-0">Driver Dashboard - {{.User.Username}}</h2>
-      <div>
-        <a href="/logout" class="btn btn-outline-danger">Logout</a>
-      </div>
-    </div>
-
-    <div class="row mb-4">
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">Current Assignment</h5>
-            <p class="card-text">
-              <strong>Date:</strong> {{.Date}}<br>
-              <strong>Period:</strong> {{.Period}}<br>
-              {{if .Route}}<strong>Route:</strong> {{.Route.RouteName}}{{else}}<span class="text-warning">No route assigned</span>{{end}}<br>
-              {{if .Bus}}<strong>Bus:</strong> #{{.Bus.BusNumber}} ({{.Bus.Status}}){{else}}<span class="text-warning">No bus assigned</span>{{end}}
-            </p>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">Quick Navigation</h5>
-            <form method="GET" class="mb-2">
-              <div class="row">
-                <div class="col-md-6">
-                  <input type="date" name="date" value="{{.Date}}" class="form-control form-control-sm">
-                </div>
-                <div class="col-md-6">
-                  <select name="period" class="form-select form-select-sm">
-                    <option value="morning" {{if eq .Period "morning"}}selected{{end}}>Morning</option>
-                    <option value="evening" {{if eq .Period "evening"}}selected{{end}}>Evening</option>
-                  </select>
-                </div>
-              </div>
-              <button type="submit" class="btn btn-sm btn-primary mt-2">Change Date/Period</button>
-            </form>
-            <div class="mt-3">
-              <a href="/students" class="btn btn-sm btn-outline-info">👥 Manage Students</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {{if .Route}}
-    <div class="card p-4">
-      <h4>{{if .Bus}}Bus #{{.Bus.BusNumber}}{{else}}Bus #N/A{{end}} - {{.Route.RouteName}}</h4>
-      {{if .Bus}}
-      <div class="alert alert-info mb-3">
-        <strong>Bus Details:</strong> {{.Bus.Model}} | Capacity: {{.Bus.Capacity}} | Status: {{.Bus.Status}}
-        {{if ne .Bus.MaintenanceNotes ""}}
-        <br><strong>Notes:</strong> {{.Bus.MaintenanceNotes}}
-        {{end}}
-      </div>
-      {{end}}
-      <form method="POST" action="/save-log">
-        <input type="hidden" name="date" value="{{.Date}}">
-        <input type="hidden" name="period" value="{{.Period}}">
-        <input type="hidden" name="bus_id" value="{{if .Bus}}{{.Bus.BusNumber}}{{else}}{{.DriverLog.BusNumber}}{{end}}">
-
-        <div class="mb-3">
-          <label>Departure Time</label>
-          <input type="time" name="departure" value="{{.DriverLog.Departure}}" class="form-control" required>
-        </div>
-        <div class="mb-3">
-          <label>Arrival Time</label>
-          <input type="time" name="arrival" value="{{.DriverLog.Arrival}}" class="form-control" required>
-        </div>
-        <div class="mb-3">
-          <label>Mileage</label>
-          <input type="number" step="0.1" name="mileage" value="{{.DriverLog.Mileage}}" class="form-control">
-        </div>
-
-        <h5 class="mt-4">Attendance & Pickups</h5>
-        {{if .Route.Positions}}
-        <div class="table-responsive">
-          <table class="table table-bordered table-striped">
-            <thead class="table-dark">
-              <tr>
-                <th>Position</th>
-                <th>Student</th>
-                <th>Present</th>
-                <th>Pickup Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {{range $i, $p := .Route.Positions}}
-              <tr>
-                <td><strong>{{$p.Position}}</strong></td>
-                <td>{{$p.Student}}
-                  <input type="hidden" name="student_id" value="{{$p.Student.StudentID}}">
-                </td>
-                <td class="text-center">
-                  <input type="checkbox" name="present_{{$p.Position}}" class="form-check-input" {{range $.DriverLog.Attendance}}{{if and (eq .Position $p.Position) .Present}}checked{{end}}{{end}}>
-                </td>
-                <td>
-                  <input type="time" name="pickup_{{$p.Position}}" value="{{range $.DriverLog.Attendance}}{{if eq .Position $p.Position}}{{.PickupTime}}{{end}}{{end}}" class="form-control form-control-sm">
-                </td>
-              </tr>
-              {{end}}
-            </tbody>
-          </table>
-        </div>
-        {{else}}
-        <div class="alert alert-warning">No student positions defined for this route.</div>
-        {{end}}
-
-        <button type="submit" class="btn btn-primary">💾 Save Log</button>
-      </form>
-    </div>
-    {{else}}
-    <div class="alert alert-warning">
-      <h5>No Route Assignment Found</h5>
-      <p>You don't have a route assigned for today. Please contact your manager to get a route and bus assignment.</p>
-      {{if .Bus}}
-      <p><strong>Assigned Bus:</strong> #{{.Bus.BusNumber}} ({{.Bus.Status}})</p>
+      <p><strong>Assigned Bus:</strong> #{{.Bus.BusID}} ({{.Bus.Status}})</p>
       {{end}}
     </div>
     {{end}}

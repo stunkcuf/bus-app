@@ -1,65 +1,65 @@
 [
   {
-    "bus_number": "60",
-    "status": "active",
-    "model": "",
+    "bus_id": "60",
     "capacity": 0,
+    "maintenance_notes": "",
+    "model": "",
     "oil_status": "",
-    "tire_status": "",
-    "maintenance_notes": ""
+    "status": "active",
+    "tire_status": ""
   },
   {
-    "bus_number": "52",
-    "status": "active",
-    "model": "",
+    "bus_id": "52",
     "capacity": 0,
+    "maintenance_notes": "",
+    "model": "",
     "oil_status": "",
-    "tire_status": "",
-    "maintenance_notes": ""
+    "status": "active",
+    "tire_status": ""
   },
   {
-    "bus_number": "59",
-    "status": "active",
-    "model": "",
+    "bus_id": "59",
     "capacity": 0,
+    "maintenance_notes": "",
+    "model": "",
     "oil_status": "",
-    "tire_status": "",
-    "maintenance_notes": ""
+    "status": "active",
+    "tire_status": ""
   },
   {
-    "bus_number": "58",
-    "status": "active",
-    "model": "",
+    "bus_id": "58",
     "capacity": 0,
+    "maintenance_notes": "",
+    "model": "",
     "oil_status": "",
-    "tire_status": "",
-    "maintenance_notes": ""
+    "status": "active",
+    "tire_status": ""
   },
   {
-    "bus_number": "25",
-    "status": "active",
-    "model": "",
+    "bus_id": "25",
     "capacity": 0,
+    "maintenance_notes": "",
+    "model": "",
     "oil_status": "",
-    "tire_status": "",
-    "maintenance_notes": ""
+    "status": "active",
+    "tire_status": ""
   },
   {
-    "bus_number": "23",
-    "status": "active",
-    "model": "",
+    "bus_id": "23",
     "capacity": 0,
+    "maintenance_notes": "",
+    "model": "",
     "oil_status": "",
-    "tire_status": "",
-    "maintenance_notes": ""
+    "status": "active",
+    "tire_status": ""
   },
   {
-    "bus_number": "99",
-    "status": "maintenance",
-    "model": "big yellow thing",
+    "bus_id": "99",
     "capacity": 17,
+    "maintenance_notes": "in shop for oil change",
+    "model": "big yellow thing",
     "oil_status": "due",
-    "tire_status": "good",
-    "maintenance_notes": "in shop for oil change"
+    "status": "maintenance",
+    "tire_status": "good"
   }
 ]

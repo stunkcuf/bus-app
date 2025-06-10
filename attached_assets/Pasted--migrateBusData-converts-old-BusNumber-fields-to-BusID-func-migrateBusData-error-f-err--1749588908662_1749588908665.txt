@@ -1,0 +1,203 @@
+// migrateBusData converts old BusNumber fields to BusID
+func migrateBusData() error {
+	f, err := os.Open("data/buses.json")
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil // No file to migrate
+		}
+		return err
+	}
+	defer f.Close()
+
+	var rawData []map[string]interface{}
+	if err := json.NewDecoder(f).Decode(&rawData); err != nil {
+		return fmt.Errorf("failed to decode buses.json: %w", err)
+	}
+
+	// Convert BusNumber to BusID if needed
+	migrated := false
+	for _, bus := range rawData {
+		if busNumber, exists := bus["bus_number"]; exists {
+			bus["bus_id"] = busNumber
+			delete(bus, "bus_number")
+			migrated = true
+		}
+	}
+
+	if migrated {
+		f, err := os.Create("data/buses.json")
+		if err != nil {
+			return fmt.Errorf("failed to create migrated buses.json: %w", err)
+		}
+		defer f.Close()
+
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(rawData); err != nil {
+			return fmt.Errorf("failed to encode migrated buses: %w", err)
+		}
+
+		log.Println("Migrated buses.json: BusNumber -> BusID")
+	}
+
+	return nil
+}
+
+// migrateRouteAssignments converts old BusNumber fields to BusID
+func migrateRouteAssignments() error {
+	f, err := os.Open("data/route_assignments.json")
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil // No file to migrate
+		}
+		return err
+	}
+	defer f.Close()
+
+	var rawData []map[string]interface{}
+	if err := json.NewDecoder(f).Decode(&rawData); err != nil {
+		return fmt.Errorf("failed to decode route_assignments.json: %w", err)
+	}
+
+	// Convert BusNumber to BusID if needed
+	migrated := false
+	for _, assignment := range rawData {
+		if busNumber, exists := assignment["bus_number"]; exists {
+			assignment["bus_id"] = busNumber
+			delete(assignment, "bus_number")
+			migrated = true
+		}
+	}
+
+	if migrated {
+		f, err := os.Create("data/route_assignments.json")
+		if err != nil {
+			return fmt.Errorf("failed to create migrated route_assignments.json: %w", err)
+		}
+		defer f.Close()
+
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(rawData); err != nil {
+			return fmt.Errorf("failed to encode migrated assignments: %w", err)
+		}
+
+		log.Println("Migrated route_assignments.json: BusNumber -> BusID")
+	}
+
+	return nil
+}
+
+// migrateDriverLogs converts old BusNumber fields to BusID
+func migrateDriverLogs() error {
+	f, err := os.Open("data/driver_logs.json")
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil // No file to migrate
+		}
+		return err
+	}
+	defer f.Close()
+
+	var rawData []map[string]interface{}
+	if err := json.NewDecoder(f).Decode(&rawData); err != nil {
+		return fmt.Errorf("failed to decode driver_logs.json: %w", err)
+	}
+
+	// Convert BusNumber to BusID if needed
+	migrated := false
+	for _, log := range rawData {
+		if busNumber, exists := log["bus_number"]; exists {
+			log["bus_id"] = busNumber
+			delete(log, "bus_number")
+			migrated = true
+		}
+	}
+
+	if migrated {
+		f, err := os.Create("data/driver_logs.json")
+		if err != nil {
+			return fmt.Errorf("failed to create migrated driver_logs.json: %w", err)
+		}
+		defer f.Close()
+
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(rawData); err != nil {
+			return fmt.Errorf("failed to encode migrated logs: %w", err)
+		}
+
+		log.Println("Migrated driver_logs.json: BusNumber -> BusID")
+	}
+
+	return nil
+}
+
+// migrateMaintenanceLogs converts old BusNumber fields to BusID
+func migrateMaintenanceLogs() error {
+	f, err := os.Open("data/maintenance.json")
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil // No file to migrate
+		}
+		return err
+	}
+	defer f.Close()
+
+	var rawData []map[string]interface{}
+	if err := json.NewDecoder(f).Decode(&rawData); err != nil {
+		return fmt.Errorf("failed to decode maintenance.json: %w", err)
+	}
+
+	// Convert BusNumber to BusID if needed
+	migrated := false
+	for _, log := range rawData {
+		if busNumber, exists := log["bus_number"]; exists {
+			log["bus_id"] = busNumber
+			delete(log, "bus_number")
+			migrated = true
+		}
+	}
+
+	if migrated {
+		f, err := os.Create("data/maintenance.json")
+		if err != nil {
+			return fmt.Errorf("failed to create migrated maintenance.json: %w", err)
+		}
+		defer f.Close()
+
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(rawData); err != nil {
+			return fmt.Errorf("failed to encode migrated maintenance: %w", err)
+		}
+
+		log.Println("Migrated maintenance.json: BusNumber -> BusID")
+	}
+
+	return nil
+}
+
+// runMigrations executes all necessary data migrations
+func runMigrations() error {
+	log.Println("Running data migrations...")
+	
+	if err := migrateBusData(); err != nil {
+		return fmt.Errorf("bus migration failed: %w", err)
+	}
+	
+	if err := migrateRouteAssignments(); err != nil {
+		return fmt.Errorf("route assignment migration failed: %w", err)
+	}
+	
+	if err := migrateDriverLogs(); err != nil {
+		return fmt.Errorf("driver logs migration failed: %w", err)
+	}
+	
+	if err := migrateMaintenanceLogs(); err != nil {
+		return fmt.Errorf("maintenance logs migration failed: %w", err)
+	}
+	
+	log.Println("Data migrations completed successfully")
+	return nil
+}
