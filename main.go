@@ -1437,34 +1437,34 @@ func initDataFiles() {
 }
 
 // maint handles maintenance log operations
-func maint(w http.ResponseWriter, r *http.Request) {
-    user := getUserFromSession(r)
-    if user == nil || user.Role != "manager" {
-        http.Redirect(w, r, "/", http.StatusFound)
-        return
-    }
-    if r.Method != http.MethodPost {
-        http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-        return
-    }
+func addMaintenanceLog(w http.ResponseWriter, r *http.Request) {
+		user := getUserFromSession(r)
+		if user == nil || user.Role != "manager" {
+				http.Redirect(w, r, "/", http.StatusFound)
+				return
+		}
+		if r.Method != http.MethodPost {
+				http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+				return
+		}
 
-    r.ParseForm()
-    logEntry := MaintenanceLog{
-        BusNumber: r.FormValue("bus_number"),
-        Date:      r.FormValue("date"),
-        Category:  r.FormValue("category"),
-        Notes:     r.FormValue("notes"),
-    }
-    mileage, _ := strconv.Atoi(r.FormValue("mileage"))
-    logEntry.Mileage = mileage
+		r.ParseForm()
+		mileage, _ := strconv.Atoi(r.FormValue("mileage"))
+		logEntry := MaintenanceLog{
+				BusNumber: r.FormValue("bus_number"),
+				Date:      r.FormValue("date"),
+				Category:  r.FormValue("category"),
+				Notes:     r.FormValue("notes"),
+				Mileage:   mileage,
+		}
 
-    logs := loadMaintenanceLogs()
-    logs = append(logs, logEntry)
-    if err := saveMaintenanceLogs(logs); err != nil {
-        http.Error(w, "Unable to save", http.StatusInternalServerError)
-        return
-    }
-    http.Redirect(w, r, "/fleet", http.StatusFound)
+		logs := loadMaintenanceLogs()
+		logs = append(logs, logEntry)
+		if err := saveMaintenanceLogs(logs); err != nil {
+				http.Error(w, "Unable to save", http.StatusInternalServerError)
+				return
+		}
+		http.Redirect(w, r, "/fleet", http.StatusFound)
 }
 
 func main() {
@@ -1491,12 +1491,9 @@ func main() {
 	http.HandleFunc("/add-student", withRecovery(addStudent))
 	http.HandleFunc("/edit-student", withRecovery(editStudent))
 	http.HandleFunc("/remove-student", withRecovery(removeStudent))
-	http.HandleFunc("/add-maintenance-log", withRecovery(maint))
+	http.HandleFunc("/add-maint", withRecovery(maint))
 	http.HandleFunc("/logout", withRecovery(logout))
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
+	
 
 	port := os.Getenv("PORT")
 	if port == "" {
