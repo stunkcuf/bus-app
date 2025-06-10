@@ -1364,8 +1364,8 @@ func loadBuses() []*Bus {
 	return buses
 }
 
-// addMaintenanceLog
-func addMaintenanceLog(w http.ResponseWriter, r *http.Request) {
+// maint handles maintenance log operations
+func maint(w http.ResponseWriter, r *http.Request) {
     user := getUserFromSession(r)
     if user == nil || user.Role != "manager" {
         http.Redirect(w, r, "/", http.StatusFound)
@@ -1393,6 +1393,7 @@ func addMaintenanceLog(w http.ResponseWriter, r *http.Request) {
         return
     }
     http.Redirect(w, r, "/fleet", http.StatusFound)
+}
 
 func main() {
 	ensureDataFiles()
@@ -1486,7 +1487,7 @@ func main() {
 	http.HandleFunc("/add-student", withRecovery(addStudent))
 	http.HandleFunc("/edit-student", withRecovery(editStudent))
 	http.HandleFunc("/remove-student", withRecovery(removeStudent))
-	http.HandleFunc("/add-maintenance-log", withRecovery(addMaintenanceLog))
+	http.HandleFunc("/add-maintenance-log", withRecovery(maint))
 	http.HandleFunc("/logout", withRecovery(logout))
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
