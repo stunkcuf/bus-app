@@ -1995,7 +1995,7 @@ func main() {
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
-}.NewDecoder(f).Decode(&rawData); err != nil {
+if err := json.NewDecoder(f).Decode(&rawData); err != nil {
 		return fmt.Errorf("failed to decode buses.json: %w", err)
 	}
 
@@ -2133,4 +2133,36 @@ func migrateMaintenanceLogs() error {
 	defer f.Close()
 
 	var rawData []map[string]interface{}
-	if err := json
+	if err := json.NewDecoder(f).Decode(&rawData); err != nil {
+		return fmt.Errorf("failed to decode maintenance.json: %w", err)
+	}
+
+	// Convert BusNumber to BusID if needed
+	migrated := false
+	for _, log := range rawData {
+		if busNumber, exists := log["bus_number"]; exists {
+			log["bus_id"] = busNumber
+			delete(log, "bus_number")
+			migrated = true
+		}
+	}
+
+	if migrated {
+		// Write back the migrated data
+		f, err := os.Create("data/maintenance.json")
+		if err != nil {
+			return fmt.Errorf("failed to create migrated maintenance.json: %w", err)
+		}
+		defer f.Close()
+
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(rawData); err != nil {
+			return fmt.Errorf("failed to encode migrated maintenance: %w", err)
+		}
+
+		log.Println("Migrated maintenance.json: BusNumber -> BusID")
+	}
+
+	return nil
+}
