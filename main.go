@@ -1365,38 +1365,7 @@ func loadBuses() []*Bus {
 }
 
 // maint handles maintenance log operations
-func maint(w http.ResponseWriter, r *http.Request) {
-    user := getUserFromSession(r)
-    if user == nil || user.Role != "manager" {
-        http.Redirect(w, r, "/", http.StatusFound)
-        return
-    }
-    if r.Method != http.MethodPost {
-        http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-        return
-    }
-
-    r.ParseForm()
-    logEntry := MaintenanceLog{
-        BusNumber: r.FormValue("bus_number"),
-        Date:      r.FormValue("date"),
-        Category:  r.FormValue("category"),
-        Notes:     r.FormValue("notes"),
-    }
-    mileage, _ := strconv.Atoi(r.FormValue("mileage"))
-    logEntry.Mileage = mileage
-
-    logs := loadMaintenanceLogs()
-    logs = append(logs, logEntry)
-    if err := saveMaintenanceLogs(logs); err != nil {
-        http.Error(w, "Unable to save", http.StatusInternalServerError)
-        return
-    }
-    http.Redirect(w, r, "/fleet", http.StatusFound)
-}
-
-func main() {
-	ensureDataFiles()
+func maint(
 
 	// Create buses.json if it doesn't exist, and seed with some default data.
 	if _, err := os.Stat("data/buses.json"); os.IsNotExist(err) {
@@ -1466,6 +1435,38 @@ func main() {
 		}
 		log.Println("Created and seeded data/routes.json")
 	}
+	w http.ResponseWriter, r *http.Request) {
+    user := getUserFromSession(r)
+    if user == nil || user.Role != "manager" {
+        http.Redirect(w, r, "/", http.StatusFound)
+        return
+    }
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    r.ParseForm()
+    logEntry := MaintenanceLog{
+        BusNumber: r.FormValue("bus_number"),
+        Date:      r.FormValue("date"),
+        Category:  r.FormValue("category"),
+        Notes:     r.FormValue("notes"),
+    }
+    mileage, _ := strconv.Atoi(r.FormValue("mileage"))
+    logEntry.Mileage = mileage
+
+    logs := loadMaintenanceLogs()
+    logs = append(logs, logEntry)
+    if err := saveMaintenanceLogs(logs); err != nil {
+        http.Error(w, "Unable to save", http.StatusInternalServerError)
+        return
+    }
+    http.Redirect(w, r, "/fleet", http.StatusFound)
+}
+
+func main() {
+	ensureDataFiles()
 
 	http.HandleFunc("/", withRecovery(loginPage))
 	http.HandleFunc("/new-user", withRecovery(newUserPage))
