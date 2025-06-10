@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"path/filepath"
 	"os"
 	"os/exec" //run start.sh
 	"strconv"  // add to importblock
@@ -149,6 +150,14 @@ type FleetData struct {
 	Buses []*Bus
 }
 
+type MaintenanceLog struct {
+		BusNumber string `json:"bus_number"`
+		Date      string `json:"date"`      // YYYY‑MM‑DD
+		Category  string `json:"category"`  // oil, tires, brakes, etc.
+		Notes     string `json:"notes"`
+		Mileage   int    `json:"mileage"`   // optional
+}
+
 type StudentData struct {
 	User     *User
 	Students []Student
@@ -222,6 +231,31 @@ func loadJSON[T any](filename string) ([]T, error) {
 	return data, err
 }
 
+func seedJSON[T any](path string, defaultData T) error {
+		if _, err := os.Stat(path); err == nil {
+				return nil // already present
+		} else if !os.IsNotExist(err) {
+				return fmt.Errorf("stat %s: %w", path, err)
+		}
+
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+				return fmt.Errorf("mkdir: %w", err)
+		}
+		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+		if err != nil {
+				return fmt.Errorf("create: %w", err)
+		}
+		defer f.Close()
+
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(defaultData); err != nil {
+				return fmt.Errorf("encode: %w", err)
+		}
+		log.Printf("Seeded %s", path)
+		return nil
+}
+
 func loadRouteAssignments() ([]RouteAssignment, error) {
 	return loadJSON[RouteAssignment]("data/route_assignments.json")
 }
@@ -233,6 +267,18 @@ func saveRouteAssignments(assignments []RouteAssignment) error {
 	}
 	defer f.Close()
 	return json.NewEncoder(f).Encode(assignments)
+}
+
+func loadMaintenanceLogs() []MaintenanceLog {
+	logs, _ := loadJSON[MaintenanceLog]("data/maintenance.json")
+	return logs
+}
+
+func saveMaintenanceLogs(logs []MaintenanceLog) error {
+	f, err := os.Create("data/maintenance.json")
+	if err != nil { return err }
+	defer f.Close()
+	return json.NewEncoder(f).Encode(logs)
 }
 
 func newUserPage(w http.ResponseWriter, r *http.Request) {
@@ -1320,8 +1366,33 @@ func loadBuses() []*Bus {
 
 // addMaintenanceLog
 func addMaintenanceLog(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintf(w, "addMaintenanceLog endpoint hit!")
-}
+    user := getUserFromSession(r)
+    if user == nil || user.Role != "manager" {
+        http.Redirect(w, r, "/", http.StatusFound)
+        return
+    }
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    r.ParseForm()
+    logEntry := MaintenanceLog{
+        BusNumber: r.FormValue("bus_number"),
+        Date:      r.FormValue("date"),
+        Category:  r.FormValue("category"),
+        Notes:     r.FormValue("notes"),
+    }
+    mileage, _ := strconv.Atoi(r.FormValue("mileage"))
+    logEntry.Mileage = mileage
+
+    logs := loadMaintenanceLogs()
+    logs = append(logs, logEntry)
+    if err := saveMaintenanceLogs(logs); err != nil {
+        http.Error(w, "Unable to save", http.StatusInternalServerError)
+        return
+    }
+    http.Redirect(w, r, "/fleet", http.StatusFound)
 
 func main() {
 	ensureDataFiles()
