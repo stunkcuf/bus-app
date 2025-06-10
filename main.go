@@ -1,3 +1,4 @@
+// Added error handling to prevent template panics.
 package main
 
 import (
@@ -167,12 +168,25 @@ type StudentData struct {
 	Routes   []Route
 }
 
-var templates = template.Must(template.New("").Funcs(template.FuncMap{
-	"json": func(v interface{}) template.JS {
-		b, _ := json.Marshal(v)
-		return template.JS(b)
-	},
-}).ParseGlob("templates/*.html"))
+var templates *template.Template
+
+func init() {
+	var err error
+	templates, err = template.New("").Funcs(template.FuncMap{
+		"json": func(v interface{}) template.JS {
+			b, err := json.Marshal(v)
+			if err != nil {
+				log.Printf("JSON marshal error: %v", err)
+				return template.JS("{}")
+			}
+			return template.JS(b)
+		},
+	}).ParseGlob("templates/*.html")
+
+	if err != nil {
+		log.Fatalf("Template parsing failed: %v", err)
+	}
+}
 
 func ensureDataFiles() {
 	os.MkdirAll("data", os.ModePerm)
@@ -1300,7 +1314,7 @@ func addMaintenanceLog(w http.ResponseWriter, r *http.Request) {
 	status := r.FormValue("status")
 
 	logs := loadMaintenanceLogs()
-	
+
 	// Generate log ID
 	logID := fmt.Sprintf("LOG_%d", len(logs)+1)
 
