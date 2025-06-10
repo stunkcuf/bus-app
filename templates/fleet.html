@@ -74,6 +74,59 @@
             </table>
           </div>
         </div>
+
+        <!-- Maintenance Log Form -->
+        <div class="card mt-4">
+          <div class="card-header">
+            <h5>Add Maintenance Log</h5>
+          </div>
+          <div class="card-body">
+            <form method="POST" action="/add-maint">
+              <div class="mb-3">
+                <label class="form-label">Bus Number</label>
+                <select name="bus_number" class="form-select" required>
+                  <option value="">Select Bus</option>
+                  {{range .Buses}}
+                  <option value="{{.BusNumber}}">Bus #{{.BusNumber}} ({{.Model}})</option>
+                  {{end}}
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Date</label>
+                <input type="date" name="date" class="form-control" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Category</label>
+                <select name="category" class="form-select" required>
+                  <option value="oil">Oil Change</option>
+                  <option value="tires">Tire Service</option>
+                  <option value="brakes">Brake Service</option>
+                  <option value="engine">Engine</option>
+                  <option value="transmission">Transmission</option>
+                  <option value="electrical">Electrical</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Mileage (optional)</label>
+                <input type="number" name="mileage" class="form-control">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Notes</label>
+                <textarea name="notes" class="form-control" rows="3" required></textarea>
+              </div>
+              <button type="submit" class="btn btn-warning w-100">Add Maintenance Log</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card">
+          <div class="card-header">
+            <h5>Add New Bus</h5>
+          </div></div>
+        </div>
       </div>
 
       <div class="col-md-4">
