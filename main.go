@@ -1027,7 +1027,7 @@ func removeBus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	saveBuses(newBuses)
-	```text
+	```go
 http.Redirect(w, r, "/fleet", http.StatusFound)
 }
 
