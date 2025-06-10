@@ -1,16 +1,2 @@
-// driver_logs.json
-[
-  {
-    "driver": "Jill",
-    "bus_number": "22",
-    "date": "2025-06-06",
-    "period": "morning",
-    "departure_time": "07:00",
-    "arrival_time": "08:05",
-    "mileage": 14.7,
-    "attendance": [
-      { "position": 1, "present": true, "pickup_time": "07:05" },
-      { "position": 2, "present": false }
-    ]
-  }
-]
+
+[]
