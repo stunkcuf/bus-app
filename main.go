@@ -686,7 +686,6 @@ func assignRoutesPage(w http.ResponseWriter, r *http.Request) {
 	assignments, _ := loadRouteAssignments()
 	routes, _ := loadRoutes()
 	users := loadUsers()
-	buses := loadBuses()
 
 	// Filter drivers only
 	var drivers []User
