@@ -85,22 +85,6 @@ type RouteAssignment struct {
 	AssignedDate string `json:"assigned_date"`
 }
 
-type DriverLog struct {
-	Driver     string `json:"driver"`
-	BusNumber  string `json:"bus_number"`
-	RouteID    string `json:"route_id"`
-	Date       string `json:"date"`
-	Period     string `json:"period"`
-	Departure  string `json:"departure_time"`
-	Arrival    string `json:"arrival_time"`
-	Mileage    float64 `json:"mileage"`
-	Attendance []struct {
-		Position   int    `json:"position"`
-		Present    bool   `json:"present"`
-		PickupTime string `json:"pickup_time,omitempty"`
-	} `json:"attendance"`
-}
-
 type DashboardData struct {
 	User            *User
 	Role            string
@@ -459,10 +443,10 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	//Find the assigned bus
 	for _, b := range buses {
 		if assignedBusNumber != "" && b.BusNumber == assignedBusNumber {
-			assignedBus = b
+			assignedBus = &b
 			break
 		} else if driverLog != nil && b.BusNumber == driverLog.BusNumber {
-			assignedBus = b
+			assignedBus = &b
 			break
 		}
 	}
@@ -617,6 +601,21 @@ func saveDriverLog(w http.ResponseWriter, r *http.Request) {
 
 	logs, _ := loadDriverLogs()
 
+	type DriverLog struct {
+		Driver    string `json:"driver"`
+		BusNumber string `json:"bus_number"`
+		RouteID   string `json:"route_id"`
+		Date      string `json:"date"`
+		Period    string `json:"period"`
+		Departure string `json:"departure_time"`
+		Arrival   string `json:"arrival_time"`
+		Mileage   float64
+		Attendance []struct {
+			Position   int    `json:"position"`
+			Present    bool   `json:"present"`
+			PickupTime string `json:"pickup_time,omitempty"`
+		} `json:"attendance"`
+	}
 	updated := false
 	for i := range logs {
 		if logs[i].Driver == user.Username && logs[i].Date == date && logs[i].Period == period {
@@ -862,7 +861,7 @@ func main() {
 
 	// Create buses.json if it doesn't exist, and seed with some default data.
 	if _, err := os.Stat("data/buses.json"); os.IsNotExist(err) {
-		defaultBuses := []*Bus{
+		buses := []*Bus{
 			{BusNumber: "1", Status: "active", Model: "Ford", Capacity: 20},
 			{BusNumber: "2", Status: "active", Model: "Chevy", Capacity: 25},
 			{BusNumber: "3", Status: "maintenance", Model: "Toyota", Capacity: 15},
@@ -874,7 +873,7 @@ func main() {
 		defer f.Close()
 		enc := json.NewEncoder(f)
 		enc.SetIndent("", "  ") // Pretty print the JSON
-		if err := enc.Encode(defaultBuses); err != nil {
+		if err := enc.Encode(buses); err != nil {
 			log.Fatalf("failed to encode buses to json: %v", err)
 		}
 		log.Println("Created and seeded data/buses.json")
