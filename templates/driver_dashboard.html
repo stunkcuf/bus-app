@@ -7,16 +7,65 @@
 </head>
 <body class="bg-light">
   <div class="container mt-4">
-    <h2 class="mb-3">Driver Dashboard - {{.User.Username}}</h2>
-    <p><strong>Date:</strong> {{.Date}} | <strong>Period:</strong> {{.Period}}</p>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="mb-0">Driver Dashboard - {{.User.Username}}</h2>
+      <div>
+        <a href="/logout" class="btn btn-outline-danger">Logout</a>
+      </div>
+    </div>
+    
+    <div class="row mb-4">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Current Assignment</h5>
+            <p class="card-text">
+              <strong>Date:</strong> {{.Date}}<br>
+              <strong>Period:</strong> {{.Period}}<br>
+              {{if .Route}}<strong>Route:</strong> {{.Route.RouteName}}{{else}}<span class="text-warning">No route assigned</span>{{end}}<br>
+              {{if .Bus}}<strong>Bus:</strong> #{{.Bus.BusNumber}} ({{.Bus.Status}}){{else}}<span class="text-warning">No bus assigned</span>{{end}}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Quick Navigation</h5>
+            <form method="GET" class="mb-2">
+              <div class="row">
+                <div class="col-md-6">
+                  <input type="date" name="date" value="{{.Date}}" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-6">
+                  <select name="period" class="form-select form-select-sm">
+                    <option value="morning" {{if eq .Period "morning"}}selected{{end}}>Morning</option>
+                    <option value="evening" {{if eq .Period "evening"}}selected{{end}}>Evening</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-sm btn-primary mt-2">Change Date/Period</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
 
     {{if .Route}}
     <div class="card p-4">
-      <h4>Bus #{{.Route.BusNumber}} - {{.Route.RouteName}}</h4>
+      <h4>{{if .Bus}}Bus #{{.Bus.BusNumber}}{{else}}Bus #N/A{{end}} - {{.Route.RouteName}}</h4>
+      {{if .Bus}}
+      <div class="alert alert-info mb-3">
+        <strong>Bus Details:</strong> {{.Bus.Model}} | Capacity: {{.Bus.Capacity}} | Status: {{.Bus.Status}}
+        {{if ne .Bus.MaintenanceNotes ""}}
+        <br><strong>Notes:</strong> {{.Bus.MaintenanceNotes}}
+        {{end}}
+      </div>
+      {{end}}
       <form method="POST" action="/save-log">
         <input type="hidden" name="date" value="{{.Date}}">
         <input type="hidden" name="period" value="{{.Period}}">
-        <input type="hidden" name="bus_number" value="{{.Route.BusNumber}}">
+        <input type="hidden" name="bus_number" value="{{if .Bus}}{{.Bus.BusNumber}}{{else}}{{.DriverLog.BusNumber}}{{end}}">
 
         <div class="mb-3">
           <label>Departure Time</label>
@@ -32,36 +81,48 @@
         </div>
 
         <h5 class="mt-4">Attendance & Pickups</h5>
-        <table class="table table-bordered">
-          <thead>
-            <tr>
-              <th>Position</th>
-              <th>Student</th>
-              <th>Present</th>
-              <th>Pickup Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {{range $i, $p := .Route.Positions}}
-            <tr>
-              <td>{{$p.Position}}</td>
-              <td>{{$p.Student}}</td>
-              <td>
-                <input type="checkbox" name="present_{{$p.Position}}" {{range $.DriverLog.Attendance}}{{if and (eq .Position $p.Position) .Present}}checked{{end}}{{end}}>
-              </td>
-              <td>
-                <input type="time" name="pickup_{{$p.Position}}" value="{{range $.DriverLog.Attendance}}{{if eq .Position $p.Position}}{{.PickupTime}}{{end}}{{end}}" class="form-control">
-              </td>
-            </tr>
-            {{end}}
-          </tbody>
-        </table>
+        {{if .Route.Positions}}
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead class="table-dark">
+              <tr>
+                <th>Position</th>
+                <th>Student</th>
+                <th>Present</th>
+                <th>Pickup Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{range $i, $p := .Route.Positions}}
+              <tr>
+                <td><strong>{{$p.Position}}</strong></td>
+                <td>{{$p.Student}}</td>
+                <td class="text-center">
+                  <input type="checkbox" name="present_{{$p.Position}}" class="form-check-input" {{range $.DriverLog.Attendance}}{{if and (eq .Position $p.Position) .Present}}checked{{end}}{{end}}>
+                </td>
+                <td>
+                  <input type="time" name="pickup_{{$p.Position}}" value="{{range $.DriverLog.Attendance}}{{if eq .Position $p.Position}}{{.PickupTime}}{{end}}{{end}}" class="form-control form-control-sm">
+                </td>
+              </tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+        {{else}}
+        <div class="alert alert-warning">No student positions defined for this route.</div>
+        {{end}}
 
         <button type="submit" class="btn btn-primary">💾 Save Log</button>
       </form>
     </div>
     {{else}}
-    <div class="alert alert-warning">No route assigned for this driver.</div>
+    <div class="alert alert-warning">
+      <h5>No Route Assignment Found</h5>
+      <p>You don't have a route assigned for today. Please contact your manager to get a route and bus assignment.</p>
+      {{if .Bus}}
+      <p><strong>Assigned Bus:</strong> #{{.Bus.BusNumber}} ({{.Bus.Status}})</p>
+      {{end}}
+    </div>
     {{end}}
   </div>
 </body>
