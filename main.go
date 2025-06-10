@@ -155,12 +155,27 @@ type StudentData struct {
 	Routes   []Route
 }
 
-var templates = template.Must(template.New("").Funcs(template.FuncMap{
-	"json": func(v interface{}) template.JS {
-		b, _ := json.Marshal(v)
-		return template.JS(b)
-	},
-}).ParseGlob("templates/*.html"))
+var templates *template.Template
+
+func init() {
+	var err error
+	templates, err = template.New("").Funcs(template.FuncMap{
+		"json": func(v interface{}) template.JS {
+			b, err := json.Marshal(v)
+			if err != nil {
+				log.Printf("JSON marshal error: %v", err)
+				return template.JS("{}")
+			}
+			return template.JS(b)
+		},
+	}).ParseGlob("templates/*.html")
+
+	if err != nil {
+		log.Printf("Template parsing failed: %v", err)
+		// Create a fallback template to prevent crashes
+		templates = template.New("fallback")
+	}
+}
 
 func ensureDataFiles() {
 	os.MkdirAll("data", os.ModePerm)
@@ -1012,7 +1027,8 @@ func removeBus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	saveBuses(newBuses)
-	http.Redirect(w, r, "/fleet", http.StatusFound)
+	```text
+http.Redirect(w, r, "/fleet", http.StatusFound)
 }
 
 func saveBuses(buses []*Bus) error {
