@@ -1491,7 +1491,7 @@ func main() {
 	http.HandleFunc("/add-student", withRecovery(addStudent))
 	http.HandleFunc("/edit-student", withRecovery(editStudent))
 	http.HandleFunc("/remove-student", withRecovery(removeStudent))
-	http.HandleFunc("/add-maint", withRecovery(maint))
+	http.HandleFunc("/add-maint", withRecovery(addMaintenanceLog))
 	http.HandleFunc("/logout", withRecovery(logout))
 	
 
