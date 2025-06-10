@@ -1366,6 +1366,12 @@ func loadBuses() []*Bus {
 
 // Initialize data files
 func initDataFiles() {
+	// Ensure data directory exists with proper permissions
+	if err := os.MkdirAll("data", 0755); err != nil {
+		log.Printf("Warning: failed to create data directory: %v", err)
+		return // Don't fatal, let the app continue
+	}
+
 	// Create buses.json if it doesn't exist, and seed with some default data.
 	if _, err := os.Stat("data/buses.json"); os.IsNotExist(err) {
 		defaultBuses := []*Bus{
@@ -1373,15 +1379,17 @@ func initDataFiles() {
 			{BusNumber: "2", Status: "active", Model: "Chevy", Capacity: 25, OilStatus: "due", TireStatus: "good", MaintenanceNotes: "Oil change scheduled"},
 			{BusNumber: "3", Status: "maintenance", Model: "Toyota", Capacity: 15, OilStatus: "good", TireStatus: "worn", MaintenanceNotes: "Brake inspection in progress"},
 		}
-		f, err := os.Create("data/buses.json")
+		f, err := os.OpenFile("data/buses.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
-			log.Fatalf("failed to create buses.json: %v", err)
+			log.Printf("Warning: failed to create buses.json: %v", err)
+			return
 		}
 		defer f.Close()
 		enc := json.NewEncoder(f)
 		enc.SetIndent("", "  ") // Pretty print the JSON
 		if err := enc.Encode(defaultBuses); err != nil {
-			log.Fatalf("failed to encode buses to json: %v", err)
+			log.Printf("Warning: failed to encode buses to json: %v", err)
+			return
 		}
 		log.Println("Created and seeded data/buses.json")
 	}
@@ -1389,15 +1397,17 @@ func initDataFiles() {
 	// Create students.json if it doesn't exist
 	if _, err := os.Stat("data/students.json"); os.IsNotExist(err) {
 		defaultStudents := []Student{}
-		f, err := os.Create("data/students.json")
+		f, err := os.OpenFile("data/students.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
-			log.Fatalf("failed to create students.json: %v", err)
+			log.Printf("Warning: failed to create students.json: %v", err)
+			return
 		}
 		defer f.Close()
 		enc := json.NewEncoder(f)
 		enc.SetIndent("", "  ")
 		if err := enc.Encode(defaultStudents); err != nil {
-			log.Fatalf("failed to encode students to json: %v", err)
+			log.Printf("Warning: failed to encode students to json: %v", err)
+			return
 		}
 		log.Println("Created data/students.json")
 	}
@@ -1422,15 +1432,17 @@ func initDataFiles() {
 				}{{Position: 1, Student: "Charlie"}, {Position: 2, Student: "David"}},
 			},
 		}
-		f, err := os.Create("data/routes.json")
+		f, err := os.OpenFile("data/routes.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
-			log.Fatalf("failed to create routes.json: %v", err)
+			log.Printf("Warning: failed to create routes.json: %v", err)
+			return
 		}
 		defer f.Close()
 		enc := json.NewEncoder(f)
 		enc.SetIndent("", "  ") // Pretty print the JSON
 		if err := enc.Encode(routes); err != nil {
-			log.Fatalf("failed to encode routes to json: %v", err)
+			log.Printf("Warning: failed to encode routes to json: %v", err)
+			return
 		}
 		log.Println("Created and seeded data/routes.json")
 	}
