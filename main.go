@@ -1364,9 +1364,8 @@ func loadBuses() []*Bus {
 	return buses
 }
 
-// maint handles maintenance log operations
-func maint(
-
+// Initialize data files
+func initDataFiles() {
 	// Create buses.json if it doesn't exist, and seed with some default data.
 	if _, err := os.Stat("data/buses.json"); os.IsNotExist(err) {
 		defaultBuses := []*Bus{
@@ -1435,7 +1434,10 @@ func maint(
 		}
 		log.Println("Created and seeded data/routes.json")
 	}
-	w http.ResponseWriter, r *http.Request) {
+}
+
+// maint handles maintenance log operations
+func maint(w http.ResponseWriter, r *http.Request) {
     user := getUserFromSession(r)
     if user == nil || user.Role != "manager" {
         http.Redirect(w, r, "/", http.StatusFound)
@@ -1467,6 +1469,7 @@ func maint(
 
 func main() {
 	ensureDataFiles()
+	initDataFiles()
 
 	http.HandleFunc("/", withRecovery(loginPage))
 	http.HandleFunc("/new-user", withRecovery(newUserPage))
