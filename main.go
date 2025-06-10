@@ -1365,15 +1365,23 @@ func main() {
 
 	// Create routes.json if it doesn't exist, and seed with some default data.
 	if _, err := os.Stat("data/routes.json"); os.IsNotExist(err) {
-		routes := []*Route{
-			{RouteID: "1", RouteName: "Victory Square", Positions: []struct {
-				Position int    `json:"position"`
-				Student  string `json:"student"`
-			}{{Position: 1, Student: "Alice"}, {Position: 2, Student: "Bob"}}},
-			{RouteID: "2", RouteName: "Airportway", Positions: []struct {
-				Position int    `json:"position"`
-				Student  string `json:"student"`
-			}{{Position: 1, Student: "Charlie"}, {Position: 2, Student: "David"}}},
+		routes := []Route{
+			{
+				RouteID: "1", 
+				RouteName: "Victory Square", 
+				Positions: []struct {
+					Position int    `json:"position"`
+					Student  string `json:"student"`
+				}{{Position: 1, Student: "Alice"}, {Position: 2, Student: "Bob"}},
+			},
+			{
+				RouteID: "2", 
+				RouteName: "Airportway", 
+				Positions: []struct {
+					Position int    `json:"position"`
+					Student  string `json:"student"`
+				}{{Position: 1, Student: "Charlie"}, {Position: 2, Student: "David"}},
+			},
 		}
 		f, err := os.Create("data/routes.json")
 		if err != nil {
