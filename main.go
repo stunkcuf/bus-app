@@ -120,6 +120,7 @@ type AssignRouteData struct {
 	Assignments     []RouteAssignment
 	Drivers         []User
 	AvailableRoutes []Route
+	AvailableBuses  []*Bus
 }
 
 type FleetData struct {
@@ -697,6 +698,7 @@ func assignRoutesPage(w http.ResponseWriter, r *http.Request) {
 	assignments, _ := loadRouteAssignments()
 	routes, _ := loadRoutes()
 	users := loadUsers()
+	buses := loadBuses()
 
 	// Filter drivers only
 	var drivers []User
@@ -706,12 +708,17 @@ func assignRoutesPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Find available routes (not assigned)
+	// Find assigned items
 	assignedRouteIDs := make(map[string]bool)
+	assignedBusNumbers := make(map[string]bool)
+	assignedDrivers := make(map[string]bool)
 	for _, a := range assignments {
 		assignedRouteIDs[a.RouteID] = true
+		assignedBusNumbers[a.BusNumber] = true
+		assignedDrivers[a.Driver] = true
 	}
 
+	// Filter available routes (not assigned)
 	var availableRoutes []Route
 	for _, route := range routes {
 		if !assignedRouteIDs[route.RouteID] {
@@ -719,11 +726,28 @@ func assignRoutesPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Filter available buses (active and not assigned)
+	var availableBuses []*Bus
+	for _, bus := range buses {
+		if bus.Status == "active" && !assignedBusNumbers[bus.BusNumber] {
+			availableBuses = append(availableBuses, bus)
+		}
+	}
+
+	// Filter available drivers (not assigned)
+	var availableDrivers []User
+	for _, driver := range drivers {
+		if !assignedDrivers[driver.Username] {
+			availableDrivers = append(availableDrivers, driver)
+		}
+	}
+
 	data := AssignRouteData{
 		User:            user,
 		Assignments:     assignments,
-		Drivers:         drivers,
+		Drivers:         availableDrivers,
 		AvailableRoutes: availableRoutes,
+		AvailableBuses:  availableBuses,
 	}
 
 	templates.ExecuteTemplate(w, "assign_routes.html", data)

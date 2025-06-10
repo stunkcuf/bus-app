@@ -83,7 +83,7 @@
                 <select name="bus_number" class="form-select" required>
                   <option value="">Select Bus</option>
                   {{range .AvailableBuses}}
-                  <option value="{{.BusNumber}}">Bus #{{.BusNumber}}</option>
+                  <option value="{{.BusNumber}}">Bus #{{.BusNumber}} ({{.Status}})</option>
                   {{end}}
                 </select>
               </div>
