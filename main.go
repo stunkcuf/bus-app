@@ -80,6 +80,27 @@ type Bus struct {
 	MaintenanceNotes string `json:"maintenance_notes"`
 }
 
+type Student struct {
+	StudentID       string   `json:"student_id"`
+	Name            string   `json:"name"`
+	Locations       []Location `json:"locations"`
+	PhoneNumber     string   `json:"phone_number"`
+	AltPhoneNumber  string   `json:"alt_phone_number"`
+	Guardian        string   `json:"guardian"`
+	PickupTime      string   `json:"pickup_time"`
+	DropoffTime     string   `json:"dropoff_time"`
+	PositionNumber  int      `json:"position_number"`
+	RouteID         string   `json:"route_id"`
+	Driver          string   `json:"driver"`
+	Active          bool     `json:"active"`
+}
+
+type Location struct {
+	Type        string `json:"type"` // "pickup" or "dropoff"
+	Address     string `json:"address"`
+	Description string `json:"description"`
+}
+
 type RouteAssignment struct {
 	Driver       string `json:"driver"`
 	BusNumber    string `json:"bus_number"`
@@ -126,6 +147,12 @@ type AssignRouteData struct {
 type FleetData struct {
 	User  *User
 	Buses []*Bus
+}
+
+type StudentData struct {
+	User     *User
+	Students []Student
+	Routes   []Route
 }
 
 var templates = template.Must(template.ParseGlob("templates/*.html"))
@@ -994,6 +1021,245 @@ func saveBuses(buses []*Bus) error {
 	return enc.Encode(buses)
 }
 
+func loadStudents() []Student {
+	f, err := os.Open("data/students.json")
+	if err != nil {
+		return []Student{}
+	}
+	defer f.Close()
+	var students []Student
+	json.NewDecoder(f).Decode(&students)
+	return students
+}
+
+func saveStudents(students []Student) error {
+	f, err := os.Create("data/students.json")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	return enc.Encode(students)
+}
+
+func studentsPage(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "driver" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	students := loadStudents()
+	routes, _ := loadRoutes()
+	
+	// Filter students for this driver
+	var driverStudents []Student
+	for _, s := range students {
+		if s.Driver == user.Username {
+			driverStudents = append(driverStudents, s)
+		}
+	}
+
+	data := StudentData{
+		User:     user,
+		Students: driverStudents,
+		Routes:   routes,
+	}
+
+	templates.ExecuteTemplate(w, "students.html", data)
+}
+
+func addStudent(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "driver" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	name := r.FormValue("name")
+	phoneNumber := r.FormValue("phone_number")
+	altPhoneNumber := r.FormValue("alt_phone_number")
+	guardian := r.FormValue("guardian")
+	pickupTime := r.FormValue("pickup_time")
+	dropoffTime := r.FormValue("dropoff_time")
+	positionNumber, _ := strconv.Atoi(r.FormValue("position_number"))
+	routeID := r.FormValue("route_id")
+
+	// Parse locations
+	var locations []Location
+	pickupAddresses := r.Form["pickup_address"]
+	pickupDescriptions := r.Form["pickup_description"]
+	dropoffAddresses := r.Form["dropoff_address"]
+	dropoffDescriptions := r.Form["dropoff_description"]
+
+	for i, addr := range pickupAddresses {
+		if addr != "" {
+			desc := ""
+			if i < len(pickupDescriptions) {
+				desc = pickupDescriptions[i]
+			}
+			locations = append(locations, Location{
+				Type:        "pickup",
+				Address:     addr,
+				Description: desc,
+			})
+		}
+	}
+
+	for i, addr := range dropoffAddresses {
+		if addr != "" {
+			desc := ""
+			if i < len(dropoffDescriptions) {
+				desc = dropoffDescriptions[i]
+			}
+			locations = append(locations, Location{
+				Type:        "dropoff",
+				Address:     addr,
+				Description: desc,
+			})
+		}
+	}
+
+	students := loadStudents()
+	
+	// Generate student ID
+	studentID := fmt.Sprintf("STU_%d", len(students)+1)
+
+	newStudent := Student{
+		StudentID:      studentID,
+		Name:           name,
+		Locations:      locations,
+		PhoneNumber:    phoneNumber,
+		AltPhoneNumber: altPhoneNumber,
+		Guardian:       guardian,
+		PickupTime:     pickupTime,
+		DropoffTime:    dropoffTime,
+		PositionNumber: positionNumber,
+		RouteID:        routeID,
+		Driver:         user.Username,
+		Active:         true,
+	}
+
+	students = append(students, newStudent)
+	saveStudents(students)
+	http.Redirect(w, r, "/students", http.StatusFound)
+}
+
+func editStudent(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "driver" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	studentID := r.FormValue("student_id")
+	name := r.FormValue("name")
+	phoneNumber := r.FormValue("phone_number")
+	altPhoneNumber := r.FormValue("alt_phone_number")
+	guardian := r.FormValue("guardian")
+	pickupTime := r.FormValue("pickup_time")
+	dropoffTime := r.FormValue("dropoff_time")
+	positionNumber, _ := strconv.Atoi(r.FormValue("position_number"))
+	routeID := r.FormValue("route_id")
+	active := r.FormValue("active") == "on"
+
+	// Parse locations
+	var locations []Location
+	pickupAddresses := r.Form["pickup_address"]
+	pickupDescriptions := r.Form["pickup_description"]
+	dropoffAddresses := r.Form["dropoff_address"]
+	dropoffDescriptions := r.Form["dropoff_description"]
+
+	for i, addr := range pickupAddresses {
+		if addr != "" {
+			desc := ""
+			if i < len(pickupDescriptions) {
+				desc = pickupDescriptions[i]
+			}
+			locations = append(locations, Location{
+				Type:        "pickup",
+				Address:     addr,
+				Description: desc,
+			})
+		}
+	}
+
+	for i, addr := range dropoffAddresses {
+		if addr != "" {
+			desc := ""
+			if i < len(dropoffDescriptions) {
+				desc = dropoffDescriptions[i]
+			}
+			locations = append(locations, Location{
+				Type:        "dropoff",
+				Address:     addr,
+				Description: desc,
+			})
+		}
+	}
+
+	students := loadStudents()
+	
+	for i, s := range students {
+		if s.StudentID == studentID && s.Driver == user.Username {
+			students[i].Name = name
+			students[i].Locations = locations
+			students[i].PhoneNumber = phoneNumber
+			students[i].AltPhoneNumber = altPhoneNumber
+			students[i].Guardian = guardian
+			students[i].PickupTime = pickupTime
+			students[i].DropoffTime = dropoffTime
+			students[i].PositionNumber = positionNumber
+			students[i].RouteID = routeID
+			students[i].Active = active
+			break
+		}
+	}
+
+	saveStudents(students)
+	http.Redirect(w, r, "/students", http.StatusFound)
+}
+
+func removeStudent(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "driver" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	studentID := r.FormValue("student_id")
+
+	students := loadStudents()
+	var newStudents []Student
+	for _, s := range students {
+		if !(s.StudentID == studentID && s.Driver == user.Username) {
+			newStudents = append(newStudents, s)
+		}
+	}
+
+	saveStudents(newStudents)
+	http.Redirect(w, r, "/students", http.StatusFound)
+}
+
 func logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{Name: "session_user", Value: "", MaxAge: -1, Path: "/"})
 	http.Redirect(w, r, "/", http.StatusFound)
@@ -1055,6 +1321,22 @@ func main() {
 		log.Println("Created and seeded data/buses.json")
 	}
 
+	// Create students.json if it doesn't exist
+	if _, err := os.Stat("data/students.json"); os.IsNotExist(err) {
+		defaultStudents := []Student{}
+		f, err := os.Create("data/students.json")
+		if err != nil {
+			log.Fatalf("failed to create students.json: %v", err)
+		}
+		defer f.Close()
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(defaultStudents); err != nil {
+			log.Fatalf("failed to encode students to json: %v", err)
+		}
+		log.Println("Created data/students.json")
+	}
+
 	// Create routes.json if it doesn't exist, and seed with some default data.
 	if _, err := os.Stat("data/routes.json"); os.IsNotExist(err) {
 		routes := []*Route{
@@ -1096,6 +1378,10 @@ func main() {
 	http.HandleFunc("/webhook", withRecovery(handleWebhook))
 	http.HandleFunc("/pull", withRecovery(runPullHandler))
 	http.HandleFunc("/save-log", withRecovery(saveDriverLog))
+	http.HandleFunc("/students", withRecovery(studentsPage))
+	http.HandleFunc("/add-student", withRecovery(addStudent))
+	http.HandleFunc("/edit-student", withRecovery(editStudent))
+	http.HandleFunc("/remove-student", withRecovery(removeStudent))
 	http.HandleFunc("/logout", withRecovery(logout))
 
 	port := os.Getenv("PORT")
