@@ -1688,29 +1688,12 @@ func withRecovery(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Printf("Recovered from panic in handler %s %s: %v", r.Method, r.URL.Path, err)
-				
-				// Set headers to prevent caching of error responses
-				w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-				w.Header().Set("Pragma", "no-cache")
-				w.Header().Set("Expires", "0")
-				
-				if !isResponseWritten(w) {
-					http.Error(w, "Internal server error", http.StatusInternalServerError)
-				}
+				log.Printf("Recovered from panic in handler: %v", err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
 			}
 		}()
-		
-		// Log the request for debugging
-		log.Printf("Handling request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
 		h(w, r)
 	}
-}
-
-// Helper to check if response has been written
-func isResponseWritten(w http.ResponseWriter) bool {
-	// This is a simple check - in production you might want a more sophisticated approach
-	return false
 }
 
 // Migration helper functions to convert from old structure to new ID-based structure
@@ -2089,29 +2072,6 @@ func initDataFiles() {
 	}
 }
 
-// Add health check endpoint
-func healthCheck(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"healthy","timestamp":"` + time.Now().Format(time.RFC3339) + `"}`))
-}
-
-// Add CORS headers to prevent cross-origin issues
-func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		
-		next(w, r)
-	}
-}
-
 func main() {
 	// Ensure basic data files exist
 	ensureDataFiles()
@@ -2125,30 +2085,29 @@ func main() {
 	// Initialize data files with proper structure
 	initDataFiles()
 
-	// Setup HTTP routes with recovery and CORS middleware
-	http.HandleFunc("/health", corsMiddleware(withRecovery(healthCheck)))
-	http.HandleFunc("/", corsMiddleware(withRecovery(loginPage)))
-	http.HandleFunc("/new-user", corsMiddleware(withRecovery(newUserPage)))
-	http.HandleFunc("/dashboard", corsMiddleware(withRecovery(dashboardRouter)))
-	http.HandleFunc("/manager-dashboard", corsMiddleware(withRecovery(managerDashboard)))
-	http.HandleFunc("/driver-dashboard", corsMiddleware(withRecovery(driverDashboard)))
-	http.HandleFunc("/driver/", corsMiddleware(withRecovery(driverProfileHandler)))
-	http.HandleFunc("/assign-routes", corsMiddleware(withRecovery(assignRoutesPage)))
-	http.HandleFunc("/assign-route", corsMiddleware(withRecovery(assignRoute)))
-	http.HandleFunc("/unassign-route", corsMiddleware(withRecovery(unassignRoute)))
-	http.HandleFunc("/fleet", corsMiddleware(withRecovery(fleetPage)))
-	http.HandleFunc("/add-bus", corsMiddleware(withRecovery(addBus)))
-	http.HandleFunc("/edit-bus", corsMiddleware(withRecovery(editBus)))
-	http.HandleFunc("/remove-bus", corsMiddleware(withRecovery(removeBus)))
-	http.HandleFunc("/webhook", corsMiddleware(withRecovery(handleWebhook)))
-	http.HandleFunc("/pull", corsMiddleware(withRecovery(runPullHandler)))
-	http.HandleFunc("/save-log", corsMiddleware(withRecovery(saveDriverLog)))
-	http.HandleFunc("/students", corsMiddleware(withRecovery(studentsPage)))
-	http.HandleFunc("/add-student", corsMiddleware(withRecovery(addStudent)))
-	http.HandleFunc("/edit-student", corsMiddleware(withRecovery(editStudent)))
-	http.HandleFunc("/remove-student", corsMiddleware(withRecovery(removeStudent)))
-	http.HandleFunc("/add-maint", corsMiddleware(withRecovery(addMaintenanceLog)))
-	http.HandleFunc("/logout", corsMiddleware(withRecovery(logout)))
+	// Setup HTTP routes with recovery middleware
+	http.HandleFunc("/", withRecovery(loginPage))
+	http.HandleFunc("/new-user", withRecovery(newUserPage))
+	http.HandleFunc("/dashboard", withRecovery(dashboardRouter))
+	http.HandleFunc("/manager-dashboard", withRecovery(managerDashboard))
+	http.HandleFunc("/driver-dashboard", withRecovery(driverDashboard))
+	http.HandleFunc("/driver/", withRecovery(driverProfileHandler))
+	http.HandleFunc("/assign-routes", withRecovery(assignRoutesPage))
+	http.HandleFunc("/assign-route", withRecovery(assignRoute))
+	http.HandleFunc("/unassign-route", withRecovery(unassignRoute))
+	http.HandleFunc("/fleet", withRecovery(fleetPage))
+	http.HandleFunc("/add-bus", withRecovery(addBus))
+	http.HandleFunc("/edit-bus", withRecovery(editBus))
+	http.HandleFunc("/remove-bus", withRecovery(removeBus))
+	http.HandleFunc("/webhook", withRecovery(handleWebhook))
+	http.HandleFunc("/pull", withRecovery(runPullHandler))
+	http.HandleFunc("/save-log", withRecovery(saveDriverLog))
+	http.HandleFunc("/students", withRecovery(studentsPage))
+	http.HandleFunc("/add-student", withRecovery(addStudent))
+	http.HandleFunc("/edit-student", withRecovery(editStudent))
+	http.HandleFunc("/remove-student", withRecovery(removeStudent))
+	http.HandleFunc("/add-maint", withRecovery(addMaintenanceLog))
+	http.HandleFunc("/logout", withRecovery(logout))
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -2160,20 +2119,13 @@ func main() {
 		Handler:      nil,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  120 * time.Second, // Increased for better connection handling
+		IdleTimeout:  60 * time.Second,
 	}
 
 	log.Printf("Server starting on port %s with ID-based data structure", port)
 	log.Printf("Data structure: BusID, RouteID, StudentID for consistent identification")
-	log.Printf("Health check available at /health")
 	
-	// Graceful shutdown handling
-	go func() {
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server failed to start: %v", err)
-		}
-	}()
-	
-	// Keep the server running
-	select {}
+	if err := server.ListenAndServe(); err != nil {
+		log.Fatalf("Server failed to start: %v", err)
+	}
 }
