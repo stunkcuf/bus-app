@@ -71,10 +71,13 @@ type Route struct {
 }
 
 type Bus struct {
-	BusNumber string `json:"bus_number"`
-	Status    string `json:"status"` // active, maintenance, out_of_service
-	Model     string `json:"model"`
-	Capacity  int    `json:"capacity"`
+	BusNumber        string `json:"bus_number"`
+	Status           string `json:"status"` // active, maintenance, out_of_service
+	Model            string `json:"model"`
+	Capacity         int    `json:"capacity"`
+	OilStatus        string `json:"oil_status"`        // good, due, overdue
+	TireStatus       string `json:"tire_status"`       // good, worn, replace
+	MaintenanceNotes string `json:"maintenance_notes"`
 }
 
 type RouteAssignment struct {
@@ -117,6 +120,11 @@ type AssignRouteData struct {
 	Assignments     []RouteAssignment
 	Drivers         []User
 	AvailableRoutes []Route
+}
+
+type FleetData struct {
+	User  *User
+	Buses []*Bus
 }
 
 var templates = template.Must(template.ParseGlob("templates/*.html"))
@@ -821,6 +829,147 @@ func unassignRoute(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/assign-routes", http.StatusFound)
 }
 
+func fleetPage(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	buses := loadBuses()
+	data := FleetData{
+		User:  user,
+		Buses: buses,
+	}
+
+	templates.ExecuteTemplate(w, "fleet.html", data)
+}
+
+func addBus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	busNumber := r.FormValue("bus_number")
+	status := r.FormValue("status")
+	model := r.FormValue("model")
+	capacity, _ := strconv.Atoi(r.FormValue("capacity"))
+	oilStatus := r.FormValue("oil_status")
+	tireStatus := r.FormValue("tire_status")
+	maintenanceNotes := r.FormValue("maintenance_notes")
+
+	buses := loadBuses()
+	
+	// Check if bus number already exists
+	for _, b := range buses {
+		if b.BusNumber == busNumber {
+			http.Redirect(w, r, "/fleet", http.StatusFound)
+			return
+		}
+	}
+
+	newBus := &Bus{
+		BusNumber:        busNumber,
+		Status:           status,
+		Model:            model,
+		Capacity:         capacity,
+		OilStatus:        oilStatus,
+		TireStatus:       tireStatus,
+		MaintenanceNotes: maintenanceNotes,
+	}
+
+	buses = append(buses, newBus)
+	saveBuses(buses)
+	http.Redirect(w, r, "/fleet", http.StatusFound)
+}
+
+func editBus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	originalBusNumber := r.FormValue("original_bus_number")
+	busNumber := r.FormValue("bus_number")
+	status := r.FormValue("status")
+	model := r.FormValue("model")
+	capacity, _ := strconv.Atoi(r.FormValue("capacity"))
+	oilStatus := r.FormValue("oil_status")
+	tireStatus := r.FormValue("tire_status")
+	maintenanceNotes := r.FormValue("maintenance_notes")
+
+	buses := loadBuses()
+	
+	for i, b := range buses {
+		if b.BusNumber == originalBusNumber {
+			buses[i].BusNumber = busNumber
+			buses[i].Status = status
+			buses[i].Model = model
+			buses[i].Capacity = capacity
+			buses[i].OilStatus = oilStatus
+			buses[i].TireStatus = tireStatus
+			buses[i].MaintenanceNotes = maintenanceNotes
+			break
+		}
+	}
+
+	saveBuses(buses)
+	http.Redirect(w, r, "/fleet", http.StatusFound)
+}
+
+func removeBus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	busNumber := r.FormValue("bus_number")
+
+	buses := loadBuses()
+	var newBuses []*Bus
+	for _, b := range buses {
+		if b.BusNumber != busNumber {
+			newBuses = append(newBuses, b)
+		}
+	}
+
+	saveBuses(newBuses)
+	http.Redirect(w, r, "/fleet", http.StatusFound)
+}
+
+func saveBuses(buses []*Bus) error {
+	f, err := os.Create("data/buses.json")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	return enc.Encode(buses)
+}
+
 func logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{Name: "session_user", Value: "", MaxAge: -1, Path: "/"})
 	http.Redirect(w, r, "/", http.StatusFound)
@@ -865,9 +1014,9 @@ func main() {
 	// Create buses.json if it doesn't exist, and seed with some default data.
 	if _, err := os.Stat("data/buses.json"); os.IsNotExist(err) {
 		defaultBuses := []*Bus{
-			{BusNumber: "1", Status: "active", Model: "Ford", Capacity: 20},
-			{BusNumber: "2", Status: "active", Model: "Chevy", Capacity: 25},
-			{BusNumber: "3", Status: "maintenance", Model: "Toyota", Capacity: 15},
+			{BusNumber: "1", Status: "active", Model: "Ford", Capacity: 20, OilStatus: "good", TireStatus: "good", MaintenanceNotes: ""},
+			{BusNumber: "2", Status: "active", Model: "Chevy", Capacity: 25, OilStatus: "due", TireStatus: "good", MaintenanceNotes: "Oil change scheduled"},
+			{BusNumber: "3", Status: "maintenance", Model: "Toyota", Capacity: 15, OilStatus: "good", TireStatus: "worn", MaintenanceNotes: "Brake inspection in progress"},
 		}
 		f, err := os.Create("data/buses.json")
 		if err != nil {
@@ -916,6 +1065,10 @@ func main() {
 	http.HandleFunc("/assign-routes", withRecovery(assignRoutesPage))
 	http.HandleFunc("/assign-route", withRecovery(assignRoute))
 	http.HandleFunc("/unassign-route", withRecovery(unassignRoute))
+	http.HandleFunc("/fleet", withRecovery(fleetPage))
+	http.HandleFunc("/add-bus", withRecovery(addBus))
+	http.HandleFunc("/edit-bus", withRecovery(editBus))
+	http.HandleFunc("/remove-bus", withRecovery(removeBus))
 	http.HandleFunc("/webhook", withRecovery(handleWebhook))
 	http.HandleFunc("/pull", withRecovery(runPullHandler))
 	http.HandleFunc("/save-log", withRecovery(saveDriverLog))
