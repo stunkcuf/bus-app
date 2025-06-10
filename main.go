@@ -86,6 +86,13 @@ type DriverLog struct {
 	} `json:"attendance"`
 }
 
+type RouteAssignment struct {
+	Driver    string `json:"driver"`
+	BusNumber string `json:"bus_number"`
+	RouteName string `json:"route_name"`
+	AssignedDate string `json:"assigned_date"`
+}
+
 type DashboardData struct {
 	User            *User
 	Role            string
@@ -96,6 +103,13 @@ type DashboardData struct {
 	Users           []User
 }
 
+type AssignRouteData struct {
+	User            *User
+	Assignments     []RouteAssignment
+	Drivers         []User
+	AvailableRoutes []Route
+}
+
 var templates = template.Must(template.ParseGlob("templates/*.html"))
 
 func ensureDataFiles() {
@@ -104,6 +118,11 @@ func ensureDataFiles() {
 		defaultUsers := []User{{"admin", "adminpass", "manager"}}
 		f, _ := os.Create("data/users.json")
 		json.NewEncoder(f).Encode(defaultUsers)
+		f.Close()
+	}
+	if _, err := os.Stat("data/route_assignments.json"); os.IsNotExist(err) {
+		f, _ := os.Create("data/route_assignments.json")
+		json.NewEncoder(f).Encode([]RouteAssignment{})
 		f.Close()
 	}
 }
@@ -136,6 +155,19 @@ func loadJSON[T any](filename string) ([]T, error) {
 	var data []T
 	err = json.NewDecoder(f).Decode(&data)
 	return data, err
+}
+
+func loadRouteAssignments() ([]RouteAssignment, error) {
+	return loadJSON[RouteAssignment]("data/route_assignments.json")
+}
+
+func saveRouteAssignments(assignments []RouteAssignment) error {
+	f, err := os.Create("data/route_assignments.json")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return json.NewEncoder(f).Encode(assignments)
 }
 
 func newUserPage(w http.ResponseWriter, r *http.Request) {
@@ -370,6 +402,7 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 
 	routes, _ := loadRoutes()
 	logs, _ := loadDriverLogs()
+	assignments, _ := loadRouteAssignments()
 
 	var driverLog *DriverLog
 	for _, log := range logs {
@@ -388,8 +421,22 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var driverRoute *Route
+	
+	// First check if driver has an assigned route
+	var assignedBusNumber string
+	for _, a := range assignments {
+		if a.Driver == user.Username {
+			assignedBusNumber = a.BusNumber
+			break
+		}
+	}
+
+	// Find the route for the assigned bus or from existing log
 	for _, r := range routes {
-		if driverLog != nil && r.BusNumber == driverLog.BusNumber {
+		if assignedBusNumber != "" && r.BusNumber == assignedBusNumber {
+			driverRoute = &r
+			break
+		} else if driverLog != nil && r.BusNumber == driverLog.BusNumber {
 			driverRoute = &r
 			break
 		}
@@ -590,6 +637,145 @@ func dashboardRouter(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func assignRoutesPage(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	assignments, _ := loadRouteAssignments()
+	routes, _ := loadRoutes()
+	users := loadUsers()
+
+	// Filter drivers only
+	var drivers []User
+	for _, u := range users {
+		if u.Role == "driver" {
+			drivers = append(drivers, u)
+		}
+	}
+
+	// Find available routes (not assigned)
+	assignedBuses := make(map[string]bool)
+	for _, a := range assignments {
+		assignedBuses[a.BusNumber] = true
+	}
+
+	var availableRoutes []Route
+	for _, r := range routes {
+		if !assignedBuses[r.BusNumber] {
+			availableRoutes = append(availableRoutes, r)
+		}
+	}
+
+	data := AssignRouteData{
+		User:            user,
+		Assignments:     assignments,
+		Drivers:         drivers,
+		AvailableRoutes: availableRoutes,
+	}
+
+	templates.ExecuteTemplate(w, "assign_routes.html", data)
+}
+
+func assignRoute(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	driver := r.FormValue("driver")
+	busNumber := r.FormValue("bus_number")
+
+	if driver == "" || busNumber == "" {
+		http.Redirect(w, r, "/assign-routes", http.StatusFound)
+		return
+	}
+
+	// Find route name
+	routes, _ := loadRoutes()
+	var routeName string
+	for _, rt := range routes {
+		if rt.BusNumber == busNumber {
+			routeName = rt.RouteName
+			break
+		}
+	}
+
+	assignments, _ := loadRouteAssignments()
+	
+	// Check if driver already has an assignment
+	for i, a := range assignments {
+		if a.Driver == driver {
+			// Update existing assignment
+			assignments[i].BusNumber = busNumber
+			assignments[i].RouteName = routeName
+			assignments[i].AssignedDate = time.Now().Format("2006-01-02")
+			saveRouteAssignments(assignments)
+			http.Redirect(w, r, "/assign-routes", http.StatusFound)
+			return
+		}
+	}
+
+	// Check if bus is already assigned
+	for _, a := range assignments {
+		if a.BusNumber == busNumber {
+			http.Redirect(w, r, "/assign-routes", http.StatusFound)
+			return
+		}
+	}
+
+	// Add new assignment
+	newAssignment := RouteAssignment{
+		Driver:       driver,
+		BusNumber:    busNumber,
+		RouteName:    routeName,
+		AssignedDate: time.Now().Format("2006-01-02"),
+	}
+
+	assignments = append(assignments, newAssignment)
+	saveRouteAssignments(assignments)
+	http.Redirect(w, r, "/assign-routes", http.StatusFound)
+}
+
+func unassignRoute(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	driver := r.FormValue("driver")
+	busNumber := r.FormValue("bus_number")
+
+	assignments, _ := loadRouteAssignments()
+	
+	// Remove assignment
+	var newAssignments []RouteAssignment
+	for _, a := range assignments {
+		if !(a.Driver == driver && a.BusNumber == busNumber) {
+			newAssignments = append(newAssignments, a)
+		}
+	}
+
+	saveRouteAssignments(newAssignments)
+	http.Redirect(w, r, "/assign-routes", http.StatusFound)
+}
+
 func logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{Name: "session_user", Value: "", MaxAge: -1, Path: "/"})
 	http.Redirect(w, r, "/", http.StatusFound)
@@ -615,6 +801,9 @@ func main() {
 	http.HandleFunc("/manager-dashboard", withRecovery(managerDashboard))
 	http.HandleFunc("/driver-dashboard", withRecovery(driverDashboard))
 	http.HandleFunc("/driver/", withRecovery(driverProfileHandler))
+	http.HandleFunc("/assign-routes", withRecovery(assignRoutesPage))
+	http.HandleFunc("/assign-route", withRecovery(assignRoute))
+	http.HandleFunc("/unassign-route", withRecovery(unassignRoute))
 	http.HandleFunc("/webhook", withRecovery(handleWebhook))
 	http.HandleFunc("/pull", withRecovery(runPullHandler))
 	http.HandleFunc("/save-log", withRecovery(saveDriverLog))
