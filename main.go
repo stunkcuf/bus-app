@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
 	git "github.com/go-git/go-git/v5"
@@ -164,6 +165,9 @@ type StudentData struct {
 	Routes   []Route
 }
 
+//go:embed templates/*.html
+var tmplFS embed.FS
+
 var templates *template.Template
 
 func init() {
@@ -177,7 +181,7 @@ func init() {
 			}
 			return template.JS(b)
 		},
-	}).ParseGlob("templates/*.html")
+	}).ParseFS(tmplFS, "templates/*.html")
 
 	if err != nil {
 		log.Printf("Template parsing failed: %v", err)
