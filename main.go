@@ -109,6 +109,7 @@ type DashboardData struct {
 	Activities      []Activity
 	Routes          []Route
 	Users           []User
+	Buses           []*Bus
 }
 
 type AssignRouteData struct {
@@ -231,6 +232,7 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 	activities, _ := loadJSON[Activity]("data/activities.json")
 	users := loadUsers()
 	routes, _ := loadRoutes()
+	buses := loadBuses()
 
 	// Filtered active routes
 	activeRouteNames := map[string]bool{
@@ -356,6 +358,7 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 		Activities:      activities,
 		Routes:          filteredRoutes, // ✅ Only active routes passed to template
 		Users:           users,
+		Buses:           buses,
 	}
 
 	templates.ExecuteTemplate(w, "dashboard.html", data)

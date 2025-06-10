@@ -23,6 +23,18 @@
         <a href="/new-user" class="btn btn-success w-100 mb-2">+ Create New User</a>
         <a href="/assign-routes" class="btn btn-primary w-100 mb-4">Assign Routes</a>
 
+        <h5 class="mb-3">Fleet</h5>
+        <ul class="list-group mb-4">
+          {{range .Buses}}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            Bus #{{.BusNumber}}
+            <span class="badge {{if eq .Status "active"}}bg-success{{else if eq .Status "maintenance"}}bg-warning{{else}}bg-secondary{{end}}">
+              {{.Status}}
+            </span>
+          </li>
+          {{end}}
+        </ul>
+
         <h5 class="mb-3">Active Routes</h5>
         <ul class="list-group">
           {{range .RouteStats}}
