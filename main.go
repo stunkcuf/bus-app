@@ -1394,6 +1394,30 @@ func main() {
 			log.Fatalf("failed to encode routes to json: %v", err)
 		}
 		log.Println("Created and seeded data/routes.json")
+	}json:"position"`
+					Student  string `json:"student"`
+				}{{Position: 1, Student: "Alice"}, {Position: 2, Student: "Bob"}},
+			},
+			{
+				RouteID: "2", 
+				RouteName: "Airportway", 
+				Positions: []struct {
+					Position int    `json:"position"`
+					Student  string `json:"student"`
+				}{{Position: 1, Student: "Charlie"}, {Position: 2, Student: "David"}},
+			},
+		}
+		f, err := os.Create("data/routes.json")
+		if err != nil {
+			log.Fatalf("failed to create routes.json: %v", err)
+		}
+		defer f.Close()
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ") // Pretty print the JSON
+		if err := enc.Encode(routes); err != nil {
+			log.Fatalf("failed to encode routes to json: %v", err)
+		}
+		log.Println("Created and seeded data/routes.json")
 	}
 
 	http.HandleFunc("/", withRecovery(loginPage))
