@@ -9,7 +9,7 @@
 <body class="bg-light">
   <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 class="mb-0">Assign Routes to Drivers</h2>
+      <h2 class="mb-0">Assign Routes & Buses to Drivers</h2>
       <div>
         <a href="/manager-dashboard" class="btn btn-secondary me-2">Back to Dashboard</a>
         <a href="/logout" class="btn btn-outline-danger">Logout</a>
@@ -20,7 +20,7 @@
       <div class="col-md-6">
         <div class="card">
           <div class="card-header">
-            <h5>Current Route Assignments</h5>
+            <h5>Current Assignments</h5>
           </div>
           <div class="card-body">
             <table class="table table-sm">
@@ -56,7 +56,7 @@
       <div class="col-md-6">
         <div class="card">
           <div class="card-header">
-            <h5>Assign New Route</h5>
+            <h5>Create New Assignment</h5>
           </div>
           <div class="card-body">
             <form method="POST" action="/assign-route">
@@ -70,32 +70,41 @@
                 </select>
               </div>
               <div class="mb-3">
-                <label class="form-label">Route & Bus</label>
-                <select name="bus_number" class="form-select" required>
+                <label class="form-label">Route</label>
+                <select name="route_id" class="form-select" required>
                   <option value="">Select Route</option>
                   {{range .AvailableRoutes}}
-                  <option value="{{.BusNumber}}">Bus #{{.BusNumber}} - {{.RouteName}}</option>
+                  <option value="{{.RouteID}}">{{.RouteName}}</option>
                   {{end}}
                 </select>
               </div>
-              <button type="submit" class="btn btn-primary">Assign Route</button>
+              <div class="mb-3">
+                <label class="form-label">Bus</label>
+                <select name="bus_number" class="form-select" required>
+                  <option value="">Select Bus</option>
+                  {{range .AvailableBuses}}
+                  <option value="{{.BusNumber}}">Bus #{{.BusNumber}}</option>
+                  {{end}}
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary">Assign</button>
             </form>
           </div>
         </div>
 
         <div class="card mt-3">
           <div class="card-header">
-            <h5>Unassigned Routes</h5>
+            <h5>Available Buses</h5>
           </div>
           <div class="card-body">
-            {{if .AvailableRoutes}}
+            {{if .AvailableBuses}}
             <ul class="list-group list-group-flush">
-              {{range .AvailableRoutes}}
-              <li class="list-group-item">Bus #{{.BusNumber}} - {{.RouteName}}</li>
+              {{range .AvailableBuses}}
+              <li class="list-group-item">Bus #{{.BusNumber}} - {{.Status}}</li>
               {{end}}
             </ul>
             {{else}}
-            <p class="text-muted">All routes are currently assigned.</p>
+            <p class="text-muted">All buses are currently assigned.</p>
             {{end}}
           </div>
         </div>

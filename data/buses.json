@@ -1,0 +1,9 @@
+
+[
+  {"bus_number": "60", "status": "active", "model": "", "capacity": 0},
+  {"bus_number": "52", "status": "active", "model": "", "capacity": 0},
+  {"bus_number": "59", "status": "active", "model": "", "capacity": 0},
+  {"bus_number": "58", "status": "active", "model": "", "capacity": 0},
+  {"bus_number": "25", "status": "active", "model": "", "capacity": 0},
+  {"bus_number": "23", "status": "active", "model": "", "capacity": 0}
+]

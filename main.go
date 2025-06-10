@@ -2,17 +2,16 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	git "github.com/go-git/go-git/v5"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
+	"os/exec" //run start.sh
+	"strconv"  // add to importblock
 	"strings"
 	"time"
-	"os/exec"  //run start.sh 
-	"strconv" // add to importblock
-	"fmt"
-
-	git "github.com/go-git/go-git/v5"
 )
 
 type User struct {
@@ -63,7 +62,7 @@ type RouteStats struct {
 }
 
 type Route struct {
-	BusNumber string `json:"bus_number"`
+	RouteID   string `json:"route_id"`
 	RouteName string `json:"route_name"`
 	Positions []struct {
 		Position int    `json:"position"`
@@ -71,25 +70,18 @@ type Route struct {
 	} `json:"positions"`
 }
 
-type DriverLog struct {
-	Driver    string `json:"driver"`
+type Bus struct {
 	BusNumber string `json:"bus_number"`
-	Date      string `json:"date"`
-	Period    string `json:"period"`
-	Departure string `json:"departure_time"`
-	Arrival   string `json:"arrival_time"`
-	Mileage   float64
-	Attendance []struct {
-		Position   int    `json:"position"`
-		Present    bool   `json:"present"`
-		PickupTime string `json:"pickup_time,omitempty"`
-	} `json:"attendance"`
+	Status    string `json:"status"` // active, maintenance, out_of_service
+	Model     string `json:"model"`
+	Capacity  int    `json:"capacity"`
 }
 
 type RouteAssignment struct {
-	Driver    string `json:"driver"`
-	BusNumber string `json:"bus_number"`
-	RouteName string `json:"route_name"`
+	Driver       string `json:"driver"`
+	BusNumber    string `json:"bus_number"`
+	RouteID      string `json:"route_id"`
+	RouteName    string `json:"route_name"`
 	AssignedDate string `json:"assigned_date"`
 }
 
@@ -353,7 +345,6 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 	templates.ExecuteTemplate(w, "dashboard.html", data)
 }
 
-
 func driverProfileHandler(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimPrefix(r.URL.Path, "/driver/")
 	user := getUserFromSession(r)
@@ -418,26 +409,44 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 		Period    string
 		Route     *Route
 		DriverLog *DriverLog
+		Bus       *Bus // Include bus information
 	}
 
 	var driverRoute *Route
-	
+	var assignedBus *Bus
+
 	// First check if driver has an assigned route
 	var assignedBusNumber string
+	var assignedRouteID string
 	for _, a := range assignments {
 		if a.Driver == user.Username {
 			assignedBusNumber = a.BusNumber
+			assignedRouteID = a.RouteID
 			break
 		}
 	}
 
+	// Load all buses
+	buses := loadBuses()
+
 	// Find the route for the assigned bus or from existing log
 	for _, r := range routes {
-		if assignedBusNumber != "" && r.BusNumber == assignedBusNumber {
+		if assignedRouteID != "" && r.RouteID == assignedRouteID {
 			driverRoute = &r
 			break
-		} else if driverLog != nil && r.BusNumber == driverLog.BusNumber {
+		} else if driverLog != nil && r.RouteID == driverLog.RouteID {
 			driverRoute = &r
+			break
+		}
+	}
+
+	//Find the assigned bus
+	for _, b := range buses {
+		if assignedBusNumber != "" && b.BusNumber == assignedBusNumber {
+			assignedBus = &b
+			break
+		} else if driverLog != nil && b.BusNumber == driverLog.BusNumber {
+			assignedBus = &b
 			break
 		}
 	}
@@ -448,10 +457,11 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 		Period:    period,
 		Route:     driverRoute,
 		DriverLog: driverLog,
+		Bus:       assignedBus, // Pass the bus data
 	}
 
 	if driverRoute == nil && driverLog != nil {
-		log.Printf("Warning: No route found for bus number %s", driverLog.BusNumber)
+		log.Printf("Warning: No route found for route ID %s", driverLog.RouteID)
 	}
 
 	templates.ExecuteTemplate(w, "driver_dashboard.html", data)
@@ -566,8 +576,9 @@ func saveDriverLog(w http.ResponseWriter, r *http.Request) {
 		Position int    `json:"position"`
 		Student  string `json:"student"`
 	}
+	var routeID string
 	for _, rt := range routes {
-		if rt.BusNumber == busNumber {
+		if rt.RouteID == routeID {
 			positions = rt.Positions
 			break
 		}
@@ -589,6 +600,22 @@ func saveDriverLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logs, _ := loadDriverLogs()
+
+	type DriverLog struct {
+		Driver    string `json:"driver"`
+		BusNumber string `json:"bus_number"`
+		RouteID   string `json:"route_id"`
+		Date      string `json:"date"`
+		Period    string `json:"period"`
+		Departure string `json:"departure_time"`
+		Arrival   string `json:"arrival_time"`
+		Mileage   float64
+		Attendance []struct {
+			Position   int    `json:"position"`
+			Present    bool   `json:"present"`
+			PickupTime string `json:"pickup_time,omitempty"`
+		} `json:"attendance"`
+	}
 	updated := false
 	for i := range logs {
 		if logs[i].Driver == user.Username && logs[i].Date == date && logs[i].Period == period {
@@ -602,9 +629,20 @@ func saveDriverLog(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if !updated {
+		//need to find route id based on bus number from assignment
+		assignments, _ := loadRouteAssignments()
+		var routeID string
+		for _, assignment := range assignments {
+			if assignment.BusNumber == busNumber && assignment.Driver == user.Username {
+				routeID = assignment.RouteID
+				break
+			}
+		}
+
 		logs = append(logs, DriverLog{
 			Driver:     user.Username,
 			BusNumber:  busNumber,
+			RouteID:    routeID,
 			Date:       date,
 			Period:     period,
 			Departure:  departure,
@@ -647,6 +685,7 @@ func assignRoutesPage(w http.ResponseWriter, r *http.Request) {
 	assignments, _ := loadRouteAssignments()
 	routes, _ := loadRoutes()
 	users := loadUsers()
+	buses := loadBuses()
 
 	// Filter drivers only
 	var drivers []User
@@ -657,15 +696,15 @@ func assignRoutesPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Find available routes (not assigned)
-	assignedBuses := make(map[string]bool)
+	assignedRouteIDs := make(map[string]bool)
 	for _, a := range assignments {
-		assignedBuses[a.BusNumber] = true
+		assignedRouteIDs[a.RouteID] = true
 	}
 
 	var availableRoutes []Route
-	for _, r := range routes {
-		if !assignedBuses[r.BusNumber] {
-			availableRoutes = append(availableRoutes, r)
+	for _, route := range routes {
+		if !assignedRouteIDs[route.RouteID] {
+			availableRoutes = append(availableRoutes, route)
 		}
 	}
 
@@ -694,8 +733,9 @@ func assignRoute(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	driver := r.FormValue("driver")
 	busNumber := r.FormValue("bus_number")
+	routeID := r.FormValue("route_id")
 
-	if driver == "" || busNumber == "" {
+	if driver == "" || busNumber == "" || routeID == "" {
 		http.Redirect(w, r, "/assign-routes", http.StatusFound)
 		return
 	}
@@ -704,19 +744,20 @@ func assignRoute(w http.ResponseWriter, r *http.Request) {
 	routes, _ := loadRoutes()
 	var routeName string
 	for _, rt := range routes {
-		if rt.BusNumber == busNumber {
+		if rt.RouteID == routeID {
 			routeName = rt.RouteName
 			break
 		}
 	}
 
 	assignments, _ := loadRouteAssignments()
-	
+
 	// Check if driver already has an assignment
 	for i, a := range assignments {
 		if a.Driver == driver {
 			// Update existing assignment
 			assignments[i].BusNumber = busNumber
+			assignments[i].RouteID = routeID
 			assignments[i].RouteName = routeName
 			assignments[i].AssignedDate = time.Now().Format("2006-01-02")
 			saveRouteAssignments(assignments)
@@ -725,9 +766,9 @@ func assignRoute(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Check if bus is already assigned
+	// Check if route is already assigned
 	for _, a := range assignments {
-		if a.BusNumber == busNumber {
+		if a.RouteID == routeID {
 			http.Redirect(w, r, "/assign-routes", http.StatusFound)
 			return
 		}
@@ -737,6 +778,7 @@ func assignRoute(w http.ResponseWriter, r *http.Request) {
 	newAssignment := RouteAssignment{
 		Driver:       driver,
 		BusNumber:    busNumber,
+		RouteID:      routeID,
 		RouteName:    routeName,
 		AssignedDate: time.Now().Format("2006-01-02"),
 	}
@@ -763,7 +805,7 @@ func unassignRoute(w http.ResponseWriter, r *http.Request) {
 	busNumber := r.FormValue("bus_number")
 
 	assignments, _ := loadRouteAssignments()
-	
+
 	// Remove assignment
 	var newAssignments []RouteAssignment
 	for _, a := range assignments {
@@ -793,8 +835,75 @@ func withRecovery(h http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// Load buses from json file
+func loadBuses() []*Bus {
+	f, err := os.Open("data/buses.json")
+	if err != nil {
+		// Handle error appropriately, e.g., log it and return an empty slice
+		log.Printf("Error opening buses.json: %v", err)
+		return []*Bus{} // Return an empty slice to avoid nil pointer dereference
+	}
+	defer f.Close()
+
+	var buses []*Bus
+	decoder := json.NewDecoder(f)
+	if err := decoder.Decode(&buses); err != nil {
+		// Handle decode error
+		log.Printf("Error decoding buses.json: %v", err)
+		return []*Bus{} // Return an empty slice
+	}
+
+	return buses
+}
+
 func main() {
 	ensureDataFiles()
+
+	// Create buses.json if it doesn't exist, and seed with some default data.
+	if _, err := os.Stat("data/buses.json"); os.IsNotExist(err) {
+		buses := []*Bus{
+			{BusNumber: "1", Status: "active", Model: "Ford", Capacity: 20},
+			{BusNumber: "2", Status: "active", Model: "Chevy", Capacity: 25},
+			{BusNumber: "3", Status: "maintenance", Model: "Toyota", Capacity: 15},
+		}
+		f, err := os.Create("data/buses.json")
+		if err != nil {
+			log.Fatalf("failed to create buses.json: %v", err)
+		}
+		defer f.Close()
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ") // Pretty print the JSON
+		if err := enc.Encode(buses); err != nil {
+			log.Fatalf("failed to encode buses to json: %v", err)
+		}
+		log.Println("Created and seeded data/buses.json")
+	}
+
+	// Create routes.json if it doesn't exist, and seed with some default data.
+	if _, err := os.Stat("data/routes.json"); os.IsNotExist(err) {
+		routes := []*Route{
+			{RouteID: "1", RouteName: "Victory Square", Positions: []struct {
+				Position int    `json:"position"`
+				Student  string `json:"student"`
+			}{{Position: 1, Student: "Alice"}, {Position: 2, Student: "Bob"}}},
+			{RouteID: "2", RouteName: "Airportway", Positions: []struct {
+				Position int    `json:"position"`
+				Student  string `json:"student"`
+			}{{Position: 1, Student: "Charlie"}, {Position: 2, Student: "David"}}},
+		}
+		f, err := os.Create("data/routes.json")
+		if err != nil {
+			log.Fatalf("failed to create routes.json: %v", err)
+		}
+		defer f.Close()
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ") // Pretty print the JSON
+		if err := enc.Encode(routes); err != nil {
+			log.Fatalf("failed to encode routes to json: %v", err)
+		}
+		log.Println("Created and seeded data/routes.json")
+	}
+
 	http.HandleFunc("/", withRecovery(loginPage))
 	http.HandleFunc("/new-user", withRecovery(newUserPage))
 	http.HandleFunc("/dashboard", withRecovery(dashboardRouter))
@@ -808,7 +917,6 @@ func main() {
 	http.HandleFunc("/pull", withRecovery(runPullHandler))
 	http.HandleFunc("/save-log", withRecovery(saveDriverLog))
 	http.HandleFunc("/logout", withRecovery(logout))
-
 
 	port := os.Getenv("PORT")
 	if port == "" {
