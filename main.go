@@ -1,4 +1,3 @@
-// Added error handling to prevent template panics.
 package main
 
 import (
@@ -81,17 +80,6 @@ type Bus struct {
 	MaintenanceNotes string `json:"maintenance_notes"`
 }
 
-type MaintenanceLog struct {
-	LogID       string `json:"log_id"`
-	BusNumber   string `json:"bus_number"`
-	Date        string `json:"date"`
-	Type        string `json:"type"` // maintenance, repair, inspection, issue
-	Description string `json:"description"`
-	Cost        float64 `json:"cost"`
-	TechnicianName string `json:"technician_name"`
-	Status      string `json:"status"` // pending, completed, cancelled
-}
-
 type Student struct {
 	StudentID       string   `json:"student_id"`
 	Name            string   `json:"name"`
@@ -157,9 +145,8 @@ type AssignRouteData struct {
 }
 
 type FleetData struct {
-	User            *User
-	Buses           []*Bus
-	MaintenanceLogs []MaintenanceLog
+	User  *User
+	Buses []*Bus
 }
 
 type StudentData struct {
@@ -168,25 +155,12 @@ type StudentData struct {
 	Routes   []Route
 }
 
-var templates *template.Template
-
-func init() {
-	var err error
-	templates, err = template.New("").Funcs(template.FuncMap{
-		"json": func(v interface{}) template.JS {
-			b, err := json.Marshal(v)
-			if err != nil {
-				log.Printf("JSON marshal error: %v", err)
-				return template.JS("{}")
-			}
-			return template.JS(b)
-		},
-	}).ParseGlob("templates/*.html")
-
-	if err != nil {
-		log.Fatalf("Template parsing failed: %v", err)
-	}
-}
+var templates = template.Must(template.New("").Funcs(template.FuncMap{
+	"json": func(v interface{}) template.JS {
+		b, _ := json.Marshal(v)
+		return template.JS(b)
+	},
+}).ParseGlob("templates/*.html"))
 
 func ensureDataFiles() {
 	os.MkdirAll("data", os.ModePerm)
@@ -919,11 +893,9 @@ func fleetPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	buses := loadBuses()
-	maintenanceLogs := loadMaintenanceLogs()
 	data := FleetData{
-		User:            user,
-		Buses:           buses,
-		MaintenanceLogs: maintenanceLogs,
+		User:  user,
+		Buses: buses,
 	}
 
 	templates.ExecuteTemplate(w, "fleet.html", data)
@@ -1293,47 +1265,6 @@ func removeStudent(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/students", http.StatusFound)
 }
 
-func addMaintenanceLog(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	r.ParseForm()
-	busNumber := r.FormValue("bus_number")
-	logType := r.FormValue("type")
-	description := r.FormValue("description")
-	cost, _ := strconv.ParseFloat(r.FormValue("cost"), 64)
-	technicianName := r.FormValue("technician_name")
-	status := r.FormValue("status")
-
-	logs := loadMaintenanceLogs()
-
-	// Generate log ID
-	logID := fmt.Sprintf("LOG_%d", len(logs)+1)
-
-	newLog := MaintenanceLog{
-		LogID:          logID,
-		BusNumber:      busNumber,
-		Date:           time.Now().Format("2006-01-02"),
-		Type:           logType,
-		Description:    description,
-		Cost:           cost,
-		TechnicianName: technicianName,
-		Status:         status,
-	}
-
-	logs = append(logs, newLog)
-	saveMaintenanceLogs(logs)
-	http.Redirect(w, r, "/fleet", http.StatusFound)
-}
-
 func logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{Name: "session_user", Value: "", MaxAge: -1, Path: "/"})
 	http.Redirect(w, r, "/", http.StatusFound)
@@ -1370,35 +1301,6 @@ func loadBuses() []*Bus {
 	}
 
 	return buses
-}
-
-func loadMaintenanceLogs() []MaintenanceLog {
-	f, err := os.Open("data/maintenance_logs.json")
-	if err != nil {
-		log.Printf("Error opening maintenance_logs.json: %v", err)
-		return []MaintenanceLog{}
-	}
-	defer f.Close()
-
-	var logs []MaintenanceLog
-	decoder := json.NewDecoder(f)
-	if err := decoder.Decode(&logs); err != nil {
-		log.Printf("Error decoding maintenance_logs.json: %v", err)
-		return []MaintenanceLog{}
-	}
-
-	return logs
-}
-
-func saveMaintenanceLogs(logs []MaintenanceLog) error {
-	f, err := os.Create("data/maintenance_logs.json")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(logs)
 }
 
 func main() {
@@ -1438,22 +1340,6 @@ func main() {
 			log.Fatalf("failed to encode students to json: %v", err)
 		}
 		log.Println("Created data/students.json")
-	}
-
-	// Create maintenance_logs.json if it doesn't exist
-	if _, err := os.Stat("data/maintenance_logs.json"); os.IsNotExist(err) {
-		defaultLogs := []MaintenanceLog{}
-		f, err := os.Create("data/maintenance_logs.json")
-		if err != nil {
-			log.Fatalf("failed to create maintenance_logs.json: %v", err)
-		}
-		defer f.Close()
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(defaultLogs); err != nil {
-			log.Fatalf("failed to encode maintenance logs to json: %v", err)
-		}
-		log.Println("Created data/maintenance_logs.json")
 	}
 
 	// Create routes.json if it doesn't exist, and seed with some default data.
@@ -1501,7 +1387,6 @@ func main() {
 	http.HandleFunc("/add-student", withRecovery(addStudent))
 	http.HandleFunc("/edit-student", withRecovery(editStudent))
 	http.HandleFunc("/remove-student", withRecovery(removeStudent))
-	http.HandleFunc("/add-maintenance-log", withRecovery(addMaintenanceLog))
 	http.HandleFunc("/logout", withRecovery(logout))
 
 	port := os.Getenv("PORT")
