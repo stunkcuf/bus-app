@@ -156,9 +156,9 @@ type StudentData struct {
 }
 
 var templates = template.Must(template.New("").Funcs(template.FuncMap{
-	"json": func(v interface{}) string {
+	"json": func(v interface{}) template.JS {
 		b, _ := json.Marshal(v)
-		return string(b)
+		return template.JS(b)
 	},
 }).ParseGlob("templates/*.html"))
 
@@ -923,7 +923,7 @@ func addBus(w http.ResponseWriter, r *http.Request) {
 	maintenanceNotes := r.FormValue("maintenance_notes")
 
 	buses := loadBuses()
-	
+
 	// Check if bus number already exists
 	for _, b := range buses {
 		if b.BusNumber == busNumber {
@@ -970,7 +970,7 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 	maintenanceNotes := r.FormValue("maintenance_notes")
 
 	buses := loadBuses()
-	
+
 	for i, b := range buses {
 		if b.BusNumber == originalBusNumber {
 			buses[i].BusNumber = busNumber
@@ -1024,8 +1024,7 @@ func saveBuses(buses []*Bus) error {
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
 	return enc.Encode(buses)
-}
-
+}```go
 func loadStudents() []Student {
 	f, err := os.Open("data/students.json")
 	if err != nil {
@@ -1057,7 +1056,7 @@ func studentsPage(w http.ResponseWriter, r *http.Request) {
 
 	students := loadStudents()
 	routes, _ := loadRoutes()
-	
+
 	// Filter students for this driver
 	var driverStudents []Student
 	for _, s := range students {
@@ -1133,7 +1132,7 @@ func addStudent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	students := loadStudents()
-	
+
 	// Generate student ID
 	studentID := fmt.Sprintf("STU_%d", len(students)+1)
 
@@ -1217,7 +1216,7 @@ func editStudent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	students := loadStudents()
-	
+
 	for i, s := range students {
 		if s.StudentID == studentID && s.Driver == user.Username {
 			students[i].Name = name
