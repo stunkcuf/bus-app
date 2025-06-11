@@ -7,6 +7,9 @@
     "base": "ENTERPRISE",
     "license": "sc06498",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "2",
@@ -16,6 +19,9 @@
     "base": "HERMISTON 1 & II",
     "license": "E178705",
     "tire_size": "LT225/75R16"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "4",
@@ -25,6 +31,9 @@
     "base": "HERMISTON BUS BARN",
     "license": "E178706",
     "tire_size": "LT225/75R16"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "6",
@@ -34,6 +43,9 @@
     "base": "PENDLETON   (spare)",
     "license": "E175134",
     "tire_size": "LT225/75R16"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "7",
@@ -43,6 +55,9 @@
     "base": "JOHN DAY",
     "license": "E178720",
     "tire_size": "LT225/75R16"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "8",
@@ -52,6 +67,9 @@
     "base": "HERMISTON I & II",
     "license": "E178707",
     "tire_size": "LT225/75R16"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "11",
@@ -61,6 +79,9 @@
     "base": "UMATILLA",
     "license": "E187286",
     "tire_size": "LT225/75R16"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "12",
@@ -70,6 +91,9 @@
     "base": "MILTON FREEWATER",
     "license": "E192396",
     "tire_size": "LT225/75R16"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "13",
@@ -79,6 +103,9 @@
     "base": "VICTORY SQUARE",
     "license": "E207393",
     "tire_size": "LT235/80R225"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "1",
@@ -88,6 +115,9 @@
     "base": "nan",
     "license": "E163676",
     "tire_size": "LT235/85R16"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "23",
@@ -97,6 +127,9 @@
     "base": "JOHN DAY",
     "license": "SC08643",
     "tire_size": "225/75R 16"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "24",
@@ -106,6 +139,9 @@
     "base": "BOARDMAN",
     "license": "SC 09099",
     "tire_size": "nan"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "25",
@@ -115,6 +151,9 @@
     "base": "UMATILLA",
     "license": "SC 09100",
     "tire_size": "nan"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "61",
@@ -124,6 +163,9 @@
     "base": "CATHT WAMSLEY - HERMISTON",
     "license": "SC08159",
     "tire_size": "nan"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "26",
@@ -133,6 +175,9 @@
     "base": "JOHN DAY",
     "license": "",
     "tire_size": "nan"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "52",
@@ -142,6 +187,9 @@
     "base": "UMATILLA",
     "license": "",
     "tire_size": "nan"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "58",
@@ -151,6 +199,9 @@
     "base": "UMATILLA",
     "license": "",
     "tire_size": "nan"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "59",
@@ -160,6 +211,9 @@
     "base": "BOARDMAN",
     "license": "",
     "tire_size": "nan"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "60",
@@ -169,6 +223,9 @@
     "base": "AIRPORT WAY- HERMISTON",
     "license": "",
     "tire_size": "nan"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "GRN VAN",
@@ -178,6 +235,9 @@
     "base": "BUS BARN",
     "license": "E182876",
     "tire_size": "205/75R14"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "GRAY",
@@ -187,6 +247,9 @@
     "base": "MAIN OFFICE",
     "license": "092JZP",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "Dodge PU",
@@ -196,6 +259,9 @@
     "base": "BUS BARN",
     "license": "776GHU",
     "tire_size": "265/70/R17"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "red",
@@ -205,6 +271,9 @@
     "base": "PINE TREE",
     "license": "",
     "tire_size": "P215/70R 17"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "GREY",
@@ -214,6 +283,9 @@
     "base": "MAIN OFFICE",
     "license": "488BWK",
     "tire_size": "195x60Rx15     studs: 185x60Rx15"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "BLACK",
@@ -223,6 +295,9 @@
     "base": "MAIN OFFICE",
     "license": "928FMH",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "WHITE",
@@ -232,6 +307,9 @@
     "base": "VICTORY SQUARE",
     "license": "021JBH",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "GREY",
@@ -241,6 +319,9 @@
     "base": "HCSR",
     "license": "017JBH",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "WHITE",
@@ -250,6 +331,9 @@
     "base": "CONDON",
     "license": "nan",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "SLATE",
@@ -259,6 +343,9 @@
     "base": "NELC",
     "license": "659 KGF",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "BROWN",
@@ -268,6 +355,9 @@
     "base": "PENDLETON",
     "license": "832 KKF",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "GRAY",
@@ -277,6 +367,9 @@
     "base": "LA GRANDE",
     "license": "287CWE",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "DARK BLUE/AQUA",
@@ -286,6 +379,9 @@
     "base": "ENTERPRISE",
     "license": "nan",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "WHITE",
@@ -295,6 +391,9 @@
     "base": "HCSR",
     "license": "291MDQ",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "WHITE",
@@ -304,6 +403,9 @@
     "base": "BUS BARN",
     "license": "996HGL",
     "tire_size": "nan"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "SILVER",
@@ -313,6 +415,9 @@
     "base": "BAKER",
     "license": "778 LBD",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "BLACK",
@@ -322,6 +427,9 @@
     "base": "HCSR",
     "license": "833GWL",
     "tire_size": "nan"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "SILVER",
@@ -331,6 +439,9 @@
     "base": "PELC",
     "license": "494 MPJ",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "SILVER",
@@ -340,6 +451,9 @@
     "base": "HCSR",
     "license": "504 MPJ",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "SILVER",
@@ -349,6 +463,9 @@
     "base": "HCSR",
     "license": "518 MPJ",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "SILVER",
@@ -358,6 +475,9 @@
     "base": "NELC",
     "license": "499 MPJ",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "CHARCOAL",
@@ -367,6 +487,9 @@
     "base": "MAIN OFFICE- WIC",
     "license": "375 MCZ",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "SILVER VAN",
@@ -376,6 +499,9 @@
     "base": "MILTON FREEWATER",
     "license": "270GWL",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "red",
@@ -385,6 +511,9 @@
     "base": "HCSR",
     "license": "090JQY",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "RED",
@@ -394,6 +523,9 @@
     "base": "PELC",
     "license": "355AKZ",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "GOLD",
@@ -403,6 +535,9 @@
     "base": "WALLOWA",
     "license": "231EGK",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "HIGHLANDER",
@@ -412,6 +547,9 @@
     "base": "WIC",
     "license": "SILVER",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "SILVER",
@@ -421,6 +559,9 @@
     "base": "HCSR",
     "license": "nan",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "SILVER",
@@ -430,6 +571,9 @@
     "base": "MILTON- FREEWATER",
     "license": "nan",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "PEARL- WHITE",
@@ -439,6 +583,9 @@
     "base": "MAIN OFFICE",
     "license": "nan",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "CELESTIAL BLUE",
@@ -448,6 +595,9 @@
     "base": "MAIN OFFICE",
     "license": "285 MWN",
     "tire_size": "195/65 R15XL"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "CELESTIAL BLUE",
@@ -457,6 +607,9 @@
     "base": "MAIN OFFICE",
     "license": "nan",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "GRAY",
@@ -466,6 +619,9 @@
     "base": "MAIN OFFICE- CEO",
     "license": "813 NQK",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "GRAY",
@@ -475,6 +631,9 @@
     "base": "AOC",
     "license": "971 PDE",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "BLACK",
@@ -484,6 +643,9 @@
     "base": "HCDC",
     "license": "402 NWC",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "WHITE",
@@ -493,6 +655,9 @@
     "base": "AOC",
     "license": "977 NZZ",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "SILVER",
@@ -502,6 +667,9 @@
     "base": "MAIN OFFICE- WIC",
     "license": "542 NRR",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "WHITE",
@@ -511,6 +679,9 @@
     "base": "JOHN DAY",
     "license": "178 NTR",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "BLUE",
@@ -520,6 +691,9 @@
     "base": "AWDC",
     "license": "608 NVZ",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "WHITE",
@@ -529,6 +703,9 @@
     "base": "MAIN OFFICE",
     "license": "958 NUQ",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "WINDCHILL",
@@ -538,6 +715,9 @@
     "base": "MAIN OFFICE",
     "license": "221 NWF",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "GRAY",
@@ -547,6 +727,9 @@
     "base": "AOC",
     "license": "173 PDK",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "BLACK",
@@ -556,6 +739,9 @@
     "base": "BUS BARN",
     "license": "nan",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "WHITE",
@@ -565,6 +751,9 @@
     "base": "MAIN OFFICE",
     "license": "E225602",
     "tire_size": "195/60R15"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "nan",
@@ -574,6 +763,9 @@
     "base": "nan",
     "license": "nan",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "CHARCOAL",
@@ -583,6 +775,9 @@
     "base": "HERMISTON CDC",
     "license": "403EJM",
     "tire_size": "PINE TREE"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "white",
@@ -592,6 +787,9 @@
     "base": "WIC",
     "license": "680EET",
     "tire_size": "studs:"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "SILVER",
@@ -601,6 +799,9 @@
     "base": "JOHN DAY",
     "license": "E214380",
     "tire_size": "P225/75R-15"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "SILVER VAN",
@@ -610,6 +811,9 @@
     "base": "HERMISTON MAIN OFFICE",
     "license": "E223113",
     "tire_size": "P215/70R15"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "WHITE",
@@ -619,6 +823,9 @@
     "base": "HCSR",
     "license": "944FMH",
     "tire_size": ""
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "BLU VAN",
@@ -628,6 +835,9 @@
     "base": "MILTON FREEWATER",
     "license": "E197335",
     "tire_size": "195/75R-14"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "IRIS VAN",
@@ -637,6 +847,9 @@
     "base": "PENDLETON",
     "license": "E207360",
     "tire_size": "P215/65R15"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "01 PICKUP",
@@ -646,6 +859,9 @@
     "base": "HERMISTON MAIN OFFICE",
     "license": "E214974",
     "tire_size": "LT225/75R16"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "SILVER BULLET",
@@ -655,6 +871,9 @@
     "base": "HIGHLAND HOUSE",
     "license": "E225609",
     "tire_size": "LT235/75R16"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "WHITE",
@@ -664,6 +883,9 @@
     "base": "PENDLETON",
     "license": "E225603",
     "tire_size": "P185/70R14"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "SILVER",
@@ -673,6 +895,9 @@
     "base": "MAIN OFFICE",
     "license": "E212981",
     "tire_size": "P225/70R15"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "RED",
@@ -682,6 +907,9 @@
     "base": "PINE TREE",
     "license": "605 CYP",
     "tire_size": "studs:"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   },
   {
     "vehicle_id": "SILVER",
@@ -691,5 +919,8 @@
     "base": "MAIN OFFICE",
     "license": "E228130",
     "tire_size": "195/60R15"
+    "status": "active"
+    "oil_status": "good"
+    "tire_status": "good"
   }
 ]
