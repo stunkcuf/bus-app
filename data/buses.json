@@ -1,7 +1,7 @@
 [
   {
     "bus_id": "60",
-    "status": "out_of_service",
+    "status": "active",
     "model": "",
     "capacity": 0,
     "oil_status": "good",
