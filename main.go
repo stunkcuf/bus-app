@@ -88,7 +88,7 @@ type Vehicle struct {
 	Model            string `json:"model"`
 	Description      string `json:"description"`
 	Year             string `json:"year"`
-	Capacity         int    `json:"capacity"`
+	TireSize         string `json:"tire_size"`
 	License          string `json:"license"`
 	OilStatus        string `json:"oil_status"`
 	TireStatus       string `json:"tire_status"`
