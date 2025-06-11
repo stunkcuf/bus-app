@@ -94,7 +94,7 @@ func (os *ObjectStorage) FileExists(filename string) bool {
 }
 
 // Migrate local JSON file to Object Storage
-func (os *ObjectStorage) MigrateFromLocal(localPath, objectName string) error {
+func (objStore *ObjectStorage) MigrateFromLocal(localPath, objectName string) error {
 	// Check if local file exists
 	if _, err := os.Stat(localPath); os.IsNotExist(err) {
 		log.Printf("Local file %s does not exist, skipping migration", localPath)
@@ -102,7 +102,7 @@ func (os *ObjectStorage) MigrateFromLocal(localPath, objectName string) error {
 	}
 	
 	// Check if object already exists in storage
-	if os.FileExists(objectName) {
+	if objStore.FileExists(objectName) {
 		log.Printf("Object %s already exists in storage, skipping migration", objectName)
 		return nil
 	}
@@ -114,8 +114,8 @@ func (os *ObjectStorage) MigrateFromLocal(localPath, objectName string) error {
 	}
 	
 	// Upload to Object Storage
-	obj := os.client.Bucket(os.bucketName).Object(objectName)
-	w := obj.NewWriter(os.ctx)
+	obj := objStore.client.Bucket(objStore.bucketName).Object(objectName)
+	w := obj.NewWriter(objStore.ctx)
 	defer w.Close()
 	
 	if _, err := w.Write(data); err != nil {
@@ -127,8 +127,8 @@ func (os *ObjectStorage) MigrateFromLocal(localPath, objectName string) error {
 }
 
 // Close the storage client
-func (os *ObjectStorage) Close() error {
-	return os.client.Close()
+func (objStore *ObjectStorage) Close() error {
+	return objStore.client.Close()
 }
 
 // Global storage instance
