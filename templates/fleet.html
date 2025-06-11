@@ -347,6 +347,16 @@
       const formData = new FormData(this);
       const originalBusId = formData.get('original_bus_id');
 
+      // Debug: Log form data
+      console.log('Form submission - original_bus_id:', originalBusId);
+      console.log('Form data:', Object.fromEntries(formData.entries()));
+
+      // Validate that original_bus_id is not empty
+      if (!originalBusId || originalBusId.trim() === '') {
+        alert('Error: Bus ID is missing. Please try again.');
+        return;
+      }
+
       try {
         const response = await fetch('/edit-bus', {
           method: 'POST',
