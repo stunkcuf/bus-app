@@ -39,7 +39,7 @@
               <tbody>
                 {{range .Buses}}
                 <tr>
-                  <td>{{.BusNumber}}</td>
+                  <td>{{.BusID}}</td>
                   <td>
                     <span class="badge {{if eq .Status "active"}}bg-success{{else if eq .Status "maintenance"}}bg-warning{{else}}bg-secondary{{end}}">
                       {{.Status}}
@@ -60,11 +60,11 @@
                   <td>{{if .MaintenanceNotes}}{{.MaintenanceNotes}}{{else}}None{{end}}</td>
                   <td>
                     <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editBusModal" 
-                            onclick="editBus('{{.BusNumber}}', '{{.Status}}', '{{.Model}}', {{.Capacity}}, '{{.OilStatus}}', '{{.TireStatus}}', '{{.MaintenanceNotes}}')">
+                            onclick="editBus('{{.BusID}}', '{{.Status}}', '{{.Model}}', {{.Capacity}}, '{{.OilStatus}}', '{{.TireStatus}}', '{{.MaintenanceNotes}}')">
                       Edit
                     </button>
                     <form method="POST" action="/remove-bus" style="display: inline;" class="ms-1">
-                      <input type="hidden" name="bus_id" value="{{.BusNumber}}">
+                      <input type="hidden" name="bus_id" value="{{.BusID}}">
                       <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to remove this bus?')">Remove</button>
                     </form>
                   </td>
@@ -87,7 +87,7 @@
                 <select name="bus_id" class="form-select" required>
                   <option value="">Select Bus</option>
                   {{range .Buses}}
-                  <option value="{{.BusNumber}}">Bus #{{.BusNumber}} ({{.Model}})</option>
+                  <option value="{{.BusID}}">Bus #{{.BusID}} ({{.Model}})</option>
                   {{end}}
                 </select>
               </div>

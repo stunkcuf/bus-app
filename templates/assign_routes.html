@@ -36,12 +36,12 @@
                 {{range .Assignments}}
                 <tr>
                   <td>{{.Driver}}</td>
-                  <td>{{.BusNumber}}</td>
+                  <td>{{.BusID}}</td>
                   <td>{{.RouteName}}</td>
                   <td>
                     <form method="POST" action="/unassign-route" style="display: inline;">
                       <input type="hidden" name="driver" value="{{.Driver}}">
-                      <input type="hidden" name="bus_id" value="{{.BusNumber}}">
+                      <input type="hidden" name="bus_id" value="{{.BusID}}">
                       <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
                     </form>
                   </td>
@@ -83,7 +83,7 @@
                 <select name="bus_id" class="form-select" required>
                   <option value="">Select Bus</option>
                   {{range .AvailableBuses}}
-                  <option value="{{.BusNumber}}">Bus #{{.BusNumber}} ({{.Status}})</option>
+                  <option value="{{.BusID}}">Bus #{{.BusID}} ({{.Status}})</option>
                   {{end}}
                 </select>
               </div>
@@ -100,7 +100,7 @@
             {{if .AvailableBuses}}
             <ul class="list-group list-group-flush">
               {{range .AvailableBuses}}
-              <li class="list-group-item">Bus #{{.BusNumber}} - {{.Status}}</li>
+              <li class="list-group-item">Bus #{{.BusID}} - {{.Status}}</li>
               {{end}}
             </ul>
             {{else}}
