@@ -1,3 +1,4 @@
+
 package main
 
 import (
@@ -2263,18 +2264,7 @@ func main() {
 	// Initialize data files with proper structure
 	initDataFiles()
 
-	// Initialize Object Storage if environment variables are set
-	bucketName := os.Getenv("REPLIT_OBJECT_STORAGE_BUCKET")
-	if bucketName != "" {
-		log.Println("Object Storage environment variables detected, initializing...")
-		if err := initObjectStorage(); err != nil {
-			log.Printf("Object Storage initialization failed, using local files: %v", err)
-		} else {
-			log.Println("Object Storage initialized successfully")
-		}
-	} else {
-		log.Println("Object Storage not configured, using local files")
-	}
+	log.Println("Using local file storage only")
 
 	// Setup HTTP routes with recovery middleware
 	http.HandleFunc("/", withRecovery(loginPage))
