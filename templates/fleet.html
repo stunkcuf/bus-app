@@ -344,6 +344,13 @@
     document.getElementById('editBusForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
+      // Double-check that original_bus_id is set before creating FormData
+      const originalBusIdField = document.getElementById('editOriginalBusId');
+      if (!originalBusIdField.value || originalBusIdField.value.trim() === '') {
+        alert('Error: Bus ID is missing. Please close the modal and try again.');
+        return;
+      }
+
       const formData = new FormData(this);
       const originalBusId = formData.get('original_bus_id');
 
@@ -351,7 +358,7 @@
       console.log('Form submission - original_bus_id:', originalBusId);
       console.log('Form data:', Object.fromEntries(formData.entries()));
 
-      // Validate that original_bus_id is not empty
+      // Final validation
       if (!originalBusId || originalBusId.trim() === '') {
         alert('Error: Bus ID is missing. Please try again.');
         return;
