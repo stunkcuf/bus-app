@@ -1607,7 +1607,25 @@ func companyFleetPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	vehicles := loadVehicles()
+	// Load buses and convert to Vehicle format for display
+	buses := loadBuses()
+	var vehicles []Vehicle
+	for _, bus := range buses {
+		vehicle := Vehicle{
+			VehicleID:        bus.BusID,
+			Model:            bus.Model,
+			Description:      "Bus",
+			Year:             0, // Bus struct doesn't have year
+			Capacity:         bus.Capacity,
+			License:          "", // Bus struct doesn't have license
+			OilStatus:        bus.OilStatus,
+			TireStatus:       bus.TireStatus,
+			Status:           bus.Status,
+			MaintenanceNotes: bus.MaintenanceNotes,
+		}
+		vehicles = append(vehicles, vehicle)
+	}
+
 	data := CompanyFleetData{
 		User:     user,
 		Vehicles: vehicles,
