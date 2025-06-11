@@ -558,12 +558,30 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 				s.MonthlyAvgMiles += log.Mileage
 			}
 
-			// Find route name for route stats
+			// Find route name for route stats - handle different ID formats
 			var routeName string
 			for _, r := range routes {
+				// Try exact match first
 				if r.RouteID == log.RouteID {
 					routeName = r.RouteName
 					break
+				}
+				// Also try matching numeric IDs (in case assignment uses "1" but route uses "1")
+				if log.RouteID == r.RouteID {
+					routeName = r.RouteName
+					break
+				}
+			}
+
+			// If we still don't have a route name, try to get it from assignments
+			if routeName == "" {
+				assignments, _ := loadRouteAssignments()
+				for _, assignment := range assignments {
+					if assignment.Driver == log.Driver {
+						// Found the driver's assignment, use its route name
+						routeName = assignment.RouteName
+						break
+					}
 				}
 			}
 
