@@ -1366,7 +1366,7 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.ParseForm()
-	originalBusID := r.FormValue("original_bus_id")  // Changed from original_bus_number
+	originalBusID := r.FormValue("original_bus_id")
 	busID := r.FormValue("bus_id")
 	status := r.FormValue("status")
 	model := r.FormValue("model")
@@ -1383,6 +1383,37 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 			if b.BusID == busID {
 				http.Error(w, "Bus ID already exists", http.StatusBadRequest)
 				return
+			}
+		}
+	}
+
+	// Find the original bus to check status change
+	var originalBus *Bus
+	for _, b := range buses {
+		if b.BusID == originalBusID {
+			originalBus = b
+			break
+		}
+	}
+
+	if originalBus == nil {
+		http.Error(w, "Bus not found", http.StatusNotFound)
+		return
+	}
+
+	// Check if status is changing from active to inactive
+	statusChangingToInactive := originalBus.Status == "active" && (status == "maintenance" || status == "out_of_service")
+
+	// If status is changing to inactive, check if bus is currently assigned
+	if statusChangingToInactive {
+		assignments, err := loadRouteAssignments()
+		if err == nil {
+			for _, assignment := range assignments {
+				if assignment.BusID == originalBusID {
+					// Bus is assigned to a driver/route, prompt for replacement bus selection
+					http.Error(w, "REQUIRES_REPLACEMENT_BUS:"+assignment.Driver+":"+assignment.RouteName, http.StatusConflict)
+					return
+				}
 			}
 		}
 	}
@@ -1704,6 +1735,61 @@ func removeStudent(w http.ResponseWriter, r *http.Request) {
 
 	saveStudents(newStudents)
 	http.Redirect(w, r, "/students", http.StatusFound)
+}
+
+func reassignDriverBus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	driverName := r.FormValue("driver")
+	newBusID := r.FormValue("new_bus_id")
+
+	if driverName == "" || newBusID == "" {
+		http.Error(w, "Driver and new bus ID are required", http.StatusBadRequest)
+		return
+	}
+
+	// Load assignments
+	assignments, err := loadRouteAssignments()
+	if err != nil {
+		log.Printf("Error loading assignments: %v", err)
+		http.Error(w, "Unable to load assignments", http.StatusInternalServerError)
+		return
+	}
+
+	// Find and update the driver's assignment
+	updated := false
+	for i, assignment := range assignments {
+		if assignment.Driver == driverName {
+			assignments[i].BusID = newBusID
+			updated = true
+			break
+		}
+	}
+
+	if !updated {
+		http.Error(w, "Driver assignment not found", http.StatusNotFound)
+		return
+	}
+
+	// Save updated assignments
+	if err := saveRouteAssignments(assignments); err != nil {
+		log.Printf("Error saving assignments: %v", err)
+		http.Error(w, "Unable to save assignment", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Driver reassigned successfully"))
 }
 
 // Updated maintenance log function to use BusID
@@ -2181,6 +2267,7 @@ func main() {
 	http.HandleFunc("/edit-student", withRecovery(editStudent))
 	http.HandleFunc("/remove-student", withRecovery(removeStudent))
 	http.HandleFunc("/add-maint", withRecovery(addMaintenanceLog))
+	http.HandleFunc("/reassign-driver-bus", withRecovery(reassignDriverBus))
 	http.HandleFunc("/logout", withRecovery(logout))
 
 	port := os.Getenv("PORT")

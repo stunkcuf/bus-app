@@ -321,13 +321,169 @@
       setElementValue('editMaintenanceNotes', maintenanceNotes);
     }
 
-    // Set default date to today for maintenance log
+    // Handle form submission with replacement bus logic
     document.addEventListener('DOMContentLoaded', function() {
+      // Set default date to today for maintenance log
       const dateInput = document.querySelector('input[name="date"]');
       if (dateInput) {
         dateInput.value = new Date().toISOString().split('T')[0];
       }
+
+      // Handle edit bus form submission
+      const editForm = document.querySelector('#editBusModal form');
+      if (editForm) {
+        editForm.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          
+          const formData = new FormData(this);
+          
+          try {
+            const response = await fetch('/edit-bus', {
+              method: 'POST',
+              body: formData
+            });
+
+            if (response.ok) {
+              // Success - reload page
+              window.location.reload();
+            } else if (response.status === 409) {
+              // Conflict - need replacement bus
+              const errorText = await response.text();
+              if (errorText.startsWith('REQUIRES_REPLACEMENT_BUS:')) {
+                const parts = errorText.split(':');
+                const driverName = parts[1];
+                const routeName = parts[2];
+                
+                await handleBusReplacement(formData.get('original_bus_id'), driverName, routeName, formData);
+              }
+            } else {
+              // Other error
+              const errorText = await response.text();
+              alert('Error: ' + errorText);
+            }
+          } catch (error) {
+            alert('Network error: ' + error.message);
+          }
+        });
+      }
     });
+
+    async function handleBusReplacement(originalBusId, driverName, routeName, formData) {
+      // Show replacement bus selection modal
+      const replacement = await showReplacementBusModal(originalBusId, driverName, routeName);
+      
+      if (replacement) {
+        // First, reassign driver to new bus
+        await reassignDriverBus(driverName, replacement.busId);
+        
+        // Then update the original bus status
+        const response = await fetch('/edit-bus', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          const errorText = await response.text();
+          alert('Error updating bus: ' + errorText);
+        }
+      }
+    }
+
+    function showReplacementBusModal(originalBusId, driverName, routeName) {
+      return new Promise((resolve) => {
+        // Get available buses
+        const availableBuses = {{range .Buses}}{{if eq .Status "active"}}"{{.BusID}}:{{.Model}}",{{end}}{{end}}''.split(',').filter(b => b && !b.startsWith(originalBusId));
+        
+        if (availableBuses.length === 0) {
+          alert('No active buses available for replacement. Please add an active bus first or change another bus to active status.');
+          resolve(null);
+          return;
+        }
+
+        let options = availableBuses.map(bus => {
+          const [id, model] = bus.split(':');
+          return `<option value="${id}">Bus ${id}${model ? ' - ' + model : ''}</option>`;
+        }).join('');
+
+        const modalHtml = `
+          <div class="modal fade" id="replacementBusModal" tabindex="-1">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">⚠️ Bus Replacement Required</h5>
+                </div>
+                <div class="modal-body">
+                  <p><strong>Bus ${originalBusId}</strong> is currently assigned to:</p>
+                  <ul>
+                    <li><strong>Driver:</strong> ${driverName}</li>
+                    <li><strong>Route:</strong> ${routeName}</li>
+                  </ul>
+                  <p>Please select a replacement bus before changing the status:</p>
+                  <div class="mb-3">
+                    <label class="form-label">Replacement Bus</label>
+                    <select id="replacementBusSelect" class="form-select" required>
+                      <option value="">Select a replacement bus</option>
+                      ${options}
+                    </select>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <button type="button" class="btn btn-primary" id="confirmReplacement">Confirm Replacement</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Remove existing modal if any
+        const existingModal = document.getElementById('replacementBusModal');
+        if (existingModal) {
+          existingModal.remove();
+        }
+
+        // Add modal to page
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        const modal = new bootstrap.Modal(document.getElementById('replacementBusModal'));
+        modal.show();
+
+        // Handle confirm button
+        document.getElementById('confirmReplacement').addEventListener('click', () => {
+          const selectedBusId = document.getElementById('replacementBusSelect').value;
+          if (selectedBusId) {
+            modal.hide();
+            resolve({ busId: selectedBusId });
+          } else {
+            alert('Please select a replacement bus.');
+          }
+        });
+
+        // Handle modal close/cancel
+        document.getElementById('replacementBusModal').addEventListener('hidden.bs.modal', () => {
+          if (!document.getElementById('replacementBusSelect').value) {
+            resolve(null);
+          }
+        });
+      });
+    }
+
+    async function reassignDriverBus(driverName, newBusId) {
+      const formData = new FormData();
+      formData.append('driver', driverName);
+      formData.append('new_bus_id', newBusId);
+      
+      const response = await fetch('/reassign-driver-bus', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to reassign driver to new bus');
+      }
+    }
   </script>
 </body>
 </html>
