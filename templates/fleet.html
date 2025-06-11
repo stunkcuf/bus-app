@@ -328,6 +328,7 @@
       e.preventDefault();
 
       const formData = new FormData(this);
+      const originalBusId = formData.get('original_bus_id');
 
       try {
         const response = await fetch('/edit-bus', {
@@ -341,10 +342,10 @@
           const errorText = await response.text();
           if (errorText.startsWith('REQUIRES_REPLACEMENT_BUS:')) {
             const parts = errorText.split(':');
-            const driverName = parts[1];
-            const routeName = parts[2];
+            const driverName = parts[1] || '';
+            const routeName = parts[2] || '';
 
-            await handleBusReplacement(formData.get('original_bus_id'), driverName, routeName, formData);
+            await handleBusReplacement(originalBusId, driverName, routeName, formData);
           }
         } else {
           const errorText = await response.text();
@@ -377,47 +378,64 @@
 
     function showReplacementBusModal(originalBusId, driverName, routeName) {
       return new Promise((resolve) => {
-        document.getElementById('originalBusIdDisplay').textContent = originalBusId || '';
-        document.getElementById('driverNameDisplay').textContent = driverName || '';
-        document.getElementById('routeNameDisplay').textContent = routeName || '';
+        // Safely set display values
+        const originalDisplay = document.getElementById('originalBusIdDisplay');
+        const driverDisplay = document.getElementById('driverNameDisplay');
+        const routeDisplay = document.getElementById('routeNameDisplay');
+        
+        if (originalDisplay) originalDisplay.textContent = originalBusId || '';
+        if (driverDisplay) driverDisplay.textContent = driverName || '';
+        if (routeDisplay) routeDisplay.textContent = routeName || '';
 
         const select = document.getElementById('replacementBusSelect');
+        if (!select) {
+          resolve(null);
+          return;
+        }
+        
         select.innerHTML = '<option value="">Select a replacement bus</option>';
 
-        // Get available buses - use server-side data safely
-        const buses = [
+        // Get available buses from server data
+        {{if .Buses}}
+        const availableBuses = [
           {{range .Buses}}
           {{if eq .Status "active"}}
           {
-            id: '{{.BusID}}',
-            model: '{{.Model}}'
+            id: {{if .BusID}}'{{.BusID}}'{{else}}''{{end}},
+            model: {{if .Model}}'{{.Model}}'{{else}}''{{end}}
           },
           {{end}}
           {{end}}
         ];
 
-        // Add available buses to select
-        buses.forEach(function(bus) {
-          if (bus.id !== originalBusId) {
+        // Add available buses to select, excluding the original
+        availableBuses.forEach(function(bus) {
+          if (bus.id && bus.id !== originalBusId) {
             const option = document.createElement('option');
             option.value = bus.id;
             option.textContent = 'Bus #' + bus.id + (bus.model ? ' (' + bus.model + ')' : '');
             select.appendChild(option);
           }
         });
+        {{else}}
+        console.warn('No buses available for replacement');
+        {{end}}
 
         const modal = new bootstrap.Modal(document.getElementById('replacementBusModal'));
         modal.show();
 
-        document.getElementById('confirmReplacementBtn').onclick = function() {
-          const selectedBusId = select.value;
-          if (selectedBusId) {
-            modal.hide();
-            resolve({ busId: selectedBusId });
-          } else {
-            alert('Please select a replacement bus');
-          }
-        };
+        const confirmBtn = document.getElementById('confirmReplacementBtn');
+        if (confirmBtn) {
+          confirmBtn.onclick = function() {
+            const selectedBusId = select.value;
+            if (selectedBusId) {
+              modal.hide();
+              resolve({ busId: selectedBusId });
+            } else {
+              alert('Please select a replacement bus');
+            }
+          };
+        }
 
         document.getElementById('replacementBusModal').addEventListener('hidden.bs.modal', function() {
           resolve(null);
