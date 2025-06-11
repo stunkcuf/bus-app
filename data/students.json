@@ -83,5 +83,44 @@
     "route_id": "1",
     "driver": "jeniffer",
     "active": true
+  },
+  {
+    "student_id": "STU_4",
+    "name": "cat",
+    "locations": null,
+    "phone_number": "555",
+    "alt_phone_number": "",
+    "guardian": "t",
+    "pickup_time": "05:17",
+    "dropoff_time": "15:17",
+    "position_number": 1,
+    "route_id": "2",
+    "driver": "maria",
+    "active": true
+  },
+  {
+    "student_id": "STU_5",
+    "name": "dog",
+    "locations": [
+      {
+        "type": "pickup",
+        "address": "345 6th st",
+        "description": ""
+      },
+      {
+        "type": "dropoff",
+        "address": "345 6th st",
+        "description": ""
+      }
+    ],
+    "phone_number": "444",
+    "alt_phone_number": "",
+    "guardian": "t",
+    "pickup_time": "08:18",
+    "dropoff_time": "14:24",
+    "position_number": 2,
+    "route_id": "2",
+    "driver": "maria",
+    "active": true
   }
 ]
