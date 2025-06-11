@@ -381,10 +381,10 @@
         // Get available buses
         {{range .Buses}}
         {{if eq .Status "active"}}
-        const option = document.createElement('option');
-        option.value = '{{.BusID}}';
-        option.textContent = 'Bus #{{.BusID}}{{if .Model}} ({{.Model}}){{end}}';
         if ('{{.BusID}}' !== originalBusId) {
+          const option = document.createElement('option');
+          option.value = '{{.BusID}}';
+          option.textContent = 'Bus #{{.BusID}}{{if .Model}} ({{.Model}}){{end}}';
           select.appendChild(option);
         }
         {{end}}
