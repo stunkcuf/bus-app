@@ -2266,6 +2266,7 @@ func main() {
 	// Initialize Object Storage if environment variables are set
 	bucketName := os.Getenv("REPLIT_OBJECT_STORAGE_BUCKET")
 	if bucketName != "" {
+		log.Println("Object Storage environment variables detected, initializing...")
 		if err := initObjectStorage(); err != nil {
 			log.Printf("Object Storage initialization failed, using local files: %v", err)
 		} else {
