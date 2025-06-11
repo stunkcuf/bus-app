@@ -41,7 +41,7 @@
     "model": "",
     "capacity": 20,
     "oil_status": "due",
-    "tire_status": "replace",
+    "tire_status": "worn",
     "maintenance_notes": ""
   },
   {
