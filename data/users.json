@@ -1,5 +1,1 @@
-[
-  {"username":"barb","password":"adminpass","role":"manager"},{"username":"jeniffer","password":"jenpass","role":"driver"},
-  {"username":"maria","password":"mapass","role":"driver"},
-  {"username":"jerry","password":"jerrypass","role":"driver"},{"username":"sherri","password":"shepass","role":"driver"},{"username":"jessica","password":"jespass","role":"driver"}
-]
+[{"username":"barb","password":"adminpass","role":"manager"},{"username":"jeniffer","password":"jenpass","role":"driver"},{"username":"maria","password":"mapass","role":"driver"},{"username":"jerry","password":"jerrypass","role":"driver"},{"username":"sherri","password":"shepass","role":"driver"},{"username":"jessica","password":"jespass","role":"driver"},{"username":"test1","password":"pass1","role":"driver"}]

@@ -24,5 +24,27 @@
         "pickup_time": "19:43"
       }
     ]
+  },
+  {
+    "driver": "maria",
+    "bus_id": "52",
+    "route_id": "2",
+    "date": "2025-06-11",
+    "period": "morning",
+    "departure_time": "08:30",
+    "arrival_time": "21:30",
+    "mileage": 14582,
+    "attendance": [
+      {
+        "position": 1,
+        "present": true,
+        "pickup_time": "09:30"
+      },
+      {
+        "position": 2,
+        "present": true,
+        "pickup_time": "15:33"
+      }
+    ]
   }
 ]

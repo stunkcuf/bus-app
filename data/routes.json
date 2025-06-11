@@ -12,7 +12,10 @@
   {
     "route_id": "2",
     "route_name": "Airportway",
-    "positions": []
+    "positions": [
+      {"position": 1, "student": "cat"},
+      {"position": 2, "student": "dog"}
+    ]
   },
   {
     "route_id": "3",
