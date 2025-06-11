@@ -128,6 +128,59 @@
       </div>
     </div>
 
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5>🔧 Add Maintenance Log</h5>
+          </div>
+          <div class="card-body">
+            <form action="/add-maint" method="POST">
+              <div class="row">
+                <div class="col-md-3 mb-3">
+                  <label class="form-label">Bus ID</label>
+                  <select name="bus_id" class="form-select" required>
+                    <option value="">Select Bus</option>
+                    {{range .Buses}}
+                    <option value="{{.BusID}}">Bus #{{.BusID}} ({{.Status}})</option>
+                    {{end}}
+                  </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label">Date</label>
+                  <input type="date" name="date" class="form-control" value="{{.Today}}" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label">Category</label>
+                  <select name="category" class="form-select" required>
+                    <option value="">Select Category</option>
+                    <option value="oil">Oil Change</option>
+                    <option value="tires">Tire Service</option>
+                    <option value="brakes">Brake Service</option>
+                    <option value="engine">Engine Service</option>
+                    <option value="transmission">Transmission</option>
+                    <option value="electrical">Electrical</option>
+                    <option value="body">Body/Exterior</option>
+                    <option value="inspection">Inspection</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label">Mileage (optional)</label>
+                  <input type="number" name="mileage" class="form-control" placeholder="0">
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Notes</label>
+                <textarea name="notes" class="form-control" rows="2" placeholder="Describe the maintenance work performed..." required></textarea>
+              </div>
+              <button type="submit" class="btn btn-warning">🔧 Add Maintenance Log</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-header">
         <h5>🚌 Fleet Roster</h5>

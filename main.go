@@ -1471,6 +1471,27 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Auto-create maintenance log if status changed to maintenance or out_of_service
+	if statusChangingToInactive || (status == "maintenance" && originalBus.Status != "maintenance") {
+		maintenanceLogs := loadMaintenanceLogs()
+		
+		logEntry := MaintenanceLog{
+			BusID:    busID,
+			Date:     time.Now().Format("2006-01-02"),
+			Category: "status_change",
+			Notes:    fmt.Sprintf("Bus status changed from '%s' to '%s'. %s", originalBus.Status, status, maintenanceNotes),
+			Mileage:  0, // Could be enhanced to track mileage
+		}
+		
+		maintenanceLogs = append(maintenanceLogs, logEntry)
+		if err := saveMaintenanceLogs(maintenanceLogs); err != nil {
+			log.Printf("Warning: Failed to save maintenance log: %v", err)
+			// Don't fail the bus update for this
+		} else {
+			log.Printf("Maintenance log created for bus %s status change", busID)
+		}
+	}
+
 	http.Redirect(w, r, "/fleet", http.StatusFound)
 }
 
