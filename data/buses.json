@@ -31,7 +31,7 @@
     "status": "out_of_service",
     "model": "",
     "capacity": 20,
-    "oil_status": "good",
+    "oil_status": "due",
     "tire_status": "good",
     "maintenance_notes": ""
   },
