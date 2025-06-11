@@ -429,7 +429,8 @@ func validateRouteAssignment(assignment RouteAssignment) error {
 	}
 	routeExists := false
 	for _, r := range routes {
-		if r.RouteID == assignment.RouteID {
+		// Check both RouteID and RouteName for flexibility
+		if r.RouteID == assignment.RouteID || r.RouteName == assignment.RouteName {
 			routeExists = true
 			break
 		}
@@ -709,7 +710,8 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	if assignment != nil {
 		// Use assignment data (preferred)
 		for _, r := range routes {
-			if r.RouteID == assignment.RouteID {
+			// Try exact match first, then try by route name
+			if r.RouteID == assignment.RouteID || r.RouteName == assignment.RouteName {
 				driverRoute = &r
 				break
 			}
@@ -733,6 +735,22 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 		for _, b := range buses {
 			if b.BusID == driverLog.BusID {
 				assignedBus = b
+				break
+			}
+		}
+	}
+	
+	// If we still don't have a route but have an assignment, let's also check by converting route ID
+	if driverRoute == nil && assignment != nil {
+		// Try to match by numeric ID conversion (e.g., "1" -> "RT001")
+		for _, r := range routes {
+			if assignment.RouteID == "1" && r.RouteID == "RT001" ||
+			   assignment.RouteID == "2" && r.RouteID == "RT002" ||
+			   assignment.RouteID == "3" && r.RouteID == "RT003" ||
+			   assignment.RouteID == "4" && r.RouteID == "RT004" ||
+			   assignment.RouteID == "5" && r.RouteID == "RT005" ||
+			   assignment.RouteID == "6" && r.RouteID == "RT006" {
+				driverRoute = &r
 				break
 			}
 		}
@@ -891,7 +909,14 @@ func saveDriverLog(w http.ResponseWriter, r *http.Request) {
 	
 	// Find the correct route using RouteID from assignment
 	for _, rt := range routes {
-		if rt.RouteID == assignment.RouteID {
+		// Try exact match first, then by route name, then by ID mapping
+		if rt.RouteID == assignment.RouteID || rt.RouteName == assignment.RouteName ||
+		   (assignment.RouteID == "1" && rt.RouteID == "RT001") ||
+		   (assignment.RouteID == "2" && rt.RouteID == "RT002") ||
+		   (assignment.RouteID == "3" && rt.RouteID == "RT003") ||
+		   (assignment.RouteID == "4" && rt.RouteID == "RT004") ||
+		   (assignment.RouteID == "5" && rt.RouteID == "RT005") ||
+		   (assignment.RouteID == "6" && rt.RouteID == "RT006") {
 			positions = rt.Positions
 			break
 		}
