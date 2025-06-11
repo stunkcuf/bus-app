@@ -2315,6 +2315,69 @@ func updateVehicleStatus(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Status updated successfully"))
 }
 
+func updateBusStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	r.ParseForm()
+	busID := r.FormValue("bus_id")
+	statusType := r.FormValue("status_type")
+	newStatus := r.FormValue("new_status")
+
+	log.Printf("Updating bus %s: %s status to %s", busID, statusType, newStatus)
+
+	if busID == "" || statusType == "" || newStatus == "" {
+		http.Error(w, "Missing required parameters", http.StatusBadRequest)
+		return
+	}
+
+	buses := loadBuses()
+	updated := false
+
+	for i, bus := range buses {
+		if bus.BusID == busID {
+			switch statusType {
+			case "oil":
+				buses[i].OilStatus = newStatus
+			case "tire":
+				buses[i].TireStatus = newStatus
+			case "status":
+				buses[i].Status = newStatus
+			default:
+				http.Error(w, "Invalid status type", http.StatusBadRequest)
+				return
+			}
+			updated = true
+			log.Printf("Updated bus %s: %s status to %s", busID, statusType, newStatus)
+			break
+		}
+	}
+
+	if !updated {
+		log.Printf("Bus not found: %s", busID)
+		http.Error(w, "Bus not found", http.StatusNotFound)
+		return
+	}
+
+	// Save updated buses
+	if err := saveBuses(buses); err != nil {
+		log.Printf("Error saving buses: %v", err)
+		http.Error(w, "Failed to save changes", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Status updated successfully"))
+}
+
 func saveVehicles(vehicles []Vehicle) error {
 	f, err := os.Create("data/vehicle.json")
 	if err != nil {
@@ -2348,6 +2411,7 @@ func main() {
 	http.HandleFunc("/fleet", withRecovery(fleetPage))
 	http.HandleFunc("/company-fleet", withRecovery(companyFleetPage))
 	http.HandleFunc("/update-vehicle-status", withRecovery(updateVehicleStatus))
+	http.HandleFunc("/update-bus-status", withRecovery(updateBusStatus))
 	http.HandleFunc("/add-bus", withRecovery(addBus))
 	http.HandleFunc("/edit-bus", withRecovery(editBus))
 	http.HandleFunc("/remove-bus", withRecovery(removeBus))

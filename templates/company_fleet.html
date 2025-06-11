@@ -296,14 +296,11 @@
       // Find the correct button based on status type
       let button = null;
       if (statusType === 'oil') {
-        button = targetRow.querySelector('.oil-status-' + targetRow.querySelector('.oil-status-good, .oil-status-needs_service, .oil-status-overdue, .oil-status-')?.className.match(/oil-status-(\w*)/)?.[1] || '');
-        if (!button) button = targetRow.querySelector('[class*="oil-status-"]');
+        button = targetRow.querySelector('[class*="oil-status-"]');
       } else if (statusType === 'tire') {
-        button = targetRow.querySelector('.tire-status-' + targetRow.querySelector('.tire-status-good, .tire-status-worn, .tire-status-replace, .tire-status-')?.className.match(/tire-status-(\w*)/)?.[1] || '');
-        if (!button) button = targetRow.querySelector('[class*="tire-status-"]');
+        button = targetRow.querySelector('[class*="tire-status-"]');
       } else if (statusType === 'status') {
-        button = targetRow.querySelector('.vehicle-status-' + targetRow.querySelector('.vehicle-status-active, .vehicle-status-maintenance, .vehicle-status-out_of_service, .vehicle-status-')?.className.match(/vehicle-status-(\w*)/)?.[1] || '');
-        if (!button) button = targetRow.querySelector('[class*="vehicle-status-"]');
+        button = targetRow.querySelector('[class*="vehicle-status-"]');
       }
       
       if (button) {
