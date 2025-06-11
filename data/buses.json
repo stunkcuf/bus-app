@@ -46,11 +46,11 @@
   },
   {
     "bus_id": "23",
-    "status": "active",
+    "status": "out_of_service",
     "model": "",
     "capacity": 20,
-    "oil_status": "",
-    "tire_status": "",
-    "maintenance_notes": ""
+    "oil_status": "due",
+    "tire_status": "worn",
+    "maintenance_notes": "front end damaged"
   }
 ]
