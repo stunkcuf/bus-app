@@ -3,7 +3,7 @@
     "bus_id": "60",
     "status": "active",
     "model": "",
-    "capacity": 0,
+    "capacity": 20,
     "oil_status": "good",
     "tire_status": "good",
     "maintenance_notes": ""
@@ -12,7 +12,7 @@
     "bus_id": "52",
     "status": "active",
     "model": "",
-    "capacity": 0,
+    "capacity": 20,
     "oil_status": "",
     "tire_status": "",
     "maintenance_notes": ""
@@ -21,7 +21,7 @@
     "bus_id": "59",
     "status": "active",
     "model": "",
-    "capacity": 0,
+    "capacity": 20,
     "oil_status": "",
     "tire_status": "",
     "maintenance_notes": ""
@@ -30,7 +30,7 @@
     "bus_id": "58",
     "status": "active",
     "model": "",
-    "capacity": 0,
+    "capacity": 20,
     "oil_status": "",
     "tire_status": "",
     "maintenance_notes": ""
@@ -39,7 +39,7 @@
     "bus_id": "25",
     "status": "active",
     "model": "",
-    "capacity": 0,
+    "capacity": 20,
     "oil_status": "",
     "tire_status": "",
     "maintenance_notes": ""
@@ -48,18 +48,9 @@
     "bus_id": "23",
     "status": "active",
     "model": "",
-    "capacity": 0,
+    "capacity": 20,
     "oil_status": "",
     "tire_status": "",
     "maintenance_notes": ""
-  },
-  {
-    "bus_id": "99",
-    "status": "maintenance",
-    "model": "big yellow thing",
-    "capacity": 17,
-    "oil_status": "due",
-    "tire_status": "good",
-    "maintenance_notes": "in shop for oil change"
   }
 ]
