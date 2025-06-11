@@ -490,8 +490,8 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	attendance, _ := loadJSON[Attendance]("data/attendance.json")
-	mileage, _ := loadJSON[Mileage]("data/mileage.json")
+	// Load actual data from driver logs
+	driverLogs, _ := loadDriverLogs()
 	activities, _ := loadJSON[Activity]("data/activities.json")
 	users := loadUsers()
 	routes, _ := loadRoutes()
@@ -513,14 +513,6 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Prepare name map
-	nameMap := make(map[string]string)
-	for _, u := range users {
-		if u.Role == "driver" {
-			nameMap[strings.ToLower(u.Username)] = u.Username
-		}
-	}
-
 	driverData := make(map[string]*DriverSummary)
 	// Pre-populate all known drivers
 	for _, u := range users {
@@ -532,75 +524,96 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 	routeData := make(map[string]*RouteStats)
 	now := time.Now()
 
-	for _, att := range attendance {
-		displayName := nameMap[strings.ToLower(att.Driver)]
-		if displayName == "" {
-			displayName = att.Driver
-		}
-
-		s := driverData[displayName]
+	// Process driver logs to calculate summaries
+	for _, log := range driverLogs {
+		s := driverData[log.Driver]
 		if s == nil {
-			s = &DriverSummary{Name: displayName}
-			driverData[displayName] = s
+			s = &DriverSummary{Name: log.Driver}
+			driverData[log.Driver] = s
 		}
 
-		if strings.Contains(strings.ToLower(att.Route), "morning") {
-			s.TotalMorning += att.Present
-		} else {
-			s.TotalEvening += att.Present
+		// Add mileage
+		s.TotalMiles += log.Mileage
+
+		// Calculate attendance from log
+		presentCount := 0
+		for _, att := range log.Attendance {
+			if att.Present {
+				presentCount++
+			}
 		}
 
-		route := routeData[att.Route]
-		if route == nil {
-			route = &RouteStats{RouteName: att.Route}
-			routeData[att.Route] = route
+		// Add to morning/evening totals based on period
+		if log.Period == "morning" {
+			s.TotalMorning += presentCount
+		} else if log.Period == "evening" {
+			s.TotalEvening += presentCount
 		}
-		route.AttendanceMonth += att.Present
 
-		parsed, err := time.Parse("2006-01-02", att.Date)
-		if err != nil {
-			log.Println("Failed to parse date:", att.Date, err)
-			continue
-		}
-		if now.Sub(parsed).Hours() < 24 {
-			route.AttendanceDay += att.Present
-		}
-		if now.Sub(parsed).Hours() < 168 {
-			route.AttendanceWeek += att.Present
+		// Monthly attendance calculation
+		parsed, err := time.Parse("2006-01-02", log.Date)
+		if err == nil {
+			if parsed.Month() == now.Month() && parsed.Year() == now.Year() {
+				s.MonthlyAttendance += presentCount
+				s.MonthlyAvgMiles += log.Mileage
+			}
+
+			// Find route name for route stats
+			var routeName string
+			for _, r := range routes {
+				if r.RouteID == log.RouteID {
+					routeName = r.RouteName
+					break
+				}
+			}
+
+			if routeName != "" {
+				route := routeData[routeName]
+				if route == nil {
+					route = &RouteStats{RouteName: routeName}
+					routeData[routeName] = route
+				}
+				
+				route.TotalMiles += log.Mileage
+				route.AttendanceMonth += presentCount
+
+				// Time-based attendance
+				if now.Sub(parsed).Hours() < 24 {
+					route.AttendanceDay += presentCount
+				}
+				if now.Sub(parsed).Hours() < 168 {
+					route.AttendanceWeek += presentCount
+				}
+			}
 		}
 	}
 
-	for _, m := range mileage {
-		displayName := nameMap[strings.ToLower(m.Driver)]
-		if displayName == "" {
-			displayName = m.Driver
-		}
-
-		s := driverData[displayName]
-		if s == nil {
-			s = &DriverSummary{Name: displayName}
-			driverData[displayName] = s
-		}
-		s.TotalMiles += m.Miles
-
-		parsed, _ := time.Parse("2006-01-02", m.Date)
-		if parsed.Month() == now.Month() && parsed.Year() == now.Year() {
-			s.MonthlyAvgMiles += m.Miles
-		}
-
-		route := routeData[m.Route]
-		if route == nil {
-			route = &RouteStats{RouteName: m.Route}
-			routeData[m.Route] = route
-		}
-		route.TotalMiles += m.Miles
-	}
-
+	// Calculate averages
 	for _, s := range driverData {
-		s.MonthlyAvgMiles = s.MonthlyAvgMiles / float64(30)
+		if s.MonthlyAvgMiles > 0 {
+			// Average daily miles for the month
+			daysInMonth := float64(now.Day())
+			if daysInMonth > 0 {
+				s.MonthlyAvgMiles = s.MonthlyAvgMiles / daysInMonth
+			}
+		}
 	}
 	for _, r := range routeData {
-		r.AvgMiles = r.TotalMiles / float64(30)
+		if r.TotalMiles > 0 {
+			// Simple average based on total logs
+			logCount := 0
+			for _, log := range driverLogs {
+				for _, route := range routes {
+					if route.RouteID == log.RouteID && route.RouteName == r.RouteName {
+						logCount++
+						break
+					}
+				}
+			}
+			if logCount > 0 {
+				r.AvgMiles = r.TotalMiles / float64(logCount)
+			}
+		}
 	}
 
 	// Build slices for template
