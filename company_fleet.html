@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Company Fleet Overview</title>
+  <!-- Bootstrap CSS & Icons -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
+  />
+  <style>
+    :root {
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --active-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      --maintenance-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+
+    body {
+      background: #f5f7fa;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    /* Header */
+    .fleet-header {
+      background: var(--primary-gradient);
+      color: #fff;
+      padding: 1.5rem;
+      border-radius: 1rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    .fleet-header h2 {
+      font-weight: 700;
+      margin: 0;
+    }
+
+    /* Search */
+    #searchInput {
+      border-radius: 30px;
+      padding: 0.5rem 1rem;
+    }
+
+    /* Table Styling */
+    .table-container {
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+    .table thead th {
+      position: sticky;
+      top: 0;
+      background: #fff;
+      z-index: 5;
+    }
+    .status-badge {
+      font-size: 0.775rem;
+    }
+    .bg-active {
+      background: var(--active-gradient) !important;
+      color: #fff !important;
+    }
+    .bg-maintenance {
+      background: var(--maintenance-gradient) !important;
+      color: #fff !important;
+    }
+  </style>
+</head>
+<body>
+  <main class="container-fluid py-4" aria-labelledby="pageTitle">
+    <!-- Header -->
+    <header class="fleet-header d-flex justify-content-between align-items-center flex-wrap">
+      <h2 id="pageTitle" class="mb-3 mb-md-0">
+        <i class="bi bi-truck me-2" aria-hidden="true"></i>Company Fleet Overview
+      </h2>
+      <div class="input-group w-auto">
+        <span class="input-group-text" id="searchLabel" aria-label="Search vehicles">
+          <i class="bi bi-search"></i>
+        </span>
+        <input
+          type="search"
+          id="searchInput"
+          class="form-control"
+          placeholder="Search by ID, model, license..."
+          aria-describedby="searchLabel"
+        />
+      </div>
+    </header>
+
+    <!-- Fleet Table -->
+    <section aria-label="Fleet list">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white border-0">
+          <h5 class="fw-semibold mb-0"><i class="bi bi-list-ul me-2"></i>All Vehicles (<span>{{len .Vehicles}}</span>)</h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-container">
+            <table class="table table-hover align-middle mb-0" id="fleetTable">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Model / Description</th>
+                  <th scope="col">Year</th>
+                  <th scope="col">Capacity</th>
+                  <th scope="col">License</th>
+                  <th scope="col">Oil</th>
+                  <th scope="col">Tires</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{range .Vehicles}}
+                <tr>
+                  <td>{{.vehicle_id}}</td>
+                  <td>{{if .model}}{{.model}}{{else}}{{.description}}{{end}}</td>
+                  <td>{{.year}}</td>
+                  <td>{{.capacity}}</td>
+                  <td>{{.license}}</td>
+                  <td>{{if eq .oil_status "good"}}<span class="badge bg-success">Good</span>{{else if eq .oil_status "needs service"}}<span class="badge bg-warning text-dark">Needs Service</span>{{else}}<span class="badge bg-secondary">--</span>{{end}}</td>
+                  <td>{{if eq .tire_status "good"}}<span class="badge bg-success">Good</span>{{else if eq .tire_status "needs service"}}<span class="badge bg-warning text-dark">Needs Service</span>{{else}}<span class="badge bg-secondary">--</span>{{end}}</td>
+                  <td>
+                    {{if eq .status "active"}}
+                      <span class="badge bg-active status-badge"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>Active</span>
+                    {{else if eq .status "maintenance"}}
+                      <span class="badge bg-maintenance status-badge"><i class="bi bi-tools me-1" aria-hidden="true"></i>Maintenance</span>
+                    {{else}}
+                      <span class="badge bg-secondary status-badge"><i class="bi bi-pause-circle me-1" aria-hidden="true"></i>{{.status}}</span>
+                    {{end}}
+                  </td>
+                  <td>{{.maintenance_notes}}</td>
+                </tr>
+                {{end}}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Client‑side, accessible table filtering
+    (function () {
+      const searchInput = document.getElementById('searchInput');
+      const tableRows = Array.from(document.querySelectorAll('#fleetTable tbody tr'));
+
+      const normalize = (s) => s.toString().toLowerCase();
+
+      function filterRows() {
+        const query = normalize(searchInput.value);
+        tableRows.forEach((row) => {
+          const rowText = normalize(row.textContent);
+          const match = rowText.includes(query);
+          row.style.display = match ? '' : 'none';
+        });
+      }
+
+      searchInput.addEventListener('input', filterRows);
+    })();
+  </script>
+</body>
+</html>
