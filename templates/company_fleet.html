@@ -236,13 +236,15 @@
     }
 
     function updateStatus(vehicleId, statusType, newStatus) {
+      console.log(`Updating ${statusType} status for vehicle ${vehicleId} to ${newStatus}`);
+      
+      // Close all dropdowns
+      document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        menu.classList.remove('show');
+      });
+
       // Update the UI immediately for better responsiveness
-      const button = document.querySelector(`tr:has([onclick*="${vehicleId}"]) .${statusType}-status-${getCurrentStatus(vehicleId, statusType)} .bi-circle-fill`);
-      if (button) {
-        // Update the button class and color
-        const parentButton = button.closest('.status-light');
-        parentButton.className = parentButton.className.replace(/\w+-status-\w+/, `${statusType}-status-${newStatus}`);
-      }
+      updateUIStatus(vehicleId, statusType, newStatus);
 
       // Send update to server
       const formData = new FormData();
@@ -256,34 +258,60 @@
       })
       .then(response => {
         if (response.ok) {
-          console.log(`Updated ${statusType} status for vehicle ${vehicleId} to ${newStatus}`);
-          // Refresh the page to show updated data
-          setTimeout(() => window.location.reload(), 500);
+          console.log(`Successfully updated ${statusType} status for vehicle ${vehicleId} to ${newStatus}`);
+          // Optionally refresh after a short delay to confirm server state
+          setTimeout(() => window.location.reload(), 1000);
         } else {
           console.error('Failed to update status');
+          alert('Failed to update status. Please try again.');
           // Revert UI change on error
           window.location.reload();
         }
       })
       .catch(error => {
         console.error('Error updating status:', error);
+        alert('Error updating status. Please check your connection and try again.');
         window.location.reload();
       });
     }
 
-    function getCurrentStatus(vehicleId, statusType) {
-      // Helper function to get current status from the DOM
-      const row = document.querySelector(`tr:has([onclick*="${vehicleId}"])`);
-      if (row) {
-        const button = row.querySelector(`.status-light[onclick*="${statusType}"]`);
-        if (button) {
-          const classes = button.className;
-          const match = classes.match(new RegExp(`${statusType}-status-(\\w+)`));
-          return match ? match[1] : '';
+    function updateUIStatus(vehicleId, statusType, newStatus) {
+      // Find the button for this vehicle and status type
+      const button = document.querySelector(`button[onclick*="${vehicleId}"][onclick*="${statusType}"]`);
+      if (button) {
+        // Update button class
+        button.className = button.className.replace(new RegExp(`${statusType}-status-\\w+`), `${statusType}-status-${newStatus}`);
+        
+        // Update the circle color based on the new status
+        const circle = button.querySelector('.bi-circle-fill');
+        if (circle) {
+          // Remove existing color classes
+          circle.classList.remove('text-success', 'text-warning', 'text-danger', 'text-secondary');
+          
+          // Add appropriate color class based on status
+          switch(newStatus) {
+            case 'good':
+            case 'active':
+              circle.classList.add('text-success');
+              break;
+            case 'needs_service':
+            case 'worn':
+            case 'maintenance':
+              circle.classList.add('text-warning');
+              break;
+            case 'overdue':
+            case 'replace':
+            case 'out_of_service':
+              circle.classList.add('text-danger');
+              break;
+            default:
+              circle.classList.add('text-secondary');
+          }
         }
       }
-      return '';
     }
+
+    
   </script>
 </body>
 </html>
