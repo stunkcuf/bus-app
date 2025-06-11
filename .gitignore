@@ -2,6 +2,11 @@
 # Go module cache
 gopath/
 
+# Add other folders you want to ignore like this:
+# temp/
+# uploads/
+# cache/
+
 # Go build artifacts
 *.exe
 *.exe~
