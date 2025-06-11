@@ -127,6 +127,15 @@
       {{end}}
     </div>
     {{end}}
+    {{if and .Bus (or (eq .Bus.Status "maintenance") (eq .Bus.Status "out_of_service"))}}
+    <div class="alert alert-warning mt-4">
+      <h5>⚠️ Bus No Longer Available</h5>
+      <p>Your assigned bus #{{.Bus.BusID}} is currently marked as <strong>{{.Bus.Status}}</strong> and is no longer available for service.</p>
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#busReassignModal">
+        Select Another Bus
+      </button>
+    </div>
+    {{end}}
   </div>
 </body>
 </html>
