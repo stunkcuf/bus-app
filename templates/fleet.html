@@ -5,140 +5,195 @@
   <meta charset="UTF-8">
   <title>Fleet Management</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .status-badge {
+      font-size: 0.875rem;
+    }
+    .card {
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border: none;
+    }
+    .table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+    }
+    .btn-group-actions {
+      display: flex;
+      gap: 5px;
+    }
+  </style>
 </head>
 <body class="bg-light">
-  <div class="container mt-4">
+  <div class="container-fluid mt-4">
+    <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 class="mb-0">Fleet Management</h2>
+      <h2 class="mb-0">🚌 Fleet Management</h2>
       <div>
-        <a href="/manager-dashboard" class="btn btn-secondary me-2">Back to Dashboard</a>
+        <a href="/manager-dashboard" class="btn btn-secondary me-2">← Back to Dashboard</a>
         <a href="/logout" class="btn btn-outline-danger">Logout</a>
       </div>
     </div>
 
     <div class="row">
-      <div class="col-md-8">
-        <div class="card">
-          <div class="card-header">
-            <h5>Current Fleet</h5>
+      <!-- Current Fleet -->
+      <div class="col-lg-8">
+        <div class="card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Current Fleet ({{len .Buses}} buses)</h5>
           </div>
-          <div class="card-body">
-            <table class="table table-sm">
-              <thead>
-                <tr>
-                  <th>Bus #</th>
-                  <th>Status</th>
-                  <th>Model</th>
-                  <th>Capacity</th>
-                  <th>Oil Status</th>
-                  <th>Tire Status</th>
-                  <th>Maintenance</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {{range .Buses}}
-                <tr>
-                  <td>{{.BusID}}</td>
-                  <td>
-                    <span class="badge {{if eq .Status "active"}}bg-success{{else if eq .Status "maintenance"}}bg-warning{{else}}bg-secondary{{end}}">
-                      {{.Status}}
-                    </span>
-                  </td>
-                  <td>{{.Model}}</td>
-                  <td>{{.Capacity}}</td>
-                  <td>
-                    <span class="badge {{if eq .OilStatus "good"}}bg-success{{else if eq .OilStatus "due"}}bg-warning{{else}}bg-danger{{end}}">
-                      {{if .OilStatus}}{{.OilStatus}}{{else}}unknown{{end}}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="badge {{if eq .TireStatus "good"}}bg-success{{else if eq .TireStatus "worn"}}bg-warning{{else}}bg-danger{{end}}">
-                      {{if .TireStatus}}{{.TireStatus}}{{else}}unknown{{end}}
-                    </span>
-                  </td>
-                  <td>{{if .MaintenanceNotes}}{{.MaintenanceNotes}}{{else}}None{{end}}</td>
-                  <td>
-                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editBusModal" 
-                            onclick="editBus('{{.BusID}}', '{{.Status}}', '{{.Model}}', {{.Capacity}}, '{{.OilStatus}}', '{{.TireStatus}}', '{{.MaintenanceNotes}}')">
-                      Edit
-                    </button>
-                    <form method="POST" action="/remove-bus" style="display: inline;" class="ms-1">
-                      <input type="hidden" name="bus_id" value="{{.BusID}}">
-                      <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to remove this bus?')">Remove</button>
-                    </form>
-                  </td>
-                </tr>
-                {{end}}
-              </tbody>
-            </table>
+          <div class="card-body p-0">
+            {{if .Buses}}
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Bus ID</th>
+                    <th>Status</th>
+                    <th>Model</th>
+                    <th>Capacity</th>
+                    <th>Oil Status</th>
+                    <th>Tire Status</th>
+                    <th>Maintenance Notes</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{range .Buses}}
+                  <tr>
+                    <td><strong>{{.BusID}}</strong></td>
+                    <td>
+                      <span class="badge status-badge {{if eq .Status "active"}}bg-success{{else if eq .Status "maintenance"}}bg-warning text-dark{{else}}bg-secondary{{end}}">
+                        {{.Status}}
+                      </span>
+                    </td>
+                    <td>{{if .Model}}{{.Model}}{{else}}<em class="text-muted">Not specified</em>{{end}}</td>
+                    <td>{{if gt .Capacity 0}}{{.Capacity}}{{else}}<em class="text-muted">Not set</em>{{end}}</td>
+                    <td>
+                      {{if .OilStatus}}
+                      <span class="badge {{if eq .OilStatus "good"}}bg-success{{else if eq .OilStatus "due"}}bg-warning text-dark{{else}}bg-danger{{end}}">
+                        {{.OilStatus}}
+                      </span>
+                      {{else}}
+                      <span class="text-muted">Unknown</span>
+                      {{end}}
+                    </td>
+                    <td>
+                      {{if .TireStatus}}
+                      <span class="badge {{if eq .TireStatus "good"}}bg-success{{else if eq .TireStatus "worn"}}bg-warning text-dark{{else}}bg-danger{{end}}">
+                        {{.TireStatus}}
+                      </span>
+                      {{else}}
+                      <span class="text-muted">Unknown</span>
+                      {{end}}
+                    </td>
+                    <td>
+                      {{if .MaintenanceNotes}}
+                      <span class="text-truncate" style="max-width: 150px;" title="{{.MaintenanceNotes}}">{{.MaintenanceNotes}}</span>
+                      {{else}}
+                      <em class="text-muted">None</em>
+                      {{end}}
+                    </td>
+                    <td>
+                      <div class="btn-group-actions">
+                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editBusModal" 
+                                onclick="editBus('{{.BusID}}', '{{.Status}}', '{{.Model}}', {{.Capacity}}, '{{.OilStatus}}', '{{.TireStatus}}', '{{.MaintenanceNotes}}')">
+                          Edit
+                        </button>
+                        <form method="POST" action="/remove-bus" style="display: inline;">
+                          <input type="hidden" name="bus_id" value="{{.BusID}}">
+                          <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                  onclick="return confirm('Are you sure you want to remove Bus {{.BusID}}?')">
+                            Remove
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                  {{end}}
+                </tbody>
+              </table>
+            </div>
+            {{else}}
+            <div class="text-center py-4">
+              <p class="text-muted">No buses in the fleet yet.</p>
+            </div>
+            {{end}}
           </div>
         </div>
 
         <!-- Maintenance Log Form -->
-        <div class="card mt-4">
-          <div class="card-header">
-            <h5>Add Maintenance Log</h5>
+        <div class="card">
+          <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">🔧 Add Maintenance Log</h5>
           </div>
           <div class="card-body">
+            {{if .Buses}}
             <form method="POST" action="/add-maint">
-              <div class="mb-3">
-                <label class="form-label">Bus Number</label>
-                <select name="bus_id" class="form-select" required>
-                  <option value="">Select Bus</option>
-                  {{range .Buses}}
-                  <option value="{{.BusID}}">Bus #{{.BusID}} ({{.Model}})</option>
-                  {{end}}
-                </select>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Bus</label>
+                    <select name="bus_id" class="form-select" required>
+                      <option value="">Select Bus</option>
+                      {{range .Buses}}
+                      <option value="{{.BusID}}">Bus {{.BusID}}{{if .Model}} - {{.Model}}{{end}}</option>
+                      {{end}}
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Date</label>
+                    <input type="date" name="date" class="form-control" required>
+                  </div>
+                </div>
               </div>
-              <div class="mb-3">
-                <label class="form-label">Date</label>
-                <input type="date" name="date" class="form-control" required>
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Category</label>
-                <select name="category" class="form-select" required>
-                  <option value="oil">Oil Change</option>
-                  <option value="tires">Tire Service</option>
-                  <option value="brakes">Brake Service</option>
-                  <option value="engine">Engine</option>
-                  <option value="transmission">Transmission</option>
-                  <option value="electrical">Electrical</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Mileage (optional)</label>
-                <input type="number" name="mileage" class="form-control">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Category</label>
+                    <select name="category" class="form-select" required>
+                      <option value="oil">Oil Change</option>
+                      <option value="tires">Tire Service</option>
+                      <option value="brakes">Brake Service</option>
+                      <option value="engine">Engine</option>
+                      <option value="transmission">Transmission</option>
+                      <option value="electrical">Electrical</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Mileage (optional)</label>
+                    <input type="number" name="mileage" class="form-control" placeholder="Enter current mileage">
+                  </div>
+                </div>
               </div>
               <div class="mb-3">
                 <label class="form-label">Notes</label>
-                <textarea name="notes" class="form-control" rows="3" required></textarea>
+                <textarea name="notes" class="form-control" rows="3" required placeholder="Describe the maintenance work performed..."></textarea>
               </div>
-              <button type="submit" class="btn btn-warning w-100">Add Maintenance Log</button>
+              <button type="submit" class="btn btn-warning">Add Maintenance Log</button>
             </form>
+            {{else}}
+            <p class="text-muted">Add buses to the fleet before logging maintenance.</p>
+            {{end}}
           </div>
         </div>
       </div>
 
-      <div class="col-md-4">
+      <!-- Add New Bus -->
+      <div class="col-lg-4">
         <div class="card">
-          <div class="card-header">
-            <h5>Add New Bus</h5>
-          </div></div>
-        </div>
-      </div>
-
-      <div class="col-md-4">
-        <div class="card">
-          <div class="card-header">
-            <h5>Add New Bus</h5>
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0">➕ Add New Bus</h5>
           </div>
           <div class="card-body">
             <form method="POST" action="/add-bus">
               <div class="mb-3">
-                <label class="form-label">Bus Number</label>
-                <input type="text" name="bus_id" class="form-control" required>
+                <label class="form-label">Bus ID</label>
+                <input type="text" name="bus_id" class="form-control" required placeholder="e.g., BUS001">
               </div>
               <div class="mb-3">
                 <label class="form-label">Status</label>
@@ -150,11 +205,11 @@
               </div>
               <div class="mb-3">
                 <label class="form-label">Model</label>
-                <input type="text" name="model" class="form-control">
+                <input type="text" name="model" class="form-control" placeholder="e.g., Ford Transit">
               </div>
               <div class="mb-3">
                 <label class="form-label">Capacity</label>
-                <input type="number" name="capacity" class="form-control">
+                <input type="number" name="capacity" class="form-control" placeholder="Number of seats" min="1">
               </div>
               <div class="mb-3">
                 <label class="form-label">Oil Status</label>
@@ -174,9 +229,9 @@
               </div>
               <div class="mb-3">
                 <label class="form-label">Maintenance Notes</label>
-                <textarea name="maintenance_notes" class="form-control" rows="3"></textarea>
+                <textarea name="maintenance_notes" class="form-control" rows="3" placeholder="Any additional notes..."></textarea>
               </div>
-              <button type="submit" class="btn btn-primary w-100">Add Bus</button>
+              <button type="submit" class="btn btn-success w-100">Add Bus to Fleet</button>
             </form>
           </div>
         </div>
@@ -196,7 +251,7 @@
           <div class="modal-body">
             <input type="hidden" name="original_bus_id" id="editOriginalBusId">
             <div class="mb-3">
-              <label class="form-label">Bus Number</label>
+              <label class="form-label">Bus ID</label>
               <input type="text" name="bus_id" id="editBusId" class="form-control" required>
             </div>
             <div class="mb-3">
@@ -213,7 +268,7 @@
             </div>
             <div class="mb-3">
               <label class="form-label">Capacity</label>
-              <input type="number" name="capacity" id="editCapacity" class="form-control">
+              <input type="number" name="capacity" id="editCapacity" class="form-control" min="1">
             </div>
             <div class="mb-3">
               <label class="form-label">Oil Status</label>
@@ -247,16 +302,32 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    function editBus(busNumber, status, model, capacity, oilStatus, tireStatus, maintenanceNotes) {
-      document.getElementById('editOriginalBusId').value = busNumber;
-      document.getElementById('editBusId').value = busNumber;
-      document.getElementById('editStatus').value = status;
-      document.getElementById('editModel').value = model;
-      document.getElementById('editCapacity').value = capacity;
-      document.getElementById('editOilStatus').value = oilStatus || 'good';
-      document.getElementById('editTireStatus').value = tireStatus || 'good';
-      document.getElementById('editMaintenanceNotes').value = maintenanceNotes;
+    function editBus(busId, status, model, capacity, oilStatus, tireStatus, maintenanceNotes) {
+      // Safely set form values
+      const setElementValue = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.value = value || '';
+        }
+      };
+
+      setElementValue('editOriginalBusId', busId);
+      setElementValue('editBusId', busId);
+      setElementValue('editStatus', status);
+      setElementValue('editModel', model);
+      setElementValue('editCapacity', capacity);
+      setElementValue('editOilStatus', oilStatus || 'good');
+      setElementValue('editTireStatus', tireStatus || 'good');
+      setElementValue('editMaintenanceNotes', maintenanceNotes);
     }
+
+    // Set default date to today for maintenance log
+    document.addEventListener('DOMContentLoaded', function() {
+      const dateInput = document.querySelector('input[name="date"]');
+      if (dateInput) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+      }
+    });
   </script>
 </body>
 </html>
