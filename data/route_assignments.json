@@ -12,5 +12,12 @@
     "route_id": "2",
     "route_name": "Airportway",
     "assigned_date": "2025-06-11"
+  },
+  {
+    "driver": "jerry",
+    "bus_id": "59",
+    "route_id": "3",
+    "route_name": "NELC",
+    "assigned_date": "2025-06-11"
   }
 ]
