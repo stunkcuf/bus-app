@@ -149,6 +149,7 @@ type AssignRouteData struct {
 type FleetData struct {
 	User  *User
 	Buses []*Bus
+	Today string
 }
 
 type MaintenanceLog struct {
@@ -1312,6 +1313,7 @@ func fleetPage(w http.ResponseWriter, r *http.Request) {
 	data := FleetData{
 		User:  user,
 		Buses: buses,
+		Today: time.Now().Format("2006-01-02"),
 	}
 
 	executeTemplate(w, "fleet.html", data)
