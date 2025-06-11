@@ -305,7 +305,11 @@
       
       if (button) {
         // Update button class
-        button.className = button.className.replace(new RegExp(`${statusType === 'status' ? 'vehicle-' : ''}${statusType}-status-\\w*`), `${statusType === 'status' ? 'vehicle-' : ''}${statusType}-status-${newStatus}`);
+        if (statusType === 'status') {
+          button.className = button.className.replace(/vehicle-status-\w*/g, `vehicle-status-${newStatus}`);
+        } else {
+          button.className = button.className.replace(new RegExp(`${statusType}-status-\\w*`, 'g'), `${statusType}-status-${newStatus}`);
+        }
         
         // Update the circle color - the CSS will handle the color automatically
         console.log(`Updated ${statusType} status for vehicle ${vehicleId} to ${newStatus} in UI`);
