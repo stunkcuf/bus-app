@@ -18,12 +18,12 @@
     .status-active-bg { background-color: #d4edda; color: #155724; }
     .status-maintenance-bg { background-color: #fff3cd; color: #856404; }
     .status-out_of_service-bg { background-color: #f8d7da; color: #721c24; }
-    
+
   </style>
 </head>
 <body>
   <div class="container-fluid">
-    
+
 
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h1>🚌 Fleet Management</h1>
@@ -91,15 +91,14 @@
                 <div class="bus-header">
                   <div class="bus-id">Bus #{{.BusID}}</div>
                   <span class="status-badge status-{{.Status}}-bg">
-                    {{if eq .Status "active"}}✅ Active{{end}}
-                    {{if eq .Status "maintenance"}}⚠️ Maintenance{{end}}
+                    {{if eq .Status "active"}}✅ Good{{end}}
+                    {{if eq .Status "maintenance"}}⚠️ Has Issues{{end}}
                     {{if eq .Status "out_of_service"}}❌ Out of Service{{end}}
                   </span>
                 </div>
 
                 <div class="bus-details">
                   {{if .Model}}<p><strong>Model:</strong> {{.Model}}</p>{{end}}
-                  {{if .Capacity}}<p><strong>Capacity:</strong> {{.Capacity}} passengers</p>{{end}}
                   <p><strong>Oil:</strong> 
                     {{if eq .OilStatus "good"}}✅ Good{{end}}
                     {{if eq .OilStatus "due"}}⚠️ Due{{end}}
@@ -115,14 +114,14 @@
                   {{if .MaintenanceNotes}}<p><strong>Notes:</strong> {{.MaintenanceNotes}}</p>{{end}}
                 </div>
 
-                <div class="bus-actions mt-3">
-                  <button type="button" class="btn btn-sm btn-outline-primary" 
-                          onclick="editBusFixed('{{.BusID}}', '{{.Status}}', '{{if .Model}}{{.Model}}{{else}}{{end}}', {{if .Capacity}}{{.Capacity}}{{else}}0{{end}}, '{{if .OilStatus}}{{.OilStatus}}{{else}}good{{end}}', '{{if .TireStatus}}{{.TireStatus}}{{else}}good{{end}}', '{{if .MaintenanceNotes}}{{.MaintenanceNotes}}{{else}}{{end}}')">
-                    ✏️ Edit
+                <div class="bus-actions">
+                  <button class="btn btn-sm btn-outline-primary" 
+                    onclick="editBusFixed('{{.BusID}}', '{{.Status}}', '{{.Model}}', '', '{{.OilStatus}}', '{{.TireStatus}}', '{{.MaintenanceNotes}}')">
+                    <i class="bi bi-pencil"></i> Edit
                   </button>
-                  <button type="button" class="btn btn-sm btn-outline-danger" 
-                          onclick="removeBusFixed('{{.BusID}}')">
-                    🗑️ Remove
+                  <button class="btn btn-sm btn-outline-danger" 
+                    onclick="removeBusFixed('{{.BusID}}')">
+                    <i class="bi bi-trash"></i> Remove
                   </button>
                 </div>
               </div>
@@ -156,8 +155,8 @@
                 <div class="col-md-6 mb-3">
                   <label class="form-label">Status</label>
                   <select name="status" class="form-select" required>
-                    <option value="active">✅ Active</option>
-                    <option value="maintenance">⚠️ Maintenance</option>
+                    <option value="active">✅ Good</option>
+                    <option value="maintenance">⚠️ Has Issues</option>
                     <option value="out_of_service">❌ Out of Service</option>
                   </select>
                 </div>
@@ -274,8 +273,8 @@
               <div class="col-md-6 mb-3">
                 <label class="form-label">Status</label>
                 <select name="status" id="editStatus" class="form-select" required>
-                  <option value="active">✅ Active</option>
-                  <option value="maintenance">⚠️ Maintenance</option>
+                  <option value="active">✅ Good</option>
+                  <option value="maintenance">⚠️ Has Issues</option>
                   <option value="out_of_service">❌ Out of Service</option>
                 </select>
               </div>
@@ -329,9 +328,9 @@
     let activeCount = 0;
     let maintenanceCount = 0;
     let outOfServiceCount = 0;
-    
+
     console.log('Buses loaded from server:', buses);
-    
+
     buses.forEach(bus => {
       switch(bus.status) {
         case 'active': activeCount++; break;
@@ -339,7 +338,7 @@
         case 'out_of_service': outOfServiceCount++; break;
       }
     });
-    
+
     // Update summary cards
     if (document.getElementById('active-count')) {
       document.getElementById('active-count').textContent = activeCount;
@@ -358,41 +357,39 @@
         busId: busId,
         status: status,
         model: model,
-        capacity: capacity,
         oilStatus: oilStatus,
         tireStatus: tireStatus,
         maintenanceNotes: maintenanceNotes
       });
-      
-      // Validate bus ID
+
+      // Validate busId
       if (!busId || busId.trim() === '') {
         alert('Error: Bus ID is missing or empty: "' + busId + '"');
         console.error('Invalid bus ID:', busId);
         return;
       }
-      
+
       console.log('Setting form fields...');
-      
+
       // Set form fields
       document.getElementById('editOriginalBusId').value = busId;
       document.getElementById('editBusId').value = busId;
       document.getElementById('editStatus').value = status || 'active';
       document.getElementById('editModel').value = model || '';
-      document.getElementById('editCapacity').value = capacity || '';
       document.getElementById('editOilStatus').value = oilStatus || 'good';
       document.getElementById('editTireStatus').value = tireStatus || 'good';
       document.getElementById('editMaintenanceNotes').value = maintenanceNotes || '';
-      
+
       console.log('Form fields set. Values:', {
         original: document.getElementById('editOriginalBusId').value,
         busId: document.getElementById('editBusId').value,
         status: document.getElementById('editStatus').value
       });
-      
+
       // Show modal
       const modal = new bootstrap.Modal(document.getElementById('editBusModal'));
       modal.show();
-      
+
       console.log('Modal shown');
     }
 
@@ -400,16 +397,16 @@
     function removeBusFixed(busId) {
       console.log('=== REMOVE BUS FIXED DEBUG ===');
       console.log('BusId parameter:', busId);
-      
+
       if (!busId || busId.trim() === '') {
         alert('Error: Bus ID is missing or empty: "' + busId + '"');
         console.error('Invalid bus ID:', busId);
         return;
       }
-      
+
       if (confirm(`Are you sure you want to remove Bus #${busId}? This action cannot be undone.`)) {
         console.log('User confirmed removal, creating form...');
-        
+
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = '/remove-bus';
@@ -439,28 +436,28 @@
           const originalBusId = document.getElementById('editOriginalBusId').value;
           const busId = document.getElementById('editBusId').value;
           const status = document.getElementById('editStatus').value;
-          
+
           console.log('=== FORM SUBMISSION DEBUG ===');
           console.log('Form data being submitted:', {
             original_bus_id: originalBusId,
             bus_id: busId,
             status: status
           });
-          
+
           if (!originalBusId || originalBusId.trim() === '') {
             e.preventDefault();
             alert('Error: Original Bus ID is missing. Form will not submit.');
             console.error('Form submission blocked - missing originalBusId');
             return false;
           }
-          
+
           if (!busId || busId.trim() === '') {
             e.preventDefault();
             alert('Error: Bus ID is missing. Form will not submit.');
             console.error('Form submission blocked - missing busId');
             return false;
           }
-          
+
           console.log('Form validation passed, submitting to server...');
         });
       }

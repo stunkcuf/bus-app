@@ -1353,7 +1353,7 @@ func addBus(w http.ResponseWriter, r *http.Request) {
 	busID := r.FormValue("bus_id")  // Changed from bus_number
 	status := r.FormValue("status")
 	model := r.FormValue("model")
-	capacity, _ := strconv.Atoi(r.FormValue("capacity"))
+	capacity := 20 // Default capacity since we removed the field
 	oilStatus := r.FormValue("oil_status")
 	tireStatus := r.FormValue("tire_status")
 	maintenanceNotes := r.FormValue("maintenance_notes")
@@ -1405,7 +1405,7 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 	busID := r.FormValue("bus_id")
 	status := r.FormValue("status")
 	model := r.FormValue("model")
-	capacity, _ := strconv.Atoi(r.FormValue("capacity"))
+	capacity := 20 // Default capacity since we removed the field
 	oilStatus := r.FormValue("oil_status")
 	tireStatus := r.FormValue("tire_status")
 	maintenanceNotes := r.FormValue("maintenance_notes")
