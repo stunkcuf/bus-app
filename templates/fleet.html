@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -71,14 +72,10 @@
     .status-option:hover {
       background-color: #e9e9e9;
     }
-
-
   </style>
 </head>
 <body>
   <div class="container-fluid">
-
-
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h1>🚌 Fleet Management</h1>
       <div>
@@ -547,51 +544,48 @@
       }
     });
 
-        // JavaScript functions to handle dropdown visibility and status updates
-        function toggleStatusDropdown(element, busId, type) {
-            const dropdown = element.parentElement.querySelector('.status-dropdown');
-            // Close any open dropdowns
-            document.querySelectorAll('.status-dropdown.show').forEach(dd => {
-                if (dd !== dropdown) {
-                    dd.classList.remove('show');
-                }
-            });
-            dropdown.classList.toggle('show');
-        }
-
-        function updateStatus(busId, type, status) {
-            // Here you would typically send an AJAX request to update the status on the server
-            console.log(`Update Bus #${busId} ${type} to ${status}`);
-            // Close the dropdown after selection
-            const dropdown = document.querySelector(`.bus-card:has(div:contains('Bus #${busId}')) .status-container .status-dropdown`);
-            if (dropdown) {
-              dropdown.classList.remove('show');
-            }
-
-            // Optimistically update the UI
-            const indicator = document.querySelector(`.bus-card:has(div:contains('Bus #${busId}')) .status-container .status-indicator`);
-            if (indicator) {
-                indicator.className = `status-indicator status-${status}`;
-            }
-            const statusText = document.querySelector(`.bus-card:has(div:contains('Bus #${busId}')) .status-container span:last-child`);
-             if (statusText) {
-                statusText.textContent = status;
-            }
-
-
-            // You'll need to add the actual AJAX call here to update the server
-
-        }
-
-        // Close dropdowns if user clicks outside of them
-        window.addEventListener('click', function(e) {
-            if (!e.target.matches('.status-indicator')) {
-                document.querySelectorAll('.status-dropdown.show').forEach(dropdown => {
-                    dropdown.classList.remove('show');
-                });
+    // JavaScript functions to handle dropdown visibility and status updates
+    function toggleStatusDropdown(element, busId, type) {
+        const dropdown = element.parentElement.querySelector('.status-dropdown');
+        // Close any open dropdowns
+        document.querySelectorAll('.status-dropdown.show').forEach(dd => {
+            if (dd !== dropdown) {
+                dd.classList.remove('show');
             }
         });
+        dropdown.classList.toggle('show');
+    }
 
+    function updateStatus(busId, type, status) {
+        // Here you would typically send an AJAX request to update the status on the server
+        console.log(`Update Bus #${busId} ${type} to ${status}`);
+        // Close the dropdown after selection
+        const dropdown = document.querySelector(`.bus-card:has(div:contains('Bus #${busId}')) .status-container .status-dropdown`);
+        if (dropdown) {
+          dropdown.classList.remove('show');
+        }
+
+        // Optimistically update the UI
+        const indicator = document.querySelector(`.bus-card:has(div:contains('Bus #${busId}')) .status-container .status-indicator`);
+        if (indicator) {
+            indicator.className = `status-indicator status-${status}`;
+        }
+        const statusText = document.querySelector(`.bus-card:has(div:contains('Bus #${busId}')) .status-container span:last-child`);
+         if (statusText) {
+            statusText.textContent = status;
+        }
+
+        // You'll need to add the actual AJAX call here to update the server
+    }
+
+    // Close dropdowns if user clicks outside of them
+    window.addEventListener('click', function(e) {
+        if (!e.target.matches('.status-indicator')) {
+            document.querySelectorAll('.status-dropdown.show').forEach(dropdown => {
+                dropdown.classList.remove('show');
+            });
+        }
+    });
 
     // Log initial state
     console.log('Fleet page loaded. Total buses:', buses.length);
