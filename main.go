@@ -82,6 +82,19 @@ type Bus struct {
 	MaintenanceNotes string `json:"maintenance_notes"`
 }
 
+type Vehicle struct {
+	VehicleID        string `json:"vehicle_id"`
+	Model            string `json:"model"`
+	Description      string `json:"description"`
+	Year             int    `json:"year"`
+	Capacity         int    `json:"capacity"`
+	License          string `json:"license"`
+	OilStatus        string `json:"oil_status"`
+	TireStatus       string `json:"tire_status"`
+	Status           string `json:"status"`
+	MaintenanceNotes string `json:"maintenance_notes"`
+}
+
 type Student struct {
 	StudentID       string     `json:"student_id"`
 	Name            string     `json:"name"`
@@ -164,6 +177,11 @@ type StudentData struct {
 	User     *User
 	Students []Student
 	Routes   []Route
+}
+
+type CompanyFleetData struct {
+	User     *User
+	Vehicles []Vehicle
 }
 
 //go:embed templates/*.html
@@ -1548,6 +1566,18 @@ func removeBus(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/fleet", http.StatusFound)
 }
 
+func loadVehicles() []Vehicle {
+	f, err := os.Open("data/vehicle.json")
+	if err != nil {
+		log.Printf("Error loading vehicles: %v", err)
+		return []Vehicle{}
+	}
+	defer f.Close()
+	var vehicles []Vehicle
+	json.NewDecoder(f).Decode(&vehicles)
+	return vehicles
+}
+
 func loadStudents() []Student {
 	f, err := os.Open("data/students.json")
 	if err != nil {
@@ -1568,6 +1598,22 @@ func saveStudents(students []Student) error {
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
 	return enc.Encode(students)
+}
+
+func companyFleetPage(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	vehicles := loadVehicles()
+	data := CompanyFleetData{
+		User:     user,
+		Vehicles: vehicles,
+	}
+
+	executeTemplate(w, "company_fleet.html", data)
 }
 
 func studentsPage(w http.ResponseWriter, r *http.Request) {
@@ -2183,6 +2229,7 @@ func main() {
 	http.HandleFunc("/assign-route", withRecovery(assignRoute))
 	http.HandleFunc("/unassign-route", withRecovery(unassignRoute))
 	http.HandleFunc("/fleet", withRecovery(fleetPage))
+	http.HandleFunc("/company-fleet", withRecovery(companyFleetPage))
 	http.HandleFunc("/add-bus", withRecovery(addBus))
 	http.HandleFunc("/edit-bus", withRecovery(editBus))
 	http.HandleFunc("/remove-bus", withRecovery(removeBus))
