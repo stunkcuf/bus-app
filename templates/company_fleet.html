@@ -276,38 +276,44 @@
     }
 
     function updateUIStatus(vehicleId, statusType, newStatus) {
-      // Find the button for this vehicle and status type
-      const button = document.querySelector(`button[onclick*="${vehicleId}"][onclick*="${statusType}"]`);
+      // Find the row for this vehicle
+      const rows = document.querySelectorAll('#fleetTable tbody tr');
+      let targetRow = null;
+      
+      for (let row of rows) {
+        const firstCell = row.cells[0];
+        if (firstCell && firstCell.textContent.trim() === vehicleId) {
+          targetRow = row;
+          break;
+        }
+      }
+      
+      if (!targetRow) {
+        console.error(`Could not find row for vehicle ${vehicleId}`);
+        return;
+      }
+      
+      // Find the correct button based on status type
+      let button = null;
+      if (statusType === 'oil') {
+        button = targetRow.querySelector('.oil-status-' + targetRow.querySelector('.oil-status-good, .oil-status-needs_service, .oil-status-overdue, .oil-status-')?.className.match(/oil-status-(\w*)/)?.[1] || '');
+        if (!button) button = targetRow.querySelector('[class*="oil-status-"]');
+      } else if (statusType === 'tire') {
+        button = targetRow.querySelector('.tire-status-' + targetRow.querySelector('.tire-status-good, .tire-status-worn, .tire-status-replace, .tire-status-')?.className.match(/tire-status-(\w*)/)?.[1] || '');
+        if (!button) button = targetRow.querySelector('[class*="tire-status-"]');
+      } else if (statusType === 'status') {
+        button = targetRow.querySelector('.vehicle-status-' + targetRow.querySelector('.vehicle-status-active, .vehicle-status-maintenance, .vehicle-status-out_of_service, .vehicle-status-')?.className.match(/vehicle-status-(\w*)/)?.[1] || '');
+        if (!button) button = targetRow.querySelector('[class*="vehicle-status-"]');
+      }
+      
       if (button) {
         // Update button class
-        button.className = button.className.replace(new RegExp(`${statusType}-status-\\w+`), `${statusType}-status-${newStatus}`);
+        button.className = button.className.replace(new RegExp(`${statusType === 'status' ? 'vehicle-' : ''}${statusType}-status-\\w*`), `${statusType === 'status' ? 'vehicle-' : ''}${statusType}-status-${newStatus}`);
         
-        // Update the circle color based on the new status
-        const circle = button.querySelector('.bi-circle-fill');
-        if (circle) {
-          // Remove existing color classes
-          circle.classList.remove('text-success', 'text-warning', 'text-danger', 'text-secondary');
-          
-          // Add appropriate color class based on status
-          switch(newStatus) {
-            case 'good':
-            case 'active':
-              circle.classList.add('text-success');
-              break;
-            case 'needs_service':
-            case 'worn':
-            case 'maintenance':
-              circle.classList.add('text-warning');
-              break;
-            case 'overdue':
-            case 'replace':
-            case 'out_of_service':
-              circle.classList.add('text-danger');
-              break;
-            default:
-              circle.classList.add('text-secondary');
-          }
-        }
+        // Update the circle color - the CSS will handle the color automatically
+        console.log(`Updated ${statusType} status for vehicle ${vehicleId} to ${newStatus} in UI`);
+      } else {
+        console.error(`Could not find ${statusType} status button for vehicle ${vehicleId}`);
       }
     }
 
