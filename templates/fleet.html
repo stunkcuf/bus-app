@@ -18,25 +18,12 @@
     .status-active-bg { background-color: #d4edda; color: #155724; }
     .status-maintenance-bg { background-color: #fff3cd; color: #856404; }
     .status-out_of_service-bg { background-color: #f8d7da; color: #721c24; }
-    .debug-info { background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 5px; }
+    
   </style>
 </head>
 <body>
   <div class="container-fluid">
-    <!-- DEBUG INFO (Remove this after testing) -->
-    <div class="debug-info">
-      <h5>🐛 DEBUG INFO (Remove after testing)</h5>
-      <p><strong>Total buses loaded:</strong> {{len .Buses}}</p>
-      {{if .Buses}}
-        <p><strong>Bus IDs:</strong>
-        {{range .Buses}}
-          "{{.BusID}}", 
-        {{end}}
-        </p>
-      {{else}}
-        <p style="color: red;"><strong>NO BUSES FOUND!</strong></p>
-      {{end}}
-    </div>
+    
 
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h1>🚌 Fleet Management</h1>
@@ -177,10 +164,7 @@
               {{if .MaintenanceNotes}}<p><strong>Notes:</strong> {{.MaintenanceNotes}}</p>{{end}}
             </div>
 
-            <!-- DEBUG: Show what will be passed to JavaScript -->
-            <div class="alert alert-info small">
-              <strong>🐛 DEBUG:</strong> Will pass BusID="<strong>{{.BusID}}</strong>" to JavaScript
-            </div>
+            
 
             <div class="bus-actions mt-3">
               <button type="button" class="btn btn-sm btn-outline-primary" 
