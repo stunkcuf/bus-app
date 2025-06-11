@@ -13032,5 +13032,26 @@
     "category": "status_change",
     "notes": "Bus status changed from 'out_of_service' to 'out_of_service'. ",
     "mileage": 0
+  },
+  {
+    "bus_id": "52",
+    "date": "2025-06-11",
+    "category": "oil",
+    "notes": "oil change test",
+    "mileage": 15287
+  },
+  {
+    "bus_id": "25",
+    "date": "2025-06-11",
+    "category": "status_change",
+    "notes": "Bus status changed from 'maintenance' to 'maintenance'. ",
+    "mileage": 0
+  },
+  {
+    "bus_id": "58",
+    "date": "2025-06-11",
+    "category": "status_change",
+    "notes": "Bus status changed from 'out_of_service' to 'out_of_service'. ",
+    "mileage": 0
   }
 ]

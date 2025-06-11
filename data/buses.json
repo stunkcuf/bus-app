@@ -13,8 +13,8 @@
     "status": "active",
     "model": "",
     "capacity": 20,
-    "oil_status": "",
-    "tire_status": "",
+    "oil_status": "good",
+    "tire_status": "good",
     "maintenance_notes": ""
   },
   {
@@ -28,20 +28,20 @@
   },
   {
     "bus_id": "58",
-    "status": "active",
+    "status": "out_of_service",
     "model": "",
     "capacity": 20,
-    "oil_status": "",
-    "tire_status": "",
+    "oil_status": "good",
+    "tire_status": "good",
     "maintenance_notes": ""
   },
   {
     "bus_id": "25",
-    "status": "active",
+    "status": "maintenance",
     "model": "",
     "capacity": 20,
-    "oil_status": "",
-    "tire_status": "",
+    "oil_status": "due",
+    "tire_status": "replace",
     "maintenance_notes": ""
   },
   {
