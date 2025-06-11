@@ -2004,10 +2004,8 @@ func removeUser(w http.ResponseWriter, r *http.Request) {
     if user == nil || user.Role != "manager" {
         http.Redirect(w, r, "/", http.StatusFound)
         return
-```go
     }
-
-    // Check if username was provided
+// Check if username was provided
     if usernameToRemove == "" {
         http.Error(w, "Username is required", http.StatusBadRequest)
         return
