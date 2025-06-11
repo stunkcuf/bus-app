@@ -1866,6 +1866,83 @@ func addMaintenanceLog(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/fleet", http.StatusFound)
 }
 
+func removeUser(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	usernameToRemove := r.FormValue("username")
+
+	if usernameToRemove == "" {
+		http.Error(w, "Username is required", http.StatusBadRequest)
+		return
+	}
+
+	// Prevent removing yourself
+	if usernameToRemove == user.Username {
+		http.Error(w, "Cannot remove yourself", http.StatusBadRequest)
+		return
+	}
+
+	users := loadUsers()
+	var newUsers []User
+	userFound := false
+
+	for _, u := range users {
+		if u.Username != usernameToRemove {
+			newUsers = append(newUsers, u)
+		} else {
+			userFound = true
+		}
+	}
+
+	if !userFound {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	// If removing a driver, also remove their route assignments
+	if userFound {
+		assignments, err := loadRouteAssignments()
+		if err == nil {
+			var newAssignments []RouteAssignment
+			for _, assignment := range assignments {
+				if assignment.Driver != usernameToRemove {
+					newAssignments = append(newAssignments, assignment)
+				}
+			}
+			saveRouteAssignments(newAssignments)
+		}
+	}
+
+	// Save updated users list
+	f, err := os.Create("data/users.json")
+	if err != nil {
+		log.Printf("Error creating users.json: %v", err)
+		http.Error(w, "Unable to save users", http.StatusInternalServerError)
+		return
+	}
+	defer f.Close()
+
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(newUsers); err != nil {
+		log.Printf("Error encoding users: %v", err)
+		http.Error(w, "Unable to save users", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
+}
+
 func logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{Name: "session_user", Value: "", MaxAge: -1, Path: "/"})
 	http.Redirect(w, r, "/", http.StatusFound)
@@ -2295,6 +2372,7 @@ func main() {
 	http.HandleFunc("/remove-student", withRecovery(removeStudent))
 	http.HandleFunc("/add-maint", withRecovery(addMaintenanceLog))
 	http.HandleFunc("/reassign-driver-bus", withRecovery(reassignDriverBus))
+	http.HandleFunc("/remove-user", withRecovery(removeUser))
 	http.HandleFunc("/logout", withRecovery(logout))
 
 	port := os.Getenv("PORT")
