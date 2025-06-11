@@ -220,6 +220,28 @@
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label">Capacity</label>
+                <input type="number" name="capacity" id="editCapacity" class="fidden" name="original_bus_id" id="editOriginalBusId">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Bus ID</label>
+                <input type="text" name="bus_id" id="editBusId" class="form-control" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Status</label>
+                <select name="status" id="editStatus" class="form-select" required>
+                  <option value="active">✅ Active</option>
+                  <option value="maintenance">⚠️ Maintenance</option>
+                  <option value="out_of_service">❌ Out of Service</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Model</label>
+                <input type="text" name="model" id="editModel" class="form-control">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Capacity</label>
                 <input type="number" name="capacity" id="editCapacity" class="form-control" min="1">
               </div>
             </div>
