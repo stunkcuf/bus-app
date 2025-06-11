@@ -183,6 +183,21 @@ func init() {
 			}
 			return template.JS(b)
 		},
+		"add": func(a, b int) int {
+			return a + b
+		},
+		"len": func(v interface{}) int {
+			switch s := v.(type) {
+			case []interface{}:
+				return len(s)
+			case []*Bus:
+				return len(s)
+			case []Bus:
+				return len(s)
+			default:
+				return 0
+			}
+		},
 	}
 
 	// Parse templates from embedded filesystem
