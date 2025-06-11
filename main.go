@@ -2263,6 +2263,13 @@ func main() {
 	// Initialize data files with proper structure
 	initDataFiles()
 
+	// Initialize Object Storage if environment variables are set
+	if err := initObjectStorage(); err != nil {
+		log.Printf("Object Storage initialization failed, using local files: %v", err)
+	} else {
+		log.Println("Object Storage initialized successfully")
+	}
+
 	// Setup HTTP routes with recovery middleware
 	http.HandleFunc("/", withRecovery(loginPage))
 	http.HandleFunc("/new-user", withRecovery(newUserPage))
