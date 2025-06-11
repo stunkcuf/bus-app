@@ -1,9 +1,37 @@
 
 [
-  {"route_id": "1", "route_name": "Victory Square", "positions": []},
-  {"route_id": "2", "route_name": "Airportway", "positions": []},
-  {"route_id": "3", "route_name": "NELC", "positions": []},
-  {"route_id": "4", "route_name": "Irrigon", "positions": []},
-  {"route_id": "5", "route_name": "PELC", "positions": []},
-  {"route_id": "6", "route_name": "Umatilla", "positions": []}
+  {
+    "route_id": "1",
+    "route_name": "Victory Square",
+    "positions": [
+      {"position": 1, "student": "robert"},
+      {"position": 2, "student": "david"},
+      {"position": 3, "student": "jeff"}
+    ]
+  },
+  {
+    "route_id": "2",
+    "route_name": "Airportway",
+    "positions": []
+  },
+  {
+    "route_id": "3",
+    "route_name": "NELC",
+    "positions": []
+  },
+  {
+    "route_id": "4",
+    "route_name": "Irrigon",
+    "positions": []
+  },
+  {
+    "route_id": "5",
+    "route_name": "PELC",
+    "positions": []
+  },
+  {
+    "route_id": "6",
+    "route_name": "Umatilla",
+    "positions": []
+  }
 ]
