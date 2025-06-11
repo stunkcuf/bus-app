@@ -298,15 +298,21 @@
         maintenanceNotes: maintenanceNotes
       });
 
-      // Safely handle all parameters with defaults
-      document.getElementById('editOriginalBusId').value = busId || '';
-      document.getElementById('editBusId').value = busId || '';
+      // Ensure busId is a string and not undefined/null
+      const safeBusId = String(busId || '');
+      
+      // Set all form fields
+      document.getElementById('editOriginalBusId').value = safeBusId;
+      document.getElementById('editBusId').value = safeBusId;
       document.getElementById('editStatus').value = status || 'active';
       document.getElementById('editModel').value = model || '';
       document.getElementById('editCapacity').value = capacity || '';
       document.getElementById('editOilStatus').value = oilStatus || 'good';
       document.getElementById('editTireStatus').value = tireStatus || 'good';
       document.getElementById('editMaintenanceNotes').value = maintenanceNotes || '';
+
+      // Debug: Log what was actually set
+      console.log('Set original_bus_id to:', document.getElementById('editOriginalBusId').value);
 
       const modal = new bootstrap.Modal(document.getElementById('editBusModal'));
       modal.show();
