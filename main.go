@@ -191,7 +191,7 @@ var templates *template.Template
 
 func init() {
 	var err error
-	
+
 	// Create function map for templates
 	funcMap := template.FuncMap{
 		"json": func(v interface{}) template.JS {
@@ -224,7 +224,7 @@ func init() {
 	if err != nil {
 		log.Fatalf("Template parsing failed: %v", err)
 	}
-	
+
 	log.Println("Templates loaded successfully")
 }
 
@@ -372,13 +372,13 @@ func saveBuses(buses []*Bus) error {
 		return fmt.Errorf("failed to create buses.json: %w", err)
 	}
 	defer f.Close()
-	
+
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(buses); err != nil {
 		return fmt.Errorf("failed to encode buses: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -389,13 +389,13 @@ func saveDriverLogs(logs []DriverLog) error {
 		return fmt.Errorf("failed to create driver logs file: %w", err)
 	}
 	defer f.Close()
-	
+
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(logs); err != nil {
 		return fmt.Errorf("failed to encode driver logs: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -405,13 +405,13 @@ func getDriverRouteAssignment(driverUsername string) (*RouteAssignment, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to load assignments: %w", err)
 	}
-	
+
 	for _, assignment := range assignments {
 		if assignment.Driver == driverUsername {
 			return &assignment, nil
 		}
 	}
-	
+
 	return nil, fmt.Errorf("no assignment found for driver %s", driverUsername)
 }
 
@@ -426,7 +426,7 @@ func validateRouteAssignment(assignment RouteAssignment) error {
 	if assignment.RouteID == "" {
 		return fmt.Errorf("route ID cannot be empty")
 	}
-	
+
 	// Check if driver exists
 	users := loadUsers()
 	driverExists := false
@@ -439,7 +439,7 @@ func validateRouteAssignment(assignment RouteAssignment) error {
 	if !driverExists {
 		return fmt.Errorf("driver %s does not exist", assignment.Driver)
 	}
-	
+
 	// Check if bus exists and is active
 	buses := loadBuses()
 	busExists := false
@@ -455,7 +455,7 @@ func validateRouteAssignment(assignment RouteAssignment) error {
 	if !busExists {
 		return fmt.Errorf("bus %s does not exist", assignment.BusID)
 	}
-	
+
 	// Check if route exists
 	routes, err := loadRoutes()
 	if err != nil {
@@ -472,7 +472,7 @@ func validateRouteAssignment(assignment RouteAssignment) error {
 	if !routeExists {
 		return fmt.Errorf("route %s does not exist", assignment.RouteID)
 	}
-	
+
 	return nil
 }
 
@@ -587,7 +587,7 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 
 			// Find route name for this log
 			var routeName string
-			
+
 			// First try to match by RouteID directly
 			for _, r := range routes {
 				if r.RouteID == log.RouteID {
@@ -628,7 +628,7 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 					route = &RouteStats{RouteName: routeName}
 					routeData[routeName] = route
 				}
-				
+
 				route.TotalMiles += log.Mileage
 				route.AttendanceMonth += presentCount
 
@@ -690,7 +690,7 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 	for _, v := range driverData {
 		driverSummaries = append(driverSummaries, v)
 	}
-	
+
 	routeStats := []*RouteStats{}
 	for _, v := range routeData {
 		routeStats = append(routeStats, v)
@@ -799,7 +799,7 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 		}
-		
+
 		for _, b := range buses {
 			if b.BusID == assignment.BusID {
 				assignedBus = b
@@ -814,7 +814,7 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 		}
-		
+
 		for _, b := range buses {
 			if b.BusID == driverLog.BusID {
 				assignedBus = b
@@ -822,7 +822,7 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	
+
 	// If we still don't have a route but have an assignment, let's also check by converting route ID
 	if driverRoute == nil && assignment != nil {
 		// Try to match by numeric ID conversion (e.g., "1" -> "RT001")
@@ -1035,7 +1035,7 @@ func saveDriverLog(w http.ResponseWriter, r *http.Request) {
 		Position int    `json:"position"`
 		Student  string `json:"student"`
 	}
-	
+
 	// Find the correct route using RouteID from assignment
 	for _, rt := range routes {
 		// Try exact match first, then by route name, then by ID mapping
@@ -1057,7 +1057,7 @@ func saveDriverLog(w http.ResponseWriter, r *http.Request) {
 		Present    bool   `json:"present"`
 		PickupTime string `json:"pickup_time,omitempty"`
 	}
-	
+
 	for _, p := range positions {
 		present := r.FormValue("present_"+strconv.Itoa(p.Position)) == "on"
 		pickup := r.FormValue("pickup_" + strconv.Itoa(p.Position))
@@ -1226,7 +1226,7 @@ func assignRoute(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unable to load routes", http.StatusInternalServerError)
 		return
 	}
-	
+
 	var routeName string
 	routeFound := false
 	for _, rt := range routes {
@@ -1275,13 +1275,13 @@ func assignRoute(w http.ResponseWriter, r *http.Request) {
 			assignments[i].RouteID = routeID
 			assignments[i].RouteName = routeName
 			assignments[i].AssignedDate = time.Now().Format("2006-01-02")
-			
+
 			if err := saveRouteAssignments(assignments); err != nil {
 				log.Printf("Error saving assignments: %v", err)
 				http.Error(w, "Unable to save assignment", http.StatusInternalServerError)
 				return
 			}
-			
+
 			http.Redirect(w, r, "/assign-routes", http.StatusFound)
 			return
 		}
@@ -1314,7 +1314,7 @@ func assignRoute(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unable to save assignment", http.StatusInternalServerError)
 		return
 	}
-	
+
 	http.Redirect(w, r, "/assign-routes", http.StatusFound)
 }
 
@@ -1362,7 +1362,7 @@ func unassignRoute(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unable to save assignments", http.StatusInternalServerError)
 		return
 	}
-	
+
 	http.Redirect(w, r, "/assign-routes", http.StatusFound)
 }
 
@@ -1430,7 +1430,7 @@ func addBus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unable to save bus", http.StatusInternalServerError)
 		return
 	}
-	
+
 	http.Redirect(w, r, "/fleet", http.StatusFound)
 }
 
@@ -1540,7 +1540,7 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 	// Auto-create maintenance log if status changed to maintenance or out_of_service
 	if statusChangingToInactive || (status == "maintenance" && originalBus.Status != "maintenance") {
 		maintenanceLogs := loadMaintenanceLogs()
-		
+
 		logEntry := MaintenanceLog{
 			BusID:    busID,
 			Date:     time.Now().Format("2006-01-02"),
@@ -1548,7 +1548,7 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 			Notes:    fmt.Sprintf("Bus status changed from '%s' to '%s'. %s", originalBus.Status, status, maintenanceNotes),
 			Mileage:  0, // Could be enhanced to track mileage
 		}
-		
+
 		maintenanceLogs = append(maintenanceLogs, logEntry)
 		if err := saveMaintenanceLogs(maintenanceLogs); err != nil {
 			log.Printf("Warning: Failed to save maintenance log: %v", err)
@@ -1984,7 +1984,7 @@ func addMaintenanceLog(w http.ResponseWriter, r *http.Request) {
 func removeUser(w http.ResponseWriter, r *http.Request) {
     // MODIFIED: Temporarily accept both GET and POST for debugging
     var usernameToRemove string
-    
+
     if r.Method == http.MethodGet {
         // Parse from URL query for GET requests
         usernameToRemove = r.URL.Query().Get("username")
@@ -1998,26 +1998,26 @@ func removeUser(w http.ResponseWriter, r *http.Request) {
         http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
         return
     }
-    
+
     // Check if user is logged in and is a manager
     user := getUserFromSession(r)
-    if user == nil || user.Role != "manager" {
+    if user == nil ||user.Role != "manager" {
         http.Redirect(w, r, "/", http.StatusFound)
         return
     }
-    
+
     // Check if username was provided
     if usernameToRemove == "" {
         http.Error(w, "Username is required", http.StatusBadRequest)
         return
     }
-    
+
     // Prevent removing yourself
     if usernameToRemove == user.Username {
         http.Error(w, "Cannot remove yourself", http.StatusBadRequest)
         return
     }
-    
+
     // ALL YOUR EXISTING LOGIC STAYS THE SAME FROM HERE...
     users := loadUsers()
     var newUsers []User
@@ -2029,12 +2029,12 @@ func removeUser(w http.ResponseWriter, r *http.Request) {
             userFound = true
         }
     }
-    
+
     if !userFound {
         http.Error(w, "User not found", http.StatusNotFound)
         return
     }
-    
+
     // If removing a driver, also remove their route assignments
     if userFound {
         assignments, err := loadRouteAssignments()
@@ -2048,24 +2048,14 @@ func removeUser(w http.ResponseWriter, r *http.Request) {
             saveRouteAssignments(newAssignments)
         }
     }
-    
+
     // Save updated users list
-    f, err := os.Create("data/users.json")
-    if err != nil {
-        log.Printf("Error creating users.json: %v", err)
-        http.Error(w, "Unable to save users", http.StatusInternalServerError)
-        return
-    }
-    defer f.Close()
-    
-    enc := json.NewEncoder(f)
-    enc.SetIndent("", "  ")
-    if err := enc.Encode(newUsers); err != nil {
-        log.Printf("Error encoding users: %v", err)
-        http.Error(w, "Unable to save users", http.StatusInternalServerError)
-        return
-    }
-    
+	if err := storageClient.SaveJSON("data/users.json", newUsers); err != nil {
+		log.Printf("Error saving users: %v", err)
+		http.Error(w, "Unable to save users", http.StatusInternalServerError)
+		return
+	}
+
     http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
 }
 
@@ -2256,11 +2246,59 @@ func initDataFiles() {
 	}
 }
 
+// Define a storage interface
+type Storage interface {
+	LoadJSON(filename string, v interface{}) error
+	SaveJSON(filename string, v interface{}) error
+}
+
+// Implement the storage interface using local file system
+type LocalStorage struct{}
+
+// LoadJSON from local file system
+func (l *LocalStorage) LoadJSON(filename string, v interface{}) error {
+	f, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return json.NewDecoder(f).Decode(v)
+}
+
+// SaveJSON to local file system
+func (l *LocalStorage) SaveJSON(filename string, v interface{}) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	return enc.Encode(v)
+}
+
+//Replit object storage implementation
+type ReplitStorage struct{}
+
+//LoadJson from Replit object storage
+func (r *ReplitStorage) LoadJSON(filename string, v interface{}) error {
+	//TODO: Implement Replit object storage
+	return nil
+}
+
+//SaveJson to Replit object storage
+func (r *ReplitStorage) SaveJSON(filename string, v interface{}) error {
+	//TODO: Implement Replit object storage
+	return nil
+}
+
+// Use local storage for now
+var storageClient Storage = &LocalStorage{}
 
 func main() {
 	// Ensure basic data files exist
 	ensureDataFiles()
-	
+
 	// Initialize data files with proper structure
 	initDataFiles()
 
@@ -2290,7 +2328,7 @@ func main() {
 	http.HandleFunc("/reassign-driver-bus", withRecovery(reassignDriverBus))
 	http.HandleFunc("/remove-user", withRecovery(removeUser))
 	http.HandleFunc("/logout", withRecovery(logout))
-	
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "5000"
@@ -2306,7 +2344,7 @@ func main() {
 
 	log.Printf("Server starting on port %s with ID-based data structure", port)
 	log.Printf("Data structure: BusID, RouteID, StudentID for consistent identification")
-	
+
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
