@@ -33,6 +33,113 @@
       </div>
     </div>
 
+    <!-- Fleet Summary Row -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5>📊 Fleet Summary</h5>
+          </div>
+          <div class="card-body">
+            {{if .Buses}}
+            <div class="row text-center">
+              <div class="col-3">
+                <div class="status-active-bg p-3 rounded">
+                  <div class="fs-2">{{len .Buses}}</div>
+                  <div>Total Buses</div>
+                </div>
+              </div>
+              <div class="col-3">
+                <div class="status-active-bg p-3 rounded">
+                  <div class="fs-2" id="active-count">0</div>
+                  <div>Active</div>
+                </div>
+              </div>
+              <div class="col-3">
+                <div class="status-maintenance-bg p-3 rounded">
+                  <div class="fs-2" id="maintenance-count">0</div>
+                  <div>Maintenance</div>
+                </div>
+              </div>
+              <div class="col-3">
+                <div class="status-out_of_service-bg p-3 rounded">
+                  <div class="fs-2" id="out-of-service-count">0</div>
+                  <div>Out of Service</div>
+                </div>
+              </div>
+            </div>
+            {{else}}
+            <p class="text-muted">No buses in fleet yet.</p>
+            {{end}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fleet Roster Row -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5>🚌 Fleet Roster</h5>
+          </div>
+          <div class="card-body">
+            {{if .Buses}}
+            <div class="fleet-grid">
+              {{range .Buses}}
+              <div class="bus-card">
+                <div class="bus-header">
+                  <div class="bus-id">Bus #{{.BusID}}</div>
+                  <span class="status-badge status-{{.Status}}-bg">
+                    {{if eq .Status "active"}}✅ Active{{end}}
+                    {{if eq .Status "maintenance"}}⚠️ Maintenance{{end}}
+                    {{if eq .Status "out_of_service"}}❌ Out of Service{{end}}
+                  </span>
+                </div>
+
+                <div class="bus-details">
+                  {{if .Model}}<p><strong>Model:</strong> {{.Model}}</p>{{end}}
+                  {{if .Capacity}}<p><strong>Capacity:</strong> {{.Capacity}} passengers</p>{{end}}
+                  <p><strong>Oil:</strong> 
+                    {{if eq .OilStatus "good"}}✅ Good{{end}}
+                    {{if eq .OilStatus "due"}}⚠️ Due{{end}}
+                    {{if eq .OilStatus "overdue"}}❌ Overdue{{end}}
+                    {{if eq .OilStatus ""}}⚡ Not Set{{end}}
+                  </p>
+                  <p><strong>Tires:</strong> 
+                    {{if eq .TireStatus "good"}}✅ Good{{end}}
+                    {{if eq .TireStatus "worn"}}⚠️ Worn{{end}}
+                    {{if eq .TireStatus "replace"}}❌ Replace{{end}}
+                    {{if eq .TireStatus ""}}⚡ Not Set{{end}}
+                  </p>
+                  {{if .MaintenanceNotes}}<p><strong>Notes:</strong> {{.MaintenanceNotes}}</p>{{end}}
+                </div>
+
+                <div class="bus-actions mt-3">
+                  <button type="button" class="btn btn-sm btn-outline-primary" 
+                          onclick="editBusFixed('{{.BusID}}', '{{.Status}}', '{{if .Model}}{{.Model}}{{else}}{{end}}', {{if .Capacity}}{{.Capacity}}{{else}}0{{end}}, '{{if .OilStatus}}{{.OilStatus}}{{else}}good{{end}}', '{{if .TireStatus}}{{.TireStatus}}{{else}}good{{end}}', '{{if .MaintenanceNotes}}{{.MaintenanceNotes}}{{else}}{{end}}')">
+                    ✏️ Edit
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-danger" 
+                          onclick="removeBusFixed('{{.BusID}}')">
+                    🗑️ Remove
+                  </button>
+                </div>
+              </div>
+              {{end}}
+            </div>
+            {{else}}
+            <div class="alert alert-info">
+              <h6>🚌 No Buses Yet</h6>
+              <p class="mb-0">Add your first bus using the form below to get started with fleet management.</p>
+            </div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Bus and Maintenance Log Forms Side by Side -->
     <div class="row mb-4">
       <div class="col-md-6">
         <div class="card">
@@ -96,48 +203,12 @@
       <div class="col-md-6">
         <div class="card">
           <div class="card-header">
-            <h5>📊 Fleet Summary</h5>
-          </div>
-          <div class="card-body">
-            {{if .Buses}}
-            <div class="row text-center">
-              <div class="col-4">
-                <div class="status-active-bg p-3 rounded">
-                  <div class="fs-2">{{len .Buses}}</div>
-                  <div>Total Buses</div>
-                </div>
-              </div>
-              <div class="col-4">
-                <div class="status-active-bg p-3 rounded">
-                  <div class="fs-2" id="active-count">0</div>
-                  <div>Active</div>
-                </div>
-              </div>
-              <div class="col-4">
-                <div class="status-maintenance-bg p-3 rounded">
-                  <div class="fs-2" id="maintenance-count">0</div>
-                  <div>Maintenance</div>
-                </div>
-              </div>
-            </div>
-            {{else}}
-            <p class="text-muted">No buses in fleet yet.</p>
-            {{end}}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="card">
-          <div class="card-header">
             <h5>🔧 Add Maintenance Log</h5>
           </div>
           <div class="card-body">
             <form action="/add-maint" method="POST">
               <div class="row">
-                <div class="col-md-3 mb-3">
+                <div class="col-md-6 mb-3">
                   <label class="form-label">Bus ID</label>
                   <select name="bus_id" class="form-select" required>
                     <option value="">Select Bus</option>
@@ -146,11 +217,13 @@
                     {{end}}
                   </select>
                 </div>
-                <div class="col-md-3 mb-3">
+                <div class="col-md-6 mb-3">
                   <label class="form-label">Date</label>
                   <input type="date" name="date" class="form-control" value="{{.Today}}" required>
                 </div>
-                <div class="col-md-3 mb-3">
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
                   <label class="form-label">Category</label>
                   <select name="category" class="form-select" required>
                     <option value="">Select Category</option>
@@ -165,7 +238,7 @@
                     <option value="other">Other</option>
                   </select>
                 </div>
-                <div class="col-md-3 mb-3">
+                <div class="col-md-6 mb-3">
                   <label class="form-label">Mileage (optional)</label>
                   <input type="number" name="mileage" class="form-control" placeholder="0">
                 </div>
@@ -178,66 +251,6 @@
             </form>
           </div>
         </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <h5>🚌 Fleet Roster</h5>
-      </div>
-      <div class="card-body">
-        {{if .Buses}}
-        <div class="fleet-grid">
-          {{range .Buses}}
-          <div class="bus-card">
-            <div class="bus-header">
-              <div class="bus-id">Bus #{{.BusID}}</div>
-              <span class="status-badge status-{{.Status}}-bg">
-                {{if eq .Status "active"}}✅ Active{{end}}
-                {{if eq .Status "maintenance"}}⚠️ Maintenance{{end}}
-                {{if eq .Status "out_of_service"}}❌ Out of Service{{end}}
-              </span>
-            </div>
-
-            <div class="bus-details">
-              {{if .Model}}<p><strong>Model:</strong> {{.Model}}</p>{{end}}
-              {{if .Capacity}}<p><strong>Capacity:</strong> {{.Capacity}} passengers</p>{{end}}
-              <p><strong>Oil:</strong> 
-                {{if eq .OilStatus "good"}}✅ Good{{end}}
-                {{if eq .OilStatus "due"}}⚠️ Due{{end}}
-                {{if eq .OilStatus "overdue"}}❌ Overdue{{end}}
-                {{if eq .OilStatus ""}}⚡ Not Set{{end}}
-              </p>
-              <p><strong>Tires:</strong> 
-                {{if eq .TireStatus "good"}}✅ Good{{end}}
-                {{if eq .TireStatus "worn"}}⚠️ Worn{{end}}
-                {{if eq .TireStatus "replace"}}❌ Replace{{end}}
-                {{if eq .TireStatus ""}}⚡ Not Set{{end}}
-              </p>
-              {{if .MaintenanceNotes}}<p><strong>Notes:</strong> {{.MaintenanceNotes}}</p>{{end}}
-            </div>
-
-            
-
-            <div class="bus-actions mt-3">
-              <button type="button" class="btn btn-sm btn-outline-primary" 
-                      onclick="editBusFixed('{{.BusID}}', '{{.Status}}', '{{if .Model}}{{.Model}}{{else}}{{end}}', {{if .Capacity}}{{.Capacity}}{{else}}0{{end}}, '{{if .OilStatus}}{{.OilStatus}}{{else}}good{{end}}', '{{if .TireStatus}}{{.TireStatus}}{{else}}good{{end}}', '{{if .MaintenanceNotes}}{{.MaintenanceNotes}}{{else}}{{end}}')">
-                ✏️ Edit
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-danger" 
-                      onclick="removeBusFixed('{{.BusID}}')">
-                🗑️ Remove
-              </button>
-            </div>
-          </div>
-          {{end}}
-        </div>
-        {{else}}
-        <div class="alert alert-info">
-          <h6>🚌 No Buses Yet</h6>
-          <p class="mb-0">Add your first bus using the form above to get started with fleet management.</p>
-        </div>
-        {{end}}
       </div>
     </div>
   </div>
@@ -333,6 +346,9 @@
     }
     if (document.getElementById('maintenance-count')) {
       document.getElementById('maintenance-count').textContent = maintenanceCount;
+    }
+    if (document.getElementById('out-of-service-count')) {
+      document.getElementById('out-of-service-count').textContent = outOfServiceCount;
     }
 
     // FIXED: Edit bus function with direct parameters
