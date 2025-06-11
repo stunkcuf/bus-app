@@ -115,23 +115,23 @@
               <tbody>
                 {{range .Vehicles}}
                 <tr>
-                  <td>{{.vehicle_id}}</td>
-                  <td>{{if .model}}{{.model}}{{else}}{{.description}}{{end}}</td>
-                  <td>{{.year}}</td>
-                  <td>{{.capacity}}</td>
-                  <td>{{.license}}</td>
-                  <td>{{if eq .oil_status "good"}}<span class="badge bg-success">Good</span>{{else if eq .oil_status "needs service"}}<span class="badge bg-warning text-dark">Needs Service</span>{{else}}<span class="badge bg-secondary">--</span>{{end}}</td>
-                  <td>{{if eq .tire_status "good"}}<span class="badge bg-success">Good</span>{{else if eq .tire_status "needs service"}}<span class="badge bg-warning text-dark">Needs Service</span>{{else}}<span class="badge bg-secondary">--</span>{{end}}</td>
+                  <td>{{.VehicleID}}</td>
+                  <td>{{if .Model}}{{.Model}}{{else}}{{.Description}}{{end}}</td>
+                  <td>{{.Year}}</td>
+                  <td>{{.Capacity}}</td>
+                  <td>{{.License}}</td>
+                  <td>{{if eq .OilStatus "good"}}<span class="badge bg-success">Good</span>{{else if eq .OilStatus "needs service"}}<span class="badge bg-warning text-dark">Needs Service</span>{{else}}<span class="badge bg-secondary">--</span>{{end}}</td>
+                  <td>{{if eq .TireStatus "good"}}<span class="badge bg-success">Good</span>{{else if eq .TireStatus "needs service"}}<span class="badge bg-warning text-dark">Needs Service</span>{{else}}<span class="badge bg-secondary">--</span>{{end}}</td>
                   <td>
-                    {{if eq .status "active"}}
+                    {{if eq .Status "active"}}
                       <span class="badge bg-active status-badge"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>Active</span>
-                    {{else if eq .status "maintenance"}}
+                    {{else if eq .Status "maintenance"}}
                       <span class="badge bg-maintenance status-badge"><i class="bi bi-tools me-1" aria-hidden="true"></i>Maintenance</span>
                     {{else}}
-                      <span class="badge bg-secondary status-badge"><i class="bi bi-pause-circle me-1" aria-hidden="true"></i>{{.status}}</span>
+                      <span class="badge bg-secondary status-badge"><i class="bi bi-pause-circle me-1" aria-hidden="true"></i>{{.Status}}</span>
                     {{end}}
                   </td>
-                  <td>{{.maintenance_notes}}</td>
+                  <td>{{.MaintenanceNotes}}</td>
                 </tr>
                 {{end}}
               </tbody>
