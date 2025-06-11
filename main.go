@@ -1867,80 +1867,91 @@ func addMaintenanceLog(w http.ResponseWriter, r *http.Request) {
 }
 
 func removeUser(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	r.ParseForm()
-	usernameToRemove := r.FormValue("username")
-
-	if usernameToRemove == "" {
-		http.Error(w, "Username is required", http.StatusBadRequest)
-		return
-	}
-
-	// Prevent removing yourself
-	if usernameToRemove == user.Username {
-		http.Error(w, "Cannot remove yourself", http.StatusBadRequest)
-		return
-	}
-
-	users := loadUsers()
-	var newUsers []User
-	userFound := false
-
-	for _, u := range users {
-		if u.Username != usernameToRemove {
-			newUsers = append(newUsers, u)
-		} else {
-			userFound = true
-		}
-	}
-
-	if !userFound {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	}
-
-	// If removing a driver, also remove their route assignments
-	if userFound {
-		assignments, err := loadRouteAssignments()
-		if err == nil {
-			var newAssignments []RouteAssignment
-			for _, assignment := range assignments {
-				if assignment.Driver != usernameToRemove {
-					newAssignments = append(newAssignments, assignment)
-				}
-			}
-			saveRouteAssignments(newAssignments)
-		}
-	}
-
-	// Save updated users list
-	f, err := os.Create("data/users.json")
-	if err != nil {
-		log.Printf("Error creating users.json: %v", err)
-		http.Error(w, "Unable to save users", http.StatusInternalServerError)
-		return
-	}
-	defer f.Close()
-
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(newUsers); err != nil {
-		log.Printf("Error encoding users: %v", err)
-		http.Error(w, "Unable to save users", http.StatusInternalServerError)
-		return
-	}
-
-	http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
+    // MODIFIED: Temporarily accept both GET and POST for debugging
+    var usernameToRemove string
+    
+    if r.Method == http.MethodGet {
+        // Parse from URL query for GET requests
+        usernameToRemove = r.URL.Query().Get("username")
+        log.Printf("DEBUG: Received GET request for removing user: %s", usernameToRemove)
+    } else if r.Method == http.MethodPost {
+        // Parse form data for POST requests
+        r.ParseForm()
+        usernameToRemove = r.FormValue("username")
+        log.Printf("DEBUG: Received POST request for removing user: %s", usernameToRemove)
+    } else {
+        http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+        return
+    }
+    
+    // Check if user is logged in and is a manager
+    user := getUserFromSession(r)
+    if user == nil || user.Role != "manager" {
+        http.Redirect(w, r, "/", http.StatusFound)
+        return
+    }
+    
+    // Check if username was provided
+    if usernameToRemove == "" {
+        http.Error(w, "Username is required", http.StatusBadRequest)
+        return
+    }
+    
+    // Prevent removing yourself
+    if usernameToRemove == user.Username {
+        http.Error(w, "Cannot remove yourself", http.StatusBadRequest)
+        return
+    }
+    
+    // ALL YOUR EXISTING LOGIC STAYS THE SAME FROM HERE...
+    users := loadUsers()
+    var newUsers []User
+    userFound := false
+    for _, u := range users {
+        if u.Username != usernameToRemove {
+            newUsers = append(newUsers, u)
+        } else {
+            userFound = true
+        }
+    }
+    
+    if !userFound {
+        http.Error(w, "User not found", http.StatusNotFound)
+        return
+    }
+    
+    // If removing a driver, also remove their route assignments
+    if userFound {
+        assignments, err := loadRouteAssignments()
+        if err == nil {
+            var newAssignments []RouteAssignment
+            for _, assignment := range assignments {
+                if assignment.Driver != usernameToRemove {
+                    newAssignments = append(newAssignments, assignment)
+                }
+            }
+            saveRouteAssignments(newAssignments)
+        }
+    }
+    
+    // Save updated users list
+    f, err := os.Create("data/users.json")
+    if err != nil {
+        log.Printf("Error creating users.json: %v", err)
+        http.Error(w, "Unable to save users", http.StatusInternalServerError)
+        return
+    }
+    defer f.Close()
+    
+    enc := json.NewEncoder(f)
+    enc.SetIndent("", "  ")
+    if err := enc.Encode(newUsers); err != nil {
+        log.Printf("Error encoding users: %v", err)
+        http.Error(w, "Unable to save users", http.StatusInternalServerError)
+        return
+    }
+    
+    http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
@@ -1958,212 +1969,6 @@ func withRecovery(h http.HandlerFunc) http.HandlerFunc {
 		}()
 		h(w, r)
 	}
-}
-
-// Migration helper functions to convert from old structure to new ID-based structure
-
-// migrateBusData converts old BusNumber fields to BusID
-func migrateBusData() error {
-	f, err := os.Open("data/buses.json")
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil // No file to migrate
-		}
-		return err
-	}
-	defer f.Close()
-
-	var rawData []map[string]interface{}
-	if err := json.NewDecoder(f).Decode(&rawData); err != nil {
-		return fmt.Errorf("failed to decode buses.json: %w", err)
-	}
-
-	// Convert BusNumber to BusID if needed
-	migrated := false
-	for _, bus := range rawData {
-		if busNumber, exists := bus["bus_number"]; exists {
-			bus["bus_id"] = busNumber
-			delete(bus, "bus_number")
-			migrated = true
-		}
-	}
-
-	if migrated {
-		f, err := os.Create("data/buses.json")
-		if err != nil {
-			return fmt.Errorf("failed to create migrated buses.json: %w", err)
-		}
-		defer f.Close()
-
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(rawData); err != nil {
-			return fmt.Errorf("failed to encode migrated buses: %w", err)
-		}
-
-		log.Println("Migrated buses.json: BusNumber -> BusID")
-	}
-
-	return nil
-}
-
-// migrateRouteAssignments converts old BusNumber fields to BusID
-func migrateRouteAssignments() error {
-	f, err := os.Open("data/route_assignments.json")
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil // No file to migrate
-		}
-		return err
-	}
-	defer f.Close()
-
-	var rawData []map[string]interface{}
-	if err := json.NewDecoder(f).Decode(&rawData); err != nil {
-		return fmt.Errorf("failed to decode route_assignments.json: %w", err)
-	}
-
-	// Convert BusNumber to BusID if needed
-	migrated := false
-	for _, assignment := range rawData {
-		if busNumber, exists := assignment["bus_number"]; exists {
-			assignment["bus_id"] = busNumber
-			delete(assignment, "bus_number")
-			migrated = true
-		}
-	}
-
-	if migrated {
-		f, err := os.Create("data/route_assignments.json")
-		if err != nil {
-			return fmt.Errorf("failed to create migrated route_assignments.json: %w", err)
-		}
-		defer f.Close()
-
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(rawData); err != nil {
-			return fmt.Errorf("failed to encode migrated assignments: %w", err)
-		}
-
-		log.Println("Migrated route_assignments.json: BusNumber -> BusID")
-	}
-
-	return nil
-}
-
-// migrateDriverLogs converts old BusNumber fields to BusID
-func migrateDriverLogs() error {
-	f, err := os.Open("data/driver_logs.json")
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil // No file to migrate
-		}
-		return err
-	}
-	defer f.Close()
-
-	var rawData []map[string]interface{}
-	if err := json.NewDecoder(f).Decode(&rawData); err != nil {
-		return fmt.Errorf("failed to decode driver_logs.json: %w", err)
-	}
-
-	// Convert BusNumber to BusID if needed
-	migrated := false
-	for _, log := range rawData {
-		if busNumber, exists := log["bus_number"]; exists {
-			log["bus_id"] = busNumber
-			delete(log, "bus_number")
-			migrated = true
-		}
-	}
-
-	if migrated {
-		f, err := os.Create("data/driver_logs.json")
-		if err != nil {
-			return fmt.Errorf("failed to create migrated driver_logs.json: %w", err)
-		}
-		defer f.Close()
-
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(rawData); err != nil {
-			return fmt.Errorf("failed to encode migrated logs: %w", err)
-		}
-
-		log.Println("Migrated driver_logs.json: BusNumber -> BusID")
-	}
-
-	return nil
-}
-
-// migrateMaintenanceLogs converts old BusNumber fields to BusID
-func migrateMaintenanceLogs() error {
-	f, err := os.Open("data/maintenance.json")
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil // No file to migrate
-		}
-		return err
-	}
-	defer f.Close()
-
-	var rawData []map[string]interface{}
-	if err := json.NewDecoder(f).Decode(&rawData); err != nil {
-		return fmt.Errorf("failed to decode maintenance.json: %w", err)
-	}
-
-	// Convert BusNumber to BusID if needed
-	migrated := false
-	for _, log := range rawData {
-		if busNumber, exists := log["bus_number"]; exists {
-			log["bus_id"] = busNumber
-			delete(log, "bus_number")
-			migrated = true
-		}
-	}
-
-	if migrated {
-		f, err := os.Create("data/maintenance.json")
-		if err != nil {
-			return fmt.Errorf("failed to create migrated maintenance.json: %w", err)
-		}
-		defer f.Close()
-
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(rawData); err != nil {
-			return fmt.Errorf("failed to encode migrated maintenance: %w", err)
-		}
-
-		log.Println("Migrated maintenance.json: BusNumber -> BusID")
-	}
-
-	return nil
-}
-
-// runMigrations executes all necessary data migrations
-func runMigrations() error {
-	log.Println("Running data migrations...")
-	
-	if err := migrateBusData(); err != nil {
-		return fmt.Errorf("bus migration failed: %w", err)
-	}
-	
-	if err := migrateRouteAssignments(); err != nil {
-		return fmt.Errorf("route assignment migration failed: %w", err)
-	}
-	
-	if err := migrateDriverLogs(); err != nil {
-		return fmt.Errorf("driver logs migration failed: %w", err)
-	}
-	
-	if err := migrateMaintenanceLogs(); err != nil {
-		return fmt.Errorf("maintenance logs migration failed: %w", err)
-	}
-	
-	log.Println("Data migrations completed successfully")
-	return nil
 }
 
 // Updated initialization with proper ID structure
@@ -2336,15 +2141,10 @@ func initDataFiles() {
 	}
 }
 
+
 func main() {
 	// Ensure basic data files exist
 	ensureDataFiles()
-	
-	// Run migrations to convert old structure to new ID-based structure
-	if err := runMigrations(); err != nil {
-		log.Printf("Migration error: %v", err)
-		// Don't fatal here, let the app continue even if migrations fail
-	}
 	
 	// Initialize data files with proper structure
 	initDataFiles()
@@ -2374,7 +2174,7 @@ func main() {
 	http.HandleFunc("/reassign-driver-bus", withRecovery(reassignDriverBus))
 	http.HandleFunc("/remove-user", withRecovery(removeUser))
 	http.HandleFunc("/logout", withRecovery(logout))
-
+	
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "5000"

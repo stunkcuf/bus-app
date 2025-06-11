@@ -2,75 +2,366 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Manager Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manager Dashboard - Fleet Management</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <style>
-    .summary-card {
-      border-left: 4px solid #007bff;
+    :root {
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
     }
-    .metric-card {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+    body {
+      background-color: #f8f9fa;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    /* Header Styling */
+    .dashboard-header {
+      background: var(--primary-gradient);
       color: white;
-      border-radius: 10px;
+      padding: 1.5rem;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
     }
+
+    .dashboard-header h2 {
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .dashboard-header .btn {
+      backdrop-filter: blur(10px);
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .dashboard-header .btn:hover {
+      background: rgba(255,255,255,0.3);
+      transform: translateY(-2px);
+    }
+
+    /* Metric Cards */
+    .metric-card {
+      background: var(--primary-gradient);
+      color: white;
+      border-radius: 15px;
+      padding: 1.5rem;
+      height: 100%;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-card:before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: rgba(255,255,255,0.1);
+      transform: rotate(45deg);
+    }
+
+    .metric-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    .metric-card.success {
+      background: var(--success-gradient);
+    }
+
+    .metric-card.info {
+      background: var(--info-gradient);
+    }
+
+    .metric-card.warning {
+      background: var(--warning-gradient);
+    }
+
+    .metric-card h3 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .metric-card p {
+      font-size: 1rem;
+      opacity: 0.9;
+      margin: 0;
+    }
+
+    .metric-card i {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 3rem;
+      opacity: 0.3;
+    }
+
+    /* Card Styling */
+    .card {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      margin-bottom: 1.5rem;
+      transition: box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+      box-shadow: 0 5px 20px rgba(0,0,0,0.12);
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      border-bottom: none;
+      border-radius: 15px 15px 0 0 !important;
+      padding: 1rem 1.5rem;
+    }
+
+    .card-header h5 {
+      margin: 0;
+      font-weight: 600;
+      color: #2c3e50;
+    }
+
+    /* Table Styling */
     .table-container {
       max-height: 400px;
       overflow-y: auto;
+      overflow-x: hidden;
     }
+
+    .table-container::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .table-container::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 3px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+
+    .table {
+      margin-bottom: 0;
+    }
+
+    .table thead th {
+      border-bottom: 2px solid #e9ecef;
+      font-weight: 600;
+      color: #495057;
+      background-color: #f8f9fa;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .table tbody tr {
+      transition: background-color 0.2s ease;
+    }
+
+    .table tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+
+    /* Badge Styling */
+    .badge {
+      padding: 0.4em 0.8em;
+      font-weight: 500;
+    }
+
     .status-badge {
-      font-size: 0.8em;
+      font-size: 0.875rem;
+      padding: 0.4em 0.8em;
+    }
+
+    /* Fleet Status Items */
+    .fleet-item {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      transition: all 0.3s ease;
+    }
+
+    .fleet-item:hover {
+      background: white;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      transform: translateX(5px);
+    }
+
+    /* Route Items */
+    .route-item {
+      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      transition: all 0.3s ease;
+    }
+
+    .route-item:hover {
+      transform: translateX(5px);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+    /* Driver Items */
+    .driver-item {
+      background: white;
+      border: 1px solid #e9ecef;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .driver-item:hover {
+      background: #f8f9fa;
+      border-color: #667eea;
+      transform: translateX(5px);
+    }
+
+    .driver-item a {
+      color: #495057;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .driver-item a:hover {
+      color: #667eea;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .dashboard-header .btn-group {
+        flex-direction: column;
+        width: 100%;
+      }
+      
+      .dashboard-header .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+      }
+
+      .metric-card h3 {
+        font-size: 2rem;
+      }
+    }
+
+    /* Animation */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card {
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    .metric-card {
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    /* Action Buttons */
+    .btn-group-sm .btn {
+      padding: 0.25rem 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn-outline-primary:hover i,
+    .btn-outline-danger:hover i {
+      transform: scale(1.2);
+      transition: transform 0.2s ease;
+    }
+
+    /* Button click feedback */
+    .btn:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+
+    /* Loading spinner size */
+    .spinner-border-sm {
+      width: 1rem;
+      height: 1rem;
     }
   </style>
 </head>
-<body class="bg-light">
-  <div class="container-fluid">
+<body>
+  <div class="container-fluid py-4">
     <!-- Header -->
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm">
-          <h2 class="mb-0">Manager Dashboard</h2>
-          <div>
-            <a href="/new-user" class="btn btn-success btn-sm me-2">+ New User</a>
-            <a href="/assign-routes" class="btn btn-primary btn-sm me-2">Assign Routes</a>
-            <a href="/fleet" class="btn btn-info btn-sm me-2">🚌 Fleet</a>
-            <a href="/logout" class="btn btn-outline-danger btn-sm">Logout</a>
-          </div>
+    <div class="dashboard-header">
+      <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <h2><i class="bi bi-speedometer2 me-2"></i>Manager Dashboard</h2>
+        <div class="btn-group mt-3 mt-md-0" role="group">
+          <a href="/new-user" class="btn btn-sm me-2">
+            <i class="bi bi-person-plus-fill me-1"></i>New User
+          </a>
+          <a href="/assign-routes" class="btn btn-sm me-2">
+            <i class="bi bi-map-fill me-1"></i>Assign Routes
+          </a>
+          <a href="/fleet" class="btn btn-sm me-2">
+            <i class="bi bi-bus-front-fill me-1"></i>Fleet
+          </a>
+          <a href="/logout" class="btn btn-sm">
+            <i class="bi bi-box-arrow-right me-1"></i>Logout
+          </a>
         </div>
       </div>
     </div>
 
     <!-- Summary Cards -->
     <div class="row mb-4">
-      <div class="col-md-3">
-        <div class="card metric-card">
-          <div class="card-body text-center">
-            <h3 class="mb-1">{{len .Users}}</h3>
-            <p class="mb-0">Total Users</p>
-          </div>
+      <div class="col-sm-6 col-lg-3 mb-3">
+        <div class="metric-card">
+          <h3>{{len .Users}}</h3>
+          <p>Total Users</p>
+          <i class="bi bi-people-fill"></i>
         </div>
       </div>
-      <div class="col-md-3">
-        <div class="card metric-card">
-          <div class="card-body text-center">
-            <h3 class="mb-1">{{len .Buses}}</h3>
-            <p class="mb-0">Fleet Size</p>
-          </div>
+      <div class="col-sm-6 col-lg-3 mb-3">
+        <div class="metric-card success">
+          <h3>{{len .Buses}}</h3>
+          <p>Fleet Size</p>
+          <i class="bi bi-bus-front-fill"></i>
         </div>
       </div>
-      <div class="col-md-3">
-        <div class="card metric-card">
-          <div class="card-body text-center">
-            <h3 class="mb-1">{{len .Routes}}</h3>
-            <p class="mb-0">Active Routes</p>
-          </div>
+      <div class="col-sm-6 col-lg-3 mb-3">
+        <div class="metric-card info">
+          <h3>{{len .Routes}}</h3>
+          <p>Active Routes</p>
+          <i class="bi bi-geo-alt-fill"></i>
         </div>
       </div>
-      <div class="col-md-3">
-        <div class="card metric-card">
-          <div class="card-body text-center">
-            <h3 class="mb-1">{{len .DriverSummaries}}</h3>
-            <p class="mb-0">Active Drivers</p>
-          </div>
+      <div class="col-sm-6 col-lg-3 mb-3">
+        <div class="metric-card warning">
+          <h3>{{len .DriverSummaries}}</h3>
+          <p>Active Drivers</p>
+          <i class="bi bi-person-badge-fill"></i>
         </div>
       </div>
     </div>
@@ -79,14 +370,14 @@
       <!-- Left Column -->
       <div class="col-lg-8">
         <!-- Driver Performance -->
-        <div class="card mb-4">
+        <div class="card">
           <div class="card-header">
-            <h5 class="mb-0">Driver Performance Summary</h5>
+            <h5><i class="bi bi-graph-up me-2"></i>Driver Performance Summary</h5>
           </div>
           <div class="card-body">
             <div class="table-container">
               <table class="table table-hover">
-                <thead class="table-light sticky-top">
+                <thead>
                   <tr>
                     <th>Driver</th>
                     <th>Morning</th>
@@ -99,12 +390,16 @@
                 <tbody>
                   {{range .DriverSummaries}}
                   <tr>
-                    <td><a href="/driver/{{.Name}}" class="text-decoration-none">{{.Name}}</a></td>
+                    <td>
+                      <a href="/driver/{{.Name}}" class="text-decoration-none fw-medium">
+                        <i class="bi bi-person-circle me-1"></i>{{.Name}}
+                      </a>
+                    </td>
                     <td><span class="badge bg-primary">{{.TotalMorning}}</span></td>
                     <td><span class="badge bg-success">{{.TotalEvening}}</span></td>
                     <td>{{printf "%.1f" .TotalMiles}}</td>
                     <td>{{printf "%.1f" .MonthlyAvgMiles}}</td>
-                    <td>{{.MonthlyAttendance}}</td>
+                    <td><span class="badge bg-info">{{.MonthlyAttendance}}</span></td>
                   </tr>
                   {{end}}
                 </tbody>
@@ -114,14 +409,14 @@
         </div>
 
         <!-- Route Analytics -->
-        <div class="card mb-4">
+        <div class="card">
           <div class="card-header">
-            <h5 class="mb-0">Route Analytics</h5>
+            <h5><i class="bi bi-bar-chart-fill me-2"></i>Route Analytics</h5>
           </div>
           <div class="card-body">
             <div class="table-container">
               <table class="table table-hover">
-                <thead class="table-light sticky-top">
+                <thead>
                   <tr>
                     <th>Route</th>
                     <th>Total Miles</th>
@@ -134,7 +429,7 @@
                 <tbody>
                   {{range .RouteStats}}
                   <tr>
-                    <td><strong>{{.RouteName}}</strong></td>
+                    <td><strong><i class="bi bi-signpost-2 me-1"></i>{{.RouteName}}</strong></td>
                     <td>{{printf "%.1f" .TotalMiles}}</td>
                     <td>{{printf "%.1f" .AvgMiles}}</td>
                     <td><span class="badge bg-info">{{.AttendanceDay}}</span></td>
@@ -152,12 +447,12 @@
         {{if .Activities}}
         <div class="card">
           <div class="card-header">
-            <h5 class="mb-0">Recent Activities / Field Trips</h5>
+            <h5><i class="bi bi-calendar-event me-2"></i>Recent Activities / Field Trips</h5>
           </div>
           <div class="card-body">
             <div class="table-container">
               <table class="table table-hover">
-                <thead class="table-light sticky-top">
+                <thead>
                   <tr>
                     <th>Date</th>
                     <th>Driver</th>
@@ -170,7 +465,7 @@
                 <tbody>
                   {{range .Activities}}
                   <tr>
-                    <td>{{.Date}}</td>
+                    <td><i class="bi bi-calendar3 me-1"></i>{{.Date}}</td>
                     <td>{{.Driver}}</td>
                     <td>{{.TripName}}</td>
                     <td><span class="badge bg-success">{{.Attendance}}</span></td>
@@ -189,38 +484,52 @@
       <!-- Right Column -->
       <div class="col-lg-4">
         <!-- Fleet Status -->
-        <div class="card mb-4">
+        <div class="card">
           <div class="card-header">
-            <h5 class="mb-0">Fleet Status</h5>
+            <h5><i class="bi bi-truck me-2"></i>Fleet Status</h5>
           </div>
           <div class="card-body">
             {{range .Buses}}
-            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
-              <div>
-                <strong>Bus #{{.BusID}}</strong><br>
-                <small class="text-muted">{{.Model}}</small>
+            <div class="fleet-item">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <strong><i class="bi bi-bus-front me-1"></i>Bus #{{.BusID}}</strong>
+                  <br>
+                  <small class="text-muted">{{.Model}}</small>
+                </div>
+                <span class="badge status-badge 
+                  {{if eq .Status "active"}}bg-success
+                  {{else if eq .Status "maintenance"}}bg-warning
+                  {{else}}bg-secondary{{end}}">
+                  {{if eq .Status "active"}}<i class="bi bi-check-circle-fill me-1"></i>
+                  {{else if eq .Status "maintenance"}}<i class="bi bi-tools me-1"></i>
+                  {{else}}<i class="bi bi-pause-circle-fill me-1"></i>{{end}}
+                  {{.Status}}
+                </span>
               </div>
-              <span class="badge status-badge {{if eq .Status "active"}}bg-success{{else if eq .Status "maintenance"}}bg-warning{{else}}bg-secondary{{end}}">
-                {{.Status}}
-              </span>
             </div>
             {{end}}
           </div>
         </div>
 
         <!-- Route List -->
-        <div class="card mb-4">
+        <div class="card">
           <div class="card-header">
-            <h5 class="mb-0">Active Routes</h5>
+            <h5><i class="bi bi-map me-2"></i>Active Routes</h5>
           </div>
           <div class="card-body">
             {{range .Routes}}
-            <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
-              <div>
-                <strong>{{.RouteName}}</strong><br>
-                <small class="text-muted">{{len .Positions}} positions</small>
+            <div class="route-item">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <strong><i class="bi bi-geo me-1"></i>{{.RouteName}}</strong>
+                  <br>
+                  <small class="text-muted">
+                    <i class="bi bi-pin-map-fill me-1"></i>{{len .Positions}} stops
+                  </small>
+                </div>
+                <span class="badge bg-primary">ID: {{.RouteID}}</span>
               </div>
-              <span class="badge bg-primary">{{.RouteID}}</span>
             </div>
             {{end}}
           </div>
@@ -229,315 +538,180 @@
         <!-- Driver List -->
         <div class="card">
           <div class="card-header">
-            <h5 class="mb-0">All Drivers</h5>
+            <h5><i class="bi bi-person-lines-fill me-2"></i>All Users</h5>
           </div>
           <div class="card-body">
-            {{range .Users}}
-            {{if eq .Role "driver"}}
-            <div class="mb-2 p-2 bg-light rounded">
-              <a href="/driver/{{.Username}}" class="text-decoration-none">
-                <strong>{{.Username}}</strong>
-              </a>
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{range .Users}}
+                  <tr>
+                    <td>
+                      {{if eq .Role "driver"}}
+                        <a href="/driver/{{.Username}}" class="text-decoration-none">
+                          <i class="bi bi-person-badge me-1"></i>{{.Username}}
+                        </a>
+                      {{else}}
+                        <i class="bi bi-person-gear me-1"></i>{{.Username}}
+                      {{end}}
+                    </td>
+                    <td>
+                      <span class="badge {{if eq .Role "manager"}}bg-primary{{else}}bg-success{{end}}">
+                        {{.Role}}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-outline-primary" 
+                                onclick="editUser('{{.Username}}')"
+                                title="Edit">
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        {{if ne .Username $.User.Username}}
+                        <button type="button" class="btn btn-outline-danger" 
+                                onclick="confirmRemoveUser('{{.Username}}', '{{.Role}}')"
+                                title="Remove">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                        {{else}}
+                        <button class="btn btn-outline-secondary" disabled title="Current User">
+                          <i class="bi bi-shield-lock"></i>
+                        </button>
+                        {{end}}
+                      </div>
+                    </td>
+                  </tr>
+                  {{end}}
+                </tbody>
+              </table>
             </div>
-            {{end}}
-            {{end}}
           </div>
         </div>
       </div>
     </div>
   </div>
-  <script>
-    function confirmRemoveUser(username, role) {
-      if (confirm(`Are you sure you want to remove user ${username} with role ${role}?`)) {
-        // Redirect to remove user endpoint
-        window.location.href = `/remove-user?username=${username}`;
-      }
-    }
-  </script>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
-```
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Manager Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    .summary-card {
-      border-left: 4px solid #007bff;
-    }
-    .metric-card {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border-radius: 10px;
-    }
-    .table-container {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    .status-badge {
-      font-size: 0.8em;
-    }
-  </style>
-</head>
-<body class="bg-light">
-  <div class="container-fluid">
-    <!-- Header -->
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm">
-          <h2 class="mb-0">Manager Dashboard</h2>
-          <div>
-            <a href="/new-user" class="btn btn-success btn-sm me-2">+ New User</a>
-            <a href="/assign-routes" class="btn btn-primary btn-sm me-2">Assign Routes</a>
-            <a href="/fleet" class="btn btn-info btn-sm me-2">🚌 Fleet</a>
-            <a href="/logout" class="btn btn-outline-danger btn-sm">Logout</a>
-          </div>
+  <!-- Remove User Confirmation Modal -->
+  <div class="modal fade" id="removeUserModal" tabindex="-1" aria-labelledby="removeUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title" id="removeUserModalLabel">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirm User Removal
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-      </div>
-    </div>
-
-    <!-- Summary Cards -->
-    <div class="row mb-4">
-      <div class="col-md-3">
-        <div class="card metric-card">
-          <div class="card-body text-center">
-            <h3 class="mb-1">{{len .Users}}</h3>
-            <p class="mb-0">Total Users</p>
-          </div>
+        <div class="modal-body">
+          <p>Are you sure you want to remove user <strong id="removeUsername"></strong> with role <span class="badge" id="removeUserRole"></span>?</p>
+          <p class="text-danger mb-0"><small>This action cannot be undone.</small></p>
         </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card metric-card">
-          <div class="card-body text-center">
-            <h3 class="mb-1">{{len .Buses}}</h3>
-            <p class="mb-0">Fleet Size</p>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card metric-card">
-          <div class="card-body text-center">
-            <h3 class="mb-1">{{len .Routes}}</h3>
-            <p class="mb-0">Active Routes</p>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card metric-card">
-          <div class="card-body text-center">
-            <h3 class="mb-1">{{len .DriverSummaries}}</h3>
-            <p class="mb-0">Active Drivers</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="row">
-      <!-- Left Column -->
-      <div class="col-lg-8">
-        <!-- Driver Performance -->
-        <div class="card mb-4">
-          <div class="card-header">
-            <h5 class="mb-0">Driver Performance Summary</h5>
-          </div>
-          <div class="card-body">
-            <div class="table-container">
-              <table class="table table-hover">
-                <thead class="table-light sticky-top">
-                  <tr>
-                    <th>Driver</th>
-                    <th>Morning</th>
-                    <th>Evening</th>
-                    <th>Total Miles</th>
-                    <th>Daily Avg</th>
-                    <th>Monthly</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {{range .DriverSummaries}}
-                  <tr>
-                    <td><a href="/driver/{{.Name}}" class="text-decoration-none">{{.Name}}</a></td>
-                    <td><span class="badge bg-primary">{{.TotalMorning}}</span></td>
-                    <td><span class="badge bg-success">{{.TotalEvening}}</span></td>
-                    <td>{{printf "%.1f" .TotalMiles}}</td>
-                    <td>{{printf "%.1f" .MonthlyAvgMiles}}</td>
-                    <td>{{.MonthlyAttendance}}</td>
-                  </tr>
-                  {{end}}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Route Analytics -->
-        <div class="card mb-4">
-          <div class="card-header">
-            <h5 class="mb-0">Route Analytics</h5>
-          </div>
-          <div class="card-body">
-            <div class="table-container">
-              <table class="table table-hover">
-                <thead class="table-light sticky-top">
-                  <tr>
-                    <th>Route</th>
-                    <th>Total Miles</th>
-                    <th>Average Miles</th>
-                    <th>Today</th>
-                    <th>This Week</th>
-                    <th>This Month</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {{range .RouteStats}}
-                  <tr>
-                    <td><strong>{{.RouteName}}</strong></td>
-                    <td>{{printf "%.1f" .TotalMiles}}</td>
-                    <td>{{printf "%.1f" .AvgMiles}}</td>
-                    <td><span class="badge bg-info">{{.AttendanceDay}}</span></td>
-                    <td><span class="badge bg-warning">{{.AttendanceWeek}}</span></td>
-                    <td><span class="badge bg-danger">{{.AttendanceMonth}}</span></td>
-                  </tr>
-                  {{end}}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Activities -->
-        {{if .Activities}}
-        <div class="card">
-          <div class="card-header">
-            <h5 class="mb-0">Recent Activities / Field Trips</h5>
-          </div>
-          <div class="card-body">
-            <div class="table-container">
-              <table class="table table-hover">
-                <thead class="table-light sticky-top">
-                  <tr>
-                    <th>Date</th>
-                    <th>Driver</th>
-                    <th>Trip Name</th>
-                    <th>Attendance</th>
-                    <th>Miles</th>
-                    <th>Notes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {{range .Activities}}
-                  <tr>
-                    <td>{{.Date}}</td>
-                    <td>{{.Driver}}</td>
-                    <td>{{.TripName}}</td>
-                    <td><span class="badge bg-success">{{.Attendance}}</span></td>
-                    <td>{{printf "%.1f" .Miles}}</td>
-                    <td>{{.Notes}}</td>
-                  </tr>
-                  {{end}}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-        {{end}}
-      </div>
-
-      <!-- Right Column -->
-      <div class="col-lg-4">
-        <!-- Fleet Status -->
-        <div class="card mb-4">
-          <div class="card-header">
-            <h5 class="mb-0">Fleet Status</h5>
-          </div>
-          <div class="card-body">
-            {{range .Buses}}
-            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
-              <div>
-                <strong>Bus #{{.BusID}}</strong><br>
-                <small class="text-muted">{{.Model}}</small>
-              </div>
-              <span class="badge status-badge {{if eq .Status "active"}}bg-success{{else if eq .Status "maintenance"}}bg-warning{{else}}bg-secondary{{end}}">
-                {{.Status}}
-              </span>
-            </div>
-            {{end}}
-          </div>
-        </div>
-
-        <!-- Route List -->
-        <div class="card mb-4">
-          <div class="card-header">
-            <h5 class="mb-0">Active Routes</h5>
-          </div>
-          <div class="card-body">
-            {{range .Routes}}
-            <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
-              <div>
-                <strong>{{.RouteName}}</strong><br>
-                <small class="text-muted">{{len .Positions}} positions</small>
-              </div>
-              <span class="badge bg-primary">{{.RouteID}}</span>
-            </div>
-            {{end}}
-          </div>
-        </div>
-
-        <!-- Driver List -->
-        <div class="card">
-          <div class="card-header">
-            <h5 class="mb-0">All Drivers</h5>
-          </div>
-          <div class="card-body">
-             <table class="table table-hover">
-              <thead class="table-light">
-                <tr>
-                  <th>Username</th>
-                  <th>Role</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {{range .Users}}
-                <tr>
-                  <td>{{.Username}}</td>
-                  <td>
-                    <span class="badge {{if eq .Role "manager"}}bg-primary{{else}}bg-success{{end}}">
-                      {{.Role}}
-                    </span>
-                  </td>
-                  <td>
-                    <button class="btn btn-sm btn-outline-primary me-1">Edit</button>
-                    {{if ne .Username $.User.Username}}
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmRemoveUser('{{.Username}}', '{{.Role}}')">
-                      🗑️ Remove
-                    </button>
-                    {{end}}
-                  </td>
-                </tr>
-                {{end}}
-              </tbody>
-            </table>
-          </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirmRemoveBtn">
+            <i class="bi bi-trash me-1"></i>Remove User
+          </button>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    let userToRemove = null;
+
+    // Edit user function
+    function editUser(username) {
+      // Redirect to edit user page
+      window.location.href = `/edit-user?username=${encodeURIComponent(username)}`;
+      
+      // Alternative: If you want to show an edit modal instead, uncomment below:
+      // showEditModal(username);
+    }
+
+    // Confirmation dialog for user removal
     function confirmRemoveUser(username, role) {
-      if (confirm(`Are you sure you want to remove user ${username} with role ${role}?`)) {
-        // Redirect to remove user endpoint
-        window.location.href = `/remove-user?username=${username}`;
+      userToRemove = username;
+      document.getElementById('removeUsername').textContent = username;
+      
+      const roleSpan = document.getElementById('removeUserRole');
+      roleSpan.textContent = role;
+      roleSpan.className = role === 'manager' ? 'badge bg-primary' : 'badge bg-success';
+      
+      const modal = new bootstrap.Modal(document.getElementById('removeUserModal'));
+      modal.show();
+    }
+
+    // Handle the actual removal
+    document.getElementById('confirmRemoveBtn').addEventListener('click', function() {
+      if (userToRemove) {
+        // Show loading state
+        const btn = document.getElementById('confirmRemoveBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Removing...';
+        
+        // Redirect to remove endpoint
+        window.location.href = `/remove-user?username=${encodeURIComponent(userToRemove)}`;
       }
+    });
+
+    // Add click feedback to all buttons
+    document.addEventListener('DOMContentLoaded', function() {
+      // Add click animation to all buttons
+      document.querySelectorAll('.btn').forEach(button => {
+        button.addEventListener('click', function() {
+          // Skip if button is disabled
+          if (this.disabled) return;
+          
+          // Add a pulse effect
+          this.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            this.style.transform = 'scale(1)';
+          }, 100);
+        });
+      });
+    });
+
+    // Add smooth scroll behavior
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({
+            behavior: 'smooth'
+          });
+        }
+      });
+    });
+
+    // Add loading animation for data refresh
+    function refreshData() {
+      const cards = document.querySelectorAll('.card');
+      cards.forEach(card => {
+        card.style.opacity = '0.5';
+      });
+      
+      // Simulate data refresh
+      setTimeout(() => {
+        location.reload();
+      }, 500);
+    }
+
+    // Auto-refresh every 5 minutes (optional)
+    // setInterval(refreshData, 300000);
+
+    // Debug: Log button clicks to console
+    function debugButtonClick(action, username) {
+      console.log(`${action} button clicked for user: ${username}`);
     }
   </script>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

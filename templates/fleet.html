@@ -12,16 +12,32 @@
     .status-out_of_service { color: #dc3545; font-weight: bold; }
     .fleet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
     .bus-card { border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; }
-    .bus-header { display: flex; justify-content: between; align-items: center; margin-bottom: 10px; }
+    .bus-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .bus-id { font-size: 1.2em; font-weight: bold; }
     .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.85em; }
     .status-active-bg { background-color: #d4edda; color: #155724; }
     .status-maintenance-bg { background-color: #fff3cd; color: #856404; }
     .status-out_of_service-bg { background-color: #f8d7da; color: #721c24; }
+    .debug-info { background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 5px; }
   </style>
 </head>
 <body>
   <div class="container-fluid">
+    <!-- DEBUG INFO (Remove this after testing) -->
+    <div class="debug-info">
+      <h5>🐛 DEBUG INFO (Remove after testing)</h5>
+      <p><strong>Total buses loaded:</strong> {{len .Buses}}</p>
+      {{if .Buses}}
+        <p><strong>Bus IDs:</strong>
+        {{range .Buses}}
+          "{{.BusID}}", 
+        {{end}}
+        </p>
+      {{else}}
+        <p style="color: red;"><strong>NO BUSES FOUND!</strong></p>
+      {{end}}
+    </div>
+
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h1>🚌 Fleet Management</h1>
       <div>
@@ -97,14 +113,6 @@
           </div>
           <div class="card-body">
             {{if .Buses}}
-            {{$activeCount := 0}}
-            {{$maintenanceCount := 0}}
-            {{$outOfServiceCount := 0}}
-            {{range .Buses}}
-              {{if eq .Status "active"}}{{$activeCount = add $activeCount 1}}{{end}}
-              {{if eq .Status "maintenance"}}{{$maintenanceCount = add $maintenanceCount 1}}{{end}}
-              {{if eq .Status "out_of_service"}}{{$outOfServiceCount = add $outOfServiceCount 1}}{{end}}
-            {{end}}
             <div class="row text-center">
               <div class="col-4">
                 <div class="status-active-bg p-3 rounded">
@@ -114,13 +122,13 @@
               </div>
               <div class="col-4">
                 <div class="status-active-bg p-3 rounded">
-                  <div class="fs-2">{{$activeCount}}</div>
+                  <div class="fs-2" id="active-count">0</div>
                   <div>Active</div>
                 </div>
               </div>
               <div class="col-4">
                 <div class="status-maintenance-bg p-3 rounded">
-                  <div class="fs-2">{{$maintenanceCount}}</div>
+                  <div class="fs-2" id="maintenance-count">0</div>
                   <div>Maintenance</div>
                 </div>
               </div>
@@ -154,24 +162,33 @@
             <div class="bus-details">
               {{if .Model}}<p><strong>Model:</strong> {{.Model}}</p>{{end}}
               {{if .Capacity}}<p><strong>Capacity:</strong> {{.Capacity}} passengers</p>{{end}}
-              {{if .OilStatus}}<p><strong>Oil:</strong> 
+              <p><strong>Oil:</strong> 
                 {{if eq .OilStatus "good"}}✅ Good{{end}}
                 {{if eq .OilStatus "due"}}⚠️ Due{{end}}
                 {{if eq .OilStatus "overdue"}}❌ Overdue{{end}}
-              </p>{{end}}
-              {{if .TireStatus}}<p><strong>Tires:</strong> 
+                {{if eq .OilStatus ""}}⚡ Not Set{{end}}
+              </p>
+              <p><strong>Tires:</strong> 
                 {{if eq .TireStatus "good"}}✅ Good{{end}}
                 {{if eq .TireStatus "worn"}}⚠️ Worn{{end}}
                 {{if eq .TireStatus "replace"}}❌ Replace{{end}}
-              </p>{{end}}
+                {{if eq .TireStatus ""}}⚡ Not Set{{end}}
+              </p>
               {{if .MaintenanceNotes}}<p><strong>Notes:</strong> {{.MaintenanceNotes}}</p>{{end}}
             </div>
 
+            <!-- DEBUG: Show what will be passed to JavaScript -->
+            <div class="alert alert-info small">
+              <strong>🐛 DEBUG:</strong> Will pass BusID="<strong>{{.BusID}}</strong>" to JavaScript
+            </div>
+
             <div class="bus-actions mt-3">
-              <button type="button" class="btn btn-sm btn-outline-primary" onclick="editBus('{{.BusID}}', '{{.Status}}', '{{if .Model}}{{.Model}}{{end}}', {{if .Capacity}}{{.Capacity}}{{else}}0{{end}}, '{{if .OilStatus}}{{.OilStatus}}{{end}}', '{{if .TireStatus}}{{.TireStatus}}{{end}}', '{{if .MaintenanceNotes}}{{.MaintenanceNotes}}{{end}}')">
+              <button type="button" class="btn btn-sm btn-outline-primary" 
+                      onclick="editBusFixed('{{.BusID}}', '{{.Status}}', '{{if .Model}}{{.Model}}{{else}}{{end}}', {{if .Capacity}}{{.Capacity}}{{else}}0{{end}}, '{{if .OilStatus}}{{.OilStatus}}{{else}}good{{end}}', '{{if .TireStatus}}{{.TireStatus}}{{else}}good{{end}}', '{{if .MaintenanceNotes}}{{.MaintenanceNotes}}{{else}}{{end}}')">
                 ✏️ Edit
               </button>
-              <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeBus('{{.BusID}}')">
+              <button type="button" class="btn btn-sm btn-outline-danger" 
+                      onclick="removeBusFixed('{{.BusID}}')">
                 🗑️ Remove
               </button>
             </div>
@@ -255,40 +272,36 @@
     </div>
   </div>
 
-  <!-- Replacement Bus Modal -->
-  <div class="modal fade" id="replacementBusModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">⚠️ Bus Replacement Required</h5>
-        </div>
-        <div class="modal-body">
-          <p><strong>Bus <span id="originalBusIdDisplay"></span></strong> is currently assigned to:</p>
-          <ul>
-            <li><strong>Driver:</strong> <span id="driverNameDisplay"></span></li>
-            <li><strong>Route:</strong> <span id="routeNameDisplay"></span></li>
-          </ul>
-          <p>Please select a replacement bus before changing the status:</p>
-          <div class="mb-3">
-            <label class="form-label">Replacement Bus</label>
-            <select id="replacementBusSelect" class="form-select" required>
-              <option value="">Select a replacement bus</option>
-            </select>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" id="confirmReplacementBtn">Confirm Replacement</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    function editBus(busId, status, model, capacity, oilStatus, tireStatus, maintenanceNotes) {
-      // Debug logging
-      console.log('editBus called with:', {
+    // Count buses by status for summary cards
+    const buses = {{json .Buses}};
+    let activeCount = 0;
+    let maintenanceCount = 0;
+    let outOfServiceCount = 0;
+    
+    console.log('Buses loaded from server:', buses);
+    
+    buses.forEach(bus => {
+      switch(bus.status) {
+        case 'active': activeCount++; break;
+        case 'maintenance': maintenanceCount++; break;
+        case 'out_of_service': outOfServiceCount++; break;
+      }
+    });
+    
+    // Update summary cards
+    if (document.getElementById('active-count')) {
+      document.getElementById('active-count').textContent = activeCount;
+    }
+    if (document.getElementById('maintenance-count')) {
+      document.getElementById('maintenance-count').textContent = maintenanceCount;
+    }
+
+    // FIXED: Edit bus function with direct parameters
+    function editBusFixed(busId, status, model, capacity, oilStatus, tireStatus, maintenanceNotes) {
+      console.log('=== EDIT BUS FIXED DEBUG ===');
+      console.log('Parameters received:', {
         busId: busId,
         status: status,
         model: model,
@@ -297,37 +310,57 @@
         tireStatus: tireStatus,
         maintenanceNotes: maintenanceNotes
       });
-
-      // Ensure busId is a string and not undefined/null
-      const safeBusId = String(busId || '');
       
-      // Set all form fields
-      document.getElementById('editOriginalBusId').value = safeBusId;
-      document.getElementById('editBusId').value = safeBusId;
+      // Validate bus ID
+      if (!busId || busId.trim() === '') {
+        alert('Error: Bus ID is missing or empty: "' + busId + '"');
+        console.error('Invalid bus ID:', busId);
+        return;
+      }
+      
+      console.log('Setting form fields...');
+      
+      // Set form fields
+      document.getElementById('editOriginalBusId').value = busId;
+      document.getElementById('editBusId').value = busId;
       document.getElementById('editStatus').value = status || 'active';
       document.getElementById('editModel').value = model || '';
       document.getElementById('editCapacity').value = capacity || '';
       document.getElementById('editOilStatus').value = oilStatus || 'good';
       document.getElementById('editTireStatus').value = tireStatus || 'good';
       document.getElementById('editMaintenanceNotes').value = maintenanceNotes || '';
-
-      // Debug: Log what was actually set
-      console.log('Set original_bus_id to:', document.getElementById('editOriginalBusId').value);
-
+      
+      console.log('Form fields set. Values:', {
+        original: document.getElementById('editOriginalBusId').value,
+        busId: document.getElementById('editBusId').value,
+        status: document.getElementById('editStatus').value
+      });
+      
+      // Show modal
       const modal = new bootstrap.Modal(document.getElementById('editBusModal'));
       modal.show();
+      
+      console.log('Modal shown');
     }
 
-    function removeBus(busId) {
-      if (!busId) {
-        alert('Bus ID is required');
+    // FIXED: Remove bus function with direct parameter
+    function removeBusFixed(busId) {
+      console.log('=== REMOVE BUS FIXED DEBUG ===');
+      console.log('BusId parameter:', busId);
+      
+      if (!busId || busId.trim() === '') {
+        alert('Error: Bus ID is missing or empty: "' + busId + '"');
+        console.error('Invalid bus ID:', busId);
         return;
       }
       
       if (confirm(`Are you sure you want to remove Bus #${busId}? This action cannot be undone.`)) {
+        console.log('User confirmed removal, creating form...');
+        
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = '/remove-bus';
+        form.style.display = 'none';
 
         const input = document.createElement('input');
         input.type = 'hidden';
@@ -335,162 +368,54 @@
         input.value = busId;
         form.appendChild(input);
 
+        console.log('Form created with bus_id:', busId);
+        console.log('Submitting form...');
+
         document.body.appendChild(form);
         form.submit();
+      } else {
+        console.log('User cancelled removal');
       }
     }
 
-    // Handle edit bus form submission
-    document.getElementById('editBusForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-
-      // Double-check that original_bus_id is set before creating FormData
-      const originalBusIdField = document.getElementById('editOriginalBusId');
-      if (!originalBusIdField.value || originalBusIdField.value.trim() === '') {
-        alert('Error: Bus ID is missing. Please close the modal and try again.');
-        return;
-      }
-
-      const formData = new FormData(this);
-      const originalBusId = formData.get('original_bus_id');
-
-      // Debug: Log form data
-      console.log('Form submission - original_bus_id:', originalBusId);
-      console.log('Form data:', Object.fromEntries(formData.entries()));
-
-      // Final validation
-      if (!originalBusId || originalBusId.trim() === '') {
-        alert('Error: Bus ID is missing. Please try again.');
-        return;
-      }
-
-      try {
-        const response = await fetch('/edit-bus', {
-          method: 'POST',
-          body: formData
-        });
-
-        if (response.ok) {
-          window.location.reload();
-        } else if (response.status === 409) {
-          const errorText = await response.text();
-          if (errorText.startsWith('REQUIRES_REPLACEMENT_BUS:')) {
-            const parts = errorText.split(':');
-            const driverName = parts[1] || '';
-            const routeName = parts[2] || '';
-
-            await handleBusReplacement(originalBusId, driverName, routeName, formData);
+    // Enhanced form submission debugging
+    document.addEventListener('DOMContentLoaded', function() {
+      const editForm = document.getElementById('editBusForm');
+      if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+          const originalBusId = document.getElementById('editOriginalBusId').value;
+          const busId = document.getElementById('editBusId').value;
+          const status = document.getElementById('editStatus').value;
+          
+          console.log('=== FORM SUBMISSION DEBUG ===');
+          console.log('Form data being submitted:', {
+            original_bus_id: originalBusId,
+            bus_id: busId,
+            status: status
+          });
+          
+          if (!originalBusId || originalBusId.trim() === '') {
+            e.preventDefault();
+            alert('Error: Original Bus ID is missing. Form will not submit.');
+            console.error('Form submission blocked - missing originalBusId');
+            return false;
           }
-        } else {
-          const errorText = await response.text();
-          alert('Error: ' + errorText);
-        }
-      } catch (error) {
-        alert('Network error: ' + error.message);
+          
+          if (!busId || busId.trim() === '') {
+            e.preventDefault();
+            alert('Error: Bus ID is missing. Form will not submit.');
+            console.error('Form submission blocked - missing busId');
+            return false;
+          }
+          
+          console.log('Form validation passed, submitting to server...');
+        });
       }
     });
 
-    async function handleBusReplacement(originalBusId, driverName, routeName, formData) {
-      const replacement = await showReplacementBusModal(originalBusId, driverName, routeName);
-
-      if (replacement) {
-        await reassignDriverBus(driverName, replacement.busId);
-
-        const response = await fetch('/edit-bus', {
-          method: 'POST',
-          body: formData
-        });
-
-        if (response.ok) {
-          window.location.reload();
-        } else {
-          const errorText = await response.text();
-          alert('Error updating bus: ' + errorText);
-        }
-      }
-    }
-
-    function showReplacementBusModal(originalBusId, driverName, routeName) {
-      return new Promise((resolve) => {
-        // Safely set display values
-        const originalDisplay = document.getElementById('originalBusIdDisplay');
-        const driverDisplay = document.getElementById('driverNameDisplay');
-        const routeDisplay = document.getElementById('routeNameDisplay');
-        
-        if (originalDisplay) originalDisplay.textContent = originalBusId || '';
-        if (driverDisplay) driverDisplay.textContent = driverName || '';
-        if (routeDisplay) routeDisplay.textContent = routeName || '';
-
-        const select = document.getElementById('replacementBusSelect');
-        if (!select) {
-          resolve(null);
-          return;
-        }
-        
-        select.innerHTML = '<option value="">Select a replacement bus</option>';
-
-        // Get available buses from server data
-        {{if .Buses}}
-        const availableBuses = [
-          {{range .Buses}}
-          {{if eq .Status "active"}}
-          {
-            id: {{if .BusID}}'{{.BusID}}'{{else}}''{{end}},
-            model: {{if .Model}}'{{.Model}}'{{else}}''{{end}}
-          },
-          {{end}}
-          {{end}}
-        ];
-
-        // Add available buses to select, excluding the original
-        availableBuses.forEach(function(bus) {
-          if (bus.id && bus.id !== originalBusId) {
-            const option = document.createElement('option');
-            option.value = bus.id;
-            option.textContent = 'Bus #' + bus.id + (bus.model ? ' (' + bus.model + ')' : '');
-            select.appendChild(option);
-          }
-        });
-        {{else}}
-        console.warn('No buses available for replacement');
-        {{end}}
-
-        const modal = new bootstrap.Modal(document.getElementById('replacementBusModal'));
-        modal.show();
-
-        const confirmBtn = document.getElementById('confirmReplacementBtn');
-        if (confirmBtn) {
-          confirmBtn.onclick = function() {
-            const selectedBusId = select.value;
-            if (selectedBusId) {
-              modal.hide();
-              resolve({ busId: selectedBusId });
-            } else {
-              alert('Please select a replacement bus');
-            }
-          };
-        }
-
-        document.getElementById('replacementBusModal').addEventListener('hidden.bs.modal', function() {
-          resolve(null);
-        }, { once: true });
-      });
-    }
-
-    async function reassignDriverBus(driverName, newBusId) {
-      const formData = new FormData();
-      formData.append('driver', driverName);
-      formData.append('new_bus_id', newBusId);
-
-      const response = await fetch('/reassign-driver-bus', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to reassign driver to new bus');
-      }
-    }
+    // Log initial state
+    console.log('Fleet page loaded. Total buses:', buses.length);
+    console.log('Active:', activeCount, 'Maintenance:', maintenanceCount, 'Out of Service:', outOfServiceCount);
   </script>
 </body>
 </html>

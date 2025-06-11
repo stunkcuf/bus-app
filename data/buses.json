@@ -22,8 +22,8 @@
     "status": "active",
     "model": "",
     "capacity": 20,
-    "oil_status": "",
-    "tire_status": "",
+    "oil_status": "good",
+    "tire_status": "good",
     "maintenance_notes": ""
   },
   {
