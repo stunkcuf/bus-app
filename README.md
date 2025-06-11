@@ -1,0 +1,1 @@
+i work for a non profit and the bus drivers use this old excel sheet back from windows 7 era. its old outdated. im not really good at coding or say i am. more script kitty with help from claude and my basic knowledge basic coding. this will help stream line routes management and records. and i get to play and learn and practice.
