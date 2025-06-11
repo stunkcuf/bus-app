@@ -1,65 +1,65 @@
 [
   {
     "bus_id": "60",
-    "capacity": 0,
-    "maintenance_notes": "",
-    "model": "",
-    "oil_status": "",
     "status": "active",
-    "tire_status": ""
+    "model": "",
+    "capacity": 0,
+    "oil_status": "good",
+    "tire_status": "good",
+    "maintenance_notes": ""
   },
   {
     "bus_id": "52",
-    "capacity": 0,
-    "maintenance_notes": "",
-    "model": "",
-    "oil_status": "",
     "status": "active",
-    "tire_status": ""
+    "model": "",
+    "capacity": 0,
+    "oil_status": "",
+    "tire_status": "",
+    "maintenance_notes": ""
   },
   {
     "bus_id": "59",
-    "capacity": 0,
-    "maintenance_notes": "",
-    "model": "",
-    "oil_status": "",
     "status": "active",
-    "tire_status": ""
+    "model": "",
+    "capacity": 0,
+    "oil_status": "",
+    "tire_status": "",
+    "maintenance_notes": ""
   },
   {
     "bus_id": "58",
-    "capacity": 0,
-    "maintenance_notes": "",
-    "model": "",
-    "oil_status": "",
     "status": "active",
-    "tire_status": ""
+    "model": "",
+    "capacity": 0,
+    "oil_status": "",
+    "tire_status": "",
+    "maintenance_notes": ""
   },
   {
     "bus_id": "25",
-    "capacity": 0,
-    "maintenance_notes": "",
-    "model": "",
-    "oil_status": "",
     "status": "active",
-    "tire_status": ""
+    "model": "",
+    "capacity": 0,
+    "oil_status": "",
+    "tire_status": "",
+    "maintenance_notes": ""
   },
   {
     "bus_id": "23",
-    "capacity": 0,
-    "maintenance_notes": "",
-    "model": "",
-    "oil_status": "",
     "status": "active",
-    "tire_status": ""
+    "model": "",
+    "capacity": 0,
+    "oil_status": "",
+    "tire_status": "",
+    "maintenance_notes": ""
   },
   {
     "bus_id": "99",
-    "capacity": 17,
-    "maintenance_notes": "in shop for oil change",
-    "model": "big yellow thing",
-    "oil_status": "due",
     "status": "maintenance",
-    "tire_status": "good"
+    "model": "big yellow thing",
+    "capacity": 17,
+    "oil_status": "due",
+    "tire_status": "good",
+    "maintenance_notes": "in shop for oil change"
   }
 ]
