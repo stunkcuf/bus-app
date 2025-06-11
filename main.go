@@ -839,6 +839,52 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Load students and filter for this driver's active students on this route
+	students := loadStudents()
+	var activeStudentPositions []struct {
+		Position int    `json:"position"`
+		Student  string `json:"student"`
+	}
+
+	if driverRoute != nil {
+		// Create a map of active students for this driver and route
+		activeStudentMap := make(map[int]string)
+		for _, student := range students {
+			if student.Active && student.Driver == user.Username && 
+			   (student.RouteID == driverRoute.RouteID || student.RouteID == assignment.RouteID) {
+				activeStudentMap[student.PositionNumber] = student.Name
+			}
+		}
+
+		// Filter route positions to only include active students
+		for _, position := range driverRoute.Positions {
+			if studentName, exists := activeStudentMap[position.Position]; exists {
+				activeStudentPositions = append(activeStudentPositions, struct {
+					Position int    `json:"position"`
+					Student  string `json:"student"`
+				}{
+					Position: position.Position,
+					Student:  studentName,
+				})
+			}
+		}
+
+		// Update the route with filtered positions
+		if len(activeStudentPositions) > 0 {
+			filteredRoute := *driverRoute
+			filteredRoute.Positions = activeStudentPositions
+			driverRoute = &filteredRoute
+		} else {
+			// If no active students, create empty route with same metadata
+			filteredRoute := *driverRoute
+			filteredRoute.Positions = []struct {
+				Position int    `json:"position"`
+				Student  string `json:"student"`
+			}{}
+			driverRoute = &filteredRoute
+		}
+	}
+
 	data := PageData{
 		User:      user,
 		Date:      date,
