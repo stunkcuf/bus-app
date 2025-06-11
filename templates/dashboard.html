@@ -1,136 +1,253 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Manager Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .summary-card {
+      border-left: 4px solid #007bff;
+    }
+    .metric-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 10px;
+    }
+    .table-container {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .status-badge {
+      font-size: 0.8em;
+    }
+  </style>
 </head>
 <body class="bg-light">
   <div class="container-fluid">
-    <div class="row">
-
-      <!-- Sidebar -->
-      <div class="col-md-3 bg-white border-end vh-100 p-3">
-        <h5 class="mb-3">Drivers</h5>
-        <ul class="list-group mb-4">
-          {{range .DriverSummaries}}
-          <li class="list-group-item">
-            <a href="/driver/{{.Name}}">{{.Name}}</a>
-          </li>
-          {{end}}
-        </ul>
-
-        <a href="/new-user" class="btn btn-success w-100 mb-2">+ Create New User</a>
-        <a href="/assign-routes" class="btn btn-primary w-100 mb-2">Assign Routes</a>
-        <a href="/fleet" class="btn btn-info w-100 mb-4">🚌 Fleet Management</a>
-
-        <h5 class="mb-3">Fleet</h5>
-        <ul class="list-group mb-4">
-          {{range .Buses}}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            Bus #{{.BusID}}
-            <span class="badge {{if eq .Status "active"}}bg-success{{else if eq .Status "maintenance"}}bg-warning{{else}}bg-secondary{{end}}">
-              {{.Status}}
-            </span>
-          </li>
-          {{end}}
-        </ul>
-
-        <h5 class="mb-3">Active Routes</h5>
-        <ul class="list-group">
-          {{range .RouteStats}}
-          <li class="list-group-item">{{.RouteName}}</li>
-          {{end}}
-        </ul>
-      </div>
-
-      <!-- Main Content -->
-      <div class="col-md-9 p-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- Header -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm">
           <h2 class="mb-0">Manager Dashboard</h2>
-          <a href="/logout" class="btn btn-outline-danger">Logout</a>
+          <div>
+            <a href="/new-user" class="btn btn-success btn-sm me-2">+ New User</a>
+            <a href="/assign-routes" class="btn btn-primary btn-sm me-2">Assign Routes</a>
+            <a href="/fleet" class="btn btn-info btn-sm me-2">🚌 Fleet</a>
+            <a href="/logout" class="btn btn-outline-danger btn-sm">Logout</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <div class="card metric-card">
+          <div class="card-body text-center">
+            <h3 class="mb-1">{{len .Users}}</h3>
+            <p class="mb-0">Total Users</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card metric-card">
+          <div class="card-body text-center">
+            <h3 class="mb-1">{{len .Buses}}</h3>
+            <p class="mb-0">Fleet Size</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card metric-card">
+          <div class="card-body text-center">
+            <h3 class="mb-1">{{len .Routes}}</h3>
+            <p class="mb-0">Active Routes</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card metric-card">
+          <div class="card-body text-center">
+            <h3 class="mb-1">{{len .DriverSummaries}}</h3>
+            <p class="mb-0">Active Drivers</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Left Column -->
+      <div class="col-lg-8">
+        <!-- Driver Performance -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Driver Performance Summary</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-container">
+              <table class="table table-hover">
+                <thead class="table-light sticky-top">
+                  <tr>
+                    <th>Driver</th>
+                    <th>Morning</th>
+                    <th>Evening</th>
+                    <th>Total Miles</th>
+                    <th>Daily Avg</th>
+                    <th>Monthly</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{range .DriverSummaries}}
+                  <tr>
+                    <td><a href="/driver/{{.Name}}" class="text-decoration-none">{{.Name}}</a></td>
+                    <td><span class="badge bg-primary">{{.TotalMorning}}</span></td>
+                    <td><span class="badge bg-success">{{.TotalEvening}}</span></td>
+                    <td>{{printf "%.1f" .TotalMiles}}</td>
+                    <td>{{printf "%.1f" .MonthlyAvgMiles}}</td>
+                    <td>{{.MonthlyAttendance}}</td>
+                  </tr>
+                  {{end}}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
-        <h4>Driver Summary</h4>
-        <table class="table table-bordered">
-          <thead class="table-light">
-            <tr>
-              <th>Driver</th>
-              <th>Morning Attendance</th>
-              <th>Evening Attendance</th>
-              <th>Total Miles</th>
-              <th>Monthly Avg Miles</th>
-              <th>Monthly Attendance</th>
-            </tr>
-          </thead>
-          <tbody>
-            {{range .DriverSummaries}}
-            <tr>
-              <td>{{.Name}}</td>
-              <td>{{.TotalMorning}}</td>
-              <td>{{.TotalEvening}}</td>
-              <td>{{printf "%.1f" .TotalMiles}}</td>
-              <td>{{printf "%.1f" .MonthlyAvgMiles}}</td>
-              <td>{{.MonthlyAttendance}}</td>
-            </tr>
-            {{end}}
-          </tbody>
-        </table>
+        <!-- Route Analytics -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Route Analytics</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-container">
+              <table class="table table-hover">
+                <thead class="table-light sticky-top">
+                  <tr>
+                    <th>Route</th>
+                    <th>Total Miles</th>
+                    <th>Average Miles</th>
+                    <th>Today</th>
+                    <th>This Week</th>
+                    <th>This Month</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{range .RouteStats}}
+                  <tr>
+                    <td><strong>{{.RouteName}}</strong></td>
+                    <td>{{printf "%.1f" .TotalMiles}}</td>
+                    <td>{{printf "%.1f" .AvgMiles}}</td>
+                    <td><span class="badge bg-info">{{.AttendanceDay}}</span></td>
+                    <td><span class="badge bg-warning">{{.AttendanceWeek}}</span></td>
+                    <td><span class="badge bg-danger">{{.AttendanceMonth}}</span></td>
+                  </tr>
+                  {{end}}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
 
-        <h4 class="mt-4">Route Analytics</h4>
-        <table class="table table-bordered">
-          <thead class="table-light">
-            <tr>
-              <th>Route</th>
-              <th>Total Miles</th>
-              <th>Average Miles</th>
-              <th>Attendance (Day)</th>
-              <th>Attendance (Week)</th>
-              <th>Attendance (Month)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {{range .RouteStats}}
-            <tr>
-              <td>{{.RouteName}}</td>
-              <td>{{printf "%.1f" .TotalMiles}}</td>
-              <td>{{printf "%.1f" .AvgMiles}}</td>
-              <td>{{.AttendanceDay}}</td>
-              <td>{{.AttendanceWeek}}</td>
-              <td>{{.AttendanceMonth}}</td>
-            </tr>
-            {{end}}
-          </tbody>
-        </table>
-
-        <h4 class="mt-4">Activities / Field Trips</h4>
-        <table class="table table-bordered">
-          <thead class="table-light">
-            <tr>
-              <th>Date</th>
-              <th>Driver</th>
-              <th>Trip Name</th>
-              <th>Attendance</th>
-              <th>Miles</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {{range .Activities}}
-            <tr>
-              <td>{{.Date}}</td>
-              <td>{{.Driver}}</td>
-              <td>{{.TripName}}</td>
-              <td>{{.Attendance}}</td>
-              <td>{{printf "%.1f" .Miles}}</td>
-              <td>{{.Notes}}</td>
-            </tr>
-            {{end}}
-          </tbody>
-        </table>
+        <!-- Activities -->
+        {{if .Activities}}
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Recent Activities / Field Trips</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-container">
+              <table class="table table-hover">
+                <thead class="table-light sticky-top">
+                  <tr>
+                    <th>Date</th>
+                    <th>Driver</th>
+                    <th>Trip Name</th>
+                    <th>Attendance</th>
+                    <th>Miles</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{range .Activities}}
+                  <tr>
+                    <td>{{.Date}}</td>
+                    <td>{{.Driver}}</td>
+                    <td>{{.TripName}}</td>
+                    <td><span class="badge bg-success">{{.Attendance}}</span></td>
+                    <td>{{printf "%.1f" .Miles}}</td>
+                    <td>{{.Notes}}</td>
+                  </tr>
+                  {{end}}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        {{end}}
       </div>
 
+      <!-- Right Column -->
+      <div class="col-lg-4">
+        <!-- Fleet Status -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Fleet Status</h5>
+          </div>
+          <div class="card-body">
+            {{range .Buses}}
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+              <div>
+                <strong>Bus #{{.BusID}}</strong><br>
+                <small class="text-muted">{{.Model}}</small>
+              </div>
+              <span class="badge status-badge {{if eq .Status "active"}}bg-success{{else if eq .Status "maintenance"}}bg-warning{{else}}bg-secondary{{end}}">
+                {{.Status}}
+              </span>
+            </div>
+            {{end}}
+          </div>
+        </div>
+
+        <!-- Route List -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Active Routes</h5>
+          </div>
+          <div class="card-body">
+            {{range .Routes}}
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+              <div>
+                <strong>{{.RouteName}}</strong><br>
+                <small class="text-muted">{{len .Positions}} positions</small>
+              </div>
+              <span class="badge bg-primary">{{.RouteID}}</span>
+            </div>
+            {{end}}
+          </div>
+        </div>
+
+        <!-- Driver List -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">All Drivers</h5>
+          </div>
+          <div class="card-body">
+            {{range .Users}}
+            {{if eq .Role "driver"}}
+            <div class="mb-2 p-2 bg-light rounded">
+              <a href="/driver/{{.Username}}" class="text-decoration-none">
+                <strong>{{.Username}}</strong>
+              </a>
+            </div>
+            {{end}}
+            {{end}}
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

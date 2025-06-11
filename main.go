@@ -490,30 +490,19 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load actual data from driver logs
+	// Load all data
 	driverLogs, _ := loadDriverLogs()
 	activities, _ := loadJSON[Activity]("data/activities.json")
 	users := loadUsers()
 	routes, _ := loadRoutes()
 	buses := loadBuses()
+	assignments, _ := loadRouteAssignments()
 
-	// Filtered active routes
-	activeRouteNames := map[string]bool{
-		"Victory Square": true,
-		"Airportway":     true,
-		"NELC":           true,
-		"Irrigon":        true,
-		"PELC":           true,
-		"Umatilla":       true,
-	}
-	filteredRoutes := []Route{}
-	for _, r := range routes {
-		if activeRouteNames[r.RouteName] {
-			filteredRoutes = append(filteredRoutes, r)
-		}
-	}
-
+	// Initialize data structures
 	driverData := make(map[string]*DriverSummary)
+	routeData := make(map[string]*RouteStats)
+	now := time.Now()
+
 	// Pre-populate all known drivers
 	for _, u := range users {
 		if u.Role == "driver" {
@@ -521,11 +510,14 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	routeData := make(map[string]*RouteStats)
-	now := time.Now()
+	// Pre-populate all routes
+	for _, r := range routes {
+		routeData[r.RouteName] = &RouteStats{RouteName: r.RouteName}
+	}
 
-	// Process driver logs to calculate summaries
+	// Process driver logs
 	for _, log := range driverLogs {
+		// Get or create driver summary
 		s := driverData[log.Driver]
 		if s == nil {
 			s = &DriverSummary{Name: log.Driver}
@@ -550,41 +542,52 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 			s.TotalEvening += presentCount
 		}
 
-		// Monthly attendance calculation
+		// Parse date for time-based calculations
 		parsed, err := time.Parse("2006-01-02", log.Date)
 		if err == nil {
+			// Monthly calculations
 			if parsed.Month() == now.Month() && parsed.Year() == now.Year() {
 				s.MonthlyAttendance += presentCount
 				s.MonthlyAvgMiles += log.Mileage
 			}
 
-			// Find route name for route stats - handle different ID formats
+			// Find route name for this log
 			var routeName string
+			
+			// First try to match by RouteID directly
 			for _, r := range routes {
-				// Try exact match first
 				if r.RouteID == log.RouteID {
-					routeName = r.RouteName
-					break
-				}
-				// Also try matching numeric IDs (in case assignment uses "1" but route uses "1")
-				if log.RouteID == r.RouteID {
 					routeName = r.RouteName
 					break
 				}
 			}
 
-			// If we still don't have a route name, try to get it from assignments
+			// If not found, try to get from driver's assignment
 			if routeName == "" {
-				assignments, _ := loadRouteAssignments()
 				for _, assignment := range assignments {
 					if assignment.Driver == log.Driver {
-						// Found the driver's assignment, use its route name
 						routeName = assignment.RouteName
 						break
 					}
 				}
 			}
 
+			// If still not found, check if it's a numeric ID that needs mapping
+			if routeName == "" {
+				for _, r := range routes {
+					if (log.RouteID == "1" && r.RouteID == "1") ||
+					   (log.RouteID == "2" && r.RouteID == "2") ||
+					   (log.RouteID == "3" && r.RouteID == "3") ||
+					   (log.RouteID == "4" && r.RouteID == "4") ||
+					   (log.RouteID == "5" && r.RouteID == "5") ||
+					   (log.RouteID == "6" && r.RouteID == "6") {
+						routeName = r.RouteName
+						break
+					}
+				}
+			}
+
+			// Update route statistics if we found a route
 			if routeName != "" {
 				route := routeData[routeName]
 				if route == nil {
@@ -595,37 +598,51 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 				route.TotalMiles += log.Mileage
 				route.AttendanceMonth += presentCount
 
-				// Time-based attendance
+				// Time-based attendance (last 24 hours, last 7 days)
 				if now.Sub(parsed).Hours() < 24 {
 					route.AttendanceDay += presentCount
 				}
-				if now.Sub(parsed).Hours() < 168 {
+				if now.Sub(parsed).Hours() < 168 { // 7 days
 					route.AttendanceWeek += presentCount
 				}
 			}
 		}
 	}
 
-	// Calculate averages
+	// Calculate averages for drivers
 	for _, s := range driverData {
 		if s.MonthlyAvgMiles > 0 {
-			// Average daily miles for the month
 			daysInMonth := float64(now.Day())
 			if daysInMonth > 0 {
 				s.MonthlyAvgMiles = s.MonthlyAvgMiles / daysInMonth
 			}
 		}
 	}
+
+	// Calculate averages for routes
 	for _, r := range routeData {
 		if r.TotalMiles > 0 {
-			// Simple average based on total logs
+			// Count logs for this route to calculate average
 			logCount := 0
 			for _, log := range driverLogs {
+				// Find route name for this log (same logic as above)
+				var logRouteName string
 				for _, route := range routes {
-					if route.RouteID == log.RouteID && route.RouteName == r.RouteName {
-						logCount++
+					if route.RouteID == log.RouteID {
+						logRouteName = route.RouteName
 						break
 					}
+				}
+				if logRouteName == "" {
+					for _, assignment := range assignments {
+						if assignment.Driver == log.Driver {
+							logRouteName = assignment.RouteName
+							break
+						}
+					}
+				}
+				if logRouteName == r.RouteName {
+					logCount++
 				}
 			}
 			if logCount > 0 {
@@ -634,11 +651,12 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Build slices for template
+	// Convert maps to slices for template
 	driverSummaries := []*DriverSummary{}
 	for _, v := range driverData {
 		driverSummaries = append(driverSummaries, v)
 	}
+	
 	routeStats := []*RouteStats{}
 	for _, v := range routeData {
 		routeStats = append(routeStats, v)
@@ -650,7 +668,7 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 		DriverSummaries: driverSummaries,
 		RouteStats:      routeStats,
 		Activities:      activities,
-		Routes:          filteredRoutes, // ✅ Only active routes passed to template
+		Routes:          routes,
 		Users:           users,
 		Buses:           buses,
 	}
