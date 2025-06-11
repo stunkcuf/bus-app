@@ -1016,7 +1016,7 @@ func saveDriverLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate that the bus ID matches the assignment
+	// Validate that the bus ID matches the assignment```go
 	if busID != assignment.BusID {
 		log.Printf("Bus ID mismatch: form=%s, assignment=%s", busID, assignment.BusID)
 		http.Error(w, "Bus ID does not match assignment", http.StatusBadRequest)
@@ -2001,9 +2001,10 @@ func removeUser(w http.ResponseWriter, r *http.Request) {
 
     // Check if user is logged in and is a manager
     user := getUserFromSession(r)
-    if user == nil ||user.Role != "manager" {
+    if user == nil || user.Role != "manager" {
         http.Redirect(w, r, "/", http.StatusFound)
         return
+```go
     }
 
     // Check if username was provided
@@ -2050,7 +2051,7 @@ func removeUser(w http.ResponseWriter, r *http.Request) {
     }
 
     // Save updated users list
-	if err := storageClient.SaveJSON("data/users.json", newUsers); err != nil {
+	if err := saveUsers(newUsers); err != nil {
 		log.Printf("Error saving users: %v", err)
 		http.Error(w, "Unable to save users", http.StatusInternalServerError)
 		return
@@ -2246,54 +2247,16 @@ func initDataFiles() {
 	}
 }
 
-// Define a storage interface
-type Storage interface {
-	LoadJSON(filename string, v interface{}) error
-	SaveJSON(filename string, v interface{}) error
-}
-
-// Implement the storage interface using local file system
-type LocalStorage struct{}
-
-// LoadJSON from local file system
-func (l *LocalStorage) LoadJSON(filename string, v interface{}) error {
-	f, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return json.NewDecoder(f).Decode(v)
-}
-
-// SaveJSON to local file system
-func (l *LocalStorage) SaveJSON(filename string, v interface{}) error {
-	f, err := os.Create(filename)
+func saveUsers(users []User) error {
+	f, err := os.Create("data/users.json")
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
-	return enc.Encode(v)
+	return enc.Encode(users)
 }
-
-//Replit object storage implementation
-type ReplitStorage struct{}
-
-//LoadJson from Replit object storage
-func (r *ReplitStorage) LoadJSON(filename string, v interface{}) error {
-	//TODO: Implement Replit object storage
-	return nil
-}
-
-//SaveJson to Replit object storage
-func (r *ReplitStorage) SaveJSON(filename string, v interface{}) error {
-	//TODO: Implement Replit object storage
-	return nil
-}
-
-// Use local storage for now
-var storageClient Storage = &LocalStorage{}
 
 func main() {
 	// Ensure basic data files exist

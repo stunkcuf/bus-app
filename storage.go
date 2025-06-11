@@ -2,132 +2,166 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"os"
-	"path/filepath"
 
 	"cloud.google.com/go/storage"
-	"google.golang.org/api/option"
 )
 
-type StorageClient struct {
+type ObjectStorage struct {
 	client     *storage.Client
 	bucketName string
-	useLocal   bool
+	ctx        context.Context
 }
 
-func NewStorageClient() (*StorageClient, error) {
-	// Check if we have Object Storage credentials
-	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT_ID")
-	bucketName := os.Getenv("OBJECT_STORAGE_BUCKET")
-	
-	if projectID == "" || bucketName == "" {
-		log.Println("Object Storage not configured, using local filesystem")
-		return &StorageClient{useLocal: true}, nil
-	}
-
+// Initialize Object Storage client
+func NewObjectStorage() (*ObjectStorage, error) {
 	ctx := context.Background()
-	client, err := storage.NewClient(ctx, option.WithCredentialsJSON([]byte(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON"))))
-	if err != nil {
-		log.Printf("Failed to create storage client, falling back to local: %v", err)
-		return &StorageClient{useLocal: true}, nil
+	
+	// Get bucket name from environment variable
+	bucketName := os.Getenv("REPLIT_OBJECT_STORAGE_BUCKET")
+	if bucketName == "" {
+		return nil, fmt.Errorf("REPLIT_OBJECT_STORAGE_BUCKET environment variable not set")
 	}
-
-	return &StorageClient{
+	
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create storage client: %v", err)
+	}
+	
+	return &ObjectStorage{
 		client:     client,
 		bucketName: bucketName,
-		useLocal:   false,
+		ctx:        ctx,
 	}, nil
 }
 
-func (s *StorageClient) SaveJSON(filename string, data interface{}) error {
+// Save JSON data to Object Storage
+func (os *ObjectStorage) SaveJSON(filename string, data interface{}) error {
 	jsonData, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
-
-	if s.useLocal {
-		// Ensure directory exists
-		dir := filepath.Dir(filename)
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return fmt.Errorf("failed to create directory: %w", err)
-		}
-
-		return os.WriteFile(filename, jsonData, 0644)
-	}
-
-	// Use Object Storage
-	ctx := context.Background()
-	obj := s.client.Bucket(s.bucketName).Object(filename)
-	w := obj.NewWriter(ctx)
-	w.ContentType = "application/json"
-
+	
+	obj := os.client.Bucket(os.bucketName).Object(filename)
+	w := obj.NewWriter(os.ctx)
+	defer w.Close()
+	
 	if _, err := w.Write(jsonData); err != nil {
-		w.Close()
-		return fmt.Errorf("failed to write to object storage: %w", err)
+		return fmt.Errorf("failed to write to object storage: %v", err)
 	}
-
-	if err := w.Close(); err != nil {
-		return fmt.Errorf("failed to close object storage writer: %w", err)
-	}
-
+	
 	log.Printf("Saved %s to Object Storage", filename)
 	return nil
 }
 
-func (s *StorageClient) LoadJSON(filename string, target interface{}) error {
-	if s.useLocal {
-		file, err := os.Open(filename)
-		if err != nil {
+// Load JSON data from Object Storage
+func (os *ObjectStorage) LoadJSON(filename string, target interface{}) error {
+	obj := os.client.Bucket(os.bucketName).Object(filename)
+	r, err := obj.NewReader(os.ctx)
+	if err != nil {
+		if err == storage.ErrObjectNotExist {
+			log.Printf("File %s does not exist in Object Storage, using defaults", filename)
 			return err
 		}
-		defer file.Close()
-
-		return json.NewDecoder(file).Decode(target)
-	}
-
-	// Use Object Storage
-	ctx := context.Background()
-	obj := s.client.Bucket(s.bucketName).Object(filename)
-	r, err := obj.NewReader(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to read from object storage: %w", err)
+		return fmt.Errorf("failed to create reader: %v", err)
 	}
 	defer r.Close()
-
+	
 	data, err := io.ReadAll(r)
 	if err != nil {
-		return fmt.Errorf("failed to read object data: %w", err)
+		return fmt.Errorf("failed to read data: %v", err)
 	}
-
+	
 	if err := json.Unmarshal(data, target); err != nil {
-		return fmt.Errorf("failed to unmarshal JSON: %w", err)
+		return fmt.Errorf("failed to unmarshal JSON: %v", err)
 	}
-
+	
 	log.Printf("Loaded %s from Object Storage", filename)
 	return nil
 }
 
-func (s *StorageClient) FileExists(filename string) bool {
-	if s.useLocal {
-		_, err := os.Stat(filename)
-		return !os.IsNotExist(err)
-	}
-
-	// Check Object Storage
-	ctx := context.Background()
-	obj := s.client.Bucket(s.bucketName).Object(filename)
-	_, err := obj.Attrs(ctx)
+// Check if file exists in Object Storage
+func (os *ObjectStorage) FileExists(filename string) bool {
+	obj := os.client.Bucket(os.bucketName).Object(filename)
+	_, err := obj.Attrs(os.ctx)
 	return err == nil
 }
 
-func (s *StorageClient) Close() error {
-	if s.client != nil {
-		return s.client.Close()
+// Migrate local JSON file to Object Storage
+func (os *ObjectStorage) MigrateFromLocal(localPath, objectName string) error {
+	// Check if local file exists
+	if _, err := os.Stat(localPath); os.IsNotExist(err) {
+		log.Printf("Local file %s does not exist, skipping migration", localPath)
+		return nil
 	}
+	
+	// Check if object already exists in storage
+	if os.FileExists(objectName) {
+		log.Printf("Object %s already exists in storage, skipping migration", objectName)
+		return nil
+	}
+	
+	// Read local file
+	data, err := os.ReadFile(localPath)
+	if err != nil {
+		return fmt.Errorf("failed to read local file %s: %v", localPath, err)
+	}
+	
+	// Upload to Object Storage
+	obj := os.client.Bucket(os.bucketName).Object(objectName)
+	w := obj.NewWriter(os.ctx)
+	defer w.Close()
+	
+	if _, err := w.Write(data); err != nil {
+		return fmt.Errorf("failed to write to object storage: %v", err)
+	}
+	
+	log.Printf("Migrated %s to Object Storage as %s", localPath, objectName)
+	return nil
+}
+
+// Close the storage client
+func (os *ObjectStorage) Close() error {
+	return os.client.Close()
+}
+
+// Global storage instance
+var objStorage *ObjectStorage
+
+// Initialize Object Storage (call this in main)
+func initObjectStorage() error {
+	var err error
+	objStorage, err = NewObjectStorage()
+	if err != nil {
+		return fmt.Errorf("failed to initialize Object Storage: %v", err)
+	}
+	
+	// Migrate existing local files to Object Storage
+	migrations := map[string]string{
+		"data/buses.json":            "buses.json",
+		"data/users.json":            "users.json",
+		"data/routes.json":           "routes.json",
+		"data/route_assignments.json": "route_assignments.json",
+		"data/students.json":         "students.json",
+		"data/driver_logs.json":      "driver_logs.json",
+		"data/maintenance.json":      "maintenance.json",
+		"data/activities.json":       "activities.json",
+		"data/attendance.json":       "attendance.json",
+		"data/mileage.json":          "mileage.json",
+		"data/vehicle.json":          "vehicle.json",
+	}
+	
+	for localPath, objectName := range migrations {
+		if err := objStorage.MigrateFromLocal(localPath, objectName); err != nil {
+			log.Printf("Warning: Failed to migrate %s: %v", localPath, err)
+		}
+	}
+	
 	return nil
 }
