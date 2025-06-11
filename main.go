@@ -1613,7 +1613,7 @@
 	}
 
 	func loadVehicles() []Vehicle {
-		f, err := os.Open("data/vehicles.json")
+		f, err := os.Open("data/vehicle.json")
 		if err != nil {
 			log.Printf("Error loading vehicles: %v", err)
 			return []Vehicle{}
@@ -2380,7 +2380,7 @@
 	}
 
 	func saveVehicles(vehicles []Vehicle) error {
-		f, err := os.Create("data/vehicles.json")
+		f, err := os.Create("data/vehicle.json")
 		if err != nil {
 			return err
 		}
