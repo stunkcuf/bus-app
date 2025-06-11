@@ -2257,6 +2257,76 @@ func saveUsers(users []User) error {
 	return enc.Encode(users)
 }
 
+func updateVehicleStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	r.ParseForm()
+	vehicleID := r.FormValue("vehicle_id")
+	statusType := r.FormValue("status_type")
+	newStatus := r.FormValue("new_status")
+
+	if vehicleID == "" || statusType == "" || newStatus == "" {
+		http.Error(w, "Missing required parameters", http.StatusBadRequest)
+		return
+	}
+
+	vehicles := loadVehicles()
+	updated := false
+
+	for i, vehicle := range vehicles {
+		if vehicle.VehicleID == vehicleID {
+			switch statusType {
+			case "oil":
+				vehicles[i].OilStatus = newStatus
+			case "tire":
+				vehicles[i].TireStatus = newStatus
+			case "status":
+				vehicles[i].Status = newStatus
+			default:
+				http.Error(w, "Invalid status type", http.StatusBadRequest)
+				return
+			}
+			updated = true
+			break
+		}
+	}
+
+	if !updated {
+		http.Error(w, "Vehicle not found", http.StatusNotFound)
+		return
+	}
+
+	// Save updated vehicles
+	if err := saveVehicles(vehicles); err != nil {
+		log.Printf("Error saving vehicles: %v", err)
+		http.Error(w, "Failed to save changes", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Status updated successfully"))
+}
+
+func saveVehicles(vehicles []Vehicle) error {
+	f, err := os.Create("data/vehicle.json")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	return enc.Encode(vehicles)
+}
+
 func main() {
 	// Ensure basic data files exist
 	ensureDataFiles()
@@ -2278,6 +2348,7 @@ func main() {
 	http.HandleFunc("/unassign-route", withRecovery(unassignRoute))
 	http.HandleFunc("/fleet", withRecovery(fleetPage))
 	http.HandleFunc("/company-fleet", withRecovery(companyFleetPage))
+	http.HandleFunc("/update-vehicle-status", withRecovery(updateVehicleStatus))
 	http.HandleFunc("/add-bus", withRecovery(addBus))
 	http.HandleFunc("/edit-bus", withRecovery(editBus))
 	http.HandleFunc("/remove-bus", withRecovery(removeBus))

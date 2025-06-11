@@ -67,6 +67,35 @@
       background: var(--maintenance-gradient) !important;
       color: #fff !important;
     }
+
+    /* Traffic Light Status Indicators */
+    .status-light {
+      border: none;
+      background: transparent;
+      padding: 2px 8px;
+    }
+    
+    .status-light:focus {
+      box-shadow: none;
+    }
+
+    /* Oil Status Colors */
+    .oil-status-good .bi-circle-fill { color: #28a745; }
+    .oil-status-needs_service .bi-circle-fill { color: #ffc107; }
+    .oil-status-overdue .bi-circle-fill { color: #dc3545; }
+    .oil-status- .bi-circle-fill { color: #6c757d; }
+
+    /* Tire Status Colors */
+    .tire-status-good .bi-circle-fill { color: #28a745; }
+    .tire-status-worn .bi-circle-fill { color: #ffc107; }
+    .tire-status-replace .bi-circle-fill { color: #dc3545; }
+    .tire-status- .bi-circle-fill { color: #6c757d; }
+
+    /* Vehicle Status Colors */
+    .vehicle-status-active .bi-circle-fill { color: #28a745; }
+    .vehicle-status-maintenance .bi-circle-fill { color: #ffc107; }
+    .vehicle-status-out_of_service .bi-circle-fill { color: #dc3545; }
+    .vehicle-status- .bi-circle-fill { color: #6c757d; }
   </style>
 </head>
 <body>
@@ -129,16 +158,41 @@
                   <td>{{.Year}}</td>
                   <td>{{if .TireSize}}{{.TireSize}}{{else}}<span class="text-muted">--</span>{{end}}</td>
                   <td>{{.License}}</td>
-                  <td>{{if eq .OilStatus "good"}}<span class="badge bg-success">Good</span>{{else if eq .OilStatus "needs service"}}<span class="badge bg-warning text-dark">Needs Service</span>{{else}}<span class="badge bg-secondary">--</span>{{end}}</td>
-                  <td>{{if eq .TireStatus "good"}}<span class="badge bg-success">Good</span>{{else if eq .TireStatus "needs service"}}<span class="badge bg-warning text-dark">Needs Service</span>{{else}}<span class="badge bg-secondary">--</span>{{end}}</td>
                   <td>
-                    {{if eq .Status "active"}}
-                      <span class="badge bg-active status-badge"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>Active</span>
-                    {{else if eq .Status "maintenance"}}
-                      <span class="badge bg-maintenance status-badge"><i class="bi bi-tools me-1" aria-hidden="true"></i>Maintenance</span>
-                    {{else}}
-                      <span class="badge bg-secondary status-badge"><i class="bi bi-pause-circle me-1" aria-hidden="true"></i>{{.Status}}</span>
-                    {{end}}
+                    <div class="dropdown">
+                      <button class="btn btn-sm status-light oil-status-{{.OilStatus}} dropdown-toggle" type="button" data-bs-toggle="dropdown" onclick="setCurrentVehicle('{{.VehicleID}}', 'oil')">
+                        <i class="bi bi-circle-fill"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="updateStatus('{{.VehicleID}}', 'oil', 'good')"><i class="bi bi-circle-fill text-success"></i> Good</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="updateStatus('{{.VehicleID}}', 'oil', 'needs_service')"><i class="bi bi-circle-fill text-warning"></i> Needs Service</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="updateStatus('{{.VehicleID}}', 'oil', 'overdue')"><i class="bi bi-circle-fill text-danger"></i> Overdue</a></li>
+                      </ul>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="dropdown">
+                      <button class="btn btn-sm status-light tire-status-{{.TireStatus}} dropdown-toggle" type="button" data-bs-toggle="dropdown" onclick="setCurrentVehicle('{{.VehicleID}}', 'tire')">
+                        <i class="bi bi-circle-fill"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="updateStatus('{{.VehicleID}}', 'tire', 'good')"><i class="bi bi-circle-fill text-success"></i> Good</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="updateStatus('{{.VehicleID}}', 'tire', 'worn')"><i class="bi bi-circle-fill text-warning"></i> Worn</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="updateStatus('{{.VehicleID}}', 'tire', 'replace')"><i class="bi bi-circle-fill text-danger"></i> Replace</a></li>
+                      </ul>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="dropdown">
+                      <button class="btn btn-sm status-light vehicle-status-{{.Status}} dropdown-toggle" type="button" data-bs-toggle="dropdown" onclick="setCurrentVehicle('{{.VehicleID}}', 'status')">
+                        <i class="bi bi-circle-fill"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="updateStatus('{{.VehicleID}}', 'status', 'active')"><i class="bi bi-circle-fill text-success"></i> Active</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="updateStatus('{{.VehicleID}}', 'status', 'maintenance')"><i class="bi bi-circle-fill text-warning"></i> Maintenance</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="updateStatus('{{.VehicleID}}', 'status', 'out_of_service')"><i class="bi bi-circle-fill text-danger"></i> Out of Service</a></li>
+                      </ul>
+                    </div>
                   </td>
                 </tr>
                 {{end}}
@@ -171,6 +225,65 @@
 
       searchInput.addEventListener('input', filterRows);
     })();
+
+    // Status Update Functionality
+    let currentVehicleId = '';
+    let currentStatusType = '';
+
+    function setCurrentVehicle(vehicleId, statusType) {
+      currentVehicleId = vehicleId;
+      currentStatusType = statusType;
+    }
+
+    function updateStatus(vehicleId, statusType, newStatus) {
+      // Update the UI immediately for better responsiveness
+      const button = document.querySelector(`tr:has([onclick*="${vehicleId}"]) .${statusType}-status-${getCurrentStatus(vehicleId, statusType)} .bi-circle-fill`);
+      if (button) {
+        // Update the button class and color
+        const parentButton = button.closest('.status-light');
+        parentButton.className = parentButton.className.replace(/\w+-status-\w+/, `${statusType}-status-${newStatus}`);
+      }
+
+      // Send update to server
+      const formData = new FormData();
+      formData.append('vehicle_id', vehicleId);
+      formData.append('status_type', statusType);
+      formData.append('new_status', newStatus);
+
+      fetch('/update-vehicle-status', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => {
+        if (response.ok) {
+          console.log(`Updated ${statusType} status for vehicle ${vehicleId} to ${newStatus}`);
+          // Refresh the page to show updated data
+          setTimeout(() => window.location.reload(), 500);
+        } else {
+          console.error('Failed to update status');
+          // Revert UI change on error
+          window.location.reload();
+        }
+      })
+      .catch(error => {
+        console.error('Error updating status:', error);
+        window.location.reload();
+      });
+    }
+
+    function getCurrentStatus(vehicleId, statusType) {
+      // Helper function to get current status from the DOM
+      const row = document.querySelector(`tr:has([onclick*="${vehicleId}"])`);
+      if (row) {
+        const button = row.querySelector(`.status-light[onclick*="${statusType}"]`);
+        if (button) {
+          const classes = button.className;
+          const match = classes.match(new RegExp(`${statusType}-status-(\\w+)`));
+          return match ? match[1] : '';
+        }
+      }
+      return '';
+    }
   </script>
 </body>
 </html>
