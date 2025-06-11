@@ -1390,7 +1390,11 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 	tireStatus := r.FormValue("tire_status")
 	maintenanceNotes := r.FormValue("maintenance_notes")
 
+	// Debug logging
+	log.Printf("EditBus: originalBusID='%s', newBusID='%s', status='%s'", originalBusID, busID, status)
+
 	buses := loadBuses()
+	log.Printf("EditBus: loaded %d buses", len(buses))
 
 	// Check if new bus ID conflicts with existing (unless it's the same bus)
 	if busID != originalBusID {
@@ -1405,6 +1409,7 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 	// Find the original bus to check status change
 	var originalBus *Bus
 	for _, b := range buses {
+		log.Printf("EditBus: checking bus ID '%s' against original '%s'", b.BusID, originalBusID)
 		if b.BusID == originalBusID {
 			originalBus = b
 			break
@@ -1412,7 +1417,14 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if originalBus == nil {
-		http.Error(w, "Bus not found", http.StatusNotFound)
+		log.Printf("EditBus: Bus not found with ID '%s'", originalBusID)
+		// List all available bus IDs for debugging
+		busIDs := make([]string, len(buses))
+		for i, b := range buses {
+			busIDs[i] = b.BusID
+		}
+		log.Printf("EditBus: Available bus IDs: %v", busIDs)
+		http.Error(w, fmt.Sprintf("Bus not found with ID '%s'", originalBusID), http.StatusNotFound)
 		return
 	}
 
