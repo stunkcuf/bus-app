@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -156,7 +155,7 @@
                       <span class="status-indicator status-{{if .OilStatus}}{{.OilStatus}}{{else}}unknown{{end}}" 
                             onclick="toggleStatusDropdown(this, '{{.BusID}}', 'oil')" 
                             title="Click to change oil status"></span>
-                      <span>{{if .OilStatus}}{{.OilStatus}}{{else}}unknown{{end}}</span>
+                      <span>{{if eq .OilStatus "good"}}✅ {{.OilStatus}}{{else if eq .OilStatus "due"}}⚠️ {{.OilStatus}}{{else if eq .OilStatus "overdue"}}❌ {{.OilStatus}}{{else if .OilStatus}}{{.OilStatus}}{{else}}❓ unknown{{end}}</span>
                       <div class="status-dropdown">
                         <div class="status-option" onclick="updateStatus('{{.BusID}}', 'oil', 'good')">Good</div>
                         <div class="status-option" onclick="updateStatus('{{.BusID}}', 'oil', 'due')">Due</div>
@@ -169,7 +168,7 @@
                       <span class="status-indicator status-{{if .TireStatus}}{{.TireStatus}}{{else}}unknown{{end}}" 
                             onclick="toggleStatusDropdown(this, '{{.BusID}}', 'tire')" 
                             title="Click to change tire status"></span>
-                      <span>{{if .TireStatus}}{{.TireStatus}}{{else}}unknown{{end}}</span>
+                      <span>{{if eq .TireStatus "good"}}✅ {{.TireStatus}}{{else if eq .TireStatus "worn"}}⚠️ {{.TireStatus}}{{else if eq .TireStatus "replace"}}❌ {{.TireStatus}}{{else if .TireStatus}}{{.TireStatus}}{{else}}❓ unknown{{end}}</span>
                       <div class="status-dropdown">
                         <div class="status-option" onclick="updateStatus('{{.BusID}}', 'tire', 'good')">Good</div>
                         <div class="status-option" onclick="updateStatus('{{.BusID}}', 'tire', 'worn')">Worn</div>
@@ -182,7 +181,7 @@
                       <span class="status-indicator status-{{.Status}}" 
                             onclick="toggleStatusDropdown(this, '{{.BusID}}', 'status')" 
                             title="Click to change bus status"></span>
-                      <span>{{.Status}}</span>
+                      <span>{{if eq .Status "active"}}✅ {{.Status}}{{else if eq .Status "maintenance"}}⚠️ {{.Status}}{{else if eq .Status "out_of_service"}}❌ {{.Status}}{{else}}{{.Status}}{{end}}</span>
                       <div class="status-dropdown">
                         <div class="status-option" onclick="updateStatus('{{.BusID}}', 'status', 'active')">Active</div>
                         <div class="status-option" onclick="updateStatus('{{.BusID}}', 'status', 'maintenance')">Maintenance</div>
