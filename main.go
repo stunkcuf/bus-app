@@ -2395,10 +2395,14 @@
 		defer func() {
 			if r := recover(); r != nil {
 				log.Printf("Server crashed with panic: %v", r)
+				os.Exit(1)
 			}
 		}()
 
+		log.Println("Starting bus transportation app...")
+
 		// Ensure basic data files exist
+		log.Println("Initializing data files...")
 		ensureDataFiles()
 
 		// Initialize data files with proper structure
@@ -2407,6 +2411,7 @@
 		log.Println("Using local file storage only")
 
 		// Setup HTTP routes with recovery middleware
+		log.Println("Setting up HTTP routes...")
 		http.HandleFunc("/", withRecovery(loginPage))
 		http.HandleFunc("/new-user", withRecovery(newUserPage))
 		http.HandleFunc("/dashboard", withRecovery(dashboardRouter))
@@ -2440,6 +2445,9 @@
 			port = "5000"
 		}
 
+		// Check if port is available before trying to bind
+		log.Printf("Checking if port %s is available...", port)
+		
 		server := &http.Server{
 			Addr:         "0.0.0.0:" + port,
 			Handler:      nil,
@@ -2450,8 +2458,16 @@
 
 		log.Printf("Server starting on port %s with ID-based data structure", port)
 		log.Printf("Data structure: BusID, RouteID, StudentID for consistent identification")
+		log.Printf("Server will be accessible at: http://localhost:%s", port)
 
 		if err := server.ListenAndServe(); err != nil {
-			log.Fatalf("Server failed to start: %v", err)
+			if err == http.ErrServerClosed {
+				log.Println("Server was closed")
+			} else {
+				log.Printf("Server failed to start: %v", err)
+				log.Printf("This usually means port %s is already in use", port)
+				log.Println("Try running: pkill -f 'go run main.go' or lsof -ti:5000 | xargs kill -9")
+				os.Exit(1)
+			}
 		}
 	}
