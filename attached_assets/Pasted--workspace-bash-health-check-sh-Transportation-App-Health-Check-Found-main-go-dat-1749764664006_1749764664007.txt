@@ -1,0 +1,81 @@
+~/workspace$ bash health_check.sh
+=== Transportation App Health Check ===
+
+✅ Found main.go
+✅ data/ directory exists
+
+=== JSON Files Check ===
+❌ Invalid JSON: users.json
+   First few lines:
+[{"username":"admin","password":"adminpass","role":"manager"}]
+❌ Invalid JSON: buses.json
+   First few lines:
+[{"bus_id":"BUS001","status":"active","model":"Ford Transit","capacity":20,"oil_status":"good","tire_status":"good","maintenance_notes":""}]
+❌ Invalid JSON: routes.json
+   First few lines:
+[{"route_id":"RT001","route_name":"Victory Square","positions":[{"position":1,"student":"Student 1"}]}]
+❌ Invalid JSON: route_assignments.json
+   First few lines:
+[]
+❌ Invalid JSON: students.json
+   First few lines:
+[]
+❌ Invalid JSON: driver_logs.json
+   First few lines:
+[]
+❌ Invalid JSON: maintenance.json
+   First few lines:
+[]
+
+=== Templates Check ===
+✅ templates/ directory exists
+✅ Found 11 template files:
+   templates/edit_user.html
+   templates/login.html
+   templates/new_user.html
+   templates/users.html
+   templates/assign_routes.html
+   templates/students.html
+   templates/driver_profile.html
+   templates/dashboard.html
+   templates/driver_dashboard.html
+   templates/company_fleet.html
+   templates/fleet.html
+
+=== Port Check ===
+⚠️  netstat not available, cannot check port
+
+=== Go Environment ===
+✅ Go is installed: go version go1.23.10 linux/amd64
+✅ go.mod exists
+   Module: module bus-app
+   Checking dependencies...
+❌ Dependency issues detected
+   Try running: go mod tidy
+
+=== Permissions ===
+   drwxr-xr-x 1 runner runner 334 Jun 12 21:35 .
+   drwxr-xr-x 1 runner runner 316 Jun 12 21:05 data/
+   drwxr-xr-x 1 runner runner 320 Jun 12 21:14 templates/
+
+=== File Overview ===
+   total 52K
+   drwxr-xr-x 1 runner runner  316 Jun 12 21:05 .
+   drwxr-xr-x 1 runner runner  334 Jun 12 21:35 ..
+   -rw-r--r-- 1 runner runner    3 Jun 12 17:07 activities.json
+   -rw-r--r-- 1 runner runner    3 Jun 12 17:07 attendance.json
+   drwxr-xr-x 1 runner runner  304 Jun 12 21:14 backup
+   -rw-r--r-- 1 runner runner  141 Jun 12 17:07 buses.json
+   -rw-r--r-- 1 runner runner    3 Jun 12 17:07 driver_logs.json
+   -rw-r--r-- 1 runner runner    3 Jun 12 17:07 maintenance.json
+   -rw-r--r-- 1 runner runner    3 Jun 12 17:07 mileage.json
+   -rw-r--r-- 1 runner runner    3 Jun 12 17:07 route_assignments.json
+   -rw-r--r-- 1 runner runner  104 Jun 12 17:07 routes.json
+   -rw-r--r-- 1 runner runner    3 Jun 12 17:07 students.json
+   -rw-r--r-- 1 runner runner   63 Jun 12 17:07 users.json
+   -rw-r--r-- 1 runner runner 3.5K Jun 12 21:05 vehicle.json
+
+=== Common Issues Check ===
+health_check.sh: line 132: syntax error near unexpected token `2'
+health_check.sh: line 132: `for file in data/*.json 2>/dev/null; do'
+~/workspace$
