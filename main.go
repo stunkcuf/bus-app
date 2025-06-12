@@ -2083,8 +2083,24 @@ func logout(w http.ResponseWriter, r *http.Request) {
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-cache")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"healthy","timestamp":"` + time.Now().Format(time.RFC3339) + `"}`))
+	w.Write([]byte(`{"status":"ok"}`))
+}
+
+func rootHealthCheck(w http.ResponseWriter, r *http.Request) {
+	// Fast health check for deployment root path
+	if r.URL.Path == "/" && r.Method == "GET" {
+		// Check if this looks like a health check (no cookies, simple user agent)
+		if r.Header.Get("Cookie") == "" {
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("OK"))
+			return
+		}
+	}
+	// Otherwise, handle as normal login page
+	loginPage(w, r)
 }
 
 func withRecovery(h http.HandlerFunc) http.HandlerFunc {
@@ -2438,7 +2454,7 @@ func main() {
 
 	// Setup HTTP routes with recovery middleware
 	log.Println("Setting up HTTP routes...")
-	http.HandleFunc("/", withRecovery(loginPage))
+	http.HandleFunc("/", withRecovery(rootHealthCheck))
 	http.HandleFunc("/new-user", withRecovery(newUserPage))
 	http.HandleFunc("/dashboard", withRecovery(dashboardRouter))
 	http.HandleFunc("/manager-dashboard", withRecovery(managerDashboard))
@@ -2477,10 +2493,10 @@ func main() {
 
 	server := &http.Server{
 		Addr:         "0.0.0.0:" + port,
-		Handler:      http.TimeoutHandler(http.DefaultServeMux, 300*time.Second, "Request timeout"),
-		ReadTimeout:  180 * time.Second,
-		WriteTimeout: 300 * time.Second,
-		IdleTimeout:  300 * time.Second,
+		Handler:      http.DefaultServeMux, // Remove timeout wrapper for health checks
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
 		MaxHeaderBytes: 1 << 20, // 1 MB
 	}
 
