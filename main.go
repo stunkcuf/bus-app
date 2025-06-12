@@ -2477,10 +2477,11 @@ func main() {
 
 	server := &http.Server{
 		Addr:         "0.0.0.0:" + port,
-		Handler:      http.TimeoutHandler(http.DefaultServeMux, 120*time.Second, "Request timeout"),
-		ReadTimeout:  60 * time.Second,
-		WriteTimeout: 120 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		Handler:      http.TimeoutHandler(http.DefaultServeMux, 300*time.Second, "Request timeout"),
+		ReadTimeout:  180 * time.Second,
+		WriteTimeout: 300 * time.Second,
+		IdleTimeout:  300 * time.Second,
+		MaxHeaderBytes: 1 << 20, // 1 MB
 	}
 
 	log.Printf("Server starting on port %s with ID-based data structure", port)
