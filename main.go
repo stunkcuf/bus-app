@@ -13,6 +13,7 @@ import (
 	"os/exec" //run start.sh
 	"strconv"  // add to importblock
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -251,7 +252,21 @@ func ensureDataFiles() {
 	}
 }
 
+var userCache []User
+var userCacheTime time.Time
+var userCacheMutex sync.RWMutex
+
 func loadUsers() []User {
+	userCacheMutex.RLock()
+	if time.Since(userCacheTime) < 30*time.Second && userCache != nil {
+		defer userCacheMutex.RUnlock()
+		return userCache
+	}
+	userCacheMutex.RUnlock()
+
+	userCacheMutex.Lock()
+	defer userCacheMutex.Unlock()
+
 	f, err := os.Open("data/users.json")
 	if err != nil {
 		return nil
@@ -259,6 +274,8 @@ func loadUsers() []User {
 	defer f.Close()
 	var users []User
 	json.NewDecoder(f).Decode(&users)
+	userCache = users
+	userCacheTime = time.Now()
 	return users
 }
 
@@ -2064,11 +2081,20 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
+func healthCheck(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status":"healthy","timestamp":"` + time.Now().Format(time.RFC3339) + `"}`))
+}
+
 func withRecovery(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
 		defer func() {
+			duration := time.Since(start)
+			log.Printf("%s %s - %v", r.Method, r.URL.Path, duration)
 			if err := recover(); err != nil {
-				log.Printf("Recovered from panic in handler: %v", err)
+				log.Printf("Recovered from panic in handler %s: %v", r.URL.Path, err)
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
 			}
 		}()
@@ -2439,6 +2465,7 @@ func main() {
 	http.HandleFunc("/reassign-driver-bus", withRecovery(reassignDriverBus))
 	http.HandleFunc("/remove-user", withRecovery(removeUser))
 	http.HandleFunc("/logout", withRecovery(logout))
+	http.HandleFunc("/health", withRecovery(healthCheck))
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -2450,10 +2477,10 @@ func main() {
 
 	server := &http.Server{
 		Addr:         "0.0.0.0:" + port,
-		Handler:      nil,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Handler:      http.TimeoutHandler(http.DefaultServeMux, 120*time.Second, "Request timeout"),
+		ReadTimeout:  60 * time.Second,
+		WriteTimeout: 120 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	log.Printf("Server starting on port %s with ID-based data structure", port)
