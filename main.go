@@ -2391,6 +2391,13 @@
 	}
 
 	func main() {
+		// Add defer to catch any panics
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("Server crashed with panic: %v", r)
+			}
+		}()
+
 		// Ensure basic data files exist
 		ensureDataFiles()
 
