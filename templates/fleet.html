@@ -556,25 +556,33 @@
     }
 
     function updateStatus(busId, type, status) {
-        // Here you would typically send an AJAX request to update the status on the server
         console.log(`Update Bus #${busId} ${type} to ${status}`);
-        // Close the dropdown after selection
-        const dropdown = document.querySelector(`.bus-card:has(div:contains('Bus #${busId}')) .status-container .status-dropdown`);
-        if (dropdown) {
-          dropdown.classList.remove('show');
-        }
 
-        // Optimistically update the UI
-        const indicator = document.querySelector(`.bus-card:has(div:contains('Bus #${busId}')) .status-container .status-indicator`);
-        if (indicator) {
-            indicator.className = `status-indicator status-${status}`;
-        }
-        const statusText = document.querySelector(`.bus-card:has(div:contains('Bus #${busId}')) .status-container span:last-child`);
-         if (statusText) {
-            statusText.textContent = status;
-        }
+        // Send AJAX request to update status
+        fetch('/update-bus-status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `bus_id=${encodeURIComponent(busId)}&status_type=${encodeURIComponent(type)}&new_status=${encodeURIComponent(status)}`
+        })
+        .then(response => {
+            if (response.ok) {
+                // Close dropdown
+                document.querySelectorAll('.status-dropdown.show').forEach(dd => {
+                    dd.classList.remove('show');
+                });
 
-        // You'll need to add the actual AJAX call here to update the server
+                // Reload page to show updated status
+                location.reload();
+            } else {
+                alert('Failed to update status');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating status:', error);
+            alert('Error updating status');
+        });
     }
 
     // Close dropdowns if user clicks outside of them
