@@ -2458,7 +2458,13 @@
 
 		log.Printf("Server starting on port %s with ID-based data structure", port)
 		log.Printf("Data structure: BusID, RouteID, StudentID for consistent identification")
-		log.Printf("Server will be accessible at: http://localhost:%s", port)
+		log.Printf("Server will be accessible at: http://0.0.0.0:%s", port)
+		log.Printf("Starting HTTP server...")
+		
+		go func() {
+			time.Sleep(2 * time.Second)
+			log.Printf("Server should be ready now - check the webview")
+		}()
 
 		if err := server.ListenAndServe(); err != nil {
 			if err == http.ErrServerClosed {
