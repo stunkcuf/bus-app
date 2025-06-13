@@ -1450,6 +1450,59 @@ func addBus(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/fleet", http.StatusFound)
 }
+func editUserPage(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	username := r.URL.Query().Get("username")
+	if username == "" {
+		http.Error(w, "Username required", http.StatusBadRequest)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		r.ParseForm()
+		newPassword := r.FormValue("password")
+		newRole := r.FormValue("role")
+
+		users := loadUsers()
+		for i, u := range users {
+			if u.Username == username {
+				users[i].Password = newPassword
+				users[i].Role = newRole
+				break
+			}
+		}
+
+		if err := saveUsers(users); err != nil {
+			http.Error(w, "Failed to save user", http.StatusInternalServerError)
+			return
+		}
+
+		http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
+		return
+	}
+
+	// Find user to edit
+	users := loadUsers()
+	var editUser *User
+	for _, u := range users {
+		if u.Username == username {
+			editUser = &u
+			break
+		}
+	}
+
+	if editUser == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	executeTemplate(w, "edit_user.html", editUser)
+}
 
 func editBus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
