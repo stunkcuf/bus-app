@@ -15,7 +15,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"database/sql"    ///below Post mgration
+	"database/sql"    // PostgreSQL support
 	_ "github.com/lib/pq"
 )
 
@@ -192,6 +192,9 @@ var tmplFS embed.FS
 
 var templates *template.Template
 
+// PostgreSQL database connection
+var db *sql.DB
+
 func init() {
 	var err error
 
@@ -230,9 +233,10 @@ func init() {
 
 	log.Println("Templates loaded successfully")
 }
-// Add this to your main.go file Migration
 
-var db *sql.DB
+// =============================================================================
+// DATABASE FUNCTIONS
+// =============================================================================
 
 // Database initialization function
 func initDatabase() error {
@@ -306,9 +310,7 @@ func createTables() error {
 			route_id VARCHAR(255),
 			driver VARCHAR(255),
 			active BOOLEAN DEFAULT true,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			FOREIGN KEY (route_id) REFERENCES routes(route_id),
-			FOREIGN KEY (driver) REFERENCES users(username)
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
 
 		// Route assignments table
@@ -320,9 +322,7 @@ func createTables() error {
 			route_name VARCHAR(255),
 			assigned_date DATE,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			FOREIGN KEY (driver) REFERENCES users(username),
-			FOREIGN KEY (bus_id) REFERENCES buses(bus_id),
-			FOREIGN KEY (route_id) REFERENCES routes(route_id)
+			UNIQUE(driver)
 		)`,
 
 		// Driver logs table
@@ -338,8 +338,7 @@ func createTables() error {
 			mileage DECIMAL(10,2) DEFAULT 0,
 			attendance JSONB,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			UNIQUE(driver, date, period),
-			FOREIGN KEY (driver) REFERENCES users(username)
+			UNIQUE(driver, date, period)
 		)`,
 
 		// Maintenance logs table
@@ -350,8 +349,7 @@ func createTables() error {
 			category VARCHAR(100),
 			notes TEXT,
 			mileage INTEGER DEFAULT 0,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			FOREIGN KEY (bus_id) REFERENCES buses(bus_id)
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
 
 		// Vehicles table (for company fleet)
@@ -438,7 +436,7 @@ func migrateJSONToPostgreSQL() error {
 }
 
 func migrateUsers() error {
-	users := loadUsers()
+	users := loadUsersFromJSON()
 	if len(users) == 0 {
 		log.Println("📝 No users to migrate")
 		return nil
@@ -463,7 +461,7 @@ func migrateUsers() error {
 }
 
 func migrateBuses() error {
-	buses := loadBuses()
+	buses := loadBusesFromJSON()
 	if len(buses) == 0 {
 		log.Println("📝 No buses to migrate")
 		return nil
@@ -493,7 +491,7 @@ func migrateBuses() error {
 }
 
 func migrateRoutes() error {
-	routes, err := loadRoutes()
+	routes, err := loadJSON[Route]("data/routes.json")
 	if err != nil {
 		log.Println("📝 No routes to migrate")
 		return nil
@@ -520,7 +518,7 @@ func migrateRoutes() error {
 }
 
 func migrateStudents() error {
-	students := loadStudents()
+	students := loadStudentsFromJSON()
 	if len(students) == 0 {
 		log.Println("📝 No students to migrate")
 		return nil
@@ -559,7 +557,7 @@ func migrateStudents() error {
 }
 
 func migrateRouteAssignments() error {
-	assignments, err := loadRouteAssignments()
+	assignments, err := loadRouteAssignmentsFromJSON()
 	if err != nil {
 		log.Println("📝 No route assignments to migrate")
 		return nil
@@ -586,7 +584,7 @@ func migrateRouteAssignments() error {
 }
 
 func migrateDriverLogs() error {
-	logs, err := loadDriverLogs()
+	logs, err := loadJSON[DriverLog]("data/driver_logs.json")
 	if err != nil {
 		log.Println("📝 No driver logs to migrate")
 		return nil
@@ -619,7 +617,7 @@ func migrateDriverLogs() error {
 }
 
 func migrateMaintenanceLogs() error {
-	logs := loadMaintenanceLogs()
+	logs, _ := loadJSON[MaintenanceLog]("data/maintenance.json")
 	if len(logs) == 0 {
 		log.Println("📝 No maintenance logs to migrate")
 		return nil
@@ -641,7 +639,7 @@ func migrateMaintenanceLogs() error {
 }
 
 func migrateVehicles() error {
-	vehicles := loadVehicles()
+	vehicles := loadVehiclesFromJSON()
 	if len(vehicles) == 0 {
 		log.Println("📝 No vehicles to migrate")
 		return nil
@@ -674,7 +672,7 @@ func migrateVehicles() error {
 	return nil
 }
 
-// Add this to your main() function, BEFORE starting the server
+// Setup database with migration
 func setupDatabase() {
 	log.Println("🗄️  Setting up database...")
 	
@@ -690,36 +688,42 @@ func setupDatabase() {
 		}
 	}
 }
-//end off post mgration
 
-// Helper function to safely execute templates
-func executeTemplate(w http.ResponseWriter, name string, data interface{}) {
-	if err := templates.ExecuteTemplate(w, name, data); err != nil {
-		log.Printf("Error executing template %s: %v", name, err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
-}
-
-func ensureDataFiles() {
-	os.MkdirAll("data", os.ModePerm)
-	if _, err := os.Stat("data/users.json"); os.IsNotExist(err) {
-		defaultUsers := []User{{"admin", "adminpass", "manager"}}
-		f, _ := os.Create("data/users.json")
-		json.NewEncoder(f).Encode(defaultUsers)
-		f.Close()
-	}
-	if _, err := os.Stat("data/route_assignments.json"); os.IsNotExist(err) {
-		f, _ := os.Create("data/route_assignments.json")
-		json.NewEncoder(f).Encode([]RouteAssignment{})
-		f.Close()
-	}
-}
+// =============================================================================
+// LOAD/SAVE FUNCTIONS (PostgreSQL + JSON Fallback)
+// =============================================================================
 
 var userCache []User
 var userCacheTime time.Time
 var userCacheMutex sync.RWMutex
 
+// Load users - PostgreSQL first, JSON fallback
 func loadUsers() []User {
+	if db != nil {
+		rows, err := db.Query("SELECT username, password, role FROM users ORDER BY username")
+		if err != nil {
+			log.Printf("Error loading users from database: %v", err)
+			return loadUsersFromJSON() // Fallback
+		}
+		defer rows.Close()
+
+		var users []User
+		for rows.Next() {
+			var user User
+			err := rows.Scan(&user.Username, &user.Password, &user.Role)
+			if err != nil {
+				log.Printf("Error scanning user: %v", err)
+				continue
+			}
+			users = append(users, user)
+		}
+		return users
+	}
+	return loadUsersFromJSON()
+}
+
+// JSON fallback for users
+func loadUsersFromJSON() []User {
 	userCacheMutex.RLock()
 	if time.Since(userCacheTime) < 30*time.Second && userCache != nil {
 		defer userCacheMutex.RUnlock()
@@ -742,12 +746,614 @@ func loadUsers() []User {
 	return users
 }
 
+// Save users - PostgreSQL first, JSON fallback
+func saveUsers(users []User) error {
+	if db != nil {
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+
+		// Clear existing users
+		_, err = tx.Exec("DELETE FROM users")
+		if err != nil {
+			return err
+		}
+
+		// Insert new users
+		for _, user := range users {
+			_, err = tx.Exec("INSERT INTO users (username, password, role) VALUES ($1, $2, $3)",
+				user.Username, user.Password, user.Role)
+			if err != nil {
+				return err
+			}
+		}
+
+		return tx.Commit()
+	}
+	return saveUsersToJSON(users)
+}
+
+func saveUsersToJSON(users []User) error {
+	f, err := os.Create("data/users.json")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	return enc.Encode(users)
+}
+
+// Load buses - PostgreSQL first, JSON fallback
+func loadBuses() []*Bus {
+	if db != nil {
+		rows, err := db.Query(`SELECT bus_id, status, model, capacity, oil_status, tire_status, maintenance_notes 
+			FROM buses ORDER BY bus_id`)
+		if err != nil {
+			log.Printf("Error loading buses from database: %v", err)
+			return loadBusesFromJSON()
+		}
+		defer rows.Close()
+
+		var buses []*Bus
+		for rows.Next() {
+			bus := &Bus{}
+			err := rows.Scan(&bus.BusID, &bus.Status, &bus.Model, &bus.Capacity, 
+				&bus.OilStatus, &bus.TireStatus, &bus.MaintenanceNotes)
+			if err != nil {
+				log.Printf("Error scanning bus: %v", err)
+				continue
+			}
+			buses = append(buses, bus)
+		}
+		return buses
+	}
+	return loadBusesFromJSON()
+}
+
+func loadBusesFromJSON() []*Bus {
+	f, err := os.Open("data/buses.json")
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("buses.json not found, returning empty slice")
+			return []*Bus{}
+		}
+		log.Printf("Error opening buses.json: %v", err)
+		return []*Bus{}
+	}
+	defer f.Close()
+
+	var buses []*Bus
+	decoder := json.NewDecoder(f)
+	if err := decoder.Decode(&buses); err != nil {
+		log.Printf("Error decoding buses.json: %v", err)
+		return []*Bus{}
+	}
+	return buses
+}
+
+// Save buses - PostgreSQL first, JSON fallback
+func saveBuses(buses []*Bus) error {
+	if db != nil {
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+
+		for _, bus := range buses {
+			_, err = tx.Exec(`
+				INSERT INTO buses (bus_id, status, model, capacity, oil_status, tire_status, maintenance_notes) 
+				VALUES ($1, $2, $3, $4, $5, $6, $7) 
+				ON CONFLICT (bus_id) DO UPDATE SET 
+					status = EXCLUDED.status,
+					model = EXCLUDED.model,
+					capacity = EXCLUDED.capacity,
+					oil_status = EXCLUDED.oil_status,
+					tire_status = EXCLUDED.tire_status,
+					maintenance_notes = EXCLUDED.maintenance_notes,
+					updated_at = CURRENT_TIMESTAMP
+			`, bus.BusID, bus.Status, bus.Model, bus.Capacity, bus.OilStatus, bus.TireStatus, bus.MaintenanceNotes)
+			
+			if err != nil {
+				return err
+			}
+		}
+
+		return tx.Commit()
+	}
+	return saveBusesToJSON(buses)
+}
+
+func saveBusesToJSON(buses []*Bus) error {
+	f, err := os.Create("data/buses.json")
+	if err != nil {
+		return fmt.Errorf("failed to create buses.json: %w", err)
+	}
+	defer f.Close()
+
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(buses); err != nil {
+		return fmt.Errorf("failed to encode buses: %w", err)
+	}
+
+	return nil
+}
+
+// Load routes - PostgreSQL first, JSON fallback
 func loadRoutes() ([]Route, error) {
+	if db != nil {
+		rows, err := db.Query("SELECT route_id, route_name, positions FROM routes ORDER BY route_id")
+		if err != nil {
+			return loadJSON[Route]("data/routes.json") // Fallback
+		}
+		defer rows.Close()
+
+		var routes []Route
+		for rows.Next() {
+			var route Route
+			var positionsJSON []byte
+			err := rows.Scan(&route.RouteID, &route.RouteName, &positionsJSON)
+			if err != nil {
+				log.Printf("Error scanning route: %v", err)
+				continue
+			}
+
+			// Parse positions JSON
+			err = json.Unmarshal(positionsJSON, &route.Positions)
+			if err != nil {
+				log.Printf("Error parsing positions JSON: %v", err)
+				continue
+			}
+
+			routes = append(routes, route)
+		}
+		return routes, nil
+	}
 	return loadJSON[Route]("data/routes.json")
 }
 
+// Load route assignments - PostgreSQL first, JSON fallback
+func loadRouteAssignments() ([]RouteAssignment, error) {
+	if db != nil {
+		rows, err := db.Query(`SELECT driver, bus_id, route_id, route_name, assigned_date 
+			FROM route_assignments ORDER BY driver`)
+		if err != nil {
+			return loadRouteAssignmentsFromJSON() // Fallback
+		}
+		defer rows.Close()
+
+		var assignments []RouteAssignment
+		for rows.Next() {
+			var assignment RouteAssignment
+			err := rows.Scan(&assignment.Driver, &assignment.BusID, &assignment.RouteID,
+				&assignment.RouteName, &assignment.AssignedDate)
+			if err != nil {
+				log.Printf("Error scanning assignment: %v", err)
+				continue
+			}
+			assignments = append(assignments, assignment)
+		}
+		return assignments, nil
+	}
+	return loadRouteAssignmentsFromJSON()
+}
+
+func loadRouteAssignmentsFromJSON() ([]RouteAssignment, error) {
+	assignments, err := loadJSON[RouteAssignment]("data/route_assignments.json")
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []RouteAssignment{}, nil
+		}
+		return nil, fmt.Errorf("failed to load route assignments: %w", err)
+	}
+	return assignments, nil
+}
+
+// Save route assignments - PostgreSQL first, JSON fallback
+func saveRouteAssignments(assignments []RouteAssignment) error {
+	if db != nil {
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+
+		// Clear existing assignments
+		_, err = tx.Exec("DELETE FROM route_assignments")
+		if err != nil {
+			return err
+		}
+
+		// Insert assignments
+		for _, assignment := range assignments {
+			_, err = tx.Exec(`
+				INSERT INTO route_assignments (driver, bus_id, route_id, route_name, assigned_date) 
+				VALUES ($1, $2, $3, $4, $5)
+			`, assignment.Driver, assignment.BusID, assignment.RouteID, assignment.RouteName, assignment.AssignedDate)
+			
+			if err != nil {
+				return err
+			}
+		}
+
+		return tx.Commit()
+	}
+	return saveRouteAssignmentsToJSON(assignments)
+}
+
+func saveRouteAssignmentsToJSON(assignments []RouteAssignment) error {
+	f, err := os.Create("data/route_assignments.json")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	return enc.Encode(assignments)
+}
+
+// Load driver logs - PostgreSQL first, JSON fallback
 func loadDriverLogs() ([]DriverLog, error) {
+	if db != nil {
+		rows, err := db.Query(`SELECT driver, bus_id, route_id, date, period, departure_time, 
+			arrival_time, mileage, attendance FROM driver_logs ORDER BY date DESC, driver`)
+		if err != nil {
+			return loadJSON[DriverLog]("data/driver_logs.json")
+		}
+		defer rows.Close()
+
+		var logs []DriverLog
+		for rows.Next() {
+			var log DriverLog
+			var attendanceJSON []byte
+			err := rows.Scan(&log.Driver, &log.BusID, &log.RouteID, &log.Date, &log.Period,
+				&log.Departure, &log.Arrival, &log.Mileage, &attendanceJSON)
+			if err != nil {
+				log.Printf("Error scanning driver log: %v", err)
+				continue
+			}
+
+			// Parse attendance JSON
+			err = json.Unmarshal(attendanceJSON, &log.Attendance)
+			if err != nil {
+				log.Printf("Error parsing attendance JSON: %v", err)
+				continue
+			}
+
+			logs = append(logs, log)
+		}
+		return logs, nil
+	}
 	return loadJSON[DriverLog]("data/driver_logs.json")
+}
+
+// Save driver logs - PostgreSQL first, JSON fallback
+func saveDriverLogs(logs []DriverLog) error {
+	if db != nil {
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+
+		for _, log := range logs {
+			attendanceJSON, _ := json.Marshal(log.Attendance)
+			_, err = tx.Exec(`
+				INSERT INTO driver_logs (driver, bus_id, route_id, date, period, departure_time, 
+					arrival_time, mileage, attendance) 
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+				ON CONFLICT (driver, date, period) DO UPDATE SET 
+					bus_id = EXCLUDED.bus_id,
+					route_id = EXCLUDED.route_id,
+					departure_time = EXCLUDED.departure_time,
+					arrival_time = EXCLUDED.arrival_time,
+					mileage = EXCLUDED.mileage,
+					attendance = EXCLUDED.attendance
+			`, log.Driver, log.BusID, log.RouteID, log.Date, log.Period, log.Departure,
+			   log.Arrival, log.Mileage, attendanceJSON)
+			
+			if err != nil {
+				return err
+			}
+		}
+
+		return tx.Commit()
+	}
+	return saveDriverLogsToJSON(logs)
+}
+
+func saveDriverLogsToJSON(logs []DriverLog) error {
+	f, err := os.Create("data/driver_logs.json")
+	if err != nil {
+		return fmt.Errorf("failed to create driver logs file: %w", err)
+	}
+	defer f.Close()
+
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(logs); err != nil {
+		return fmt.Errorf("failed to encode driver logs: %w", err)
+	}
+
+	return nil
+}
+
+// Load students - PostgreSQL first, JSON fallback
+func loadStudents() []Student {
+	if db != nil {
+		rows, err := db.Query(`SELECT student_id, name, locations, phone_number, alt_phone_number, 
+			guardian, pickup_time, dropoff_time, position_number, route_id, driver, active 
+			FROM students ORDER BY name`)
+		if err != nil {
+			log.Printf("Error loading students from database: %v", err)
+			return loadStudentsFromJSON()
+		}
+		defer rows.Close()
+
+		var students []Student
+		for rows.Next() {
+			var student Student
+			var locationsJSON []byte
+			err := rows.Scan(&student.StudentID, &student.Name, &locationsJSON, &student.PhoneNumber,
+				&student.AltPhoneNumber, &student.Guardian, &student.PickupTime, &student.DropoffTime,
+				&student.PositionNumber, &student.RouteID, &student.Driver, &student.Active)
+			if err != nil {
+				log.Printf("Error scanning student: %v", err)
+				continue
+			}
+
+			// Parse locations JSON
+			err = json.Unmarshal(locationsJSON, &student.Locations)
+			if err != nil {
+				log.Printf("Error parsing locations JSON: %v", err)
+				continue
+			}
+
+			students = append(students, student)
+		}
+		return students
+	}
+	return loadStudentsFromJSON()
+}
+
+func loadStudentsFromJSON() []Student {
+	f, err := os.Open("data/students.json")
+	if err != nil {
+		return []Student{}
+	}
+	defer f.Close()
+	var students []Student
+	json.NewDecoder(f).Decode(&students)
+	return students
+}
+
+// Save students - PostgreSQL first, JSON fallback
+func saveStudents(students []Student) error {
+	if db != nil {
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+
+		// Clear existing students
+		_, err = tx.Exec("DELETE FROM students")
+		if err != nil {
+			return err
+		}
+
+		// Insert students
+		for _, student := range students {
+			locationsJSON, _ := json.Marshal(student.Locations)
+			_, err = tx.Exec(`
+				INSERT INTO students (student_id, name, locations, phone_number, alt_phone_number, 
+					guardian, pickup_time, dropoff_time, position_number, route_id, driver, active) 
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			`, student.StudentID, student.Name, locationsJSON, student.PhoneNumber, student.AltPhoneNumber,
+			   student.Guardian, student.PickupTime, student.DropoffTime, student.PositionNumber,
+			   student.RouteID, student.Driver, student.Active)
+			
+			if err != nil {
+				return err
+			}
+		}
+
+		return tx.Commit()
+	}
+	return saveStudentsToJSON(students)
+}
+
+func saveStudentsToJSON(students []Student) error {
+	f, err := os.Create("data/students.json")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	return enc.Encode(students)
+}
+
+// Load maintenance logs - PostgreSQL first, JSON fallback
+func loadMaintenanceLogs() []MaintenanceLog {
+	if db != nil {
+		rows, err := db.Query("SELECT bus_id, date, category, notes, mileage FROM maintenance_logs ORDER BY date DESC")
+		if err != nil {
+			log.Printf("Error loading maintenance logs: %v", err)
+			logs, _ := loadJSON[MaintenanceLog]("data/maintenance.json")
+			return logs
+		}
+		defer rows.Close()
+
+		var logs []MaintenanceLog
+		for rows.Next() {
+			var log MaintenanceLog
+			err := rows.Scan(&log.BusID, &log.Date, &log.Category, &log.Notes, &log.Mileage)
+			if err != nil {
+				log.Printf("Error scanning maintenance log: %v", err)
+				continue
+			}
+			logs = append(logs, log)
+		}
+		return logs
+	}
+	logs, _ := loadJSON[MaintenanceLog]("data/maintenance.json")
+	return logs
+}
+
+// Save maintenance logs - PostgreSQL first, JSON fallback
+func saveMaintenanceLogs(logs []MaintenanceLog) error {
+	if db != nil {
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+
+		for _, log := range logs {
+			_, err = tx.Exec(`
+				INSERT INTO maintenance_logs (bus_id, date, category, notes, mileage) 
+				VALUES ($1, $2, $3, $4, $5)
+			`, log.BusID, log.Date, log.Category, log.Notes, log.Mileage)
+			
+			if err != nil {
+				return err
+			}
+		}
+
+		return tx.Commit()
+	}
+	return saveMaintenanceLogsToJSON(logs)
+}
+
+func saveMaintenanceLogsToJSON(logs []MaintenanceLog) error {
+	f, err := os.Create("data/maintenance.json")
+	if err != nil { 
+		return err 
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	return enc.Encode(logs)
+}
+
+// Load vehicles - PostgreSQL first, JSON fallback
+func loadVehicles() []Vehicle {
+	if db != nil {
+		rows, err := db.Query(`SELECT vehicle_id, model, description, year, tire_size, license, 
+			oil_status, tire_status, status, maintenance_notes FROM vehicles ORDER BY vehicle_id`)
+		if err != nil {
+			log.Printf("Error loading vehicles from database: %v", err)
+			return loadVehiclesFromJSON()
+		}
+		defer rows.Close()
+
+		var vehicles []Vehicle
+		for rows.Next() {
+			var vehicle Vehicle
+			err := rows.Scan(&vehicle.VehicleID, &vehicle.Model, &vehicle.Description, &vehicle.Year,
+				&vehicle.TireSize, &vehicle.License, &vehicle.OilStatus, &vehicle.TireStatus,
+				&vehicle.Status, &vehicle.MaintenanceNotes)
+			if err != nil {
+				log.Printf("Error scanning vehicle: %v", err)
+				continue
+			}
+			vehicles = append(vehicles, vehicle)
+		}
+		return vehicles
+	}
+	return loadVehiclesFromJSON()
+}
+
+func loadVehiclesFromJSON() []Vehicle {
+	f, err := os.Open("data/vehicle.json")
+	if err != nil {
+		log.Printf("Error loading vehicles: %v", err)
+		return []Vehicle{}
+	}
+	defer f.Close()
+	var vehicles []Vehicle
+	json.NewDecoder(f).Decode(&vehicles)
+	return vehicles
+}
+
+// Save vehicles - PostgreSQL first, JSON fallback
+func saveVehicles(vehicles []Vehicle) error {
+	if db != nil {
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+
+		for _, vehicle := range vehicles {
+			_, err = tx.Exec(`
+				INSERT INTO vehicles (vehicle_id, model, description, year, tire_size, license, 
+					oil_status, tire_status, status, maintenance_notes) 
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+				ON CONFLICT (vehicle_id) DO UPDATE SET 
+					model = EXCLUDED.model,
+					description = EXCLUDED.description,
+					year = EXCLUDED.year,
+					tire_size = EXCLUDED.tire_size,
+					license = EXCLUDED.license,
+					oil_status = EXCLUDED.oil_status,
+					tire_status = EXCLUDED.tire_status,
+					status = EXCLUDED.status,
+					maintenance_notes = EXCLUDED.maintenance_notes
+			`, vehicle.VehicleID, vehicle.Model, vehicle.Description, vehicle.Year, vehicle.TireSize,
+			   vehicle.License, vehicle.OilStatus, vehicle.TireStatus, vehicle.Status, vehicle.MaintenanceNotes)
+			
+			if err != nil {
+				return err
+			}
+		}
+
+		return tx.Commit()
+	}
+	return saveVehiclesToJSON(vehicles)
+}
+
+func saveVehiclesToJSON(vehicles []Vehicle) error {
+	f, err := os.Create("data/vehicle.json")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	return enc.Encode(vehicles)
+}
+
+// =============================================================================
+// HELPER FUNCTIONS (Keep existing)
+// =============================================================================
+
+// Helper function to safely execute templates
+func executeTemplate(w http.ResponseWriter, name string, data interface{}) {
+	if err := templates.ExecuteTemplate(w, name, data); err != nil {
+		log.Printf("Error executing template %s: %v", name, err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+func ensureDataFiles() {
+	os.MkdirAll("data", os.ModePerm)
+	if _, err := os.Stat("data/users.json"); os.IsNotExist(err) {
+		defaultUsers := []User{{"admin", "adminpass", "manager"}}
+		f, _ := os.Create("data/users.json")
+		json.NewEncoder(f).Encode(defaultUsers)
+		f.Close()
+	}
+	if _, err := os.Stat("data/route_assignments.json"); os.IsNotExist(err) {
+		f, _ := os.Create("data/route_assignments.json")
+		json.NewEncoder(f).Encode([]RouteAssignment{})
+		f.Close()
+	}
 }
 
 func loadJSON[T any](filename string) ([]T, error) {
@@ -783,99 +1389,6 @@ func seedJSON[T any](path string, defaultData T) error {
 		return fmt.Errorf("encode: %w", err)
 	}
 	log.Printf("Seeded %s", path)
-	return nil
-}
-
-func loadRouteAssignments() ([]RouteAssignment, error) {
-	assignments, err := loadJSON[RouteAssignment]("data/route_assignments.json")
-	if err != nil {
-		if os.IsNotExist(err) {
-			// Return empty slice if file doesn't exist yet
-			return []RouteAssignment{}, nil
-		}
-		return nil, fmt.Errorf("failed to load route assignments: %w", err)
-	}
-	return assignments, nil
-}
-
-func saveRouteAssignments(assignments []RouteAssignment) error {
-	f, err := os.Create("data/route_assignments.json")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(assignments)
-}
-
-func loadMaintenanceLogs() []MaintenanceLog {
-	logs, _ := loadJSON[MaintenanceLog]("data/maintenance.json")
-	return logs
-}
-
-func saveMaintenanceLogs(logs []MaintenanceLog) error {
-	f, err := os.Create("data/maintenance.json")
-	if err != nil { return err }
-	defer f.Close()
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(logs)
-}
-
-// Load buses from json file
-func loadBuses() []*Bus {
-	f, err := os.Open("data/buses.json")
-	if err != nil {
-		if os.IsNotExist(err) {
-			log.Printf("buses.json not found, returning empty slice")
-			return []*Bus{}
-		}
-		log.Printf("Error opening buses.json: %v", err)
-		return []*Bus{}
-	}
-	defer f.Close()
-
-	var buses []*Bus
-	decoder := json.NewDecoder(f)
-	if err := decoder.Decode(&buses); err != nil {
-		log.Printf("Error decoding buses.json: %v", err)
-		return []*Bus{}
-	}
-
-	return buses
-}
-
-func saveBuses(buses []*Bus) error {
-	f, err := os.Create("data/buses.json")
-	if err != nil {
-		return fmt.Errorf("failed to create buses.json: %w", err)
-	}
-	defer f.Close()
-
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(buses); err != nil {
-		return fmt.Errorf("failed to encode buses: %w", err)
-	}
-
-	return nil
-}
-
-// Helper function to save driver logs
-func saveDriverLogs(logs []DriverLog) error {
-	f, err := os.Create("data/driver_logs.json")
-	if err != nil {
-		return fmt.Errorf("failed to create driver logs file: %w", err)
-	}
-	defer f.Close()
-
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(logs); err != nil {
-		return fmt.Errorf("failed to encode driver logs: %w", err)
-	}
-
 	return nil
 }
 
@@ -956,6 +1469,24 @@ func validateRouteAssignment(assignment RouteAssignment) error {
 	return nil
 }
 
+func getUserFromSession(r *http.Request) *User {
+	cookie, err := r.Cookie("session_user")
+	if err != nil {
+		return nil
+	}
+	uname := cookie.Value
+	for _, u := range loadUsers() {
+		if u.Username == uname {
+			return &u
+		}
+	}
+	return nil
+}
+
+// =============================================================================
+// HTTP HANDLERS (Keep all existing handlers)
+// =============================================================================
+
 func newUserPage(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
@@ -972,9 +1503,11 @@ func newUserPage(w http.ResponseWriter, r *http.Request) {
 		users := loadUsers()
 		users = append(users, User{Username: username, Password: password, Role: role})
 
-		f, _ := os.Create("data/users.json")
-		defer f.Close()
-		json.NewEncoder(f).Encode(users)
+		if err := saveUsers(users); err != nil {
+			log.Printf("Error saving users: %v", err)
+			http.Error(w, "Unable to save user", http.StatusInternalServerError)
+			return
+		}
 
 		http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
 		return
@@ -983,18 +1516,58 @@ func newUserPage(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, "new_user.html", nil)
 }
 
-func getUserFromSession(r *http.Request) *User {
-	cookie, err := r.Cookie("session_user")
-	if err != nil {
-		return nil
+func editUserPage(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
 	}
-	uname := cookie.Value
-	for _, u := range loadUsers() {
-		if u.Username == uname {
-			return &u
+
+	username := r.URL.Query().Get("username")
+	if username == "" {
+		http.Error(w, "Username required", http.StatusBadRequest)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		r.ParseForm()
+		newPassword := r.FormValue("password")
+		newRole := r.FormValue("role")
+
+		users := loadUsers()
+		for i, u := range users {
+			if u.Username == username {
+				users[i].Password = newPassword
+				users[i].Role = newRole
+				break
+			}
+		}
+
+		if err := saveUsers(users); err != nil {
+			http.Error(w, "Failed to save user", http.StatusInternalServerError)
+			return
+		}
+
+		http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
+		return
+	}
+
+	// Find user to edit
+	users := loadUsers()
+	var editUser *User
+	for _, u := range users {
+		if u.Username == username {
+			editUser = &u
+			break
 		}
 	}
-	return nil
+
+	if editUser == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	executeTemplate(w, "edit_user.html", editUser)
 }
 
 func managerDashboard(w http.ResponseWriter, r *http.Request) {
@@ -1331,7 +1904,7 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 		activeStudentMap := make(map[int]string)
 		for _, student := range students {
 			if student.Active && student.Driver == user.Username && 
-				 (student.RouteID == driverRoute.RouteID || student.RouteID == assignment.RouteID) {
+				 (student.RouteID == driverRoute.RouteID || (assignment != nil && student.RouteID == assignment.RouteID)) {
 				activeStudentMap[student.PositionNumber] = student.Name
 			}
 		}
@@ -1913,59 +2486,6 @@ func addBus(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/fleet", http.StatusFound)
 }
-func editUserPage(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	username := r.URL.Query().Get("username")
-	if username == "" {
-		http.Error(w, "Username required", http.StatusBadRequest)
-		return
-	}
-
-	if r.Method == http.MethodPost {
-		r.ParseForm()
-		newPassword := r.FormValue("password")
-		newRole := r.FormValue("role")
-
-		users := loadUsers()
-		for i, u := range users {
-			if u.Username == username {
-				users[i].Password = newPassword
-				users[i].Role = newRole
-				break
-			}
-		}
-
-		if err := saveUsers(users); err != nil {
-			http.Error(w, "Failed to save user", http.StatusInternalServerError)
-			return
-		}
-
-		http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
-		return
-	}
-
-	// Find user to edit
-	users := loadUsers()
-	var editUser *User
-	for _, u := range users {
-		if u.Username == username {
-			editUser = &u
-			break
-		}
-	}
-
-	if editUser == nil {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	}
-
-	executeTemplate(w, "edit_user.html", editUser)
-}
 
 func editBus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -2145,40 +2665,6 @@ func removeBus(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/fleet", http.StatusFound)
 }
 
-func loadVehicles() []Vehicle {
-	f, err := os.Open("data/vehicle.json")
-	if err != nil {
-		log.Printf("Error loading vehicles: %v", err)
-		return []Vehicle{}
-	}
-	defer f.Close()
-	var vehicles []Vehicle
-	json.NewDecoder(f).Decode(&vehicles)
-	return vehicles
-}
-
-func loadStudents() []Student {
-	f, err := os.Open("data/students.json")
-	if err != nil {
-		return []Student{}
-	}
-	defer f.Close()
-	var students []Student
-	json.NewDecoder(f).Decode(&students)
-	return students
-}
-
-func saveStudents(students []Student) error {
-	f, err := os.Create("data/students.json")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(students)
-}
-
 func companyFleetPage(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
@@ -2300,7 +2786,11 @@ func addStudent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	students = append(students, newStudent)
-	saveStudents(students)
+	if err := saveStudents(students); err != nil {
+		log.Printf("Error saving students: %v", err)
+		http.Error(w, "Unable to save student", http.StatusInternalServerError)
+		return
+	}
 	http.Redirect(w, r, "/students", http.StatusFound)
 }
 
@@ -2381,7 +2871,11 @@ func editStudent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	saveStudents(students)
+	if err := saveStudents(students); err != nil {
+		log.Printf("Error saving students: %v", err)
+		http.Error(w, "Unable to save student", http.StatusInternalServerError)
+		return
+	}
 	http.Redirect(w, r, "/students", http.StatusFound)
 }
 
@@ -2408,7 +2902,11 @@ func removeStudent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	saveStudents(newStudents)
+	if err := saveStudents(newStudents); err != nil {
+		log.Printf("Error saving students: %v", err)
+		http.Error(w, "Unable to save students", http.StatusInternalServerError)
+		return
+	}
 	http.Redirect(w, r, "/students", http.StatusFound)
 }
 
@@ -2515,81 +3013,202 @@ func addMaintenanceLog(w http.ResponseWriter, r *http.Request) {
 }
 
 func removeUser(w http.ResponseWriter, r *http.Request) {
-		// MODIFIED: Temporarily accept both GET and POST for debugging
-		var usernameToRemove string
+	// Accept both GET and POST for debugging
+	var usernameToRemove string
 
-		if r.Method == http.MethodGet {
-				// Parse from URL query for GET requests
-				usernameToRemove = r.URL.Query().Get("username")
-				log.Printf("DEBUG: Received GET request for removing user: %s", usernameToRemove)
-		} else if r.Method == http.MethodPost {
-				// Parse form data for POST requests
-				r.ParseForm()
-				usernameToRemove = r.FormValue("username")
-				log.Printf("DEBUG: Received POST request for removing user: %s", usernameToRemove)
+	if r.Method == http.MethodGet {
+		// Parse from URL query for GET requests
+		usernameToRemove = r.URL.Query().Get("username")
+		log.Printf("DEBUG: Received GET request for removing user: %s", usernameToRemove)
+	} else if r.Method == http.MethodPost {
+		// Parse form data for POST requests
+		r.ParseForm()
+		usernameToRemove = r.FormValue("username")
+		log.Printf("DEBUG: Received POST request for removing user: %s", usernameToRemove)
+	} else {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check if user is logged in and is a manager
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	// Check if username was provided
+	if usernameToRemove == "" {
+		http.Error(w, "Username is required", http.StatusBadRequest)
+		return
+	}
+
+	// Prevent removing yourself
+	if usernameToRemove == user.Username {
+		http.Error(w, "Cannot remove yourself", http.StatusBadRequest)
+		return
+	}
+
+	users := loadUsers()
+	var newUsers []User
+	userFound := false
+	for _, u := range users {
+		if u.Username != usernameToRemove {
+			newUsers = append(newUsers, u)
 		} else {
-				http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-				return
+			userFound = true
 		}
+	}
 
-		// Check if user is logged in and is a manager
-		user := getUserFromSession(r)
-		if user == nil || user.Role != "manager" {
-				http.Redirect(w, r, "/", http.StatusFound)
-				return
-		}
+	if !userFound {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
 
-		// Check if username was provided
-		if usernameToRemove == "" {
-				http.Error(w, "Username is required", http.StatusBadRequest)
-				return
-		}
-
-		// Prevent removing yourself
-		if usernameToRemove == user.Username {
-				http.Error(w, "Cannot remove yourself", http.StatusBadRequest)
-				return
-		}
-
-		// ALL YOUR EXISTING LOGIC STAYS THE SAME FROM HERE...
-		users := loadUsers()
-		var newUsers []User
-		userFound := false
-		for _, u := range users {
-				if u.Username != usernameToRemove {
-						newUsers = append(newUsers, u)
-				} else {
-						userFound = true
+	// If removing a driver, also remove their route assignments
+	if userFound {
+		assignments, err := loadRouteAssignments()
+		if err == nil {
+			var newAssignments []RouteAssignment
+			for _, assignment := range assignments {
+				if assignment.Driver != usernameToRemove {
+					newAssignments = append(newAssignments, assignment)
 				}
+			}
+			saveRouteAssignments(newAssignments)
 		}
+	}
 
-		if !userFound {
-				http.Error(w, "User not found", http.StatusNotFound)
-				return
-		}
-
-		// If removing a driver, also remove their route assignments
-		if userFound {
-				assignments, err := loadRouteAssignments()
-				if err == nil {
-						var newAssignments []RouteAssignment
-						for _, assignment := range assignments {
-								if assignment.Driver != usernameToRemove {
-										newAssignments = append(newAssignments, assignment)
-								}
-						}
-						saveRouteAssignments(newAssignments)
-				}
-		}
-
-		// Save updated users list
+	// Save updated users list
 	if err := saveUsers(newUsers); err != nil {
 		log.Printf("Error saving users: %v", err)
 		http.Error(w, "Unable to save users", http.StatusInternalServerError)
 		return
 	}
 
-		http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
+	http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
+}
+
+func updateVehicleStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	r.ParseForm()
+	vehicleID := r.FormValue("vehicle_id")
+	statusType := r.FormValue("status_type")
+	newStatus := r.FormValue("new_status")
+
+	if vehicleID == "" || statusType == "" || newStatus == "" {
+		http.Error(w, "Missing required parameters", http.StatusBadRequest)
+		return
+	}
+
+	vehicles := loadVehicles()
+	updated := false
+
+	for i, vehicle := range vehicles {
+		if vehicle.VehicleID == vehicleID {
+			switch statusType {
+			case "oil":
+				vehicles[i].OilStatus = newStatus
+			case "tire":
+				vehicles[i].TireStatus = newStatus
+			case "status":
+				vehicles[i].Status = newStatus
+			default:
+				http.Error(w, "Invalid status type", http.StatusBadRequest)
+				return
+			}
+			updated = true
+			break
+		}
+	}
+
+	if !updated {
+		http.Error(w, "Vehicle not found", http.StatusNotFound)
+		return
+	}
+
+	// Save updated vehicles
+	if err := saveVehicles(vehicles); err != nil {
+		log.Printf("Error saving vehicles: %v", err)
+		http.Error(w, "Failed to save changes", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Status updated successfully"))
+}
+
+func updateBusStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	r.ParseForm()
+	busID := r.FormValue("bus_id")
+	statusType := r.FormValue("status_type")
+	newStatus := r.FormValue("new_status")
+
+	log.Printf("Updating bus %s: %s status to %s", busID, statusType, newStatus)
+
+	if busID == "" || statusType == "" || newStatus == "" {
+		http.Error(w, "Missing required parameters", http.StatusBadRequest)
+		return
+	}
+
+	buses := loadBuses()
+	updated := false
+
+	for i, bus := range buses {
+		if bus.BusID == busID {
+			switch statusType {
+			case "oil":
+				buses[i].OilStatus = newStatus
+			case "tire":
+				buses[i].TireStatus = newStatus
+			case "status":
+				buses[i].Status = newStatus
+			default:
+				http.Error(w, "Invalid status type", http.StatusBadRequest)
+				return
+			}
+			updated = true
+			log.Printf("Updated bus %s: %s status to %s", busID, statusType, newStatus)
+			break
+		}
+	}
+
+	if !updated {
+		log.Printf("Bus not found: %s", busID)
+		http.Error(w, "Bus not found", http.StatusNotFound)
+		return
+	}
+
+	// Save updated buses
+	if err := saveBuses(buses); err != nil {
+		log.Printf("Error saving buses: %v", err)
+		http.Error(w, "Failed to save changes", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Status updated successfully"))
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
@@ -2674,6 +3293,7 @@ func initDataFiles() {
 		}
 		log.Println("Created and seeded data/vehicle.json")
 	}
+
 	// Create students.json if it doesn't exist
 	if _, err := os.Stat("data/students.json"); os.IsNotExist(err) {
 		defaultStudents := []Student{}
@@ -2814,150 +3434,6 @@ func initDataFiles() {
 	}
 }
 
-func saveUsers(users []User) error {
-	f, err := os.Create("data/users.json")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(users)
-}
-
-func updateVehicleStatus(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	r.ParseForm()
-	vehicleID := r.FormValue("vehicle_id")
-	statusType := r.FormValue("status_type")
-	newStatus := r.FormValue("new_status")
-
-	if vehicleID == "" || statusType == "" || newStatus == "" {
-		http.Error(w, "Missing required parameters", http.StatusBadRequest)
-		return
-	}
-
-	vehicles := loadVehicles()
-	updated := false
-
-	for i, vehicle := range vehicles {
-		if vehicle.VehicleID == vehicleID {
-			switch statusType {
-			case "oil":
-				vehicles[i].OilStatus = newStatus
-			case "tire":
-				vehicles[i].TireStatus = newStatus
-			case "status":
-				vehicles[i].Status = newStatus
-			default:
-				http.Error(w, "Invalid status type", http.StatusBadRequest)
-				return
-			}
-			updated = true
-			break
-		}
-	}
-
-	if !updated {
-		http.Error(w, "Vehicle not found", http.StatusNotFound)
-		return
-	}
-
-	// Save updated vehicles
-	if err := saveVehicles(vehicles); err != nil {
-		log.Printf("Error saving vehicles: %v", err)
-		http.Error(w, "Failed to save changes", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Status updated successfully"))
-}
-
-func updateBusStatus(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	r.ParseForm()
-	busID := r.FormValue("bus_id")
-	statusType := r.FormValue("status_type")
-	newStatus := r.FormValue("new_status")
-
-	log.Printf("Updating bus %s: %s status to %s", busID, statusType, newStatus)
-
-	if busID == "" || statusType == "" || newStatus == "" {
-		http.Error(w, "Missing required parameters", http.StatusBadRequest)
-		return
-	}
-
-	buses := loadBuses()
-	updated := false
-
-	for i, bus := range buses {
-		if bus.BusID == busID {
-			switch statusType {
-			case "oil":
-				buses[i].OilStatus = newStatus
-			case "tire":
-				buses[i].TireStatus = newStatus
-			case "status":
-				buses[i].Status = newStatus
-			default:
-				http.Error(w, "Invalid status type", http.StatusBadRequest)
-				return
-			}
-			updated = true
-			log.Printf("Updated bus %s: %s status to %s", busID, statusType, newStatus)
-			break
-		}
-	}
-
-	if !updated {
-		log.Printf("Bus not found: %s", busID)
-		http.Error(w, "Bus not found", http.StatusNotFound)
-		return
-	}
-
-	// Save updated buses
-	if err := saveBuses(buses); err != nil {
-		log.Printf("Error saving buses: %v", err)
-		http.Error(w, "Failed to save changes", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Status updated successfully"))
-}
-
-func saveVehicles(vehicles []Vehicle) error {
-	f, err := os.Create("data/vehicle.json")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(vehicles)
-}
-
 func main() {
 	// Add defer to catch any panics
 	defer func() {
@@ -2969,20 +3445,26 @@ func main() {
 
 	log.Println("Starting bus transportation app...")
 
-	// Ensure basic data files exist
-	log.Println("Initializing data files...")
-	ensureDataFiles()
-
-	// Initialize data files with proper structure
-	initDataFiles()
-
-	log.Println("Using local file storage only")
+	// 🆕 NEW: Setup database first if DATABASE_URL exists
+	if os.Getenv("DATABASE_URL") != "" {
+		log.Println("🗄️  Setting up PostgreSQL database...")
+		setupDatabase()
+		log.Println("Using PostgreSQL database")
+	} else {
+		log.Println("No DATABASE_URL found, using local file storage")
+		// Ensure basic data files exist
+		log.Println("Initializing data files...")
+		ensureDataFiles()
+		// Initialize data files with proper structure
+		initDataFiles()
+		log.Println("Using local file storage only")
+	}
 
 	// Setup HTTP routes with recovery middleware
 	log.Println("Setting up HTTP routes...")
-	http.HandleFunc("/edit-user", withRecovery(editUserPage))
 	http.HandleFunc("/", withRecovery(rootHealthCheck))
 	http.HandleFunc("/new-user", withRecovery(newUserPage))
+	http.HandleFunc("/edit-user", withRecovery(editUserPage))
 	http.HandleFunc("/dashboard", withRecovery(dashboardRouter))
 	http.HandleFunc("/manager-dashboard", withRecovery(managerDashboard))
 	http.HandleFunc("/driver-dashboard", withRecovery(driverDashboard))
@@ -3019,16 +3501,17 @@ func main() {
 	log.Printf("Checking if port %s is available...", port)
 
 	server := &http.Server{
-		Addr:         "0.0.0.0:" + port,
-		Handler:      http.DefaultServeMux, // Remove timeout wrapper for health checks
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 60 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		Addr:           "0.0.0.0:" + port,
+		Handler:        http.DefaultServeMux,
+		ReadTimeout:    30 * time.Second,
+		WriteTimeout:   60 * time.Second,
+		IdleTimeout:    120 * time.Second,
 		MaxHeaderBytes: 1 << 20, // 1 MB
 	}
 
-	log.Printf("Server starting on port %s with ID-based data structure", port)
+	log.Printf("Server starting on port %s with PostgreSQL migration support", port)
 	log.Printf("Data structure: BusID, RouteID, StudentID for consistent identification")
+	log.Printf("PostgreSQL: Auto-migration from JSON files on first run")
 	log.Printf("Server will be accessible at: http://0.0.0.0:%s", port)
 	log.Printf("Starting HTTP server...")
 
