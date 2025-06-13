@@ -6,9 +6,9 @@
     "serial_number": "1GBKP32K8M3308255",
     "base": "ENTERPRISE",
     "license": "sc06498",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -18,9 +18,9 @@
     "serial_number": "2GBHG31K6M4108670",
     "base": "HERMISTON 1 & II",
     "license": "E178705",
-    "tire_size": "LT225/75R16"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "LT225/75R16",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -30,9 +30,9 @@
     "serial_number": "2GBHG31K6M4109902",
     "base": "HERMISTON BUS BARN",
     "license": "E178706",
-    "tire_size": "LT225/75R16"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "LT225/75R16",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -42,9 +42,9 @@
     "serial_number": "2GBHG31J6L4131890",
     "base": "PENDLETON   (spare)",
     "license": "E175134",
-    "tire_size": "LT225/75R16"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "LT225/75R16",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -54,9 +54,9 @@
     "serial_number": "2GBHG31KOM4115386",
     "base": "JOHN DAY",
     "license": "E178720",
-    "tire_size": "LT225/75R16"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "LT225/75R16",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -66,9 +66,9 @@
     "serial_number": "2GBHG31K6M4109930",
     "base": "HERMISTON I & II",
     "license": "E178707",
-    "tire_size": "LT225/75R16"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "LT225/75R16",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -78,9 +78,9 @@
     "serial_number": "1GDHG31KXR5F09423",
     "base": "UMATILLA",
     "license": "E187286",
-    "tire_size": "LT225/75R16"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "LT225/75R16",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -90,9 +90,9 @@
     "serial_number": "1GBHG31KXSF149584",
     "base": "MILTON FREEWATER",
     "license": "E192396",
-    "tire_size": "LT225/75R16"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "LT225/75R16",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -102,9 +102,9 @@
     "serial_number": "1GBG7T1D4XJ103850",
     "base": "VICTORY SQUARE",
     "license": "E207393",
-    "tire_size": "LT235/80R225"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "LT235/80R225",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -114,9 +114,9 @@
     "serial_number": "1FDJE34H9KHA65307",
     "base": "nan",
     "license": "E163676",
-    "tire_size": "LT235/85R16"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "LT235/85R16",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -126,9 +126,9 @@
     "serial_number": "1GB3GRBG8G1285840",
     "base": "JOHN DAY",
     "license": "SC08643",
-    "tire_size": "225/75R 16"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "225/75R 16",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -138,9 +138,9 @@
     "serial_number": "IHA3GRBGIHN004737",
     "base": "BOARDMAN",
     "license": "SC 09099",
-    "tire_size": "nan"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "nan",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -150,9 +150,9 @@
     "serial_number": "IHA3GRBG9HN004713",
     "base": "UMATILLA",
     "license": "SC 09100",
-    "tire_size": "nan"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "nan",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -162,9 +162,9 @@
     "serial_number": "1GB6G5BG2F1108379",
     "base": "CATHT WAMSLEY - HERMISTON",
     "license": "SC08159",
-    "tire_size": "nan"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "nan",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -174,9 +174,9 @@
     "serial_number": "",
     "base": "JOHN DAY",
     "license": "",
-    "tire_size": "nan"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "nan",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -186,9 +186,9 @@
     "serial_number": "1HA6GUBG3LN010984",
     "base": "UMATILLA",
     "license": "",
-    "tire_size": "nan"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "nan",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -198,9 +198,9 @@
     "serial_number": "1HA6GUB73NN008395",
     "base": "UMATILLA",
     "license": "",
-    "tire_size": "nan"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "nan",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -210,9 +210,9 @@
     "serial_number": "1HA6GUB77NN009226",
     "base": "BOARDMAN",
     "license": "",
-    "tire_size": "nan"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "nan",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -222,9 +222,9 @@
     "serial_number": "1HA6GUB72NN009134",
     "base": "AIRPORT WAY- HERMISTON",
     "license": "",
-    "tire_size": "nan"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "nan",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -234,9 +234,9 @@
     "serial_number": "2B4GH25K4RR509330",
     "base": "BUS BARN",
     "license": "E182876",
-    "tire_size": "205/75R14"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "205/75R14",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -246,9 +246,9 @@
     "serial_number": "2G1WC5E34C1308307",
     "base": "MAIN OFFICE",
     "license": "092JZP",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -258,9 +258,9 @@
     "serial_number": "3C6JR7DG3DG568097",
     "base": "BUS BARN",
     "license": "776GHU",
-    "tire_size": "265/70/R17"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "265/70/R17",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -270,9 +270,9 @@
     "serial_number": "1FADP3F24DL178219",
     "base": "PINE TREE",
     "license": "",
-    "tire_size": "P215/70R 17"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "P215/70R 17",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -282,9 +282,9 @@
     "serial_number": "JHMES16505S005539",
     "base": "MAIN OFFICE",
     "license": "488BWK",
-    "tire_size": "195x60Rx15     studs: 185x60Rx15"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "195x60Rx15     studs: 185x60Rx15",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -294,9 +294,9 @@
     "serial_number": "",
     "base": "MAIN OFFICE",
     "license": "928FMH",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -306,9 +306,9 @@
     "serial_number": "2T1BURHE7GC575925",
     "base": "VICTORY SQUARE",
     "license": "021JBH",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -318,9 +318,9 @@
     "serial_number": "5YFBURHEXGP452376",
     "base": "HCSR",
     "license": "017JBH",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -330,9 +330,9 @@
     "serial_number": "JTMBFREV86D178404",
     "base": "CONDON",
     "license": "nan",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -342,9 +342,9 @@
     "serial_number": "4T1B11HK6J023841",
     "base": "NELC",
     "license": "659 KGF",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -354,9 +354,9 @@
     "serial_number": "JTNB111HK6J3045733",
     "base": "PENDLETON",
     "license": "832 KKF",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -366,9 +366,9 @@
     "serial_number": "4T1B11HK7JU553185",
     "base": "LA GRANDE",
     "license": "287CWE",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -378,9 +378,9 @@
     "serial_number": "JTMRJREVXJD162354",
     "base": "ENTERPRISE",
     "license": "nan",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -390,9 +390,9 @@
     "serial_number": "5TDZ3DC3LS235099",
     "base": "HCSR",
     "license": "291MDQ",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -402,9 +402,9 @@
     "serial_number": "nan",
     "base": "BUS BARN",
     "license": "996HGL",
-    "tire_size": "nan"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "nan",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -414,9 +414,9 @@
     "serial_number": "2T3DF4DV4AW065508",
     "base": "BAKER",
     "license": "778 LBD",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -426,9 +426,9 @@
     "serial_number": "5FNYF4H21EB030213",
     "base": "HCSR",
     "license": "833GWL",
-    "tire_size": "nan"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "nan",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -438,9 +438,9 @@
     "serial_number": "4T3M6RFVXMLI011743",
     "base": "PELC",
     "license": "494 MPJ",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -450,9 +450,9 @@
     "serial_number": "JTMM6RFV7MD014936",
     "base": "HCSR",
     "license": "504 MPJ",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -462,9 +462,9 @@
     "serial_number": "JTMM6RFVMD014520",
     "base": "HCSR",
     "license": "518 MPJ",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -474,9 +474,9 @@
     "serial_number": "2T3M6RFVXMW005179",
     "base": "NELC",
     "license": "499 MPJ",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -486,9 +486,9 @@
     "serial_number": "4T3MWRFV1MU021304",
     "base": "MAIN OFFICE- WIC",
     "license": "375 MCZ",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -498,9 +498,9 @@
     "serial_number": "2C4RD6BGER223137",
     "base": "MILTON FREEWATER",
     "license": "270GWL",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -510,9 +510,9 @@
     "serial_number": "",
     "base": "HCSR",
     "license": "090JQY",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -522,9 +522,9 @@
     "serial_number": "JTMBK31V185060687",
     "base": "PELC",
     "license": "355AKZ",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -534,9 +534,9 @@
     "serial_number": "5TDZK23C295229213",
     "base": "WALLOWA",
     "license": "231EGK",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -546,9 +546,9 @@
     "serial_number": "5TDBK3EH8AS027254",
     "base": "WIC",
     "license": "SILVER",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -558,9 +558,9 @@
     "serial_number": "JTDEAMDE2MJ032271",
     "base": "HCSR",
     "license": "nan",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -570,9 +570,9 @@
     "serial_number": "JTDEAMDE4MJ032837",
     "base": "MILTON- FREEWATER",
     "license": "nan",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -582,9 +582,9 @@
     "serial_number": "nan",
     "base": "MAIN OFFICE",
     "license": "nan",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -594,9 +594,9 @@
     "serial_number": "JTDEAMDE4MJ031896",
     "base": "MAIN OFFICE",
     "license": "285 MWN",
-    "tire_size": "195/65 R15XL"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "195/65 R15XL",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -606,9 +606,9 @@
     "serial_number": "JTDEAMDE7N300761",
     "base": "MAIN OFFICE",
     "license": "nan",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -618,9 +618,9 @@
     "serial_number": "4T3MWRFV4NU066058",
     "base": "MAIN OFFICE- CEO",
     "license": "813 NQK",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -630,9 +630,9 @@
     "serial_number": "5TFKB5GD6PX001910",
     "base": "AOC",
     "license": "971 PDE",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -642,9 +642,9 @@
     "serial_number": "JTDEPMAE6NJ231831",
     "base": "HCDC",
     "license": "402 NWC",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -654,9 +654,9 @@
     "serial_number": "3C63R3GL7NG356508",
     "base": "AOC",
     "license": "977 NZZ",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -666,9 +666,9 @@
     "serial_number": "JTDEPMAE1N3023425",
     "base": "MAIN OFFICE- WIC",
     "license": "542 NRR",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -678,9 +678,9 @@
     "serial_number": "4T3RWRFV8NU066862",
     "base": "JOHN DAY",
     "license": "178 NTR",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -690,9 +690,9 @@
     "serial_number": "JTDS4MCE4N3512524",
     "base": "AWDC",
     "license": "608 NVZ",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -702,9 +702,9 @@
     "serial_number": "5TDKSKFC8NS066834",
     "base": "MAIN OFFICE",
     "license": "958 NUQ",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -714,9 +714,9 @@
     "serial_number": "JTDS4MCE7N3513005",
     "base": "MAIN OFFICE",
     "license": "221 NWF",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -726,9 +726,9 @@
     "serial_number": "5TFKB5GD9PX001996",
     "base": "AOC",
     "license": "173 PDK",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -738,9 +738,9 @@
     "serial_number": "nan",
     "base": "BUS BARN",
     "license": "nan",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -750,9 +750,9 @@
     "serial_number": "1FAHP34342W266194",
     "base": "MAIN OFFICE",
     "license": "E225602",
-    "tire_size": "195/60R15"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "195/60R15",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -762,9 +762,9 @@
     "serial_number": "JTMRJREVXJD162354",
     "base": "nan",
     "license": "nan",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -774,9 +774,9 @@
     "serial_number": "3FAHP07136R103361",
     "base": "HERMISTON CDC",
     "license": "403EJM",
-    "tire_size": "PINE TREE"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "PINE TREE",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -786,9 +786,9 @@
     "serial_number": "3FAHP07Z29R200996",
     "base": "WIC",
     "license": "680EET",
-    "tire_size": "studs:"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "studs:",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -798,9 +798,9 @@
     "serial_number": "1J4FF48S4YL167780",
     "base": "JOHN DAY",
     "license": "E214380",
-    "tire_size": "P225/75R-15"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "P225/75R-15",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -810,9 +810,9 @@
     "serial_number": "1B4GP34372B690723",
     "base": "HERMISTON MAIN OFFICE",
     "license": "E223113",
-    "tire_size": "P215/70R15"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "P215/70R15",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -822,9 +822,9 @@
     "serial_number": "1FAFP34N76W134819",
     "base": "HCSR",
     "license": "944FMH",
-    "tire_size": ""
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -834,9 +834,9 @@
     "serial_number": "2B4FP25B8TR817123",
     "base": "MILTON FREEWATER",
     "license": "E197335",
-    "tire_size": "195/75R-14"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "195/75R-14",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -846,9 +846,9 @@
     "serial_number": "1B4GP44G8WB733626",
     "base": "PENDLETON",
     "license": "E207360",
-    "tire_size": "P215/65R15"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "P215/65R15",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -858,9 +858,9 @@
     "serial_number": "1GCEK1W51Z108261",
     "base": "HERMISTON MAIN OFFICE",
     "license": "E214974",
-    "tire_size": "LT225/75R16"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "LT225/75R16",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -870,9 +870,9 @@
     "serial_number": "1FTFE24N4LHB81722",
     "base": "HIGHLAND HOUSE",
     "license": "E225609",
-    "tire_size": "LT235/75R16"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "LT235/75R16",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -882,9 +882,9 @@
     "serial_number": "1FAFP6631WK191490",
     "base": "PENDLETON",
     "license": "E225603",
-    "tire_size": "P185/70R14"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "P185/70R14",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -894,9 +894,9 @@
     "serial_number": "1FMYU2121KA4491",
     "base": "MAIN OFFICE",
     "license": "E212981",
-    "tire_size": "P225/70R15"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "P225/70R15",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -906,9 +906,9 @@
     "serial_number": "KMT1CG35C13U256931",
     "base": "PINE TREE",
     "license": "605 CYP",
-    "tire_size": "studs:"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "studs:",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   },
   {
@@ -918,9 +918,9 @@
     "serial_number": "1FAFP34364W153728",
     "base": "MAIN OFFICE",
     "license": "E228130",
-    "tire_size": "195/60R15"
-    "status": "active"
-    "oil_status": "good"
+    "tire_size": "195/60R15",
+    "status": "active",
+    "oil_status": "good",
     "tire_status": "good"
   }
 ]
