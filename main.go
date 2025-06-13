@@ -10,12 +10,12 @@ import (
 	"net/http"
 	"path/filepath"
 	"os"
-	"os/exec" //run start.sh
-	"strconv"  // add to importblock
+	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"database/sql"    // PostgreSQL support
+	"database/sql"
 	_ "github.com/lib/pq"
 )
 
@@ -590,8 +590,8 @@ func migrateDriverLogs() error {
 		return nil
 	}
 
-	for _, log := range logs {
-		attendanceJSON, _ := json.Marshal(log.Attendance)
+	for _, driverLog := range logs {  // FIXED: renamed from 'log' to 'driverLog'
+		attendanceJSON, _ := json.Marshal(driverLog.Attendance)
 		
 		_, err := db.Exec(`
 			INSERT INTO driver_logs (driver, bus_id, route_id, date, period, departure_time, 
@@ -604,11 +604,11 @@ func migrateDriverLogs() error {
 				arrival_time = EXCLUDED.arrival_time,
 				mileage = EXCLUDED.mileage,
 				attendance = EXCLUDED.attendance
-		`, log.Driver, log.BusID, log.RouteID, log.Date, log.Period, log.Departure,
-		   log.Arrival, log.Mileage, attendanceJSON)
+		`, driverLog.Driver, driverLog.BusID, driverLog.RouteID, driverLog.Date, driverLog.Period, driverLog.Departure,
+		   driverLog.Arrival, driverLog.Mileage, attendanceJSON)
 		
 		if err != nil {
-			return fmt.Errorf("failed to insert driver log for %s: %w", log.Driver, err)
+			return fmt.Errorf("failed to insert driver log for %s: %w", driverLog.Driver, err)
 		}
 	}
 
@@ -623,14 +623,14 @@ func migrateMaintenanceLogs() error {
 		return nil
 	}
 
-	for _, log := range logs {
+	for _, maintLog := range logs {  // FIXED: renamed from 'log' to 'maintLog'
 		_, err := db.Exec(`
 			INSERT INTO maintenance_logs (bus_id, date, category, notes, mileage) 
 			VALUES ($1, $2, $3, $4, $5)
-		`, log.BusID, log.Date, log.Category, log.Notes, log.Mileage)
+		`, maintLog.BusID, maintLog.Date, maintLog.Category, maintLog.Notes, maintLog.Mileage)
 		
 		if err != nil {
-			return fmt.Errorf("failed to insert maintenance log for bus %s: %w", log.BusID, err)
+			return fmt.Errorf("failed to insert maintenance log for bus %s: %w", maintLog.BusID, err)
 		}
 	}
 
@@ -1008,23 +1008,23 @@ func loadDriverLogs() ([]DriverLog, error) {
 
 		var logs []DriverLog
 		for rows.Next() {
-			var log DriverLog
+			var driverLog DriverLog  // FIXED: renamed from 'log' to 'driverLog'
 			var attendanceJSON []byte
-			err := rows.Scan(&log.Driver, &log.BusID, &log.RouteID, &log.Date, &log.Period,
-				&log.Departure, &log.Arrival, &log.Mileage, &attendanceJSON)
+			err := rows.Scan(&driverLog.Driver, &driverLog.BusID, &driverLog.RouteID, &driverLog.Date, &driverLog.Period,
+				&driverLog.Departure, &driverLog.Arrival, &driverLog.Mileage, &attendanceJSON)
 			if err != nil {
 				log.Printf("Error scanning driver log: %v", err)
 				continue
 			}
 
 			// Parse attendance JSON
-			err = json.Unmarshal(attendanceJSON, &log.Attendance)
+			err = json.Unmarshal(attendanceJSON, &driverLog.Attendance)
 			if err != nil {
 				log.Printf("Error parsing attendance JSON: %v", err)
 				continue
 			}
 
-			logs = append(logs, log)
+			logs = append(logs, driverLog)
 		}
 		return logs, nil
 	}
@@ -1040,8 +1040,8 @@ func saveDriverLogs(logs []DriverLog) error {
 		}
 		defer tx.Rollback()
 
-		for _, log := range logs {
-			attendanceJSON, _ := json.Marshal(log.Attendance)
+		for _, driverLog := range logs {  // FIXED: renamed from 'log' to 'driverLog'
+			attendanceJSON, _ := json.Marshal(driverLog.Attendance)
 			_, err = tx.Exec(`
 				INSERT INTO driver_logs (driver, bus_id, route_id, date, period, departure_time, 
 					arrival_time, mileage, attendance) 
@@ -1053,8 +1053,8 @@ func saveDriverLogs(logs []DriverLog) error {
 					arrival_time = EXCLUDED.arrival_time,
 					mileage = EXCLUDED.mileage,
 					attendance = EXCLUDED.attendance
-			`, log.Driver, log.BusID, log.RouteID, log.Date, log.Period, log.Departure,
-			   log.Arrival, log.Mileage, attendanceJSON)
+			`, driverLog.Driver, driverLog.BusID, driverLog.RouteID, driverLog.Date, driverLog.Period, driverLog.Departure,
+			   driverLog.Arrival, driverLog.Mileage, attendanceJSON)
 			
 			if err != nil {
 				return err
@@ -1191,13 +1191,13 @@ func loadMaintenanceLogs() []MaintenanceLog {
 
 		var logs []MaintenanceLog
 		for rows.Next() {
-			var log MaintenanceLog
-			err := rows.Scan(&log.BusID, &log.Date, &log.Category, &log.Notes, &log.Mileage)
+			var maintLog MaintenanceLog  // FIXED: renamed from 'log' to 'maintLog'
+			err := rows.Scan(&maintLog.BusID, &maintLog.Date, &maintLog.Category, &maintLog.Notes, &maintLog.Mileage)
 			if err != nil {
 				log.Printf("Error scanning maintenance log: %v", err)
 				continue
 			}
-			logs = append(logs, log)
+			logs = append(logs, maintLog)
 		}
 		return logs
 	}
@@ -1214,11 +1214,11 @@ func saveMaintenanceLogs(logs []MaintenanceLog) error {
 		}
 		defer tx.Rollback()
 
-		for _, log := range logs {
+		for _, maintLog := range logs {  // FIXED: renamed from 'log' to 'maintLog'
 			_, err = tx.Exec(`
 				INSERT INTO maintenance_logs (bus_id, date, category, notes, mileage) 
 				VALUES ($1, $2, $3, $4, $5)
-			`, log.BusID, log.Date, log.Category, log.Notes, log.Mileage)
+			`, maintLog.BusID, maintLog.Date, maintLog.Category, maintLog.Notes, maintLog.Mileage)
 			
 			if err != nil {
 				return err
@@ -1603,39 +1603,39 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Process driver logs
-	for _, log := range driverLogs {
+	for _, driverLog := range driverLogs {  // FIXED: renamed from 'log' to 'driverLog'
 		// Get or create driver summary
-		s := driverData[log.Driver]
+		s := driverData[driverLog.Driver]
 		if s == nil {
-			s = &DriverSummary{Name: log.Driver}
-			driverData[log.Driver] = s
+			s = &DriverSummary{Name: driverLog.Driver}
+			driverData[driverLog.Driver] = s
 		}
 
 		// Add mileage
-		s.TotalMiles += log.Mileage
+		s.TotalMiles += driverLog.Mileage
 
 		// Calculate attendance from log
 		presentCount := 0
-		for _, att := range log.Attendance {
+		for _, att := range driverLog.Attendance {
 			if att.Present {
 				presentCount++
 			}
 		}
 
 		// Add to morning/evening totals based on period
-		if log.Period == "morning" {
+		if driverLog.Period == "morning" {
 			s.TotalMorning += presentCount
-		} else if log.Period == "evening" {
+		} else if driverLog.Period == "evening" {
 			s.TotalEvening += presentCount
 		}
 
 		// Parse date for time-based calculations
-		parsed, err := time.Parse("2006-01-02", log.Date)
+		parsed, err := time.Parse("2006-01-02", driverLog.Date)
 		if err == nil {
 			// Monthly calculations
 			if parsed.Month() == now.Month() && parsed.Year() == now.Year() {
 				s.MonthlyAttendance += presentCount
-				s.MonthlyAvgMiles += log.Mileage
+				s.MonthlyAvgMiles += driverLog.Mileage
 			}
 
 			// Find route name for this log
@@ -1643,7 +1643,7 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 
 			// First try to match by RouteID directly
 			for _, r := range routes {
-				if r.RouteID == log.RouteID {
+				if r.RouteID == driverLog.RouteID {
 					routeName = r.RouteName
 					break
 				}
@@ -1652,7 +1652,7 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 			// If not found, try to get from driver's assignment
 			if routeName == "" {
 				for _, assignment := range assignments {
-					if assignment.Driver == log.Driver {
+					if assignment.Driver == driverLog.Driver {
 						routeName = assignment.RouteName
 						break
 					}
@@ -1662,12 +1662,12 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 			// If still not found, check if it's a numeric ID that needs mapping
 			if routeName == "" {
 				for _, r := range routes {
-					if (log.RouteID == "1" && r.RouteID == "1") ||
-						 (log.RouteID == "2" && r.RouteID == "2") ||
-						 (log.RouteID == "3" && r.RouteID == "3") ||
-						 (log.RouteID == "4" && r.RouteID == "4") ||
-						 (log.RouteID == "5" && r.RouteID == "5") ||
-						 (log.RouteID == "6" && r.RouteID == "6") {
+					if (driverLog.RouteID == "1" && r.RouteID == "1") ||
+						 (driverLog.RouteID == "2" && r.RouteID == "2") ||
+						 (driverLog.RouteID == "3" && r.RouteID == "3") ||
+						 (driverLog.RouteID == "4" && r.RouteID == "4") ||
+						 (driverLog.RouteID == "5" && r.RouteID == "5") ||
+						 (driverLog.RouteID == "6" && r.RouteID == "6") {
 						routeName = r.RouteName
 						break
 					}
@@ -1682,7 +1682,7 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 					routeData[routeName] = route
 				}
 
-				route.TotalMiles += log.Mileage
+				route.TotalMiles += driverLog.Mileage
 				route.AttendanceMonth += presentCount
 
 				// Time-based attendance (last 24 hours, last 7 days)
@@ -1711,18 +1711,18 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 		if r.TotalMiles > 0 {
 			// Count logs for this route to calculate average
 			logCount := 0
-			for _, log := range driverLogs {
+			for _, driverLog := range driverLogs {  // FIXED: renamed from 'log' to 'driverLog'
 				// Find route name for this log (same logic as above)
 				var logRouteName string
 				for _, route := range routes {
-					if route.RouteID == log.RouteID {
+					if route.RouteID == driverLog.RouteID {
 						logRouteName = route.RouteName
 						break
 					}
 				}
 				if logRouteName == "" {
 					for _, assignment := range assignments {
-						if assignment.Driver == log.Driver {
+						if assignment.Driver == driverLog.Driver {
 							logRouteName = assignment.RouteName
 							break
 						}
@@ -1813,9 +1813,9 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	logs, _ := loadDriverLogs()
 
 	var driverLog *DriverLog
-	for _, log := range logs {
-		if log.Driver == user.Username && log.Date == date && log.Period == period {
-			driverLog = &log
+	for _, logEntry := range logs {
+		if logEntry.Driver == user.Username && logEntry.Date == date && logEntry.Period == period {
+			driverLog = &logEntry
 			break
 		}
 	}
