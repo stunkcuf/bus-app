@@ -2915,20 +2915,155 @@ func removeBus(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/fleet", http.StatusFound)
 }
 
-func companyFleetPage(w http.ResponseWriter, r *http.Request) {
+// Get company fleet data as JSON for import functionality
+func companyFleetDataHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	vehicles := loadVehicles()
+	
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(vehicles); err != nil {
+		log.Printf("Error encoding vehicles: %v", err)
+		http.Error(w, "Error encoding data", http.StatusInternalServerError)
+	}
+}
+
+// Import a vehicle from company fleet as a bus
+func importVehicleAsBus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
-	vehicles := loadVehicles()
-	data := CompanyFleetData{
-		User:     user,
-		Vehicles: vehicles,
+	r.ParseForm()
+	vehicleID := r.FormValue("vehicle_id")
+	model := r.FormValue("model")
+
+	if vehicleID == "" {
+		http.Error(w, "Vehicle ID is required", http.StatusBadRequest)
+		return
 	}
 
-	executeTemplate(w, "company_fleet.html", data)
+	// Load current vehicles to get full details
+	vehicles := loadVehicles()
+	var sourceVehicle *Vehicle
+	for _, v := range vehicles {
+		if v.VehicleID == vehicleID {
+			sourceVehicle = &v
+			break
+		}
+	}
+
+	if sourceVehicle == nil {
+		http.Error(w, "Vehicle not found in company fleet", http.StatusNotFound)
+		return
+	}
+
+	// Check if already imported
+	buses := loadBuses()
+	for _, bus := range buses {
+		if bus.BusID == vehicleID {
+			http.Error(w, "Vehicle already imported as bus", http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Create new bus from vehicle data
+	newBus := &Bus{
+		BusID:            vehicleID, // Use vehicle ID as bus ID
+		Status:           "active",
+		Model:            sourceVehicle.Model,
+		Capacity:         30, // Default capacity, can be edited later
+		OilStatus:        sourceVehicle.OilStatus,
+		TireStatus:       sourceVehicle.TireStatus,
+		MaintenanceNotes: fmt.Sprintf("Imported from company fleet. License: %s, Year: %s", sourceVehicle.License, sourceVehicle.Year),
+	}
+
+	buses = append(buses, newBus)
+	if err := saveBuses(buses); err != nil {
+		log.Printf("Error saving buses: %v", err)
+		http.Error(w, "Unable to save bus", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/fleet", http.StatusFound)
+}
+
+// Fixed updateBusStatus function to properly save to database
+func updateBusStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	r.ParseForm()
+	busID := r.FormValue("bus_id")
+	statusType := r.FormValue("status_type")
+	newStatus := r.FormValue("new_status")
+
+	log.Printf("Updating bus %s: %s status to %s", busID, statusType, newStatus)
+
+	if busID == "" || statusType == "" || newStatus == "" {
+		http.Error(w, "Missing required parameters", http.StatusBadRequest)
+		return
+	}
+
+	// Load current buses
+	buses := loadBuses()
+	updated := false
+
+	// Find and update the bus
+	for i, bus := range buses {
+		if bus.BusID == busID {
+			switch statusType {
+			case "oil":
+				buses[i].OilStatus = newStatus
+			case "tire":
+				buses[i].TireStatus = newStatus
+			case "status":
+				buses[i].Status = newStatus
+			default:
+				http.Error(w, "Invalid status type", http.StatusBadRequest)
+				return
+			}
+			updated = true
+			log.Printf("Updated bus %s: %s status to %s", busID, statusType, newStatus)
+			break
+		}
+	}
+
+	if !updated {
+		log.Printf("Bus not found: %s", busID)
+		http.Error(w, "Bus not found", http.StatusNotFound)
+		return
+	}
+
+	// Save updated buses using your existing save system
+	if err := saveBuses(buses); err != nil {
+		log.Printf("Error saving buses: %v", err)
+		http.Error(w, "Failed to save changes", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Successfully updated and saved bus %s", busID)
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Status updated successfully"))
 }
 
 func studentsPage(w http.ResponseWriter, r *http.Request) {
@@ -3746,8 +3881,10 @@ http.HandleFunc("/remove-bus", withRecovery(removeBus))                // Delete
 http.HandleFunc("/update-bus-status", withRecovery(updateBusStatus))   // Quick status updates
 
 // === COMPANY VEHICLES ===
-http.HandleFunc("/company-fleet", withRecovery(companyFleetPage))      // Company vehicles page
+http.HandleFunc("/company-fleet-data", withRecovery(companyFleetDataHandler))      // Company vehicles page
 http.HandleFunc("/update-vehicle-status", withRecovery(updateVehicleStatus)) // Vehicle status updates
+http.HandleFunc("/import-vehicle-as-bus", withRecovery(importVehicleAsBus))
+	
 
 // === STUDENT MANAGEMENT ===
 http.HandleFunc("/students", withRecovery(studentsPage))               // Student management
