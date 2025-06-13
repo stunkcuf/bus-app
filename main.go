@@ -69,7 +69,7 @@ type RouteStats struct {
 type Route struct {
 	RouteID     string `json:"route_id"`
 	RouteName   string `json:"route_name"`
-	Description string `json:"description"`  // Add this line
+	Description string `json:"description"`
 	Positions []struct {
 		Position int    `json:"position"`
 		Student  string `json:"student"`
@@ -292,6 +292,7 @@ func createTables() error {
 			id SERIAL PRIMARY KEY,
 			route_id VARCHAR(255) UNIQUE NOT NULL,
 			route_name VARCHAR(255) NOT NULL,
+			description TEXT,
 			positions JSONB,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
@@ -502,12 +503,13 @@ func migrateRoutes() error {
 		positionsJSON, _ := json.Marshal(route.Positions)
 		
 		_, err := db.Exec(`
-			INSERT INTO routes (route_id, route_name, positions) 
-			VALUES ($1, $2, $3) 
+			INSERT INTO routes (route_id, route_name, description, positions) 
+			VALUES ($1, $2, $3, $4) 
 			ON CONFLICT (route_id) DO UPDATE SET 
 				route_name = EXCLUDED.route_name,
+				description = EXCLUDED.description,
 				positions = EXCLUDED.positions
-		`, route.RouteID, route.RouteName, positionsJSON)
+		`, route.RouteID, route.RouteName, route.Description, positionsJSON)
 		
 		if err != nil {
 			return fmt.Errorf("failed to insert route %s: %w", route.RouteID, err)
@@ -887,7 +889,7 @@ func saveBusesToJSON(buses []*Bus) error {
 // Load routes - PostgreSQL first, JSON fallback
 func loadRoutes() ([]Route, error) {
 	if db != nil {
-		rows, err := db.Query("SELECT route_id, route_name, positions FROM routes ORDER BY route_id")
+		rows, err := db.Query("SELECT route_id, route_name, description, positions FROM routes ORDER BY route_id")
 		if err != nil {
 			return loadJSON[Route]("data/routes.json") // Fallback
 		}
@@ -897,10 +899,15 @@ func loadRoutes() ([]Route, error) {
 		for rows.Next() {
 			var route Route
 			var positionsJSON []byte
-			err := rows.Scan(&route.RouteID, &route.RouteName, &positionsJSON)
+			var description sql.NullString
+			err := rows.Scan(&route.RouteID, &route.RouteName, &description, &positionsJSON)
 			if err != nil {
 				log.Printf("Error scanning route: %v", err)
 				continue
+			}
+
+			if description.Valid {
+				route.Description = description.String
 			}
 
 			// Parse positions JSON
@@ -2251,6 +2258,255 @@ func assignRoutesPage(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, "assign_routes.html", data)
 }
 
+func addRoute(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	routeName := r.FormValue("route_name")
+	description := r.FormValue("description")
+
+	if routeName == "" {
+		http.Error(w, "Route name is required", http.StatusBadRequest)
+		return
+	}
+
+	// Load existing routes
+	routes, err := loadRoutes()
+	if err != nil {
+		log.Printf("Error loading routes: %v", err)
+		routes = []Route{} // Start with empty if load fails
+	}
+
+	// Generate unique route ID
+	routeID := fmt.Sprintf("RT%03d", len(routes)+1)
+
+	// Create new route
+	newRoute := Route{
+		RouteID:     routeID,
+		RouteName:   routeName,
+		Description: description,
+		Positions: []struct {
+			Position int    `json:"position"`
+			Student  string `json:"student"`
+		}{}, // Empty positions initially
+	}
+
+	// Add to routes slice
+	routes = append(routes, newRoute)
+
+	// Save using your existing save system
+	if db != nil {
+		// Save to PostgreSQL
+		positionsJSON, _ := json.Marshal(newRoute.Positions)
+		_, err := db.Exec(`
+			INSERT INTO routes (route_id, route_name, description, positions) 
+			VALUES ($1, $2, $3, $4)
+		`, newRoute.RouteID, newRoute.RouteName, newRoute.Description, positionsJSON)
+		
+		if err != nil {
+			log.Printf("Error saving route to database: %v", err)
+			http.Error(w, "Unable to save route", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// Fallback to JSON
+		f, err := os.Create("data/routes.json")
+		if err != nil {
+			log.Printf("Error creating routes file: %v", err)
+			http.Error(w, "Unable to save route", http.StatusInternalServerError)
+			return
+		}
+		defer f.Close()
+		
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(routes); err != nil {
+			log.Printf("Error encoding routes: %v", err)
+			http.Error(w, "Unable to save route", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
+}
+
+func editRoute(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	routeID := r.FormValue("route_id")
+	routeName := r.FormValue("route_name")
+	description := r.FormValue("description")
+
+	if routeID == "" || routeName == "" {
+		http.Error(w, "Route ID and name are required", http.StatusBadRequest)
+		return
+	}
+
+	// Load existing routes
+	routes, err := loadRoutes()
+	if err != nil {
+		log.Printf("Error loading routes: %v", err)
+		http.Error(w, "Unable to load routes", http.StatusInternalServerError)
+		return
+	}
+
+	// Find and update the route
+	updated := false
+	for i, route := range routes {
+		if route.RouteID == routeID {
+			routes[i].RouteName = routeName
+			routes[i].Description = description
+			updated = true
+			break
+		}
+	}
+
+	if !updated {
+		http.Error(w, "Route not found", http.StatusNotFound)
+		return
+	}
+
+	// Save using your existing save system
+	if db != nil {
+		// Save to PostgreSQL
+		_, err := db.Exec(`
+			UPDATE routes 
+			SET route_name = $1, description = $2 
+			WHERE route_id = $3
+		`, routeName, description, routeID)
+		
+		if err != nil {
+			log.Printf("Error updating route in database: %v", err)
+			http.Error(w, "Unable to update route", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// Fallback to JSON
+		f, err := os.Create("data/routes.json")
+		if err != nil {
+			log.Printf("Error creating routes file: %v", err)
+			http.Error(w, "Unable to save route", http.StatusInternalServerError)
+			return
+		}
+		defer f.Close()
+		
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(routes); err != nil {
+			log.Printf("Error encoding routes: %v", err)
+			http.Error(w, "Unable to save route", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
+}
+
+func deleteRoute(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	routeID := r.FormValue("route_id")
+
+	if routeID == "" {
+		http.Error(w, "Route ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Check if route is currently assigned
+	assignments, err := loadRouteAssignments()
+	if err == nil {
+		for _, assignment := range assignments {
+			if assignment.RouteID == routeID {
+				http.Error(w, "Cannot delete route that is currently assigned to a driver", http.StatusBadRequest)
+				return
+			}
+		}
+	}
+
+	// Load existing routes
+	routes, err := loadRoutes()
+	if err != nil {
+		log.Printf("Error loading routes: %v", err)
+		http.Error(w, "Unable to load routes", http.StatusInternalServerError)
+		return
+	}
+
+	// Find and remove the route
+	var newRoutes []Route
+	found := false
+	for _, route := range routes {
+		if route.RouteID != routeID {
+			newRoutes = append(newRoutes, route)
+		} else {
+			found = true
+		}
+	}
+
+	if !found {
+		http.Error(w, "Route not found", http.StatusNotFound)
+		return
+	}
+
+	// Save using your existing save system
+	if db != nil {
+		// Delete from PostgreSQL
+		_, err := db.Exec("DELETE FROM routes WHERE route_id = $1", routeID)
+		if err != nil {
+			log.Printf("Error deleting route from database: %v", err)
+			http.Error(w, "Unable to delete route", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// Fallback to JSON
+		f, err := os.Create("data/routes.json")
+		if err != nil {
+			log.Printf("Error creating routes file: %v", err)
+			http.Error(w, "Unable to save routes", http.StatusInternalServerError)
+			return
+		}
+		defer f.Close()
+		
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(newRoutes); err != nil {
+			log.Printf("Error encoding routes: %v", err)
+			http.Error(w, "Unable to save routes", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
+}
+
 func assignRoute(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -2488,255 +2744,6 @@ func addBus(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/fleet", http.StatusFound)
 }
 
-func addRoute(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	r.ParseForm()
-	routeName := r.FormValue("route_name")
-	description := r.FormValue("description")
-
-	if routeName == "" {
-		http.Error(w, "Route name is required", http.StatusBadRequest)
-		return
-	}
-
-	// Load existing routes
-	routes, err := loadRoutes()
-	if err != nil {
-		log.Printf("Error loading routes: %v", err)
-		routes = []Route{} // Start with empty if load fails
-	}
-
-	// Generate unique route ID
-	routeID := fmt.Sprintf("RT%03d", len(routes)+1)
-
-	// Create new route
-	newRoute := Route{
-		RouteID:     routeID,
-		RouteName:   routeName,
-		Description: description,
-		Positions: []struct {
-			Position int    `json:"position"`
-			Student  string `json:"student"`
-		}{}, // Empty positions initially
-	}
-
-	// Add to routes slice
-	routes = append(routes, newRoute)
-
-	// Save using your existing save system
-	if db != nil {
-		// Save to PostgreSQL - you'll need to add description column to your routes table
-		positionsJSON, _ := json.Marshal(newRoute.Positions)
-		_, err := db.Exec(`
-			INSERT INTO routes (route_id, route_name, description, positions) 
-			VALUES ($1, $2, $3, $4)
-		`, newRoute.RouteID, newRoute.RouteName, newRoute.Description, positionsJSON)
-		
-		if err != nil {
-			log.Printf("Error saving route to database: %v", err)
-			http.Error(w, "Unable to save route", http.StatusInternalServerError)
-			return
-		}
-	} else {
-		// Fallback to JSON
-		f, err := os.Create("data/routes.json")
-		if err != nil {
-			log.Printf("Error creating routes file: %v", err)
-			http.Error(w, "Unable to save route", http.StatusInternalServerError)
-			return
-		}
-		defer f.Close()
-		
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(routes); err != nil {
-			log.Printf("Error encoding routes: %v", err)
-			http.Error(w, "Unable to save route", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
-}
-
-func editRoute(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	r.ParseForm()
-	routeID := r.FormValue("route_id")
-	routeName := r.FormValue("route_name")
-	description := r.FormValue("description")
-
-	if routeID == "" || routeName == "" {
-		http.Error(w, "Route ID and name are required", http.StatusBadRequest)
-		return
-	}
-
-	// Load existing routes
-	routes, err := loadRoutes()
-	if err != nil {
-		log.Printf("Error loading routes: %v", err)
-		http.Error(w, "Unable to load routes", http.StatusInternalServerError)
-		return
-	}
-
-	// Find and update the route
-	updated := false
-	for i, route := range routes {
-		if route.RouteID == routeID {
-			routes[i].RouteName = routeName
-			routes[i].Description = description
-			updated = true
-			break
-		}
-	}
-
-	if !updated {
-		http.Error(w, "Route not found", http.StatusNotFound)
-		return
-	}
-
-	// Save using your existing save system
-	if db != nil {
-		// Save to PostgreSQL
-		_, err := db.Exec(`
-			UPDATE routes 
-			SET route_name = $1, description = $2 
-			WHERE route_id = $3
-		`, routeName, description, routeID)
-		
-		if err != nil {
-			log.Printf("Error updating route in database: %v", err)
-			http.Error(w, "Unable to update route", http.StatusInternalServerError)
-			return
-		}
-	} else {
-		// Fallback to JSON
-		f, err := os.Create("data/routes.json")
-		if err != nil {
-			log.Printf("Error creating routes file: %v", err)
-			http.Error(w, "Unable to save route", http.StatusInternalServerError)
-			return
-		}
-		defer f.Close()
-		
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(routes); err != nil {
-			log.Printf("Error encoding routes: %v", err)
-			http.Error(w, "Unable to save route", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
-}
-
-func deleteRoute(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	r.ParseForm()
-	routeID := r.FormValue("route_id")
-
-	if routeID == "" {
-		http.Error(w, "Route ID is required", http.StatusBadRequest)
-		return
-	}
-
-	// Check if route is currently assigned
-	assignments, err := loadRouteAssignments()
-	if err == nil {
-		for _, assignment := range assignments {
-			if assignment.RouteID == routeID {
-				http.Error(w, "Cannot delete route that is currently assigned to a driver", http.StatusBadRequest)
-				return
-			}
-		}
-	}
-
-	// Load existing routes
-	routes, err := loadRoutes()
-	if err != nil {
-		log.Printf("Error loading routes: %v", err)
-		http.Error(w, "Unable to load routes", http.StatusInternalServerError)
-		return
-	}
-
-	// Find and remove the route
-	var newRoutes []Route
-	found := false
-	for _, route := range routes {
-		if route.RouteID != routeID {
-			newRoutes = append(newRoutes, route)
-		} else {
-			found = true
-		}
-	}
-
-	if !found {
-		http.Error(w, "Route not found", http.StatusNotFound)
-		return
-	}
-
-	// Save using your existing save system
-	if db != nil {
-		// Delete from PostgreSQL
-		_, err := db.Exec("DELETE FROM routes WHERE route_id = $1", routeID)
-		if err != nil {
-			log.Printf("Error deleting route from database: %v", err)
-			http.Error(w, "Unable to delete route", http.StatusInternalServerError)
-			return
-		}
-	} else {
-		// Fallback to JSON
-		f, err := os.Create("data/routes.json")
-		if err != nil {
-			log.Printf("Error creating routes file: %v", err)
-			http.Error(w, "Unable to save routes", http.StatusInternalServerError)
-			return
-		}
-		defer f.Close()
-		
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(newRoutes); err != nil {
-			log.Printf("Error encoding routes: %v", err)
-			http.Error(w, "Unable to save routes", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
-}
-
 func editBus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -2915,6 +2922,22 @@ func removeBus(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/fleet", http.StatusFound)
 }
 
+func companyFleetPage(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	vehicles := loadVehicles()
+	data := CompanyFleetData{
+		User:     user,
+		Vehicles: vehicles,
+	}
+
+	executeTemplate(w, "company_fleet.html", data)
+}
+
 // Get company fleet data as JSON for import functionality
 func companyFleetDataHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
@@ -2947,7 +2970,6 @@ func importVehicleAsBus(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 	vehicleID := r.FormValue("vehicle_id")
-	model := r.FormValue("model")
 
 	if vehicleID == "" {
 		http.Error(w, "Vehicle ID is required", http.StatusBadRequest)
@@ -2996,74 +3018,8 @@ func importVehicleAsBus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("Successfully imported vehicle %s as bus", vehicleID)
 	http.Redirect(w, r, "/fleet", http.StatusFound)
-}
-
-// Fixed updateBusStatus function to properly save to database
-func updateBusStatus(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	r.ParseForm()
-	busID := r.FormValue("bus_id")
-	statusType := r.FormValue("status_type")
-	newStatus := r.FormValue("new_status")
-
-	log.Printf("Updating bus %s: %s status to %s", busID, statusType, newStatus)
-
-	if busID == "" || statusType == "" || newStatus == "" {
-		http.Error(w, "Missing required parameters", http.StatusBadRequest)
-		return
-	}
-
-	// Load current buses
-	buses := loadBuses()
-	updated := false
-
-	// Find and update the bus
-	for i, bus := range buses {
-		if bus.BusID == busID {
-			switch statusType {
-			case "oil":
-				buses[i].OilStatus = newStatus
-			case "tire":
-				buses[i].TireStatus = newStatus
-			case "status":
-				buses[i].Status = newStatus
-			default:
-				http.Error(w, "Invalid status type", http.StatusBadRequest)
-				return
-			}
-			updated = true
-			log.Printf("Updated bus %s: %s status to %s", busID, statusType, newStatus)
-			break
-		}
-	}
-
-	if !updated {
-		log.Printf("Bus not found: %s", busID)
-		http.Error(w, "Bus not found", http.StatusNotFound)
-		return
-	}
-
-	// Save updated buses using your existing save system
-	if err := saveBuses(buses); err != nil {
-		log.Printf("Error saving buses: %v", err)
-		http.Error(w, "Failed to save changes", http.StatusInternalServerError)
-		return
-	}
-
-	log.Printf("Successfully updated and saved bus %s", busID)
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Status updated successfully"))
 }
 
 func studentsPage(w http.ResponseWriter, r *http.Request) {
@@ -3557,9 +3513,11 @@ func updateBusStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Load current buses
 	buses := loadBuses()
 	updated := false
 
+	// Find and update the bus
 	for i, bus := range buses {
 		if bus.BusID == busID {
 			switch statusType {
@@ -3585,13 +3543,14 @@ func updateBusStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Save updated buses
+	// Save updated buses using your existing save system
 	if err := saveBuses(buses); err != nil {
 		log.Printf("Error saving buses: %v", err)
 		http.Error(w, "Failed to save changes", http.StatusInternalServerError)
 		return
 	}
 
+	log.Printf("Successfully updated and saved bus %s", busID)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Status updated successfully"))
 }
@@ -3701,48 +3660,54 @@ func initDataFiles() {
 	if _, err := os.Stat("data/routes.json"); os.IsNotExist(err) {
 		routes := []Route{
 			{
-				RouteID:   "RT001",
-				RouteName: "Victory Square",
+				RouteID:     "RT001",
+				RouteName:   "Victory Square",
+				Description: "Downtown Victory Square route",
 				Positions: []struct {
 					Position int    `json:"position"`
 					Student  string `json:"student"`
 				}{{Position: 1, Student: "Alice Johnson"}, {Position: 2, Student: "Bob Smith"}},
 			},
 			{
-				RouteID:   "RT002",
-				RouteName: "Airportway",
+				RouteID:     "RT002",
+				RouteName:   "Airportway",
+				Description: "Airport way business district",
 				Positions: []struct {
 					Position int    `json:"position"`
 					Student  string `json:"student"`
 				}{{Position: 1, Student: "Charlie Brown"}, {Position: 2, Student: "David Wilson"}},
 			},
 			{
-				RouteID:   "RT003",
-				RouteName: "NELC",
+				RouteID:     "RT003",
+				RouteName:   "NELC",
+				Description: "Northeast Learning Center route",
 				Positions: []struct {
 					Position int    `json:"position"`
 					Student  string `json:"student"`
 				}{{Position: 1, Student: "Emma Davis"}, {Position: 2, Student: "Frank Miller"}},
 			},
 			{
-				RouteID:   "RT004",
-				RouteName: "Irrigon",
+				RouteID:     "RT004",
+				RouteName:   "Irrigon",
+				Description: "Irrigon community route",
 				Positions: []struct {
 					Position int    `json:"position"`
 					Student  string `json:"student"`
 				}{{Position: 1, Student: "Grace Lee"}, {Position: 2, Student: "Henry Clark"}},
 			},
 			{
-				RouteID:   "RT005",
-				RouteName: "PELC",
+				RouteID:     "RT005",
+				RouteName:   "PELC",
+				Description: "Pacific Educational Learning Center",
 				Positions: []struct {
 					Position int    `json:"position"`
 					Student  string `json:"student"`
 				}{{Position: 1, Student: "Ivy Rodriguez"}, {Position: 2, Student: "Jack Thompson"}},
 			},
 			{
-				RouteID:   "RT006",
-				RouteName: "Umatilla",
+				RouteID:     "RT006",
+				RouteName:   "Umatilla",
+				Description: "Umatilla district route",
 				Positions: []struct {
 					Position int    `json:"position"`
 					Student  string `json:"student"`
@@ -3845,63 +3810,42 @@ func main() {
 		log.Println("Using local file storage only")
 	}
 
-log.Println("Setting up HTTP routes...")
-
-// === CORE PAGES ===
-http.HandleFunc("/", withRecovery(rootHealthCheck))                    // Login page
-http.HandleFunc("/logout", withRecovery(logout))                       // Logout
-
-// === DASHBOARD PAGES ===
-http.HandleFunc("/dashboard", withRecovery(dashboardRouter))           // Auto-routes to correct dashboard
-http.HandleFunc("/manager-dashboard", withRecovery(managerDashboard))  // Manager overview
-http.HandleFunc("/driver-dashboard", withRecovery(driverDashboard))    // Driver daily page
-http.HandleFunc("/driver/", withRecovery(driverProfileHandler))        // Individual driver profiles
-
-// === USER MANAGEMENT ===
-http.HandleFunc("/new-user", withRecovery(newUserPage))                // Create users
-http.HandleFunc("/edit-user", withRecovery(editUserPage))              // Edit users
-http.HandleFunc("/remove-user", withRecovery(removeUser))              // Delete users
-
-// === ROUTE MANAGEMENT ===
-http.HandleFunc("/assign-routes", withRecovery(assignRoutesPage))      // Routes & assignments page
-http.HandleFunc("/assign-routes/add", withRecovery(addRoute))
-http.HandleFunc("/assign-routes/edit", withRecovery(editRoute))
-http.HandleFunc("/assign-routes/delete", withRecovery(deleteRoute))
-
-// === ASSIGNMENT MANAGEMENT ===
-http.HandleFunc("/assign-route", withRecovery(assignRoute))            // Assign driver to route
-http.HandleFunc("/unassign-route", withRecovery(unassignRoute))        // Remove assignments
-http.HandleFunc("/reassign-driver-bus", withRecovery(reassignDriverBus)) // Bus reassignment
-
-// === FLEET MANAGEMENT ===
-http.HandleFunc("/fleet", withRecovery(fleetPage))                     // Bus fleet page
-http.HandleFunc("/add-bus", withRecovery(addBus))                      // Add new bus
-http.HandleFunc("/edit-bus", withRecovery(editBus))                    // Edit bus details
-http.HandleFunc("/remove-bus", withRecovery(removeBus))                // Delete bus
-http.HandleFunc("/update-bus-status", withRecovery(updateBusStatus))   // Quick status updates
-
-// === COMPANY VEHICLES ===
-http.HandleFunc("/company-fleet-data", withRecovery(companyFleetDataHandler))      // Company vehicles page
-http.HandleFunc("/update-vehicle-status", withRecovery(updateVehicleStatus)) // Vehicle status updates
-http.HandleFunc("/import-vehicle-as-bus", withRecovery(importVehicleAsBus))
-	
-
-// === STUDENT MANAGEMENT ===
-http.HandleFunc("/students", withRecovery(studentsPage))               // Student management
-http.HandleFunc("/add-student", withRecovery(addStudent))              // Add students
-http.HandleFunc("/edit-student", withRecovery(editStudent))            // Edit students
-http.HandleFunc("/remove-student", withRecovery(removeStudent))        // Remove students
-
-// === DRIVER LOGS ===
-http.HandleFunc("/save-log", withRecovery(saveDriverLog))              // Save daily driver logs
-
-// === MAINTENANCE ===
-http.HandleFunc("/add-maint", withRecovery(addMaintenanceLog))         // Add maintenance logs
-
-// === SYSTEM/UTILITY ===
-http.HandleFunc("/webhook", withRecovery(handleWebhook))               // Git webhook
-http.HandleFunc("/pull", withRecovery(runPullHandler))                 // Manual git pull
-http.HandleFunc("/health", withRecovery(healthCheck))                  // Health check endpoint
+	// Setup HTTP routes with recovery middleware
+	log.Println("Setting up HTTP routes...")
+	http.HandleFunc("/", withRecovery(rootHealthCheck))
+	http.HandleFunc("/new-user", withRecovery(newUserPage))
+	http.HandleFunc("/edit-user", withRecovery(editUserPage))
+	http.HandleFunc("/dashboard", withRecovery(dashboardRouter))
+	http.HandleFunc("/manager-dashboard", withRecovery(managerDashboard))
+	http.HandleFunc("/driver-dashboard", withRecovery(driverDashboard))
+	http.HandleFunc("/driver/", withRecovery(driverProfileHandler))
+	http.HandleFunc("/assign-routes", withRecovery(assignRoutesPage))
+	http.HandleFunc("/assign-route", withRecovery(assignRoute))
+	http.HandleFunc("/assign-routes/add", withRecovery(addRoute))
+	http.HandleFunc("/assign-routes/edit", withRecovery(editRoute))
+	http.HandleFunc("/assign-routes/delete", withRecovery(deleteRoute))
+	http.HandleFunc("/unassign-route", withRecovery(unassignRoute))
+	http.HandleFunc("/fleet", withRecovery(fleetPage))
+	http.HandleFunc("/company-fleet", withRecovery(companyFleetPage))
+	http.HandleFunc("/company-fleet-data", withRecovery(companyFleetDataHandler))
+	http.HandleFunc("/import-vehicle-as-bus", withRecovery(importVehicleAsBus))
+	http.HandleFunc("/update-vehicle-status", withRecovery(updateVehicleStatus))
+	http.HandleFunc("/update-bus-status", withRecovery(updateBusStatus))
+	http.HandleFunc("/add-bus", withRecovery(addBus))
+	http.HandleFunc("/edit-bus", withRecovery(editBus))
+	http.HandleFunc("/remove-bus", withRecovery(removeBus))
+	http.HandleFunc("/webhook", withRecovery(handleWebhook))
+	http.HandleFunc("/pull", withRecovery(runPullHandler))
+	http.HandleFunc("/save-log", withRecovery(saveDriverLog))
+	http.HandleFunc("/students", withRecovery(studentsPage))
+	http.HandleFunc("/add-student", withRecovery(addStudent))
+	http.HandleFunc("/edit-student", withRecovery(editStudent))
+	http.HandleFunc("/remove-student", withRecovery(removeStudent))
+	http.HandleFunc("/add-maint", withRecovery(addMaintenanceLog))
+	http.HandleFunc("/reassign-driver-bus", withRecovery(reassignDriverBus))
+	http.HandleFunc("/remove-user", withRecovery(removeUser))
+	http.HandleFunc("/logout", withRecovery(logout))
+	http.HandleFunc("/health", withRecovery(healthCheck))
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -3923,6 +3867,7 @@ http.HandleFunc("/health", withRecovery(healthCheck))                  // Health
 	log.Printf("Server starting on port %s with PostgreSQL migration support", port)
 	log.Printf("Data structure: BusID, RouteID, StudentID for consistent identification")
 	log.Printf("PostgreSQL: Auto-migration from JSON files on first run")
+	log.Printf("Vehicle Import: MIDCO/STARCRAFT models can be imported as buses")
 	log.Printf("Server will be accessible at: http://0.0.0.0:%s", port)
 	log.Printf("Starting HTTP server...")
 
