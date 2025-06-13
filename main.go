@@ -2501,9 +2501,6 @@ func addRoute(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 	routeName := r.FormValue("route_name")
-	description := r.FormValue("route_description") // Optional field
-	startPoint := r.FormValue("start_point")       // Optional field  
-	endPoint := r.FormValue("end_point")           // Optional field
 
 	if routeName == "" {
 		http.Error(w, "Route name is required", http.StatusBadRequest)
