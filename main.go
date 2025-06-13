@@ -2142,17 +2142,7 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func rootHealthCheck(w http.ResponseWriter, r *http.Request) {
-	// Fast health check for deployment root path
-	if r.URL.Path == "/" && r.Method == "GET" {
-		// Check if this looks like a health check (no cookies, simple user agent)
-		if r.Header.Get("Cookie") == "" {
-			w.Header().Set("Content-Type", "text/plain")
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("OK"))
-			return
-		}
-	}
-	// Otherwise, handle as normal login page
+	// Always show login page for root path
 	loginPage(w, r)
 }
 
