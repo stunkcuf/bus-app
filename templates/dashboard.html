@@ -12,6 +12,7 @@
       --grad-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
       --grad-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
       --grad-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --grad-danger: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
     }
     body {
       background-color: #f8f9fa;
@@ -23,33 +24,116 @@
       padding: 1.5rem;
       border-radius: 15px;
       margin-bottom: 2rem;
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
     }
     .dashboard-header .btn {
       background: rgba(255,255,255,0.2);
       color: white;
       margin: 0 5px;
+      border: 1px solid rgba(255,255,255,0.3);
+      transition: all 0.3s ease;
     }
-    .btn-group .btn {
-      padding: 0.25rem 0.75rem;
+    .dashboard-header .btn:hover {
+      background: rgba(255,255,255,0.3);
+      transform: translateY(-2px);
     }
-    .table th {
-      background-color: #f8f9fa;
-      position: sticky;
-      top: 0;
-      z-index: 1;
+    .metric-card {
+      border: none;
+      border-radius: 15px;
+      transition: all 0.3s ease;
+      overflow: hidden;
+      position: relative;
     }
-    .badge {
-      font-size: 0.85rem;
+    .metric-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    .metric-card .card-body {
+      padding: 1.5rem;
+    }
+    .metric-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      opacity: 0.9;
+    }
+    .metric-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .metric-label {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      opacity: 0.8;
+    }
+    .bg-gradient-primary { background: var(--grad-primary); }
+    .bg-gradient-success { background: var(--grad-success); }
+    .bg-gradient-info { background: var(--grad-info); }
+    .bg-gradient-warning { background: var(--grad-warning); }
+    .bg-gradient-danger { background: var(--grad-danger); }
+    
+    .activity-item {
+      padding: 0.75rem;
+      border-left: 3px solid #dee2e6;
+      margin-bottom: 0.5rem;
+      background: white;
+      border-radius: 0 8px 8px 0;
+      transition: all 0.2s ease;
+    }
+    .activity-item:hover {
+      border-left-color: #667eea;
+      transform: translateX(5px);
+    }
+    .activity-time {
+      font-size: 0.8rem;
+      color: #6c757d;
+    }
+    
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+    }
+    .status-online { background-color: #28a745; }
+    .status-offline { background-color: #dc3545; }
+    .status-maintenance { background-color: #ffc107; }
+    
+    .quick-action-card {
+      border: 2px dashed #dee2e6;
+      border-radius: 15px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    .quick-action-card:hover {
+      border-color: #667eea;
+      background-color: rgba(102, 126, 234, 0.05);
+    }
+    
+    .chart-container {
+      height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+      border-radius: 10px;
+      color: #6c757d;
     }
   </style>
 </head>
 <body>
 <div class="container-fluid py-4">
+  <!-- Header -->
   <header class="dashboard-header mb-4">
     <div class="d-flex justify-content-between align-items-center flex-wrap">
-      <h1 class="fs-3 mb-3 mb-md-0">
-        <i class="bi bi-speedometer2 me-2"></i>Manager Dashboard
-      </h1>
+      <div>
+        <h1 class="fs-3 mb-1">
+          <i class="bi bi-speedometer2 me-2"></i>Fleet Management Dashboard
+        </h1>
+        <p class="mb-0 opacity-75">Welcome back, {{.User.Username}}! Here's your fleet overview.</p>
+      </div>
       <nav class="btn-group btn-group-sm" role="group" aria-label="Main actions">
         <a href="/new-user" class="btn"><i class="bi bi-person-plus-fill me-1"></i>New User</a>
         <a href="/assign-routes" class="btn"><i class="bi bi-map-fill me-1"></i>Assign Routes</a>
@@ -60,62 +144,261 @@
     </div>
   </header>
 
-  <div class="card">
-    <div class="card-header bg-white">
-      <h5 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>All Users</h5>
+  <!-- Key Metrics Row -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-3 col-md-6">
+      <div class="card metric-card bg-gradient-primary text-white">
+        <div class="card-body text-center">
+          <i class="bi bi-people-fill metric-icon"></i>
+          <div class="metric-value">{{len .Users}}</div>
+          <div class="metric-label">Total Users</div>
+        </div>
+      </div>
     </div>
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Role</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {{range .Users}}
-            <tr>
-              <td>
-                {{if eq .Role "driver"}}
-                <a href="/driver/{{.Username}}" class="text-decoration-none">
-                  <i class="bi bi-person-badge me-1"></i>{{.Username}}
-                </a>
-                {{else}}
-                <i class="bi bi-person-gear me-1"></i>{{.Username}}
-                {{end}}
-              </td>
-              <td>
-                <span class="badge {{if eq .Role "manager"}}bg-primary{{else}}bg-success{{end}}">
-                  {{.Role}}
-                </span>
-              </td>
-              <td>
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-primary js-edit-user" 
-                          data-username="{{.Username}}" 
-                          aria-label="Edit {{.Username}}">
-                    <i class="bi bi-pencil"></i>
-                  </button>
-                  {{if ne .Username $.User.Username}}
-                  <button class="btn btn-outline-danger js-remove-user" 
-                          data-username="{{.Username}}" 
-                          data-role="{{.Role}}" 
-                          aria-label="Remove {{.Username}}">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                  {{else}}
-                  <button class="btn btn-outline-secondary" disabled aria-label="Current user">
-                    <i class="bi bi-shield-lock"></i>
-                  </button>
-                  {{end}}
+    <div class="col-lg-3 col-md-6">
+      <div class="card metric-card bg-gradient-success text-white">
+        <div class="card-body text-center">
+          <i class="bi bi-person-badge-fill metric-icon"></i>
+          <div class="metric-value">{{.DriverCount}}</div>
+          <div class="metric-label">Active Drivers</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <div class="card metric-card bg-gradient-info text-white">
+        <div class="card-body text-center">
+          <i class="bi bi-bus-front-fill metric-icon"></i>
+          <div class="metric-value">{{.VehicleCount}}</div>
+          <div class="metric-label">Fleet Vehicles</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <div class="card metric-card bg-gradient-warning text-white">
+        <div class="card-body text-center">
+          <i class="bi bi-geo-alt-fill metric-icon"></i>
+          <div class="metric-value">{{.ActiveRoutes}}</div>
+          <div class="metric-label">Active Routes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Row -->
+  <div class="row g-4">
+    <!-- Fleet Status -->
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header bg-white border-0">
+          <h5 class="mb-0"><i class="bi bi-truck me-2"></i>Fleet Status</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="d-flex align-items-center p-3 bg-light rounded">
+                <div class="status-indicator status-online"></div>
+                <div>
+                  <div class="fw-bold">{{.OnlineVehicles}}</div>
+                  <small class="text-muted">Online</small>
                 </div>
-              </td>
-            </tr>
-            {{end}}
-          </tbody>
-        </table>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="d-flex align-items-center p-3 bg-light rounded">
+                <div class="status-indicator status-maintenance"></div>
+                <div>
+                  <div class="fw-bold">{{.MaintenanceVehicles}}</div>
+                  <small class="text-muted">Maintenance</small>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="d-flex align-items-center p-3 bg-light rounded">
+                <div class="status-indicator status-offline"></div>
+                <div>
+                  <div class="fw-bold">{{.OfflineVehicles}}</div>
+                  <small class="text-muted">Offline</small>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="d-flex align-items-center p-3 bg-light rounded">
+                <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                <div>
+                  <div class="fw-bold">{{.AlertsCount}}</div>
+                  <small class="text-muted">Active Alerts</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Activity</h5>
+          <a href="/activity" class="btn btn-outline-primary btn-sm">View All</a>
+        </div>
+        <div class="card-body">
+          <div class="activity-item">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="fw-semibold">New driver registered</div>
+                <small class="text-muted">John Doe completed onboarding</small>
+              </div>
+              <span class="activity-time">2 min ago</span>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="fw-semibold">Route assignment updated</div>
+                <small class="text-muted">Route 23A assigned to Vehicle #142</small>
+              </div>
+              <span class="activity-time">15 min ago</span>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="fw-semibold">Maintenance completed</div>
+                <small class="text-muted">Vehicle #089 returned to service</small>
+              </div>
+              <span class="activity-time">1 hour ago</span>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="fw-semibold">Driver shift ended</div>
+                <small class="text-muted">Sarah Miller completed Route 15B</small>
+              </div>
+              <span class="activity-time">2 hours ago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions & Users -->
+  <div class="row g-4 mt-2">
+    <!-- Quick Actions -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header bg-white border-0">
+          <h5 class="mb-0"><i class="bi bi-lightning-fill me-2"></i>Quick Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-6">
+              <a href="/new-user" class="text-decoration-none">
+                <div class="quick-action-card p-3 text-center">
+                  <i class="bi bi-person-plus fs-2 text-primary d-block mb-2"></i>
+                  <small class="fw-semibold">Add User</small>
+                </div>
+              </a>
+            </div>
+            <div class="col-6">
+              <a href="/assign-routes" class="text-decoration-none">
+                <div class="quick-action-card p-3 text-center">
+                  <i class="bi bi-map fs-2 text-success d-block mb-2"></i>
+                  <small class="fw-semibold">Assign Route</small>
+                </div>
+              </a>
+            </div>
+            <div class="col-6">
+              <a href="/fleet" class="text-decoration-none">
+                <div class="quick-action-card p-3 text-center">
+                  <i class="bi bi-tools fs-2 text-warning d-block mb-2"></i>
+                  <small class="fw-semibold">Maintenance</small>
+                </div>
+              </a>
+            </div>
+            <div class="col-6">
+              <a href="/reports" class="text-decoration-none">
+                <div class="quick-action-card p-3 text-center">
+                  <i class="bi bi-bar-chart fs-2 text-info d-block mb-2"></i>
+                  <small class="fw-semibold">Reports</small>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>Recent Users</h5>
+          <a href="/users" class="btn btn-outline-primary btn-sm">Manage All Users</a>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{range $index, $user := .Users}}
+                {{if lt $index 5}}
+                <tr>
+                  <td>
+                    {{if eq .Role "driver"}}
+                    <a href="/driver/{{.Username}}" class="text-decoration-none">
+                      <i class="bi bi-person-badge me-1"></i>{{.Username}}
+                    </a>
+                    {{else}}
+                    <i class="bi bi-person-gear me-1"></i>{{.Username}}
+                    {{end}}
+                  </td>
+                  <td>
+                    <span class="badge {{if eq .Role "manager"}}bg-primary{{else}}bg-success{{end}}">
+                      {{.Role}}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="status-indicator status-online"></span>
+                    <small class="text-muted">Online</small>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-primary js-edit-user" 
+                              data-username="{{.Username}}" 
+                              aria-label="Edit {{.Username}}">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      {{if ne .Username $.User.Username}}
+                      <button class="btn btn-outline-danger js-remove-user" 
+                              data-username="{{.Username}}" 
+                              data-role="{{.Role}}" 
+                              aria-label="Remove {{.Username}}">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                      {{else}}
+                      <button class="btn btn-outline-secondary" disabled aria-label="Current user">
+                        <i class="bi bi-shield-lock"></i>
+                      </button>
+                      {{end}}
+                    </div>
+                  </td>
+                </tr>
+                {{end}}
+                {{end}}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
