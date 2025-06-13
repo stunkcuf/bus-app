@@ -65,7 +65,7 @@
                       data-position="{{.PositionNumber}}" 
                       data-route-id="{{.RouteID}}" 
                       data-active="{{.Active}}"
-                      data-locations='{{.Locations | toJson}}'>
+                      data-locations='{{.Locations | json}}'>
                 Edit
               </button>
               <form method="POST" action="/remove-student" class="d-inline remove-student-form">
