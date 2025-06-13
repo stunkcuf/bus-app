@@ -2569,6 +2569,174 @@ func addRoute(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
 }
 
+func editRoute(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	routeID := r.FormValue("route_id")
+	routeName := r.FormValue("route_name")
+	description := r.FormValue("description")
+
+	if routeID == "" || routeName == "" {
+		http.Error(w, "Route ID and name are required", http.StatusBadRequest)
+		return
+	}
+
+	// Load existing routes
+	routes, err := loadRoutes()
+	if err != nil {
+		log.Printf("Error loading routes: %v", err)
+		http.Error(w, "Unable to load routes", http.StatusInternalServerError)
+		return
+	}
+
+	// Find and update the route
+	updated := false
+	for i, route := range routes {
+		if route.RouteID == routeID {
+			routes[i].RouteName = routeName
+			routes[i].Description = description
+			updated = true
+			break
+		}
+	}
+
+	if !updated {
+		http.Error(w, "Route not found", http.StatusNotFound)
+		return
+	}
+
+	// Save using your existing save system
+	if db != nil {
+		// Save to PostgreSQL
+		_, err := db.Exec(`
+			UPDATE routes 
+			SET route_name = $1, description = $2 
+			WHERE route_id = $3
+		`, routeName, description, routeID)
+		
+		if err != nil {
+			log.Printf("Error updating route in database: %v", err)
+			http.Error(w, "Unable to update route", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// Fallback to JSON
+		f, err := os.Create("data/routes.json")
+		if err != nil {
+			log.Printf("Error creating routes file: %v", err)
+			http.Error(w, "Unable to save route", http.StatusInternalServerError)
+			return
+		}
+		defer f.Close()
+		
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(routes); err != nil {
+			log.Printf("Error encoding routes: %v", err)
+			http.Error(w, "Unable to save route", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
+}
+
+func deleteRoute(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	routeID := r.FormValue("route_id")
+
+	if routeID == "" {
+		http.Error(w, "Route ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Check if route is currently assigned
+	assignments, err := loadRouteAssignments()
+	if err == nil {
+		for _, assignment := range assignments {
+			if assignment.RouteID == routeID {
+				http.Error(w, "Cannot delete route that is currently assigned to a driver", http.StatusBadRequest)
+				return
+			}
+		}
+	}
+
+	// Load existing routes
+	routes, err := loadRoutes()
+	if err != nil {
+		log.Printf("Error loading routes: %v", err)
+		http.Error(w, "Unable to load routes", http.StatusInternalServerError)
+		return
+	}
+
+	// Find and remove the route
+	var newRoutes []Route
+	found := false
+	for _, route := range routes {
+		if route.RouteID != routeID {
+			newRoutes = append(newRoutes, route)
+		} else {
+			found = true
+		}
+	}
+
+	if !found {
+		http.Error(w, "Route not found", http.StatusNotFound)
+		return
+	}
+
+	// Save using your existing save system
+	if db != nil {
+		// Delete from PostgreSQL
+		_, err := db.Exec("DELETE FROM routes WHERE route_id = $1", routeID)
+		if err != nil {
+			log.Printf("Error deleting route from database: %v", err)
+			http.Error(w, "Unable to delete route", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// Fallback to JSON
+		f, err := os.Create("data/routes.json")
+		if err != nil {
+			log.Printf("Error creating routes file: %v", err)
+			http.Error(w, "Unable to save routes", http.StatusInternalServerError)
+			return
+		}
+		defer f.Close()
+		
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(newRoutes); err != nil {
+			log.Printf("Error encoding routes: %v", err)
+			http.Error(w, "Unable to save routes", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
+}
+
 func editBus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
