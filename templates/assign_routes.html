@@ -295,16 +295,114 @@
         </div>
         <div class="col-md-3">
           <div class="stat-item">
-            <span class="stat-number" id="availableRoutes">{{len .AvailableRoutes}}</span>
-            <div class="stat-label">Available Routes</div>
+            <span class="stat-number" id="totalRoutes">{{len .AvailableRoutes}}</span>
+            <div class="stat-label">Total Routes</div>
           </div>
         </div>
       </div>
     </div>
 
     <div class="row g-4">
+      <!-- Routes Management Section -->
+      <div class="col-lg-6">
+        <div class="enhanced-card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5><i class="bi bi-signpost-2-fill me-2"></i>Routes Management</h5>
+            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addRouteForm" aria-expanded="false">
+              <i class="bi bi-plus-lg me-1"></i>Add Route
+            </button>
+          </div>
+          <div class="card-body p-0">
+            <!-- Add Route Form (Collapsed) -->
+            <div class="collapse" id="addRouteForm">
+              <div class="border-bottom p-3">
+                <form method="POST" action="/add-route" id="routeForm">
+                  <div class="mb-3">
+                    <label for="route_name" class="form-label">
+                      <i class="bi bi-signpost me-2"></i>Route Name
+                    </label>
+                    <input type="text" id="route_name" name="route_name" class="form-control" 
+                           placeholder="e.g., Downtown Loop, Airport Express" required>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="description" class="form-label">
+                      <i class="bi bi-card-text me-2"></i>Description
+                    </label>
+                    <textarea id="description" name="description" class="form-control" 
+                              rows="3" placeholder="Brief description of the route"></textarea>
+                  </div>
+                  
+                  <button type="submit" class="btn btn-success w-100">
+                    <i class="bi bi-plus-circle me-2"></i>Create Route
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- Routes List -->
+            {{if .AvailableRoutes}}
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th class="px-4 py-3">Route Details</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{range .AvailableRoutes}}
+                  <tr class="assignment-row">
+                    <td class="px-4 py-3">
+                      <div class="d-flex align-items-center">
+                        <div class="assignment-icon route-icon">
+                          <i class="bi bi-signpost-2"></i>
+                        </div>
+                        <div>
+                          <div class="fw-semibold">{{.RouteName}}</div>
+                          <small class="text-muted">{{.RouteID}}{{if .Description}} • {{.Description}}{{end}}</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class="status-badge status-available">Available</span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                      <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary js-edit-route" 
+                                data-route-id="{{.RouteID}}" 
+                                data-route-name="{{.RouteName}}" 
+                                data-description="{{.Description}}"
+                                aria-label="Edit {{.RouteName}}">
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-outline-danger js-delete-route" 
+                                data-route-id="{{.RouteID}}" 
+                                data-route-name="{{.RouteName}}"
+                                aria-label="Delete {{.RouteName}}">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {{end}}
+                </tbody>
+              </table>
+            </div>
+            {{else}}
+            <div class="empty-state">
+              <i class="bi bi-signpost-2"></i>
+              <h6>No Routes Available</h6>
+              <p class="mb-0">Create your first route to start assigning drivers</p>
+            </div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+
       <!-- Current Assignments Section -->
-      <div class="col-lg-7">
+      <div class="col-lg-6">
         <div class="enhanced-card">
           <div class="card-header">
             <h5><i class="bi bi-list-check me-2"></i>Current Assignments</h5>
@@ -358,50 +456,18 @@
             <div class="empty-state">
               <i class="bi bi-clipboard-x"></i>
               <h6>No Active Assignments</h6>
-              <p class="mb-0">Create your first assignment using the form on the right</p>
+              <p class="mb-0">Create assignments using the form below</p>
             </div>
             {{end}}
           </div>
         </div>
       </div>
+    </div>
 
+    <!-- Assignment Form Row -->
+    <div class="row g-4 mt-2">
       <!-- Assignment Form Section -->
-      <div class="col-lg-5">
-        <!-- Add Route Section -->
-        <div class="enhanced-card mb-4">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <h5><i class="bi bi-signpost-2-fill me-2"></i>Add New Route</h5>
-            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addRouteForm" aria-expanded="false">
-              <i class="bi bi-plus-lg me-1"></i>Add Route
-            </button>
-          </div>
-          <div class="collapse" id="addRouteForm">
-            <div class="card-body">
-              <form method="POST" action="/add-route" id="routeForm">
-                <div class="mb-3">
-                  <label for="route_name" class="form-label">
-                    <i class="bi bi-signpost me-2"></i>Route Name
-                  </label>
-                  <input type="text" id="route_name" name="route_name" class="form-control" 
-                         placeholder="e.g., Downtown Loop, Airport Express" required>
-                </div>
-                
-                <div class="mb-3">
-                  <label for="description" class="form-label">
-                    <i class="bi bi-card-text me-2"></i>Description
-                  </label>
-                  <textarea id="description" name="description" class="form-control" 
-                            rows="3" placeholder="Brief description of the route"></textarea>
-                </div>
-                
-                <button type="submit" class="btn btn-success w-100">
-                  <i class="bi bi-plus-circle me-2"></i>Create Route
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-
+      <div class="col-lg-6">
         <div class="enhanced-card">
           <div class="card-header">
             <h5><i class="bi bi-plus-circle-fill me-2"></i>Create New Assignment</h5>
