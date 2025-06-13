@@ -2501,6 +2501,7 @@ func addRoute(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 	routeName := r.FormValue("route_name")
+	description := r.FormValue("description")
 
 	if routeName == "" {
 		http.Error(w, "Route name is required", http.StatusBadRequest)
@@ -2517,10 +2518,11 @@ func addRoute(w http.ResponseWriter, r *http.Request) {
 	// Generate unique route ID
 	routeID := fmt.Sprintf("RT%03d", len(routes)+1)
 
-	// Create new route with empty positions (positions can be added later)
+	// Create new route
 	newRoute := Route{
-		RouteID:   routeID,
-		RouteName: routeName,
+		RouteID:     routeID,
+		RouteName:   routeName,
+		Description: description,
 		Positions: []struct {
 			Position int    `json:"position"`
 			Student  string `json:"student"`
@@ -2532,12 +2534,12 @@ func addRoute(w http.ResponseWriter, r *http.Request) {
 
 	// Save using your existing save system
 	if db != nil {
-		// Save to PostgreSQL
+		// Save to PostgreSQL - you'll need to add description column to your routes table
 		positionsJSON, _ := json.Marshal(newRoute.Positions)
 		_, err := db.Exec(`
-			INSERT INTO routes (route_id, route_name, positions) 
-			VALUES ($1, $2, $3)
-		`, newRoute.RouteID, newRoute.RouteName, positionsJSON)
+			INSERT INTO routes (route_id, route_name, description, positions) 
+			VALUES ($1, $2, $3, $4)
+		`, newRoute.RouteID, newRoute.RouteName, newRoute.Description, positionsJSON)
 		
 		if err != nil {
 			log.Printf("Error saving route to database: %v", err)
