@@ -54,10 +54,21 @@
             {{end}}
 
             <div class="mt-3">
-              <button class="btn btn-sm btn-outline-secondary" onclick="editStudent('{{.StudentID}}', '{{.Name}}', '{{.PhoneNumber}}', '{{.AltPhoneNumber}}', '{{.Guardian}}', '{{.PickupTime}}', '{{.DropoffTime}}', {{.PositionNumber}}, '{{.RouteID}}', {{.Active}}, {{json .Locations}})">
+              <button class="btn btn-sm btn-outline-secondary edit-student-btn" 
+                      data-student-id="{{.StudentID}}" 
+                      data-name="{{.Name}}" 
+                      data-phone="{{.PhoneNumber}}" 
+                      data-alt-phone="{{.AltPhoneNumber}}" 
+                      data-guardian="{{.Guardian}}" 
+                      data-pickup-time="{{.PickupTime}}" 
+                      data-dropoff-time="{{.DropoffTime}}" 
+                      data-position="{{.PositionNumber}}" 
+                      data-route-id="{{.RouteID}}" 
+                      data-active="{{.Active}}"
+                      data-locations='{{.Locations | toJson}}'>
                 Edit
               </button>
-              <form method="POST" action="/remove-student" class="d-inline" onsubmit="return confirm('Are you sure you want to remove this student?')">
+              <form method="POST" action="/remove-student" class="d-inline remove-student-form">
                 <input type="hidden" name="student_id" value="{{.StudentID}}">
                 <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
               </form>
@@ -162,7 +173,7 @@
                 </div>
               </div>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-primary mb-3" onclick="addPickupLocation()">+ Add Another Pickup Location</button>
+            <button type="button" class="btn btn-sm btn-outline-primary mb-3 add-pickup-location">+ Add Another Pickup Location</button>
 
             <h6>Dropoff Locations</h6>
             <div id="dropoffLocations">
@@ -175,7 +186,7 @@
                 </div>
               </div>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addDropoffLocation()">+ Add Another Dropoff Location</button>
+            <button type="button" class="btn btn-sm btn-outline-primary add-dropoff-location">+ Add Another Dropoff Location</button>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -273,11 +284,11 @@
 
             <h6>Pickup Locations</h6>
             <div id="editPickupLocations"></div>
-            <button type="button" class="btn btn-sm btn-outline-primary mb-3" onclick="addEditPickupLocation()">+ Add Another Pickup Location</button>
+            <button type="button" class="btn btn-sm btn-outline-primary mb-3 add-edit-pickup-location">+ Add Another Pickup Location</button>
 
             <h6>Dropoff Locations</h6>
             <div id="editDropoffLocations"></div>
-            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addEditDropoffLocation()">+ Add Another Dropoff Location</button>
+            <button type="button" class="btn btn-sm btn-outline-primary add-edit-dropoff-location">+ Add Another Dropoff Location</button>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -290,123 +301,174 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    function addPickupLocation() {
-      const container = document.getElementById('pickupLocations');
-      const div = document.createElement('div');
-      div.className = 'row mb-2';
-      div.innerHTML = `
-        <div class="col-md-6">
-          <input type="text" class="form-control" name="pickup_address" placeholder="Pickup Address">
-        </div>
-        <div class="col-md-6">
-          <input type="text" class="form-control" name="pickup_description" placeholder="Description (optional)">
-        </div>
-      `;
-      container.appendChild(div);
-    }
-
-    function addDropoffLocation() {
-      const container = document.getElementById('dropoffLocations');
-      const div = document.createElement('div');
-      div.className = 'row mb-2';
-      div.innerHTML = `
-        <div class="col-md-6">
-          <input type="text" class="form-control" name="dropoff_address" placeholder="Dropoff Address">
-        </div>
-        <div class="col-md-6">
-          <input type="text" class="form-control" name="dropoff_description" placeholder="Description (optional)">
-        </div>
-      `;
-      container.appendChild(div);
-    }
-
-    function addEditPickupLocation() {
-      const container = document.getElementById('editPickupLocations');
-      const div = document.createElement('div');
-      div.className = 'row mb-2';
-      div.innerHTML = `
-        <div class="col-md-6">
-          <input type="text" class="form-control" name="pickup_address" placeholder="Pickup Address">
-        </div>
-        <div class="col-md-6">
-          <input type="text" class="form-control" name="pickup_description" placeholder="Description (optional)">
-        </div>
-      `;
-      container.appendChild(div);
-    }
-
-    function addEditDropoffLocation() {
-      const container = document.getElementById('editDropoffLocations');
-      const div = document.createElement('div');
-      div.className = 'row mb-2';
-      div.innerHTML = `
-        <div class="col-md-6">
-          <input type="text" class="form-control" name="dropoff_address" placeholder="Dropoff Address">
-        </div>
-        <div class="col-md-6">
-          <input type="text" class="form-control" name="dropoff_description" placeholder="Description (optional)">
-        </div>
-      `;
-      container.appendChild(div);
-    }
-
-    function editStudent(student_id, name, phone, altPhone, guardian, pickupTime, dropoffTime, position, routeId, active, locations) {
-      document.getElementById('edit_student_id').value = student_id;
-      document.getElementById('edit_name').value = name;
-      document.getElementById('edit_phone_number').value = phone;
-      document.getElementById('edit_alt_phone_number').value = altPhone;
-      document.getElementById('edit_guardian').value = guardian;
-      document.getElementById('edit_pickup_time').value = pickupTime;
-      document.getElementById('edit_dropoff_time').value = dropoffTime;
-      document.getElementById('edit_position_number').value = position;
-      document.getElementById('edit_route_id').value = routeId;
-      document.getElementById('edit_active').checked = active;
-
-      // Clear existing locations
-      document.getElementById('editPickupLocations').innerHTML = '';
-      document.getElementById('editDropoffLocations').innerHTML = '';
-
-      // Add existing locations
-      locations.forEach(location => {
-        if (location.Type === 'pickup') {
-          const container = document.getElementById('editPickupLocations');
-          const div = document.createElement('div');
-          div.className = 'row mb-2';
-          div.innerHTML = `
-            <div class="col-md-6">
-              <input type="text" class="form-control" name="pickup_address" value="${location.Address}" placeholder="Pickup Address">
-            </div>
-            <div class="col-md-6">
-              <input type="text" class="form-control" name="pickup_description" value="${location.Description}" placeholder="Description (optional)">
-            </div>
-          `;
-          container.appendChild(div);
-        } else if (location.Type === 'dropoff') {
-          const container = document.getElementById('editDropoffLocations');
-          const div = document.createElement('div');
-          div.className = 'row mb-2';
-          div.innerHTML = `
-            <div class="col-md-6">
-              <input type="text" class="form-control" name="dropoff_address" value="${location.Address}" placeholder="Dropoff Address">
-            </div>
-            <div class="col-md-6">
-              <input type="text" class="form-control" name="dropoff_description" value="${location.Description}" placeholder="Description (optional)">
-            </div>
-          `;
-          container.appendChild(div);
+    document.addEventListener('DOMContentLoaded', function() {
+      
+      // Handle add pickup location buttons
+      document.addEventListener('click', function(e) {
+        if (e.target.closest('.add-pickup-location')) {
+          addPickupLocation();
+        }
+        
+        if (e.target.closest('.add-dropoff-location')) {
+          addDropoffLocation();
+        }
+        
+        if (e.target.closest('.add-edit-pickup-location')) {
+          addEditPickupLocation();
+        }
+        
+        if (e.target.closest('.add-edit-dropoff-location')) {
+          addEditDropoffLocation();
+        }
+        
+        if (e.target.closest('.edit-student-btn')) {
+          const btn = e.target.closest('.edit-student-btn');
+          const studentId = btn.dataset.studentId;
+          const name = btn.dataset.name;
+          const phone = btn.dataset.phone;
+          const altPhone = btn.dataset.altPhone;
+          const guardian = btn.dataset.guardian;
+          const pickupTime = btn.dataset.pickupTime;
+          const dropoffTime = btn.dataset.dropoffTime;
+          const position = btn.dataset.position;
+          const routeId = btn.dataset.routeId;
+          const active = btn.dataset.active === 'true';
+          
+          let locations = [];
+          try {
+            locations = JSON.parse(btn.dataset.locations || '[]');
+          } catch (e) {
+            console.error('Error parsing locations:', e);
+            locations = [];
+          }
+          
+          editStudent(studentId, name, phone, altPhone, guardian, pickupTime, dropoffTime, position, routeId, active, locations);
         }
       });
 
-      // Ensure at least one location input for each type
-      if (document.getElementById('editPickupLocations').children.length === 0) {
-        addEditPickupLocation();
-      }
-      if (document.getElementById('editDropoffLocations').children.length === 0) {
-        addEditDropoffLocation();
+      // Handle remove student form submissions
+      document.addEventListener('submit', function(e) {
+        if (e.target.closest('.remove-student-form')) {
+          if (!confirm('Are you sure you want to remove this student?')) {
+            e.preventDefault();
+          }
+        }
+      });
+
+      function addPickupLocation() {
+        const container = document.getElementById('pickupLocations');
+        const div = document.createElement('div');
+        div.className = 'row mb-2';
+        div.innerHTML = '<div class="col-md-6">' +
+          '<input type="text" class="form-control" name="pickup_address" placeholder="Pickup Address">' +
+          '</div>' +
+          '<div class="col-md-6">' +
+          '<input type="text" class="form-control" name="pickup_description" placeholder="Description (optional)">' +
+          '</div>';
+        container.appendChild(div);
       }
 
-      new bootstrap.Modal(document.getElementById('editStudentModal')).show();
-    }
+      function addDropoffLocation() {
+        const container = document.getElementById('dropoffLocations');
+        const div = document.createElement('div');
+        div.className = 'row mb-2';
+        div.innerHTML = '<div class="col-md-6">' +
+          '<input type="text" class="form-control" name="dropoff_address" placeholder="Dropoff Address">' +
+          '</div>' +
+          '<div class="col-md-6">' +
+          '<input type="text" class="form-control" name="dropoff_description" placeholder="Description (optional)">' +
+          '</div>';
+        container.appendChild(div);
+      }
+
+      function addEditPickupLocation() {
+        const container = document.getElementById('editPickupLocations');
+        const div = document.createElement('div');
+        div.className = 'row mb-2';
+        div.innerHTML = '<div class="col-md-6">' +
+          '<input type="text" class="form-control" name="pickup_address" placeholder="Pickup Address">' +
+          '</div>' +
+          '<div class="col-md-6">' +
+          '<input type="text" class="form-control" name="pickup_description" placeholder="Description (optional)">' +
+          '</div>';
+        container.appendChild(div);
+      }
+
+      function addEditDropoffLocation() {
+        const container = document.getElementById('editDropoffLocations');
+        const div = document.createElement('div');
+        div.className = 'row mb-2';
+        div.innerHTML = '<div class="col-md-6">' +
+          '<input type="text" class="form-control" name="dropoff_address" placeholder="Dropoff Address">' +
+          '</div>' +
+          '<div class="col-md-6">' +
+          '<input type="text" class="form-control" name="dropoff_description" placeholder="Description (optional)">' +
+          '</div>';
+        container.appendChild(div);
+      }
+
+      function editStudent(studentId, name, phone, altPhone, guardian, pickupTime, dropoffTime, position, routeId, active, locations) {
+        document.getElementById('edit_student_id').value = studentId;
+        document.getElementById('edit_name').value = name;
+        document.getElementById('edit_phone_number').value = phone;
+        document.getElementById('edit_alt_phone_number').value = altPhone || '';
+        document.getElementById('edit_guardian').value = guardian;
+        document.getElementById('edit_pickup_time').value = pickupTime;
+        document.getElementById('edit_dropoff_time').value = dropoffTime;
+        document.getElementById('edit_position_number').value = position;
+        document.getElementById('edit_route_id').value = routeId;
+        document.getElementById('edit_active').checked = active;
+
+        // Clear existing locations
+        document.getElementById('editPickupLocations').innerHTML = '';
+        document.getElementById('editDropoffLocations').innerHTML = '';
+
+        // Add existing locations
+        locations.forEach(function(location) {
+          if (location.Type === 'pickup') {
+            const container = document.getElementById('editPickupLocations');
+            const div = document.createElement('div');
+            div.className = 'row mb-2';
+            div.innerHTML = '<div class="col-md-6">' +
+              '<input type="text" class="form-control" name="pickup_address" value="' + (location.Address || '') + '" placeholder="Pickup Address">' +
+              '</div>' +
+              '<div class="col-md-6">' +
+              '<input type="text" class="form-control" name="pickup_description" value="' + (location.Description || '') + '" placeholder="Description (optional)">' +
+              '</div>';
+            container.appendChild(div);
+          } else if (location.Type === 'dropoff') {
+            const container = document.getElementById('editDropoffLocations');
+            const div = document.createElement('div');
+            div.className = 'row mb-2';
+            div.innerHTML = '<div class="col-md-6">' +
+              '<input type="text" class="form-control" name="dropoff_address" value="' + (location.Address || '') + '" placeholder="Dropoff Address">' +
+              '</div>' +
+              '<div class="col-md-6">' +
+              '<input type="text" class="form-control" name="dropoff_description" value="' + (location.Description || '') + '" placeholder="Description (optional)">' +
+              '</div>';
+            container.appendChild(div);
+          }
+        });
+
+        // Ensure at least one location input for each type
+        if (document.getElementById('editPickupLocations').children.length === 0) {
+          addEditPickupLocation();
+        }
+        if (document.getElementById('editDropoffLocations').children.length === 0) {
+          addEditDropoffLocation();
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('editStudentModal'));
+        modal.show();
+      }
+
+      // Make functions available globally if needed
+      window.addPickupLocation = addPickupLocation;
+      window.addDropoffLocation = addDropoffLocation;
+      window.addEditPickupLocation = addEditPickupLocation;
+      window.addEditDropoffLocation = addEditDropoffLocation;
+      window.editStudent = editStudent;
+    });
   </script>
 </body>
 </html>
