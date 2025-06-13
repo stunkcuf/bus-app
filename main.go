@@ -3729,9 +3729,9 @@ http.HandleFunc("/remove-user", withRecovery(removeUser))              // Delete
 
 // === ROUTE MANAGEMENT ===
 http.HandleFunc("/assign-routes", withRecovery(assignRoutesPage))      // Routes & assignments page
-http.HandleFunc("/add-route", withRecovery(addRoute))                  // Create new routes
-http.HandleFunc("/edit-route", withRecovery(editRoute))                // Edit route info
-http.HandleFunc("/delete-route", withRecovery(deleteRoute))            // Delete routes
+http.HandleFunc("/assign-routes/add", withRecovery(addRoute))
+http.HandleFunc("/assign-routes/edit", withRecovery(editRoute))
+http.HandleFunc("/assign-routes/delete", withRecovery(deleteRoute))
 
 // === ASSIGNMENT MANAGEMENT ===
 http.HandleFunc("/assign-route", withRecovery(assignRoute))            // Assign driver to route
