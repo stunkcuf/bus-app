@@ -1,9 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Assign Routes - Manager Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
@@ -17,14 +17,15 @@
     </div>
 
     <div class="row">
+      <!-- Current Assignments Section -->
       <div class="col-md-6">
-        <div class="card">
+        <div class="card shadow-sm">
           <div class="card-header">
-            <h5>Current Assignments</h5>
+            <h5 class="mb-0">Current Assignments</h5>
           </div>
           <div class="card-body">
-            <table class="table table-sm">
-              <thead>
+            <table class="table table-sm table-bordered align-middle">
+              <thead class="table-light">
                 <tr>
                   <th>Driver</th>
                   <th>Bus #</th>
@@ -39,7 +40,7 @@
                   <td>{{.BusID}}</td>
                   <td>{{.RouteName}}</td>
                   <td>
-                    <form method="POST" action="/unassign-route" style="display: inline;">
+                    <form method="POST" action="/unassign-route" class="d-inline">
                       <input type="hidden" name="driver" value="{{.Driver}}">
                       <input type="hidden" name="bus_id" value="{{.BusID}}">
                       <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
@@ -53,16 +54,17 @@
         </div>
       </div>
 
+      <!-- Assignment Form and Bus List Section -->
       <div class="col-md-6">
-        <div class="card">
+        <div class="card shadow-sm">
           <div class="card-header">
-            <h5>Create New Assignment</h5>
+            <h5 class="mb-0">Create New Assignment</h5>
           </div>
           <div class="card-body">
             <form method="POST" action="/assign-route">
               <div class="mb-3">
-                <label class="form-label">Driver</label>
-                <select name="driver" class="form-select" required>
+                <label for="driver" class="form-label">Driver</label>
+                <select id="driver" name="driver" class="form-select" required>
                   <option value="">Select Driver</option>
                   {{range .Drivers}}
                   <option value="{{.Username}}">{{.Username}}</option>
@@ -70,8 +72,8 @@
                 </select>
               </div>
               <div class="mb-3">
-                <label class="form-label">Route</label>
-                <select name="route_id" class="form-select" required>
+                <label for="route_id" class="form-label">Route</label>
+                <select id="route_id" name="route_id" class="form-select" required>
                   <option value="">Select Route</option>
                   {{range .AvailableRoutes}}
                   <option value="{{.RouteID}}">{{.RouteName}}</option>
@@ -79,22 +81,23 @@
                 </select>
               </div>
               <div class="mb-3">
-                <label class="form-label">Bus</label>
-                <select name="bus_id" class="form-select" required>
+                <label for="bus_id" class="form-label">Bus</label>
+                <select id="bus_id" name="bus_id" class="form-select" required>
                   <option value="">Select Bus</option>
                   {{range .AvailableBuses}}
                   <option value="{{.BusID}}">Bus #{{.BusID}} ({{.Status}})</option>
                   {{end}}
                 </select>
               </div>
-              <button type="submit" class="btn btn-primary">Assign</button>
+              <button type="submit" class="btn btn-primary w-100">Assign</button>
             </form>
           </div>
         </div>
 
-        <div class="card mt-3">
+        <!-- Available Buses Section -->
+        <div class="card mt-3 shadow-sm">
           <div class="card-header">
-            <h5>Available Buses</h5>
+            <h5 class="mb-0">Available Buses</h5>
           </div>
           <div class="card-body">
             {{if .AvailableBuses}}
@@ -104,7 +107,7 @@
               {{end}}
             </ul>
             {{else}}
-            <p class="text-muted">All buses are currently assigned.</p>
+            <p class="text-muted mb-0">All buses are currently assigned.</p>
             {{end}}
           </div>
         </div>
