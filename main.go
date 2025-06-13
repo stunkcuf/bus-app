@@ -3721,6 +3721,7 @@ func main() {
 	http.HandleFunc("/driver/", withRecovery(driverProfileHandler))
 	http.HandleFunc("/assign-routes", withRecovery(assignRoutesPage))
 	http.HandleFunc("/assign-route", withRecovery(assignRoute))
+	http.HandleFunc("/delete-route", withRecovery(deleteRoute))
 	http.HandleFunc("/unassign-route", withRecovery(unassignRoute))
 	http.HandleFunc("/fleet", withRecovery(fleetPage))
 	http.HandleFunc("/company-fleet", withRecovery(companyFleetPage))
