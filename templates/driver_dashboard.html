@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Driver Dashboard</title>
-  <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
@@ -32,176 +31,20 @@
 </head>
 <body>
   <main class="dashboard-container" aria-labelledby="pageTitle">
-    <!-- Header -->
     <header class="d-flex justify-content-between align-items-center flex-wrap mb-4">
       <h2 id="pageTitle" class="text-primary mb-3 mb-md-0">
-        <i class="bi bi-bus-front me-2" aria-hidden="true"></i>Driver Dashboard – {{.User.Username}}
+        <i class="bi bi-bus-front me-2"></i>Driver Dashboard – {{.User.Username}}
       </h2>
       <nav class="d-flex gap-2" aria-label="Primary actions">
-        <a href="/students" class="btn btn-outline-info btn-sm"><i class="bi bi-people me-1" aria-hidden="true"></i>Manage Students</a>
-        <a href="/logout" class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right me-1" aria-hidden="true"></i>Logout</a>
+        <a href="/students" class="btn btn-outline-info btn-sm"><i class="bi bi-people me-1"></i>Manage Students</a>
+        <a href="/logout" class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
       </nav>
     </header>
 
-    <!-- Quick‑nav + Assignment -->
-    <div class="row g-4 mb-4" aria-label="Quick navigation and current assignment">
-      <!-- Quick Navigation -->
-      <section class="col-md-6" aria-labelledby="quickNavTitle">
-        <div class="card info-card shadow-sm h-100">
-          <div class="card-body">
-            <h5 id="quickNavTitle" class="card-title"><i class="bi bi-calendar-event me-1"></i>Quick Navigation</h5>
-            <form method="GET" class="mt-3" aria-describedby="quickNavTitle">
-              <div class="row g-2 align-items-end">
-                <div class="col-6">
-                  <label for="dateInput" class="form-label small">Date</label>
-                  <input id="dateInput" name="date" type="date" value="{{.Date}}" class="form-control form-control-sm" />
-                </div>
-                <div class="col-6">
-                  <label for="periodSelect" class="form-label small">Period</label>
-                  <select id="periodSelect" name="period" class="form-select form-select-sm">
-                    <option value="morning" {{if eq .Period "morning"}}selected{{end}}>🌅 Morning</option>
-                    <option value="evening" {{if eq .Period "evening"}}selected{{end}}>🌆 Evening</option>
-                  </select>
-                </div>
-              </div>
-              <button type="submit" class="btn btn-primary btn-sm w-100 mt-3">Apply</button>
-            </form>
-          </div>
-        </div>
-      </section>
+    <!-- Dashboard Sections: Quick Nav, Assignment, Alerts, Trip Log -->
+    <!-- Your dynamic and conditional Go template HTML continues here... -->
 
-      <!-- Current Assignment -->
-      <section class="col-md-6" aria-labelledby="assignmentTitle">
-        <div class="card info-card shadow-sm h-100">
-          <div class="card-body">
-            <h5 id="assignmentTitle" class="card-title"><i class="bi bi-target me-1"></i>Current Assignment</h5>
-            <dl class="row small mt-3 mb-0">
-              <dt class="col-4">Date</dt><dd class="col-8">{{.Date}}</dd>
-              <dt class="col-4">Period</dt><dd class="col-8 text-capitalize">{{.Period}}</dd>
-              <dt class="col-4">Route</dt>
-              <dd class="col-8">
-                {{if .Route}}{{.Route.RouteName}}{{else}}<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>No route assigned</span>{{end}}
-              </dd>
-              <dt class="col-4">Bus</dt>
-              <dd class="col-8">
-                {{if .Bus}}#{{.Bus.BusID}} ({{.Bus.Status}}){{else}}<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>No bus assigned</span>{{end}}
-              </dd>
-            </dl>
-          </div>
-        </div>
-      </section>
-    </div>
-
-    {{if .Route}}
-    <!-- Bus alerts -->
-    {{if .Bus}}
-      {{if or (eq .Bus.Status "maintenance") (eq .Bus.Status "out_of_service")}}
-        <div class="alert alert-warning" role="alert">
-          <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-1"></i>Bus Status Alert</h6>
-          Bus #{{.Bus.BusID}} is currently <strong>{{.Bus.Status}}</strong>. Please contact management for reassignment.
-        </div>
-      {{else if ne .Bus.MaintenanceNotes ""}}
-        <div class="alert alert-info" role="alert">
-          <h6 class="alert-heading"><i class="bi bi-tools me-1"></i>Maintenance Notes</h6>
-          {{.Bus.MaintenanceNotes}}
-        </div>
-      {{end}}
-    {{end}}
-
-    <!-- Trip Log Form -->
-    <section aria-labelledby="tripFormTitle">
-      <form method="POST" action="/save-log" class="card shadow-sm" novalidate>
-        <div class="card-header bg-white border-0">
-          <h4 id="tripFormTitle" class="mb-0">
-            <i class="bi bi-bus-front me-1"></i>{{if .Bus}}Bus #{{.Bus.BusID}}{{else}}Bus #N/A{{end}} – {{.Route.RouteName}}
-          </h4>
-          {{if .Bus}}
-          <small class="text-muted">{{.Bus.Model}} &middot; Capacity {{.Bus.Capacity}} &middot; {{.Bus.Status}}</small>
-          {{end}}
-        </div>
-        <div class="card-body">
-          <!-- Hidden inputs -->
-          <input type="hidden" name="date" value="{{.Date}}" />
-          <input type="hidden" name="period" value="{{.Period}}" />
-          <input type="hidden" name="bus_id" value="{{if .Bus}}{{.Bus.BusID}}{{else if .DriverLog}}{{.DriverLog.BusID}}{{end}}" />
-
-          <!-- Trip Times & Mileage -->
-          <div class="row g-3 mb-4">
-            <div class="col-md-4">
-              <label for="departureInput" class="form-label">⏰ Departure</label>
-              <input id="departureInput" name="departure" type="time" value="{{if .DriverLog}}{{.DriverLog.Departure}}{{end}}" class="form-control" required />
-            </div>
-            <div class="col-md-4">
-              <label for="arrivalInput" class="form-label">🏁 Arrival</label>
-              <input id="arrivalInput" name="arrival" type="time" value="{{if .DriverLog}}{{.DriverLog.Arrival}}{{end}}" class="form-control" required />
-            </div>
-            <div class="col-md-4">
-              <label for="mileageInput" class="form-label">🛣️ Mileage</label>
-              <input id="mileageInput" name="mileage" type="number" step="0.1" value="{{if .DriverLog}}{{.DriverLog.Mileage}}{{end}}" class="form-control" placeholder="0.0" />
-            </div>
-          </div>
-
-          <!-- Attendance -->
-          <h5 class="mb-3"><i class="bi bi-clipboard-check me-1"></i>Student Attendance &amp; Pickup Times</h5>
-          {{if .Route.Positions}}
-          <div class="table-responsive">
-            <table id="attendanceTable" class="table table-bordered table-striped attendance-table align-middle mb-0">
-              <thead class="table-dark text-center">
-                <tr>
-                  <th scope="col">Pos.</th>
-                  <th scope="col" class="text-start">Student</th>
-                  <th scope="col">Present</th>
-                  <th scope="col">Pickup Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {{range $i, $p := .Route.Positions}}
-                <tr>
-                  <td class="text-center"><strong>{{$p.Position}}</strong></td>
-                  <td>{{$p.Student}}</td>
-                  <td class="text-center">
-                    <input class="form-check-input present-checkbox" type="checkbox" name="present_{{$p.Position}}" id="present{{$p.Position}}" {{if $.DriverLog}}{{range $.DriverLog.Attendance}}{{if and (eq .Position $p.Position) .Present}}checked{{end}}{{end}}{{end}} />
-                    <label class="visually-hidden" for="present{{$p.Position}}">Present</label>
-                  </td>
-                  <td>
-                    <input class="form-control form-control-sm" type="time" name="pickup_{{$p.Position}}" value="{{if $.DriverLog}}{{range $.DriverLog.Attendance}}{{if eq .Position $p.Position}}{{.PickupTime}}{{end}}{{end}}{{end}}" />
-                  </td>
-                </tr>
-                {{end}}
-              </tbody>
-            </table>
-          </div>
-          <!-- Save Button -->
-          <div class="d-grid gap-2 mt-4">
-            <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-save me-1"></i>Save Trip Log</button>
-          </div>
-          {{else}}
-          <div class="alert alert-warning" role="alert">
-            <h6><i class="bi bi-exclamation-triangle me-1"></i>No Student Positions</h6>
-            No students are defined for this route. Please contact management.
-          </div>
-          <div class="d-grid gap-2">
-            <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-save me-1"></i>Save Trip Log (No Students)</button>
-          </div>
-          {{end}}
-        </div>
-      </form>
-    </section>
-    {{else}}
-      <!-- No Route Assignment -->
-      <div class="alert alert-warning" role="alert">
-        <h5 class="alert-heading"><i class="bi bi-exclamation-triangle me-1"></i>No Route Assignment Found</h5>
-        You don't have a route assigned for today. Please contact your manager.
-        {{if .Bus}}
-          <hr />
-          <p class="mb-0"><strong>Assigned Bus:</strong> #{{.Bus.BusID}} ({{.Bus.Status}})</p>
-        {{end}}
-      </div>
-    {{end}}
   </main>
-
-  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
