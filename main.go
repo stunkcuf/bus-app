@@ -3710,39 +3710,61 @@ func main() {
 		log.Println("Using local file storage only")
 	}
 
-	// Setup HTTP routes with recovery middleware
-	log.Println("Setting up HTTP routes...")
-	http.HandleFunc("/", withRecovery(rootHealthCheck))
-	http.HandleFunc("/new-user", withRecovery(newUserPage))
-	http.HandleFunc("/edit-user", withRecovery(editUserPage))
-	http.HandleFunc("/dashboard", withRecovery(dashboardRouter))
-	http.HandleFunc("/manager-dashboard", withRecovery(managerDashboard))
-	http.HandleFunc("/driver-dashboard", withRecovery(driverDashboard))
-	http.HandleFunc("/driver/", withRecovery(driverProfileHandler))
-	http.HandleFunc("/assign-routes", withRecovery(assignRoutesPage))
-	http.HandleFunc("/assign-route", withRecovery(assignRoute))
-	http.HandleFunc("/delete-route", withRecovery(deleteRoute))
-	http.HandleFunc("/unassign-route", withRecovery(unassignRoute))
-	http.HandleFunc("/fleet", withRecovery(fleetPage))
-	http.HandleFunc("/company-fleet", withRecovery(companyFleetPage))
-	http.HandleFunc("/update-vehicle-status", withRecovery(updateVehicleStatus))
-	http.HandleFunc("/update-bus-status", withRecovery(updateBusStatus))
-	http.HandleFunc("/add-bus", withRecovery(addBus))
-	http.HandleFunc("/edit-bus", withRecovery(editBus))
-	http.HandleFunc("/remove-bus", withRecovery(removeBus))
-	http.HandleFunc("/webhook", withRecovery(handleWebhook))
-	http.HandleFunc("/pull", withRecovery(runPullHandler))
-	http.HandleFunc("/save-log", withRecovery(saveDriverLog))
-	http.HandleFunc("/students", withRecovery(studentsPage))
-	http.HandleFunc("/add-student", withRecovery(addStudent))
-	http.HandleFunc("/edit-student", withRecovery(editStudent))
-	http.HandleFunc("/remove-student", withRecovery(removeStudent))
-	http.HandleFunc("/add-maint", withRecovery(addMaintenanceLog))
-	http.HandleFunc("/add-route", withRecovery(addRoute))
-	http.HandleFunc("/reassign-driver-bus", withRecovery(reassignDriverBus))
-	http.HandleFunc("/remove-user", withRecovery(removeUser))
-	http.HandleFunc("/logout", withRecovery(logout))
-	http.HandleFunc("/health", withRecovery(healthCheck))
+log.Println("Setting up HTTP routes...")
+
+// === CORE PAGES ===
+http.HandleFunc("/", withRecovery(rootHealthCheck))                    // Login page
+http.HandleFunc("/logout", withRecovery(logout))                       // Logout
+
+// === DASHBOARD PAGES ===
+http.HandleFunc("/dashboard", withRecovery(dashboardRouter))           // Auto-routes to correct dashboard
+http.HandleFunc("/manager-dashboard", withRecovery(managerDashboard))  // Manager overview
+http.HandleFunc("/driver-dashboard", withRecovery(driverDashboard))    // Driver daily page
+http.HandleFunc("/driver/", withRecovery(driverProfileHandler))        // Individual driver profiles
+
+// === USER MANAGEMENT ===
+http.HandleFunc("/new-user", withRecovery(newUserPage))                // Create users
+http.HandleFunc("/edit-user", withRecovery(editUserPage))              // Edit users
+http.HandleFunc("/remove-user", withRecovery(removeUser))              // Delete users
+
+// === ROUTE MANAGEMENT ===
+http.HandleFunc("/assign-routes", withRecovery(assignRoutesPage))      // Routes & assignments page
+http.HandleFunc("/add-route", withRecovery(addRoute))                  // Create new routes
+http.HandleFunc("/edit-route", withRecovery(editRoute))                // Edit route info
+http.HandleFunc("/delete-route", withRecovery(deleteRoute))            // Delete routes
+
+// === ASSIGNMENT MANAGEMENT ===
+http.HandleFunc("/assign-route", withRecovery(assignRoute))            // Assign driver to route
+http.HandleFunc("/unassign-route", withRecovery(unassignRoute))        // Remove assignments
+http.HandleFunc("/reassign-driver-bus", withRecovery(reassignDriverBus)) // Bus reassignment
+
+// === FLEET MANAGEMENT ===
+http.HandleFunc("/fleet", withRecovery(fleetPage))                     // Bus fleet page
+http.HandleFunc("/add-bus", withRecovery(addBus))                      // Add new bus
+http.HandleFunc("/edit-bus", withRecovery(editBus))                    // Edit bus details
+http.HandleFunc("/remove-bus", withRecovery(removeBus))                // Delete bus
+http.HandleFunc("/update-bus-status", withRecovery(updateBusStatus))   // Quick status updates
+
+// === COMPANY VEHICLES ===
+http.HandleFunc("/company-fleet", withRecovery(companyFleetPage))      // Company vehicles page
+http.HandleFunc("/update-vehicle-status", withRecovery(updateVehicleStatus)) // Vehicle status updates
+
+// === STUDENT MANAGEMENT ===
+http.HandleFunc("/students", withRecovery(studentsPage))               // Student management
+http.HandleFunc("/add-student", withRecovery(addStudent))              // Add students
+http.HandleFunc("/edit-student", withRecovery(editStudent))            // Edit students
+http.HandleFunc("/remove-student", withRecovery(removeStudent))        // Remove students
+
+// === DRIVER LOGS ===
+http.HandleFunc("/save-log", withRecovery(saveDriverLog))              // Save daily driver logs
+
+// === MAINTENANCE ===
+http.HandleFunc("/add-maint", withRecovery(addMaintenanceLog))         // Add maintenance logs
+
+// === SYSTEM/UTILITY ===
+http.HandleFunc("/webhook", withRecovery(handleWebhook))               // Git webhook
+http.HandleFunc("/pull", withRecovery(runPullHandler))                 // Manual git pull
+http.HandleFunc("/health", withRecovery(healthCheck))                  // Health check endpoint
 
 	port := os.Getenv("PORT")
 	if port == "" {
