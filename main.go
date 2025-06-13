@@ -67,8 +67,9 @@ type RouteStats struct {
 }
 
 type Route struct {
-	RouteID   string `json:"route_id"`
-	RouteName string `json:"route_name"`
+	RouteID     string `json:"route_id"`
+	RouteName   string `json:"route_name"`
+	Description string `json:"description"`  // Add this line
 	Positions []struct {
 		Position int    `json:"position"`
 		Student  string `json:"student"`
