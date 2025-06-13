@@ -132,7 +132,7 @@
         <h1 class="fs-3 mb-1">
           <i class="bi bi-speedometer2 me-2"></i>Fleet Management Dashboard
         </h1>
-        <p class="mb-0 opacity-75">Welcome back, {{.User.Username}}! Here's your fleet overview.</p>
+        <p class="mb-0 opacity-75">Welcome back{{if .User.Username}}, {{.User.Username}}{{end}}! Here's your fleet overview.</p>
       </div>
       <nav class="btn-group btn-group-sm" role="group" aria-label="Main actions">
         <a href="/new-user" class="btn"><i class="bi bi-person-plus-fill me-1"></i>New User</a>
@@ -150,7 +150,7 @@
       <div class="card metric-card bg-gradient-primary text-white">
         <div class="card-body text-center">
           <i class="bi bi-people-fill metric-icon"></i>
-          <div class="metric-value">{{len .Users}}</div>
+          <div class="metric-value" id="totalUsers">{{if .Users}}{{len .Users}}{{else}}0{{end}}</div>
           <div class="metric-label">Total Users</div>
         </div>
       </div>
@@ -159,26 +159,26 @@
       <div class="card metric-card bg-gradient-success text-white">
         <div class="card-body text-center">
           <i class="bi bi-person-badge-fill metric-icon"></i>
-          <div class="metric-value">{{.DriverCount}}</div>
-          <div class="metric-label">Active Drivers</div>
+          <div class="metric-value" id="activeDrivers">0</div>
+          <div class="metric-label">Drivers</div>
         </div>
       </div>
     </div>
     <div class="col-lg-3 col-md-6">
       <div class="card metric-card bg-gradient-info text-white">
         <div class="card-body text-center">
-          <i class="bi bi-bus-front-fill metric-icon"></i>
-          <div class="metric-value">{{.VehicleCount}}</div>
-          <div class="metric-label">Fleet Vehicles</div>
+          <i class="bi bi-person-gear-fill metric-icon"></i>
+          <div class="metric-value" id="managerCount">0</div>
+          <div class="metric-label">Managers</div>
         </div>
       </div>
     </div>
     <div class="col-lg-3 col-md-6">
       <div class="card metric-card bg-gradient-warning text-white">
         <div class="card-body text-center">
-          <i class="bi bi-geo-alt-fill metric-icon"></i>
-          <div class="metric-value">{{.ActiveRoutes}}</div>
-          <div class="metric-label">Active Routes</div>
+          <i class="bi bi-clock-fill metric-icon"></i>
+          <div class="metric-value" id="currentTime">--:--</div>
+          <div class="metric-label">Current Time</div>
         </div>
       </div>
     </div>
@@ -186,106 +186,6 @@
 
   <!-- Main Content Row -->
   <div class="row g-4">
-    <!-- Fleet Status -->
-    <div class="col-lg-6">
-      <div class="card h-100">
-        <div class="card-header bg-white border-0">
-          <h5 class="mb-0"><i class="bi bi-truck me-2"></i>Fleet Status</h5>
-        </div>
-        <div class="card-body">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <div class="d-flex align-items-center p-3 bg-light rounded">
-                <div class="status-indicator status-online"></div>
-                <div>
-                  <div class="fw-bold">{{.OnlineVehicles}}</div>
-                  <small class="text-muted">Online</small>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="d-flex align-items-center p-3 bg-light rounded">
-                <div class="status-indicator status-maintenance"></div>
-                <div>
-                  <div class="fw-bold">{{.MaintenanceVehicles}}</div>
-                  <small class="text-muted">Maintenance</small>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="d-flex align-items-center p-3 bg-light rounded">
-                <div class="status-indicator status-offline"></div>
-                <div>
-                  <div class="fw-bold">{{.OfflineVehicles}}</div>
-                  <small class="text-muted">Offline</small>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="d-flex align-items-center p-3 bg-light rounded">
-                <i class="bi bi-exclamation-triangle text-warning me-2"></i>
-                <div>
-                  <div class="fw-bold">{{.AlertsCount}}</div>
-                  <small class="text-muted">Active Alerts</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recent Activity -->
-    <div class="col-lg-6">
-      <div class="card h-100">
-        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
-          <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Activity</h5>
-          <a href="/activity" class="btn btn-outline-primary btn-sm">View All</a>
-        </div>
-        <div class="card-body">
-          <div class="activity-item">
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
-                <div class="fw-semibold">New driver registered</div>
-                <small class="text-muted">John Doe completed onboarding</small>
-              </div>
-              <span class="activity-time">2 min ago</span>
-            </div>
-          </div>
-          <div class="activity-item">
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
-                <div class="fw-semibold">Route assignment updated</div>
-                <small class="text-muted">Route 23A assigned to Vehicle #142</small>
-              </div>
-              <span class="activity-time">15 min ago</span>
-            </div>
-          </div>
-          <div class="activity-item">
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
-                <div class="fw-semibold">Maintenance completed</div>
-                <small class="text-muted">Vehicle #089 returned to service</small>
-              </div>
-              <span class="activity-time">1 hour ago</span>
-            </div>
-          </div>
-          <div class="activity-item">
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
-                <div class="fw-semibold">Driver shift ended</div>
-                <small class="text-muted">Sarah Miller completed Route 15B</small>
-              </div>
-              <span class="activity-time">2 hours ago</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Quick Actions & Users -->
-  <div class="row g-4 mt-2">
     <!-- Quick Actions -->
     <div class="col-lg-4">
       <div class="card">
@@ -331,11 +231,31 @@
       </div>
     </div>
 
-    <!-- Users Table -->
+    <!-- Recent Activity -->
     <div class="col-lg-8">
       <div class="card">
         <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
-          <h5 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>Recent Users</h5>
+          <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Activity</h5>
+          <a href="/activity" class="btn btn-outline-primary btn-sm">View All</a>
+        </div>
+        <div class="card-body">
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-clock-history fs-1 d-block mb-3 opacity-50"></i>
+            <p class="mb-0">Activity tracking not yet configured</p>
+            <small>Recent system events will appear here</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions & Users -->
+  <div class="row g-4 mt-2">
+    <!-- Users Table -->
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>System Users</h5>
           <a href="/users" class="btn btn-outline-primary btn-sm">Manage All Users</a>
         </div>
         <div class="card-body">
@@ -350,8 +270,8 @@
                 </tr>
               </thead>
               <tbody>
+                {{if .Users}}
                 {{range $index, $user := .Users}}
-                {{if lt $index 5}}
                 <tr>
                   <td>
                     {{if eq .Role "driver"}}
@@ -369,7 +289,7 @@
                   </td>
                   <td>
                     <span class="status-indicator status-online"></span>
-                    <small class="text-muted">Online</small>
+                    <small class="text-muted">Active</small>
                   </td>
                   <td>
                     <div class="btn-group btn-group-sm">
@@ -378,7 +298,7 @@
                               aria-label="Edit {{.Username}}">
                         <i class="bi bi-pencil"></i>
                       </button>
-                      {{if ne .Username $.User.Username}}
+                      {{if and $.User $.User.Username (ne .Username $.User.Username)}}
                       <button class="btn btn-outline-danger js-remove-user" 
                               data-username="{{.Username}}" 
                               data-role="{{.Role}}" 
@@ -394,6 +314,13 @@
                   </td>
                 </tr>
                 {{end}}
+                {{else}}
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-4">
+                    <i class="bi bi-person-plus fs-2 d-block mb-2"></i>
+                    No users found. <a href="/new-user" class="text-decoration-none">Add your first user</a>
+                  </td>
+                </tr>
                 {{end}}
               </tbody>
             </table>
@@ -434,6 +361,38 @@
     const modal = new bootstrap.Modal(document.getElementById('removeUserModal'));
     const confirmBtn = document.getElementById('confirmRemoveBtn');
 
+    // Calculate real metrics from template data
+    {{if .Users}}
+    const users = [
+      {{range .Users}}
+      {username: "{{.Username}}", role: "{{.Role}}"},
+      {{end}}
+    ];
+    
+    const driverCount = users.filter(user => user.role === 'driver').length;
+    const managerCount = users.filter(user => user.role === 'manager').length;
+    
+    // Update the counts
+    document.getElementById('activeDrivers').textContent = driverCount;
+    document.getElementById('managerCount').textContent = managerCount;
+    {{else}}
+    document.getElementById('activeDrivers').textContent = '0';
+    document.getElementById('managerCount').textContent = '0';
+    {{end}}
+
+    // Update current time
+    function updateTime() {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('en-US', { 
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      document.getElementById('currentTime').textContent = timeString;
+    }
+    updateTime();
+    setInterval(updateTime, 1000);
+
     document.addEventListener('click', function(e) {
       // Handle edit user button clicks
       if (e.target.closest('.js-edit-user')) {
@@ -463,6 +422,20 @@
       confirmBtn.disabled = true;
       confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Removing…';
       window.location = '/remove-user?username=' + encodeURIComponent(username);
+    });
+
+    // Add some animation to metric cards
+    const metricCards = document.querySelectorAll('.metric-card');
+    metricCards.forEach((card, index) => {
+      setTimeout(() => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = 'all 0.5s ease';
+        setTimeout(() => {
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, 100);
+      }, index * 150);
     });
   });
 </script>
