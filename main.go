@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"database/sql"    ///below Post mgration
+	_ "github.com/lib/pq"
 )
 
 type User struct {
@@ -228,6 +230,467 @@ func init() {
 
 	log.Println("Templates loaded successfully")
 }
+// Add this to your main.go file Migration
+
+var db *sql.DB
+
+// Database initialization function
+func initDatabase() error {
+	// Railway automatically provides DATABASE_URL environment variable
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		return fmt.Errorf("DATABASE_URL environment variable not set")
+	}
+
+	var err error
+	db, err = sql.Open("postgres", databaseURL)
+	if err != nil {
+		return fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	if err = db.Ping(); err != nil {
+		return fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	log.Println("✅ Connected to PostgreSQL database")
+	return createTables()
+}
+
+// Create all necessary tables
+func createTables() error {
+	queries := []string{
+		// Users table
+		`CREATE TABLE IF NOT EXISTS users (
+			id SERIAL PRIMARY KEY,
+			username VARCHAR(255) UNIQUE NOT NULL,
+			password VARCHAR(255) NOT NULL,
+			role VARCHAR(50) NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// Buses table
+		`CREATE TABLE IF NOT EXISTS buses (
+			id SERIAL PRIMARY KEY,
+			bus_id VARCHAR(255) UNIQUE NOT NULL,
+			status VARCHAR(50) NOT NULL DEFAULT 'active',
+			model VARCHAR(255),
+			capacity INTEGER DEFAULT 0,
+			oil_status VARCHAR(50) DEFAULT 'good',
+			tire_status VARCHAR(50) DEFAULT 'good',
+			maintenance_notes TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// Routes table
+		`CREATE TABLE IF NOT EXISTS routes (
+			id SERIAL PRIMARY KEY,
+			route_id VARCHAR(255) UNIQUE NOT NULL,
+			route_name VARCHAR(255) NOT NULL,
+			positions JSONB,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// Students table
+		`CREATE TABLE IF NOT EXISTS students (
+			id SERIAL PRIMARY KEY,
+			student_id VARCHAR(255) UNIQUE NOT NULL,
+			name VARCHAR(255) NOT NULL,
+			locations JSONB,
+			phone_number VARCHAR(50),
+			alt_phone_number VARCHAR(50),
+			guardian VARCHAR(255),
+			pickup_time TIME,
+			dropoff_time TIME,
+			position_number INTEGER,
+			route_id VARCHAR(255),
+			driver VARCHAR(255),
+			active BOOLEAN DEFAULT true,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (route_id) REFERENCES routes(route_id),
+			FOREIGN KEY (driver) REFERENCES users(username)
+		)`,
+
+		// Route assignments table
+		`CREATE TABLE IF NOT EXISTS route_assignments (
+			id SERIAL PRIMARY KEY,
+			driver VARCHAR(255) NOT NULL,
+			bus_id VARCHAR(255) NOT NULL,
+			route_id VARCHAR(255) NOT NULL,
+			route_name VARCHAR(255),
+			assigned_date DATE,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (driver) REFERENCES users(username),
+			FOREIGN KEY (bus_id) REFERENCES buses(bus_id),
+			FOREIGN KEY (route_id) REFERENCES routes(route_id)
+		)`,
+
+		// Driver logs table
+		`CREATE TABLE IF NOT EXISTS driver_logs (
+			id SERIAL PRIMARY KEY,
+			driver VARCHAR(255) NOT NULL,
+			bus_id VARCHAR(255),
+			route_id VARCHAR(255),
+			date DATE NOT NULL,
+			period VARCHAR(50) NOT NULL,
+			departure_time VARCHAR(10),
+			arrival_time VARCHAR(10),
+			mileage DECIMAL(10,2) DEFAULT 0,
+			attendance JSONB,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(driver, date, period),
+			FOREIGN KEY (driver) REFERENCES users(username)
+		)`,
+
+		// Maintenance logs table
+		`CREATE TABLE IF NOT EXISTS maintenance_logs (
+			id SERIAL PRIMARY KEY,
+			bus_id VARCHAR(255) NOT NULL,
+			date DATE NOT NULL,
+			category VARCHAR(100),
+			notes TEXT,
+			mileage INTEGER DEFAULT 0,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (bus_id) REFERENCES buses(bus_id)
+		)`,
+
+		// Vehicles table (for company fleet)
+		`CREATE TABLE IF NOT EXISTS vehicles (
+			id SERIAL PRIMARY KEY,
+			vehicle_id VARCHAR(255) UNIQUE NOT NULL,
+			model VARCHAR(255),
+			description TEXT,
+			year VARCHAR(4),
+			tire_size VARCHAR(50),
+			license VARCHAR(50),
+			oil_status VARCHAR(50) DEFAULT 'good',
+			tire_status VARCHAR(50) DEFAULT 'good',
+			status VARCHAR(50) DEFAULT 'active',
+			maintenance_notes TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+	}
+
+	for _, query := range queries {
+		if _, err := db.Exec(query); err != nil {
+			return fmt.Errorf("failed to create table: %w", err)
+		}
+	}
+
+	log.Println("✅ Database tables created successfully")
+	return nil
+}
+
+// Migration function to move JSON data to PostgreSQL
+func migrateJSONToPostgreSQL() error {
+	log.Println("🔄 Starting migration from JSON files to PostgreSQL...")
+
+	// Migrate Users
+	if err := migrateUsers(); err != nil {
+		log.Printf("❌ Failed to migrate users: %v", err)
+		return err
+	}
+
+	// Migrate Buses
+	if err := migrateBuses(); err != nil {
+		log.Printf("❌ Failed to migrate buses: %v", err)
+		return err
+	}
+
+	// Migrate Routes
+	if err := migrateRoutes(); err != nil {
+		log.Printf("❌ Failed to migrate routes: %v", err)
+		return err
+	}
+
+	// Migrate Students
+	if err := migrateStudents(); err != nil {
+		log.Printf("❌ Failed to migrate students: %v", err)
+		return err
+	}
+
+	// Migrate Route Assignments
+	if err := migrateRouteAssignments(); err != nil {
+		log.Printf("❌ Failed to migrate route assignments: %v", err)
+		return err
+	}
+
+	// Migrate Driver Logs
+	if err := migrateDriverLogs(); err != nil {
+		log.Printf("❌ Failed to migrate driver logs: %v", err)
+		return err
+	}
+
+	// Migrate Maintenance Logs
+	if err := migrateMaintenanceLogs(); err != nil {
+		log.Printf("❌ Failed to migrate maintenance logs: %v", err)
+		return err
+	}
+
+	// Migrate Vehicles
+	if err := migrateVehicles(); err != nil {
+		log.Printf("❌ Failed to migrate vehicles: %v", err)
+		return err
+	}
+
+	log.Println("✅ Migration completed successfully!")
+	return nil
+}
+
+func migrateUsers() error {
+	users := loadUsers()
+	if len(users) == 0 {
+		log.Println("📝 No users to migrate")
+		return nil
+	}
+
+	for _, user := range users {
+		_, err := db.Exec(`
+			INSERT INTO users (username, password, role) 
+			VALUES ($1, $2, $3) 
+			ON CONFLICT (username) DO UPDATE SET 
+				password = EXCLUDED.password,
+				role = EXCLUDED.role
+		`, user.Username, user.Password, user.Role)
+		
+		if err != nil {
+			return fmt.Errorf("failed to insert user %s: %w", user.Username, err)
+		}
+	}
+
+	log.Printf("✅ Migrated %d users", len(users))
+	return nil
+}
+
+func migrateBuses() error {
+	buses := loadBuses()
+	if len(buses) == 0 {
+		log.Println("📝 No buses to migrate")
+		return nil
+	}
+
+	for _, bus := range buses {
+		_, err := db.Exec(`
+			INSERT INTO buses (bus_id, status, model, capacity, oil_status, tire_status, maintenance_notes) 
+			VALUES ($1, $2, $3, $4, $5, $6, $7) 
+			ON CONFLICT (bus_id) DO UPDATE SET 
+				status = EXCLUDED.status,
+				model = EXCLUDED.model,
+				capacity = EXCLUDED.capacity,
+				oil_status = EXCLUDED.oil_status,
+				tire_status = EXCLUDED.tire_status,
+				maintenance_notes = EXCLUDED.maintenance_notes,
+				updated_at = CURRENT_TIMESTAMP
+		`, bus.BusID, bus.Status, bus.Model, bus.Capacity, bus.OilStatus, bus.TireStatus, bus.MaintenanceNotes)
+		
+		if err != nil {
+			return fmt.Errorf("failed to insert bus %s: %w", bus.BusID, err)
+		}
+	}
+
+	log.Printf("✅ Migrated %d buses", len(buses))
+	return nil
+}
+
+func migrateRoutes() error {
+	routes, err := loadRoutes()
+	if err != nil {
+		log.Println("📝 No routes to migrate")
+		return nil
+	}
+
+	for _, route := range routes {
+		positionsJSON, _ := json.Marshal(route.Positions)
+		
+		_, err := db.Exec(`
+			INSERT INTO routes (route_id, route_name, positions) 
+			VALUES ($1, $2, $3) 
+			ON CONFLICT (route_id) DO UPDATE SET 
+				route_name = EXCLUDED.route_name,
+				positions = EXCLUDED.positions
+		`, route.RouteID, route.RouteName, positionsJSON)
+		
+		if err != nil {
+			return fmt.Errorf("failed to insert route %s: %w", route.RouteID, err)
+		}
+	}
+
+	log.Printf("✅ Migrated %d routes", len(routes))
+	return nil
+}
+
+func migrateStudents() error {
+	students := loadStudents()
+	if len(students) == 0 {
+		log.Println("📝 No students to migrate")
+		return nil
+	}
+
+	for _, student := range students {
+		locationsJSON, _ := json.Marshal(student.Locations)
+		
+		_, err := db.Exec(`
+			INSERT INTO students (student_id, name, locations, phone_number, alt_phone_number, 
+				guardian, pickup_time, dropoff_time, position_number, route_id, driver, active) 
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
+			ON CONFLICT (student_id) DO UPDATE SET 
+				name = EXCLUDED.name,
+				locations = EXCLUDED.locations,
+				phone_number = EXCLUDED.phone_number,
+				alt_phone_number = EXCLUDED.alt_phone_number,
+				guardian = EXCLUDED.guardian,
+				pickup_time = EXCLUDED.pickup_time,
+				dropoff_time = EXCLUDED.dropoff_time,
+				position_number = EXCLUDED.position_number,
+				route_id = EXCLUDED.route_id,
+				driver = EXCLUDED.driver,
+				active = EXCLUDED.active
+		`, student.StudentID, student.Name, locationsJSON, student.PhoneNumber, student.AltPhoneNumber,
+		   student.Guardian, student.PickupTime, student.DropoffTime, student.PositionNumber, 
+		   student.RouteID, student.Driver, student.Active)
+		
+		if err != nil {
+			return fmt.Errorf("failed to insert student %s: %w", student.StudentID, err)
+		}
+	}
+
+	log.Printf("✅ Migrated %d students", len(students))
+	return nil
+}
+
+func migrateRouteAssignments() error {
+	assignments, err := loadRouteAssignments()
+	if err != nil {
+		log.Println("📝 No route assignments to migrate")
+		return nil
+	}
+
+	for _, assignment := range assignments {
+		_, err := db.Exec(`
+			INSERT INTO route_assignments (driver, bus_id, route_id, route_name, assigned_date) 
+			VALUES ($1, $2, $3, $4, $5) 
+			ON CONFLICT (driver) DO UPDATE SET 
+				bus_id = EXCLUDED.bus_id,
+				route_id = EXCLUDED.route_id,
+				route_name = EXCLUDED.route_name,
+				assigned_date = EXCLUDED.assigned_date
+		`, assignment.Driver, assignment.BusID, assignment.RouteID, assignment.RouteName, assignment.AssignedDate)
+		
+		if err != nil {
+			return fmt.Errorf("failed to insert assignment for driver %s: %w", assignment.Driver, err)
+		}
+	}
+
+	log.Printf("✅ Migrated %d route assignments", len(assignments))
+	return nil
+}
+
+func migrateDriverLogs() error {
+	logs, err := loadDriverLogs()
+	if err != nil {
+		log.Println("📝 No driver logs to migrate")
+		return nil
+	}
+
+	for _, log := range logs {
+		attendanceJSON, _ := json.Marshal(log.Attendance)
+		
+		_, err := db.Exec(`
+			INSERT INTO driver_logs (driver, bus_id, route_id, date, period, departure_time, 
+				arrival_time, mileage, attendance) 
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+			ON CONFLICT (driver, date, period) DO UPDATE SET 
+				bus_id = EXCLUDED.bus_id,
+				route_id = EXCLUDED.route_id,
+				departure_time = EXCLUDED.departure_time,
+				arrival_time = EXCLUDED.arrival_time,
+				mileage = EXCLUDED.mileage,
+				attendance = EXCLUDED.attendance
+		`, log.Driver, log.BusID, log.RouteID, log.Date, log.Period, log.Departure,
+		   log.Arrival, log.Mileage, attendanceJSON)
+		
+		if err != nil {
+			return fmt.Errorf("failed to insert driver log for %s: %w", log.Driver, err)
+		}
+	}
+
+	log.Printf("✅ Migrated %d driver logs", len(logs))
+	return nil
+}
+
+func migrateMaintenanceLogs() error {
+	logs := loadMaintenanceLogs()
+	if len(logs) == 0 {
+		log.Println("📝 No maintenance logs to migrate")
+		return nil
+	}
+
+	for _, log := range logs {
+		_, err := db.Exec(`
+			INSERT INTO maintenance_logs (bus_id, date, category, notes, mileage) 
+			VALUES ($1, $2, $3, $4, $5)
+		`, log.BusID, log.Date, log.Category, log.Notes, log.Mileage)
+		
+		if err != nil {
+			return fmt.Errorf("failed to insert maintenance log for bus %s: %w", log.BusID, err)
+		}
+	}
+
+	log.Printf("✅ Migrated %d maintenance logs", len(logs))
+	return nil
+}
+
+func migrateVehicles() error {
+	vehicles := loadVehicles()
+	if len(vehicles) == 0 {
+		log.Println("📝 No vehicles to migrate")
+		return nil
+	}
+
+	for _, vehicle := range vehicles {
+		_, err := db.Exec(`
+			INSERT INTO vehicles (vehicle_id, model, description, year, tire_size, license, 
+				oil_status, tire_status, status, maintenance_notes) 
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+			ON CONFLICT (vehicle_id) DO UPDATE SET 
+				model = EXCLUDED.model,
+				description = EXCLUDED.description,
+				year = EXCLUDED.year,
+				tire_size = EXCLUDED.tire_size,
+				license = EXCLUDED.license,
+				oil_status = EXCLUDED.oil_status,
+				tire_status = EXCLUDED.tire_status,
+				status = EXCLUDED.status,
+				maintenance_notes = EXCLUDED.maintenance_notes
+		`, vehicle.VehicleID, vehicle.Model, vehicle.Description, vehicle.Year, vehicle.TireSize,
+		   vehicle.License, vehicle.OilStatus, vehicle.TireStatus, vehicle.Status, vehicle.MaintenanceNotes)
+		
+		if err != nil {
+			return fmt.Errorf("failed to insert vehicle %s: %w", vehicle.VehicleID, err)
+		}
+	}
+
+	log.Printf("✅ Migrated %d vehicles", len(vehicles))
+	return nil
+}
+
+// Add this to your main() function, BEFORE starting the server
+func setupDatabase() {
+	log.Println("🗄️  Setting up database...")
+	
+	if err := initDatabase(); err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+
+	// Run migration if JSON files exist
+	if _, err := os.Stat("data"); err == nil {
+		if err := migrateJSONToPostgreSQL(); err != nil {
+			log.Printf("⚠️  Migration failed: %v", err)
+			log.Println("Continuing with database setup...")
+		}
+	}
+}
+//end off post mgration
 
 // Helper function to safely execute templates
 func executeTemplate(w http.ResponseWriter, name string, data interface{}) {
