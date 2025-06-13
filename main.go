@@ -2201,6 +2201,26 @@ func initDataFiles() {
 		log.Println("Created and seeded data/buses.json with ID-based structure")
 	}
 
+	// Create vehicle.json if it doesn't exist
+	if _, err := os.Stat("data/vehicle.json"); os.IsNotExist(err) {
+		defaultVehicles := []Vehicle{
+			{VehicleID: "VEH001", Model: "Ford F-150", Year: "2022", License: "ABC123", Status: "active", OilStatus: "good", TireStatus: "good"},
+			{VehicleID: "VEH002", Model: "Chevrolet Silverado", Year: "2021", License: "XYZ789", Status: "active", OilStatus: "needs_service", TireStatus: "worn"},
+		}
+		f, err := os.OpenFile("data/vehicle.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		if err != nil {
+			log.Printf("Warning: failed to create vehicle.json: %v", err)
+			return
+		}
+		defer f.Close()
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(defaultVehicles); err != nil {
+			log.Printf("Warning: failed to encode vehicles to json: %v", err)
+			return
+		}
+		log.Println("Created and seeded data/vehicle.json")
+	}
 	// Create students.json if it doesn't exist
 	if _, err := os.Stat("data/students.json"); os.IsNotExist(err) {
 		defaultStudents := []Student{}
@@ -2507,6 +2527,7 @@ func main() {
 
 	// Setup HTTP routes with recovery middleware
 	log.Println("Setting up HTTP routes...")
+	http.HandleFunc("/edit-user", withRecovery(editUserPage))
 	http.HandleFunc("/", withRecovery(rootHealthCheck))
 	http.HandleFunc("/new-user", withRecovery(newUserPage))
 	http.HandleFunc("/dashboard", withRecovery(dashboardRouter))
