@@ -129,6 +129,21 @@
       background: var(--grad-primary);
     }
     
+    .btn-success {
+      background: var(--grad-success);
+      border: none;
+      padding: 0.75rem 2rem;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-success:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+      background: var(--grad-success);
+    }
+    
     .btn-outline-danger {
       border: 2px solid #dc3545;
       color: #dc3545;
@@ -352,6 +367,58 @@
 
       <!-- Assignment Form Section -->
       <div class="col-lg-5">
+        <!-- Add Route Section -->
+        <div class="enhanced-card mb-4">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5><i class="bi bi-signpost-2-fill me-2"></i>Add New Route</h5>
+            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addRouteForm" aria-expanded="false">
+              <i class="bi bi-plus-lg me-1"></i>Add Route
+            </button>
+          </div>
+          <div class="collapse" id="addRouteForm">
+            <div class="card-body">
+              <form method="POST" action="/add-route" id="routeForm">
+                <div class="mb-3">
+                  <label for="route_name" class="form-label">
+                    <i class="bi bi-signpost me-2"></i>Route Name
+                  </label>
+                  <input type="text" id="route_name" name="route_name" class="form-control" 
+                         placeholder="e.g., Downtown Loop, Airport Express" required>
+                </div>
+                
+                <div class="mb-3">
+                  <label for="route_description" class="form-label">
+                    <i class="bi bi-card-text me-2"></i>Description
+                  </label>
+                  <textarea id="route_description" name="route_description" class="form-control" 
+                            rows="2" placeholder="Brief description of the route"></textarea>
+                </div>
+                
+                <div class="row">
+                  <div class="col-md-6">
+                    <label for="start_point" class="form-label">
+                      <i class="bi bi-geo-alt me-2"></i>Start Point
+                    </label>
+                    <input type="text" id="start_point" name="start_point" class="form-control" 
+                           placeholder="Starting location">
+                  </div>
+                  <div class="col-md-6">
+                    <label for="end_point" class="form-label">
+                      <i class="bi bi-geo-alt-fill me-2"></i>End Point
+                    </label>
+                    <input type="text" id="end_point" name="end_point" class="form-control" 
+                           placeholder="Ending location">
+                  </div>
+                </div>
+                
+                <button type="submit" class="btn btn-success w-100 mt-3">
+                  <i class="bi bi-plus-circle me-2"></i>Create Route
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
         <div class="enhanced-card">
           <div class="card-header">
             <h5><i class="bi bi-plus-circle-fill me-2"></i>Create New Assignment</h5>
@@ -458,11 +525,11 @@
         }, index * 200);
       });
 
-      // Form validation feedback
-      const form = document.getElementById('assignmentForm');
-      const selects = form.querySelectorAll('select');
+      // Form validation feedback for assignment form
+      const assignmentForm = document.getElementById('assignmentForm');
+      const assignmentSelects = assignmentForm.querySelectorAll('select');
       
-      selects.forEach(select => {
+      assignmentSelects.forEach(select => {
         select.addEventListener('change', function() {
           if (this.value) {
             this.style.borderColor = '#28a745';
@@ -472,10 +539,31 @@
         });
       });
 
-      // Add loading state to form submission
-      form.addEventListener('submit', function(e) {
-        const submitBtn = form.querySelector('button[type="submit"]');
+      // Form validation feedback for route form
+      const routeForm = document.getElementById('routeForm');
+      const routeInputs = routeForm.querySelectorAll('input[required], textarea');
+      
+      routeInputs.forEach(input => {
+        input.addEventListener('input', function() {
+          if (this.value.trim()) {
+            this.style.borderColor = '#28a745';
+          } else {
+            this.style.borderColor = '#e9ecef';
+          }
+        });
+      });
+
+      // Add loading state to assignment form submission
+      assignmentForm.addEventListener('submit', function(e) {
+        const submitBtn = assignmentForm.querySelector('button[type="submit"]');
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating Assignment...';
+        submitBtn.disabled = true;
+      });
+
+      // Add loading state to route form submission
+      routeForm.addEventListener('submit', function(e) {
+        const submitBtn = routeForm.querySelector('button[type="submit"]');
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating Route...';
         submitBtn.disabled = true;
       });
 
@@ -488,6 +576,13 @@
           }
         });
       });
+
+      // Auto-expand route form if no routes available
+      {{if not .AvailableRoutes}}
+      const addRouteCollapse = new bootstrap.Collapse(document.getElementById('addRouteForm'), {
+        show: true
+      });
+      {{end}}
     });
   </script>
 </body>
