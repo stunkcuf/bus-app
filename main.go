@@ -828,17 +828,26 @@ func saveUsersToJSON(users []User) error {
 }
 
 // Load buses - PostgreSQL first, JSON fallback
+// Load buses - PostgreSQL first, JSON fallback - NEVER returns nil
 func loadBuses() []*Bus {
+	// Initialize with empty slice to ensure we never return nil
+	buses := make([]*Bus, 0)
+	
 	if db != nil {
 		rows, err := db.Query(`SELECT bus_id, status, model, capacity, oil_status, tire_status, maintenance_notes 
 			FROM buses ORDER BY bus_id`)
 		if err != nil {
 			log.Printf("Error loading buses from database: %v", err)
-			return loadBusesFromJSON()
+			// Try JSON fallback
+			jsonBuses := loadBusesFromJSON()
+			if jsonBuses != nil {
+				return jsonBuses
+			}
+			// Return empty slice, not nil
+			return buses
 		}
 		defer rows.Close()
 
-		var buses []*Bus
 		for rows.Next() {
 			bus := &Bus{}
 			err := rows.Scan(&bus.BusID, &bus.Status, &bus.Model, &bus.Capacity, 
@@ -849,32 +858,47 @@ func loadBuses() []*Bus {
 			}
 			buses = append(buses, bus)
 		}
+		
+		log.Printf("Loaded %d buses from database", len(buses))
 		return buses
 	}
-	return loadBusesFromJSON()
+	
+	// No database, use JSON
+	jsonBuses := loadBusesFromJSON()
+	if jsonBuses != nil {
+		return jsonBuses
+	}
+	
+	// Always return at least an empty slice
+	return buses
 }
 
 func loadBusesFromJSON() []*Bus {
+	// Initialize with empty slice
+	buses := make([]*Bus, 0)
+	
 	f, err := os.Open("data/buses.json")
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Printf("buses.json not found, returning empty slice")
-			return []*Bus{}
+			return buses // Return empty slice, not nil
 		}
 		log.Printf("Error opening buses.json: %v", err)
-		return []*Bus{}
+		return buses // Return empty slice, not nil
 	}
 	defer f.Close()
 
-	var buses []*Bus
 	decoder := json.NewDecoder(f)
 	if err := decoder.Decode(&buses); err != nil {
 		log.Printf("Error decoding buses.json: %v", err)
-		return []*Bus{}
+		// Reset to empty slice on decode error
+		buses = make([]*Bus, 0)
+		return buses
 	}
+	
+	log.Printf("Loaded %d buses from JSON", len(buses))
 	return buses
 }
-
 // Save buses - PostgreSQL first, JSON fallback
 func saveBuses(buses []*Bus) error {
 	if db != nil {
