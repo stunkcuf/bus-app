@@ -1336,6 +1336,317 @@ func saveVehiclesToJSON(vehicles []Vehicle) error {
 	enc.SetIndent("", "  ")
 	return enc.Encode(vehicles)
 }
+// Update the createTables function to handle schema evolution
+func createTables() error {
+	queries := []string{
+		// Users table
+		`CREATE TABLE IF NOT EXISTS users (
+			id SERIAL PRIMARY KEY,
+			username VARCHAR(255) UNIQUE NOT NULL,
+			password VARCHAR(255) NOT NULL,
+			role VARCHAR(50) NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// Buses table
+		`CREATE TABLE IF NOT EXISTS buses (
+			id SERIAL PRIMARY KEY,
+			bus_id VARCHAR(255) UNIQUE NOT NULL,
+			status VARCHAR(50) NOT NULL DEFAULT 'active',
+			model VARCHAR(255),
+			capacity INTEGER DEFAULT 0,
+			oil_status VARCHAR(50) DEFAULT 'good',
+			tire_status VARCHAR(50) DEFAULT 'good',
+			maintenance_notes TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// Routes table
+		`CREATE TABLE IF NOT EXISTS routes (
+			id SERIAL PRIMARY KEY,
+			route_id VARCHAR(255) UNIQUE NOT NULL,
+			route_name VARCHAR(255) NOT NULL,
+			description TEXT,
+			positions JSONB,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// Students table
+		`CREATE TABLE IF NOT EXISTS students (
+			id SERIAL PRIMARY KEY,
+			student_id VARCHAR(255) UNIQUE NOT NULL,
+			name VARCHAR(255) NOT NULL,
+			locations JSONB,
+			phone_number VARCHAR(50),
+			alt_phone_number VARCHAR(50),
+			guardian VARCHAR(255),
+			pickup_time TIME,
+			dropoff_time TIME,
+			position_number INTEGER,
+			route_id VARCHAR(255),
+			driver VARCHAR(255),
+			active BOOLEAN DEFAULT true,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// Route assignments table
+		`CREATE TABLE IF NOT EXISTS route_assignments (
+			id SERIAL PRIMARY KEY,
+			driver VARCHAR(255) NOT NULL,
+			bus_id VARCHAR(255) NOT NULL,
+			route_id VARCHAR(255) NOT NULL,
+			route_name VARCHAR(255),
+			assigned_date DATE,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(driver)
+		)`,
+
+		// Driver logs table
+		`CREATE TABLE IF NOT EXISTS driver_logs (
+			id SERIAL PRIMARY KEY,
+			driver VARCHAR(255) NOT NULL,
+			bus_id VARCHAR(255),
+			route_id VARCHAR(255),
+			date DATE NOT NULL,
+			period VARCHAR(50) NOT NULL,
+			departure_time VARCHAR(10),
+			arrival_time VARCHAR(10),
+			mileage DECIMAL(10,2) DEFAULT 0,
+			attendance JSONB,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(driver, date, period)
+		)`,
+
+		// Maintenance logs table
+		`CREATE TABLE IF NOT EXISTS maintenance_logs (
+			id SERIAL PRIMARY KEY,
+			bus_id VARCHAR(255) NOT NULL,
+			date DATE NOT NULL,
+			category VARCHAR(100),
+			notes TEXT,
+			mileage INTEGER DEFAULT 0,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// Vehicles table (for company fleet)
+		`CREATE TABLE IF NOT EXISTS vehicles (
+			id SERIAL PRIMARY KEY,
+			vehicle_id VARCHAR(255) UNIQUE NOT NULL,
+			model VARCHAR(255),
+			description TEXT,
+			year VARCHAR(4),
+			tire_size VARCHAR(50),
+			license VARCHAR(50),
+			oil_status VARCHAR(50) DEFAULT 'good',
+			tire_status VARCHAR(50) DEFAULT 'good',
+			status VARCHAR(50) DEFAULT 'active',
+			maintenance_notes TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+	}
+
+	for _, query := range queries {
+		if _, err := db.Exec(query); err != nil {
+			return fmt.Errorf("failed to create table: %w", err)
+		}
+	}
+
+	log.Println("✅ Database tables created successfully")
+	
+	// Now add missing columns if they don't exist (for schema evolution)
+	if err := ensureSchemaUpdates(); err != nil {
+		return fmt.Errorf("failed to update schema: %w", err)
+	}
+	
+	return nil
+}
+
+// New function to handle schema evolution
+func ensureSchemaUpdates() error {
+	log.Println("🔧 Checking for schema updates...")
+	
+	// Add missing columns if they don't exist
+	schemaUpdates := []struct {
+		table      string
+		column     string
+		definition string
+	}{
+		{"routes", "description", "ALTER TABLE routes ADD COLUMN IF NOT EXISTS description TEXT"},
+		{"vehicles", "serial_number", "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS serial_number VARCHAR(255)"},
+		{"vehicles", "base", "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS base VARCHAR(255)"},
+		{"buses", "updated_at", "ALTER TABLE buses ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"},
+	}
+
+	for _, update := range schemaUpdates {
+		// Check if column exists
+		var exists bool
+		checkQuery := `
+			SELECT EXISTS (
+				SELECT 1 FROM information_schema.columns 
+				WHERE table_name = $1 AND column_name = $2
+			)
+		`
+		err := db.QueryRow(checkQuery, update.table, update.column).Scan(&exists)
+		if err != nil {
+			log.Printf("⚠️  Error checking column %s.%s: %v", update.table, update.column, err)
+			continue
+		}
+
+		if !exists {
+			log.Printf("📝 Adding missing column %s.%s", update.table, update.column)
+			if _, err := db.Exec(update.definition); err != nil {
+				log.Printf("❌ Failed to add column %s.%s: %v", update.table, update.column, err)
+				// Don't fail completely, just log the error
+			} else {
+				log.Printf("✅ Added column %s.%s", update.table, update.column)
+			}
+		}
+	}
+
+	return nil
+}
+
+// Alternative quick fix: Update migrateRoutes to handle missing description column
+func migrateRoutes() error {
+	routes, err := loadJSON[Route]("data/routes.json")
+	if err != nil {
+		log.Println("📝 No routes to migrate")
+		return nil
+	}
+
+	for _, route := range routes {
+		positionsJSON, _ := json.Marshal(route.Positions)
+		
+		// First try with description column
+		_, err := db.Exec(`
+			INSERT INTO routes (route_id, route_name, description, positions) 
+			VALUES ($1, $2, $3, $4) 
+			ON CONFLICT (route_id) DO UPDATE SET 
+				route_name = EXCLUDED.route_name,
+				description = EXCLUDED.description,
+				positions = EXCLUDED.positions
+		`, route.RouteID, route.RouteName, route.Description, positionsJSON)
+		
+		if err != nil {
+			// If it fails due to missing description column, try without it
+			if strings.Contains(err.Error(), "column \"description\"") {
+				log.Printf("⚠️  Description column missing, migrating without it for route %s", route.RouteID)
+				_, err = db.Exec(`
+					INSERT INTO routes (route_id, route_name, positions) 
+					VALUES ($1, $2, $3) 
+					ON CONFLICT (route_id) DO UPDATE SET 
+						route_name = EXCLUDED.route_name,
+						positions = EXCLUDED.positions
+				`, route.RouteID, route.RouteName, positionsJSON)
+				
+				if err != nil {
+					return fmt.Errorf("failed to insert route %s without description: %w", route.RouteID, err)
+				}
+			} else {
+				return fmt.Errorf("failed to insert route %s: %w", route.RouteID, err)
+			}
+		}
+	}
+
+	log.Printf("✅ Migrated %d routes", len(routes))
+	return nil
+}
+
+// Update the addRoute function to handle missing description column gracefully
+func addRoute(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	r.ParseForm()
+	routeName := r.FormValue("route_name")
+	description := r.FormValue("description")
+
+	if routeName == "" {
+		http.Error(w, "Route name is required", http.StatusBadRequest)
+		return
+	}
+
+	// Load existing routes
+	routes, err := loadRoutes()
+	if err != nil {
+		log.Printf("Error loading routes: %v", err)
+		routes = []Route{} // Start with empty if load fails
+	}
+
+	// Generate unique route ID
+	routeID := fmt.Sprintf("RT%03d", len(routes)+1)
+
+	// Create new route
+	newRoute := Route{
+		RouteID:     routeID,
+		RouteName:   routeName,
+		Description: description,
+		Positions: []struct {
+			Position int    `json:"position"`
+			Student  string `json:"student"`
+		}{}, // Empty positions initially
+	}
+
+	// Add to routes slice
+	routes = append(routes, newRoute)
+
+	// Save using your existing save system
+	if db != nil {
+		// Save to PostgreSQL
+		positionsJSON, _ := json.Marshal(newRoute.Positions)
+		
+		// First try with description
+		_, err := db.Exec(`
+			INSERT INTO routes (route_id, route_name, description, positions) 
+			VALUES ($1, $2, $3, $4)
+		`, newRoute.RouteID, newRoute.RouteName, newRoute.Description, positionsJSON)
+		
+		if err != nil {
+			// If description column doesn't exist, try without it
+			if strings.Contains(err.Error(), "column \"description\"") {
+				log.Printf("Description column missing, saving without it")
+				_, err = db.Exec(`
+					INSERT INTO routes (route_id, route_name, positions) 
+					VALUES ($1, $2, $3)
+				`, newRoute.RouteID, newRoute.RouteName, positionsJSON)
+			}
+			
+			if err != nil {
+				log.Printf("Error saving route to database: %v", err)
+				http.Error(w, "Unable to save route", http.StatusInternalServerError)
+				return
+			}
+		}
+	} else {
+		// Fallback to JSON
+		f, err := os.Create("data/routes.json")
+		if err != nil {
+			log.Printf("Error creating routes file: %v", err)
+			http.Error(w, "Unable to save route", http.StatusInternalServerError)
+			return
+		}
+		defer f.Close()
+		
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(routes); err != nil {
+			log.Printf("Error encoding routes: %v", err)
+			http.Error(w, "Unable to save route", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
+}
 
 // =============================================================================
 // HELPER FUNCTIONS (Keep existing)
