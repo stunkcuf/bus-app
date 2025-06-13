@@ -1,6 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Add this defensive JavaScript to your fleet.html template -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Defensive initialization - ensure buses is always an array
+    if (typeof buses === 'undefined' || buses === null) {
+        console.warn('Buses data is null or undefined, initializing as empty array');
+        buses = [];
+    }
+    
+    // Ensure buses is an array
+    if (!Array.isArray(buses)) {
+        console.error('Buses is not an array:', buses);
+        buses = [];
+    }
+    
+    console.log('Buses loaded from server:', buses);
+    console.log('Number of buses:', buses.length);
+    
+    updateSummaryCards();
+    updateBusCards();
+});
+
+function updateSummaryCards() {
+    // Defensive check
+    if (!buses || !Array.isArray(buses)) {
+        console.error('Cannot update summary cards: buses is not an array');
+        buses = [];
+    }
+    
+    const totalBuses = buses.length;
+    const activeBuses = buses.filter(b => b && b.status === 'active').length;
+    const maintenanceBuses = buses.filter(b => b && (b.status === 'maintenance' || b.status === 'out_of_service')).length;
+    const oilDue = buses.filter(b => b && (b.oil_status === 'due' || b.oil_status === 'overdue')).length;
+    const tireIssues = buses.filter(b => b && (b.tire_status === 'worn' || b.tire_status === 'replace')).length;
+
+    // Update the summary cards
+    document.getElementById('total-buses').textContent = totalBuses;
+    document.getElementById('active-buses').textContent = activeBuses;
+    document.getElementById('maintenance-buses').textContent = maintenanceBuses;
+    
+    // Update maintenance alerts if they exist
+    const oilAlerts = document.getElementById('oil-alerts');
+    if (oilAlerts) oilAlerts.textContent = oilDue;
+    
+    const tireAlerts = document.getElementById('tire-alerts');
+    if (tireAlerts) tireAlerts.textContent = tireIssues;
+}
+
+function updateBusCards() {
+    // Defensive check
+    if (!buses || !Array.isArray(buses)) {
+        console.error('Cannot update bus cards: buses is not an array');
+        return;
+    }
+    
+    const container = document.getElementById('bus-cards-container');
+    if (!container) {
+        console.error('Bus cards container not found');
+        return;
+    }
+    
+    // Clear existing cards
+    container.innerHTML = '';
+    
+    if (buses.length === 0) {
+        container.innerHTML = '<div class="col-12"><div class="alert alert-info">No buses found. Add a bus to get started.</div></div>';
+        return;
+    }
+    
+    // Render bus cards
+    buses.forEach(bus => {
+        if (!bus) return; // Skip null/undefined buses
+        
+        const card = createBusCard(bus);
+        container.appendChild(card);
+    });
+}
+
+function createBusCard(bus) {
+    // Create bus card HTML
+    const col = document.createElement('div');
+    col.className = 'col-md-6 col-lg-4 mb-3';
+    
+    // Safely access bus properties with defaults
+    const busId = bus.bus_id || 'Unknown';
+    const model = bus.model || 'Unknown Model';
+    const status = bus.status || 'unknown';
+    const capacity = bus.capacity || 0;
+    const oilStatus = bus.oil_status || 'unknown';
+    const tireStatus = bus.tire_status || 'unknown';
+    
+    col.innerHTML = `
+        <div class="card bus-card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Bus ${busId}</h5>
+                <span class="badge bg-${getStatusColor(status)}">${status}</span>
+            </div>
+            <div class="card-body">
+                <p><strong>Model:</strong> ${model}</p>
+                <p><strong>Capacity:</strong> ${capacity} passengers</p>
+                <p><strong>Oil Status:</strong> <span class="badge bg-${getMaintenanceColor(oilStatus)}">${oilStatus}</span></p>
+                <p><strong>Tire Status:</strong> <span class="badge bg-${getMaintenanceColor(tireStatus)}">${tireStatus}</span></p>
+            </div>
+        </div>
+    `;
+    
+    return col;
+}
+
+function getStatusColor(status) {
+    switch(status) {
+        case 'active': return 'success';
+        case 'maintenance': return 'warning';
+        case 'out_of_service': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+function getMaintenanceColor(status) {
+    switch(status) {
+        case 'good': return 'success';
+        case 'due': return 'warning';
+        case 'overdue': return 'danger';
+        case 'worn': return 'warning';
+        case 'replace': return 'danger';
+        default: return 'secondary';
+    }
+}
+</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fleet Management - Bus Management System</title>
