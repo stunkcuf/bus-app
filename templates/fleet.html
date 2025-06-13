@@ -1,245 +1,604 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Company Fleet Overview</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fleet Management - Bus Management System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    :root {
-      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      --active-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-      --maintenance-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    .card { margin-bottom: 20px; }
+    .status-active { color: #28a745; font-weight: bold; }
+    .status-maintenance { color: #ffc107; font-weight: bold; }
+    .status-out_of_service { color: #dc3545; font-weight: bold; }
+    .fleet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+    .bus-card { border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; }
+    .bus-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .bus-id { font-size: 1.2em; font-weight: bold; }
+    .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.85em; }
+    .status-active-bg { background-color: #d4edda; color: #155724; }
+    .status-maintenance-bg { background-color: #fff3cd; color: #856404; }
+    .status-out_of_service-bg { background-color: #f8d7da; color: #721c24; }
+
+    .status-container {
+      position: relative;
+      display: inline-block;
     }
 
-    body {
-      background: #f5f7fa;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    .status-indicator {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      margin-right: 5px;
+      cursor: pointer;
     }
 
-    .fleet-header {
-      background: var(--primary-gradient);
-      color: #fff;
-      padding: 1.5rem;
-      border-radius: 1rem;
-      margin-bottom: 2rem;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    .status-good { background-color: green; }
+    .status-due { background-color: yellow; }
+    .status-overdue { background-color: red; }
+    .status-worn { background-color: yellow; }
+    .status-replace { background-color: red; }
+    .status-active { background-color: green; }
+    .status-maintenance { background-color: yellow; }
+    .status-out_of_service { background-color: red; }
+    .status-unknown { background-color: gray; }
+
+    .status-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background-color: #f9f9f9;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      padding: 5px 0;
+      width: 150px;
+      z-index: 10;
+      display: none;
     }
 
-    #searchInput {
-      border-radius: 30px;
-      padding: 0.5rem 1rem;
+    .status-dropdown.show {
+      display: block;
     }
 
-    .table-container {
-      max-height: 70vh;
-      overflow-y: auto;
+    .status-option {
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 0.9em;
     }
 
-    .table thead th {
-      position: sticky;
-      top: 0;
-      background: #fff;
-      z-index: 5;
+    .status-option:hover {
+      background-color: #e9e9e9;
     }
-
-    .status-light {
-      border: none;
-      background: transparent;
-      padding: 2px 8px;
-    }
-
-    .oil-status-good .bi-circle-fill { color: #28a745; }
-    .oil-status-needs_service .bi-circle-fill { color: #ffc107; }
-    .oil-status-overdue .bi-circle-fill { color: #dc3545; }
-    .tire-status-good .bi-circle-fill { color: #28a745; }
-    .tire-status-worn .bi-circle-fill { color: #ffc107; }
-    .tire-status-replace .bi-circle-fill { color: #dc3545; }
-    .vehicle-status-active .bi-circle-fill { color: #28a745; }
-    .vehicle-status-maintenance .bi-circle-fill { color: #ffc107; }
-    .vehicle-status-out_of_service .bi-circle-fill { color: #dc3545; }
   </style>
 </head>
 <body>
-<main class="container-fluid py-4" aria-labelledby="pageTitle">
-  <header class="fleet-header d-flex justify-content-between align-items-center flex-wrap">
-    <h2 id="pageTitle" class="mb-3 mb-md-0">
-      <i class="bi bi-truck me-2"></i>Company Fleet Overview
-    </h2>
-    <div class="d-flex align-items-center gap-3">
-      <div class="input-group" style="width: 300px;">
-        <span class="input-group-text"><i class="bi bi-search"></i></span>
-        <input type="search" id="searchInput" class="form-control" placeholder="Search by ID, model, license..." />
+  <div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1>🚌 Fleet Management</h1>
+      <div>
+        <a href="/dashboard" class="btn btn-secondary me-2">📊 Dashboard</a>
+        <a href="/logout" class="btn btn-outline-danger">🚪 Logout</a>
       </div>
-      <nav class="d-flex gap-2">
-        <a href="/manager-dashboard" class="btn btn-outline-light btn-sm">
-          <i class="bi bi-arrow-left me-1"></i>Back
-        </a>
-        <a href="/logout" class="btn btn-outline-danger btn-sm">
-          <i class="bi bi-box-arrow-right me-1"></i>Logout
-        </a>
-      </nav>
     </div>
-  </header>
 
-  <section>
-    <div class="card shadow-sm">
-      <div class="card-header bg-white border-0">
-        <h5 class="fw-semibold mb-0"><i class="bi bi-list-ul me-2"></i>All Vehicles (<span>{{len .Vehicles}}</span>)</h5>
-      </div>
-      <div class="card-body p-0">
-        <div class="table-container">
-          <table class="table table-hover align-middle mb-0" id="fleetTable">
-            <thead class="table-light">
-              <tr>
-                <th>ID</th>
-                <th>Model / Description</th>
-                <th>Year</th>
-                <th>Tire Size</th>
-                <th>License</th>
-                <th>Oil</th>
-                <th>Tires</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {{range .Vehicles}}
-              <tr>
-                <td>{{.VehicleID}}</td>
-                <td>{{if .Model}}{{.Model}}{{else}}{{.Description}}{{end}}</td>
-                <td>{{.Year}}</td>
-                <td>{{if .TireSize}}{{.TireSize}}{{else}}<span class="text-muted">--</span>{{end}}</td>
-                <td>{{.License}}</td>
-                <td>
-                  <div class="dropdown">
-                    <button class="btn btn-sm status-light oil-status-{{.OilStatus}} dropdown-toggle update-status-btn" 
-                            type="button" 
-                            data-bs-toggle="dropdown"
-                            data-vehicle-id="{{.VehicleID}}"
-                            data-status-type="oil"
-                            data-current-status="{{.OilStatus}}">
-                      <i class="bi bi-circle-fill"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li><a href="#" class="dropdown-item status-option" data-value="good"><i class="bi bi-circle-fill text-success"></i> Good</a></li>
-                      <li><a href="#" class="dropdown-item status-option" data-value="needs_service"><i class="bi bi-circle-fill text-warning"></i> Needs Service</a></li>
-                      <li><a href="#" class="dropdown-item status-option" data-value="overdue"><i class="bi bi-circle-fill text-danger"></i> Overdue</a></li>
-                    </ul>
-                  </div>
-                </td>
-                <td>
-                  <div class="dropdown">
-                    <button class="btn btn-sm status-light tire-status-{{.TireStatus}} dropdown-toggle update-status-btn" 
-                            type="button" 
-                            data-bs-toggle="dropdown"
-                            data-vehicle-id="{{.VehicleID}}"
-                            data-status-type="tire"
-                            data-current-status="{{.TireStatus}}">
-                      <i class="bi bi-circle-fill"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li><a href="#" class="dropdown-item status-option" data-value="good"><i class="bi bi-circle-fill text-success"></i> Good</a></li>
-                      <li><a href="#" class="dropdown-item status-option" data-value="worn"><i class="bi bi-circle-fill text-warning"></i> Worn</a></li>
-                      <li><a href="#" class="dropdown-item status-option" data-value="replace"><i class="bi bi-circle-fill text-danger"></i> Replace</a></li>
-                    </ul>
-                  </div>
-                </td>
-                <td>
-                  <div class="dropdown">
-                    <button class="btn btn-sm status-light vehicle-status-{{.Status}} dropdown-toggle update-status-btn" 
-                            type="button" 
-                            data-bs-toggle="dropdown"
-                            data-vehicle-id="{{.VehicleID}}"
-                            data-status-type="status"
-                            data-current-status="{{.Status}}">
-                      <i class="bi bi-circle-fill"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li><a href="#" class="dropdown-item status-option" data-value="active"><i class="bi bi-circle-fill text-success"></i> Active</a></li>
-                      <li><a href="#" class="dropdown-item status-option" data-value="maintenance"><i class="bi bi-circle-fill text-warning"></i> Maintenance</a></li>
-                      <li><a href="#" class="dropdown-item status-option" data-value="out_of_service"><i class="bi bi-circle-fill text-danger"></i> Out of Service</a></li>
-                    </ul>
-                  </div>
-                </td>
-              </tr>
-              {{end}}
-            </tbody>
-          </table>
+    <!-- Fleet Summary Row -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5>📊 Fleet Summary</h5>
+          </div>
+          <div class="card-body">
+            {{if .Buses}}
+            <div class="row text-center">
+              <div class="col-3">
+                <div class="status-active-bg p-3 rounded">
+                  <div class="fs-2">{{len .Buses}}</div>
+                  <div>Total Buses</div>
+                </div>
+              </div>
+              <div class="col-3">
+                <div class="status-active-bg p-3 rounded">
+                  <div class="fs-2" id="active-count">0</div>
+                  <div>Active</div>
+                </div>
+              </div>
+              <div class="col-3">
+                <div class="status-maintenance-bg p-3 rounded">
+                  <div class="fs-2" id="maintenance-count">0</div>
+                  <div>Maintenance</div>
+                </div>
+              </div>
+              <div class="col-3">
+                <div class="status-out_of_service-bg p-3 rounded">
+                  <div class="fs-2" id="out-of-service-count">0</div>
+                  <div>Out of Service</div>
+                </div>
+              </div>
+            </div>
+            {{else}}
+            <p class="text-muted">No buses in fleet yet.</p>
+            {{end}}
+          </div>
         </div>
       </div>
     </div>
-  </section>
-</main>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const searchInput = document.getElementById('searchInput');
-    const tableRows = Array.from(document.querySelectorAll('#fleetTable tbody tr'));
+    <!-- Fleet Roster Row -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5>🚌 Fleet Roster</h5>
+          </div>
+          <div class="card-body">
+            {{if .Buses}}
+            <div class="fleet-grid">
+              {{range .Buses}}
+              <div class="bus-card">
+                <div class="bus-header">
+                  <div class="bus-id">Bus #{{.BusID}}</div>
+                  <span class="status-badge status-{{.Status}}-bg">
+                    {{if eq .Status "active"}}✅ Active{{end}}
+                    {{if eq .Status "maintenance"}}⚠️ Maintenance{{end}}
+                    {{if eq .Status "out_of_service"}}❌ Out of Service{{end}}
+                  </span>
+                </div>
 
-    function normalize(s) {
-      return s.toString().toLowerCase();
-    }
+                <div class="bus-details">
+                  <div><strong>Model:</strong> {{if .Model}}{{.Model}}{{else}}Not specified{{end}}</div>
+                  <div><strong>Capacity:</strong> {{.Capacity}} passengers</div>
+                  <div><strong>Oil:</strong> 
+                    <div class="status-container">
+                      <span class="status-toggle" data-bus="{{.BusID}}" data-type="oil" 
+                            title="Click to change oil status" style="cursor: pointer;">
+                        {{if eq .OilStatus "good"}}✅ {{.OilStatus}}{{else if eq .OilStatus "due"}}⚠️ {{.OilStatus}}{{else if eq .OilStatus "overdue"}}❌ {{.OilStatus}}{{else if .OilStatus}}{{.OilStatus}}{{else}}❓ unknown{{end}}
+                      </span>
+                      <div class="status-dropdown">
+                        <div class="status-option" data-value="good">Good</div>
+                        <div class="status-option" data-value="due">Due</div>
+                        <div class="status-option" data-value="overdue">Overdue</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div><strong>Tires:</strong> 
+                    <div class="status-container">
+                      <span class="status-toggle" data-bus="{{.BusID}}" data-type="tire" 
+                            title="Click to change tire status" style="cursor: pointer;">
+                        {{if eq .TireStatus "good"}}✅ {{.TireStatus}}{{else if eq .TireStatus "worn"}}⚠️ {{.TireStatus}}{{else if eq .TireStatus "replace"}}❌ {{.TireStatus}}{{else if .TireStatus}}{{.TireStatus}}{{else}}❓ unknown{{end}}
+                      </span>
+                      <div class="status-dropdown">
+                        <div class="status-option" data-value="good">Good</div>
+                        <div class="status-option" data-value="worn">Worn</div>
+                        <div class="status-option" data-value="replace">Replace</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div><strong>Status:</strong> 
+                    <div class="status-container">
+                      <span class="status-toggle" data-bus="{{.BusID}}" data-type="status" 
+                            title="Click to change bus status" style="cursor: pointer;">
+                        {{if eq .Status "active"}}✅ {{.Status}}{{else if eq .Status "maintenance"}}⚠️ {{.Status}}{{else if eq .Status "out_of_service"}}❌ {{.Status}}{{else}}{{.Status}}{{end}}
+                      </span>
+                      <div class="status-dropdown">
+                        <div class="status-option" data-value="active">Active</div>
+                        <div class="status-option" data-value="maintenance">Maintenance</div>
+                        <div class="status-option" data-value="out_of_service">Out of Service</div>
+                      </div>
+                    </div>
+                  </div>
+                  {{if .MaintenanceNotes}}<div><strong>Notes:</strong> {{.MaintenanceNotes}}</div>{{end}}
+                </div>
 
-    function filterRows() {
-      const query = normalize(searchInput.value);
-      tableRows.forEach(function(row) {
-        const rowText = normalize(row.textContent);
-        row.style.display = rowText.includes(query) ? '' : 'none';
-      });
-    }
+                <div class="bus-actions mt-3">
+                  <button type="button" class="btn btn-sm btn-outline-primary edit-bus-btn" 
+                          data-bus-id="{{.BusID}}" 
+                          data-status="{{.Status}}" 
+                          data-model="{{if .Model}}{{.Model}}{{end}}" 
+                          data-capacity="{{if .Capacity}}{{.Capacity}}{{else}}0{{end}}" 
+                          data-oil-status="{{if .OilStatus}}{{.OilStatus}}{{else}}good{{end}}" 
+                          data-tire-status="{{if .TireStatus}}{{.TireStatus}}{{else}}good{{end}}" 
+                          data-maintenance-notes="{{if .MaintenanceNotes}}{{.MaintenanceNotes}}{{end}}">
+                    ✏️ Edit
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-danger remove-bus-btn" 
+                          data-bus-id="{{.BusID}}">
+                    🗑️ Remove
+                  </button>
+                </div>
+              </div>
+              {{end}}
+            </div>
+            {{else}}
+            <div class="alert alert-info">
+              <h6>🚌 No Buses Yet</h6>
+              <p class="mb-0">Add your first bus using the form below to get started with fleet management.</p>
+            </div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+    </div>
 
-    // Handle search input
-    searchInput.addEventListener('input', filterRows);
+    <!-- Add Bus and Maintenance Log Forms Side by Side -->
+    <div class="row mb-4">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5>➕ Add New Bus</h5>
+          </div>
+          <div class="card-body">
+            <form action="/add-bus" method="POST">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Bus ID</label>
+                  <input type="text" name="bus_id" class="form-control" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Status</label>
+                  <select name="status" class="form-select" required>
+                    <option value="active">✅ Active</option>
+                    <option value="maintenance">⚠️ Maintenance</option>
+                    <option value="out_of_service">❌ Out of Service</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Model</label>
+                  <input type="text" name="model" class="form-control">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Capacity</label>
+                  <input type="number" name="capacity" class="form-control" min="1">
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Oil Status</label>
+                  <select name="oil_status" class="form-select">
+                    <option value="good">✅ Good</option>
+                    <option value="due">⚠️ Due</option>
+                    <option value="overdue">❌ Overdue</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Tire Status</label>
+                  <select name="tire_status" class="form-select">
+                    <option value="good">✅ Good</option>
+                    <option value="worn">⚠️ Worn</option>
+                    <option value="replace">❌ Replace</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Maintenance Notes</label>
+                <textarea name="maintenance_notes" class="form-control" rows="2"></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary">➕ Add Bus</button>
+            </form>
+          </div>
+        </div>
+      </div>
 
-    // Handle status update clicks
-    document.addEventListener('click', function(e) {
-      if (e.target.closest('.status-option')) {
-        e.preventDefault();
-        
-        const statusOption = e.target.closest('.status-option');
-        const dropdown = statusOption.closest('.dropdown');
-        const statusBtn = dropdown.querySelector('.update-status-btn');
-        
-        const vehicleId = statusBtn.dataset.vehicleId;
-        const statusType = statusBtn.dataset.statusType;
-        const newStatus = statusOption.dataset.value;
-        
-        updateStatus(vehicleId, statusType, newStatus);
-      }
-    });
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5>🔧 Add Maintenance Log</h5>
+          </div>
+          <div class="card-body">
+            <form action="/add-maint" method="POST">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Bus ID</label>
+                  <select name="bus_id" class="form-select" required>
+                    <option value="">Select Bus</option>
+                    {{range .Buses}}
+                    <option value="{{.BusID}}">Bus #{{.BusID}} ({{.Status}})</option>
+                    {{end}}
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Date</label>
+                  <input type="date" name="date" class="form-control" value="{{.Today}}" required>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Category</label>
+                  <select name="category" class="form-select" required>
+                    <option value="">Select Category</option>
+                    <option value="oil">Oil Change</option>
+                    <option value="tires">Tire Service</option>
+                    <option value="brakes">Brake Service</option>
+                    <option value="engine">Engine Service</option>
+                    <option value="transmission">Transmission</option>
+                    <option value="electrical">Electrical</option>
+                    <option value="body">Body/Exterior</option>
+                    <option value="inspection">Inspection</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Mileage (optional)</label>
+                  <input type="number" name="mileage" class="form-control" placeholder="0">
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Notes</label>
+                <textarea name="notes" class="form-control" rows="2" placeholder="Describe the maintenance work performed..." required></textarea>
+              </div>
+              <button type="submit" class="btn btn-warning">🔧 Add Maintenance Log</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    function updateStatus(vehicleId, statusType, newStatus) {
-      const formData = new FormData();
-      formData.append('vehicle_id', vehicleId);
-      formData.append('status_type', statusType);
-      formData.append('new_status', newStatus);
+    <!-- Hidden JSON data for JavaScript -->
+    <script type="application/json" id="buses-data">{{.Buses | toJson}}</script>
+  </div>
 
-      fetch('/update-vehicle-status', {
-        method: 'POST',
-        body: formData
-      })
-      .then(function(res) {
-        if (res.ok) {
-          // Add a small delay to show the update was processed
-          setTimeout(function() {
-            window.location.reload();
-          }, 500);
-        } else {
-          alert('Update failed. Please try again.');
-          window.location.reload();
+  <!-- Edit Bus Modal -->
+  <div class="modal fade" id="editBusModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">✏️ Edit Bus</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="editBusForm" action="/edit-bus" method="POST">
+          <div class="modal-body">
+            <input type="hidden" name="original_bus_id" id="editOriginalBusId">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Bus ID</label>
+                <input type="text" name="bus_id" id="editBusId" class="form-control" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Status</label>
+                <select name="status" id="editStatus" class="form-select" required>
+                  <option value="active">✅ Active</option>
+                  <option value="maintenance">⚠️ Maintenance</option>
+                  <option value="out_of_service">❌ Out of Service</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Model</label>
+                <input type="text" name="model" id="editModel" class="form-control">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Capacity</label>
+                <input type="number" name="capacity" id="editCapacity" class="form-control" min="1">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Oil Status</label>
+                <select name="oil_status" id="editOilStatus" class="form-select">
+                  <option value="good">✅ Good</option>
+                  <option value="due">⚠️ Due</option>
+                  <option value="overdue">❌ Overdue</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Tire Status</label>
+                <select name="tire_status" id="editTireStatus" class="form-select">
+                  <option value="good">✅ Good</option>
+                  <option value="worn">⚠️ Worn</option>
+                  <option value="replace">❌ Replace</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Maintenance Notes</label>
+              <textarea name="maintenance_notes" id="editMaintenanceNotes" class="form-control" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get buses data from JSON script tag (CSP-safe)
+      let buses = [];
+      try {
+        const busesScript = document.getElementById('buses-data');
+        if (busesScript) {
+          buses = JSON.parse(busesScript.textContent);
         }
-      })
-      .catch(function() {
-        alert('Network error. Please try again.');
-        window.location.reload();
-      });
-    }
+      } catch (e) {
+        console.error('Error parsing buses data:', e);
+        buses = [];
+      }
 
-    // Make function available globally if needed
-    window.updateStatus = updateStatus;
-  });
-</script>
+      console.log('Buses loaded from server:', buses);
+
+      // Count buses by status for summary cards
+      let activeCount = 0;
+      let maintenanceCount = 0;
+      let outOfServiceCount = 0;
+
+      buses.forEach(function(bus) {
+        switch(bus.status) {
+          case 'active': activeCount++; break;
+          case 'maintenance': maintenanceCount++; break;
+          case 'out_of_service': outOfServiceCount++; break;
+        }
+      });
+
+      // Update summary cards
+      const activeCountEl = document.getElementById('active-count');
+      const maintenanceCountEl = document.getElementById('maintenance-count');
+      const outOfServiceCountEl = document.getElementById('out-of-service-count');
+      
+      if (activeCountEl) activeCountEl.textContent = activeCount;
+      if (maintenanceCountEl) maintenanceCountEl.textContent = maintenanceCount;
+      if (outOfServiceCountEl) outOfServiceCountEl.textContent = outOfServiceCount;
+
+      // Handle edit bus buttons
+      document.addEventListener('click', function(e) {
+        if (e.target.closest('.edit-bus-btn')) {
+          const btn = e.target.closest('.edit-bus-btn');
+          const busId = btn.dataset.busId;
+          const status = btn.dataset.status;
+          const model = btn.dataset.model;
+          const capacity = btn.dataset.capacity;
+          const oilStatus = btn.dataset.oilStatus;
+          const tireStatus = btn.dataset.tireStatus;
+          const maintenanceNotes = btn.dataset.maintenanceNotes;
+
+          editBus(busId, status, model, capacity, oilStatus, tireStatus, maintenanceNotes);
+        }
+
+        // Handle remove bus buttons
+        if (e.target.closest('.remove-bus-btn')) {
+          const btn = e.target.closest('.remove-bus-btn');
+          const busId = btn.dataset.busId;
+          removeBus(busId);
+        }
+
+        // Handle status toggles
+        if (e.target.closest('.status-toggle')) {
+          const toggle = e.target.closest('.status-toggle');
+          const busId = toggle.dataset.bus;
+          const type = toggle.dataset.type;
+          toggleStatusDropdown(toggle, busId, type);
+        }
+
+        // Handle status options
+        if (e.target.closest('.status-option')) {
+          const option = e.target.closest('.status-option');
+          const container = option.closest('.status-container');
+          const toggle = container.querySelector('.status-toggle');
+          const busId = toggle.dataset.bus;
+          const type = toggle.dataset.type;
+          const status = option.dataset.value;
+          updateStatus(busId, type, status);
+        }
+      });
+
+      // Edit bus function
+      function editBus(busId, status, model, capacity, oilStatus, tireStatus, maintenanceNotes) {
+        console.log('Editing bus:', busId);
+
+        if (!busId || busId.trim() === '') {
+          alert('Error: Bus ID is missing');
+          return;
+        }
+
+        // Set form fields
+        document.getElementById('editOriginalBusId').value = busId;
+        document.getElementById('editBusId').value = busId;
+        document.getElementById('editStatus').value = status || 'active';
+        document.getElementById('editModel').value = model || '';
+        document.getElementById('editCapacity').value = capacity || '';
+        document.getElementById('editOilStatus').value = oilStatus || 'good';
+        document.getElementById('editTireStatus').value = tireStatus || 'good';
+        document.getElementById('editMaintenanceNotes').value = maintenanceNotes || '';
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('editBusModal'));
+        modal.show();
+      }
+
+      // Remove bus function
+      function removeBus(busId) {
+        console.log('Removing bus:', busId);
+
+        if (!busId || busId.trim() === '') {
+          alert('Error: Bus ID is missing');
+          return;
+        }
+
+        if (confirm('Are you sure you want to remove Bus #' + busId + '? This action cannot be undone.')) {
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '/remove-bus';
+          form.style.display = 'none';
+
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'bus_id';
+          input.value = busId;
+          form.appendChild(input);
+
+          document.body.appendChild(form);
+          form.submit();
+        }
+      }
+
+      // Toggle status dropdown
+      function toggleStatusDropdown(element, busId, type) {
+        const dropdown = element.parentElement.querySelector('.status-dropdown');
+        // Close any open dropdowns
+        document.querySelectorAll('.status-dropdown.show').forEach(function(dd) {
+          if (dd !== dropdown) {
+            dd.classList.remove('show');
+          }
+        });
+        dropdown.classList.toggle('show');
+      }
+
+      // Update status
+      function updateStatus(busId, type, status) {
+        console.log('Update Bus #' + busId + ' ' + type + ' to ' + status);
+
+        // Send request to update status
+        fetch('/update-bus-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: 'bus_id=' + encodeURIComponent(busId) + '&status_type=' + encodeURIComponent(type) + '&new_status=' + encodeURIComponent(status)
+        })
+        .then(function(response) {
+          if (response.ok) {
+            // Close dropdown
+            document.querySelectorAll('.status-dropdown.show').forEach(function(dd) {
+              dd.classList.remove('show');
+            });
+
+            // Reload page to show updated status
+            location.reload();
+          } else {
+            alert('Failed to update status');
+          }
+        })
+        .catch(function(error) {
+          console.error('Error updating status:', error);
+          alert('Error updating status');
+        });
+      }
+
+      // Close dropdowns if user clicks outside of them
+      window.addEventListener('click', function(e) {
+        if (!e.target.closest('.status-container')) {
+          document.querySelectorAll('.status-dropdown.show').forEach(function(dropdown) {
+            dropdown.classList.remove('show');
+          });
+        }
+      });
+
+      // Make functions available globally if needed
+      window.editBus = editBus;
+      window.removeBus = removeBus;
+      window.toggleStatusDropdown = toggleStatusDropdown;
+      window.updateStatus = updateStatus;
+
+      console.log('Fleet page loaded. Total buses:', buses.length);
+      console.log('Active:', activeCount, 'Maintenance:', maintenanceCount, 'Out of Service:', outOfServiceCount);
+    });
+  </script>
 </body>
 </html>
