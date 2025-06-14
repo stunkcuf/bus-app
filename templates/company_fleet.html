@@ -3,51 +3,156 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Company Fleet Overview</title>
+  <title>Company Fleet Overview - Fleet Management System</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
   <style>
     :root {
-      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      --active-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-      --maintenance-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --grad-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --grad-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      --grad-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --grad-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --grad-danger: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
     }
 
     body {
-      background: #f5f7fa;
+      background-color: #f8f9fa;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     }
 
-    .fleet-header {
-      background: var(--primary-gradient);
-      color: #fff;
+    .page-header {
+      background: var(--grad-primary);
+      color: white;
       padding: 1.5rem;
-      border-radius: 1rem;
+      border-radius: 15px;
       margin-bottom: 2rem;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
     }
 
-    #searchInput {
+    .page-header .btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      transition: all 0.3s ease;
+    }
+
+    .page-header .btn:hover {
+      background: rgba(255,255,255,0.3);
+      transform: translateY(-2px);
+      color: white;
+    }
+
+    .enhanced-card {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    .enhanced-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+
+    .enhanced-card .card-header {
+      background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+      border-bottom: 2px solid #dee2e6;
+      padding: 1.25rem;
+    }
+
+    .enhanced-card .card-header h5 {
+      margin: 0;
+      font-weight: 600;
+      color: #495057;
+    }
+
+    .stats-row {
+      background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+      border-radius: 15px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 1rem;
+    }
+
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-total { color: #667eea; }
+    .stat-active { color: #28a745; }
+    .stat-maintenance { color: #ffc107; }
+    .stat-out-service { color: #dc3545; }
+
+    .search-box {
       border-radius: 30px;
-      padding: 0.5rem 1rem;
+      padding: 0.75rem 1rem;
+      border: 2px solid #e9ecef;
+      transition: all 0.3s ease;
+    }
+
+    .search-box:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
     }
 
     .table-container {
       max-height: 70vh;
       overflow-y: auto;
+      border-radius: 10px;
     }
 
     .table thead th {
       position: sticky;
       top: 0;
       background: #fff;
-      z-index: 5;
+      z-index: 10;
+      border-bottom: 2px solid #dee2e6;
+      padding: 1rem;
+    }
+
+    .table tbody tr {
+      transition: all 0.2s ease;
+      border-left: 4px solid transparent;
+    }
+
+    .table tbody tr:hover {
+      background-color: rgba(102, 126, 234, 0.05);
+      border-left-color: #667eea;
+      transform: translateX(3px);
     }
 
     .status-light {
       border: none;
       background: transparent;
-      padding: 2px 8px;
+      padding: 4px 8px;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .status-light:hover {
+      background-color: rgba(102, 126, 234, 0.1);
+      transform: scale(1.1);
+    }
+
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
     }
 
     .oil-status-good .bi-circle-fill { color: #28a745; }
@@ -59,158 +164,503 @@
     .vehicle-status-active .bi-circle-fill { color: #28a745; }
     .vehicle-status-maintenance .bi-circle-fill { color: #ffc107; }
     .vehicle-status-out_of_service .bi-circle-fill { color: #dc3545; }
+
+    .dropdown-menu {
+      border: none;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    }
+
+    .dropdown-item {
+      padding: 0.5rem 1rem;
+      transition: all 0.2s ease;
+    }
+
+    .dropdown-item:hover {
+      background-color: rgba(102, 126, 234, 0.1);
+      color: #667eea;
+    }
+
+    .vehicle-type-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .type-bus {
+      background: var(--grad-success);
+      color: white;
+    }
+
+    .type-truck {
+      background: var(--grad-info);
+      color: white;
+    }
+
+    .type-van {
+      background: var(--grad-warning);
+      color: white;
+    }
+
+    .type-other {
+      background: var(--grad-primary);
+      color: white;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #6c757d;
+    }
+
+    .empty-state i {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      opacity: 0.3;
+    }
+
+    .loading-state {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .vehicle-id {
+      font-weight: 600;
+      color: #495057;
+    }
+
+    .vehicle-details {
+      font-size: 0.9rem;
+      color: #6c757d;
+    }
   </style>
 </head>
 <body>
-<main class="container-fluid py-4" aria-labelledby="pageTitle">
-  <header class="fleet-header d-flex justify-content-between align-items-center flex-wrap">
-    <h2 id="pageTitle" class="mb-3 mb-md-0">
-      <i class="bi bi-truck me-2"></i>Company Fleet Overview
-    </h2>
-    <div class="d-flex align-items-center gap-3">
-      <div class="input-group" style="width: 300px;">
-        <span class="input-group-text"><i class="bi bi-search"></i></span>
-        <input type="search" id="searchInput" class="form-control" placeholder="Search by ID, model, license..." />
+  <div class="container-fluid py-4">
+    <!-- Header -->
+    <header class="page-header">
+      <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+          <h1 class="fs-3 mb-1">
+            <i class="bi bi-truck me-2"></i>Company Fleet Overview
+          </h1>
+          <p class="mb-0 opacity-75">Complete vehicle inventory and status management</p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <div class="input-group" style="width: 300px;">
+            <span class="input-group-text bg-white border-end-0">
+              <i class="bi bi-search"></i>
+            </span>
+            <input type="search" id="searchInput" class="form-control search-box border-start-0" 
+                   placeholder="Search vehicles..." style="border-radius: 0 30px 30px 0;">
+          </div>
+          <nav class="btn-group btn-group-sm" role="group">
+            <a href="/manager-dashboard" class="btn">
+              <i class="bi bi-arrow-left me-1"></i>Dashboard
+            </a>
+            <a href="/fleet" class="btn">
+              <i class="bi bi-bus-front me-1"></i>Bus Fleet
+            </a>
+            <a href="/logout" class="btn">
+              <i class="bi bi-box-arrow-right me-1"></i>Logout
+            </a>
+          </nav>
+        </div>
       </div>
-      <nav class="d-flex gap-2">
-        <a href="/manager-dashboard" class="btn btn-outline-light btn-sm">
-          <i class="bi bi-arrow-left me-1"></i>Back
-        </a>
-        <a href="/logout" class="btn btn-outline-danger btn-sm">
-          <i class="bi bi-box-arrow-right me-1"></i>Logout
-        </a>
-      </nav>
-    </div>
-  </header>
+    </header>
 
-  <section>
-    <div class="card shadow-sm">
-      <div class="card-header bg-white border-0">
-        <h5 class="fw-semibold mb-0"><i class="bi bi-list-ul me-2"></i>All Vehicles (<span>{{len .Vehicles}}</span>)</h5>
-      </div>
-      <div class="card-body p-0">
-        <div class="table-container">
-          <table class="table table-hover align-middle mb-0" id="fleetTable">
-            <thead class="table-light">
-              <tr>
-                <th>ID</th>
-                <th>Model / Description</th>
-                <th>Year</th>
-                <th>Tire Size</th>
-                <th>License</th>
-                <th>Oil</th>
-                <th>Tires</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {{range .Vehicles}}
-              <tr>
-                <td>{{.VehicleID}}</td>
-                <td>{{if .Model}}{{.Model}}{{else}}{{.Description}}{{end}}</td>
-                <td>{{.Year}}</td>
-                <td>{{if .TireSize}}{{.TireSize}}{{else}}<span class="text-muted">--</span>{{end}}</td>
-                <td>{{.License}}</td>
-                <td>
-                  <div class="dropdown">
-                    <button class="btn btn-sm status-light oil-status-{{.OilStatus}} dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                      <i class="bi bi-circle-fill"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li><a href="#" class="dropdown-item update-status" data-id="{{.VehicleID}}" data-type="oil" data-value="good"><i class="bi bi-circle-fill text-success"></i> Good</a></li>
-                      <li><a href="#" class="dropdown-item update-status" data-id="{{.VehicleID}}" data-type="oil" data-value="needs_service"><i class="bi bi-circle-fill text-warning"></i> Needs Service</a></li>
-                      <li><a href="#" class="dropdown-item update-status" data-id="{{.VehicleID}}" data-type="oil" data-value="overdue"><i class="bi bi-circle-fill text-danger"></i> Overdue</a></li>
-                    </ul>
-                  </div>
-                </td>
-                <td>
-                  <div class="dropdown">
-                    <button class="btn btn-sm status-light tire-status-{{.TireStatus}} dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                      <i class="bi bi-circle-fill"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li><a href="#" class="dropdown-item update-status" data-id="{{.VehicleID}}" data-type="tire" data-value="good"><i class="bi bi-circle-fill text-success"></i> Good</a></li>
-                      <li><a href="#" class="dropdown-item update-status" data-id="{{.VehicleID}}" data-type="tire" data-value="worn"><i class="bi bi-circle-fill text-warning"></i> Worn</a></li>
-                      <li><a href="#" class="dropdown-item update-status" data-id="{{.VehicleID}}" data-type="tire" data-value="replace"><i class="bi bi-circle-fill text-danger"></i> Replace</a></li>
-                    </ul>
-                  </div>
-                </td>
-                <td>
-                  <div class="dropdown">
-                    <button class="btn btn-sm status-light vehicle-status-{{.Status}} dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                      <i class="bi bi-circle-fill"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li><a href="#" class="dropdown-item update-status" data-id="{{.VehicleID}}" data-type="status" data-value="active"><i class="bi bi-circle-fill text-success"></i> Active</a></li>
-                      <li><a href="#" class="dropdown-item update-status" data-id="{{.VehicleID}}" data-type="status" data-value="maintenance"><i class="bi bi-circle-fill text-warning"></i> Maintenance</a></li>
-                      <li><a href="#" class="dropdown-item update-status" data-id="{{.VehicleID}}" data-type="status" data-value="out_of_service"><i class="bi bi-circle-fill text-danger"></i> Out of Service</a></li>
-                    </ul>
-                  </div>
-                </td>
-              </tr>
-              {{end}}
-            </tbody>
-          </table>
+    <!-- Fleet Statistics -->
+    <div class="stats-row">
+      <div class="row g-4">
+        <div class="col-md-3">
+          <div class="stat-item">
+            <span class="stat-number stat-total" id="totalVehicles">{{len .Vehicles}}</span>
+            <div class="stat-label">Total Vehicles</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-item">
+            <span class="stat-number stat-active" id="activeVehicles">0</span>
+            <div class="stat-label">Active</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-item">
+            <span class="stat-number stat-maintenance" id="maintenanceVehicles">0</span>
+            <div class="stat-label">Maintenance</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-item">
+            <span class="stat-number stat-out-service" id="outOfServiceVehicles">0</span>
+            <div class="stat-label">Out of Service</div>
+          </div>
         </div>
       </div>
     </div>
-  </section>
-</main>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const searchInput = document.getElementById('searchInput');
-    const tableRows = Array.from(document.querySelectorAll('#fleetTable tbody tr'));
+    <!-- Vehicle Table -->
+    <div class="row g-4">
+      <div class="col-12">
+        <div class="enhanced-card">
+          <div class="card-header">
+            <h5>
+              <i class="bi bi-list-ul me-2"></i>Vehicle Inventory
+              <span class="badge bg-primary ms-2" id="vehicleCount">{{len .Vehicles}}</span>
+            </h5>
+          </div>
+          <div class="card-body p-0">
+            {{if .Vehicles}}
+            <div class="table-container">
+              <table class="table table-hover align-middle mb-0" id="fleetTable">
+                <thead class="table-light">
+                  <tr>
+                    <th><i class="bi bi-hash me-1"></i>Vehicle ID</th>
+                    <th><i class="bi bi-truck me-1"></i>Vehicle Info</th>
+                    <th><i class="bi bi-calendar me-1"></i>Year</th>
+                    <th><i class="bi bi-tire me-1"></i>Tire Size</th>
+                    <th><i class="bi bi-card-text me-1"></i>License</th>
+                    <th><i class="bi bi-droplet me-1"></i>Oil</th>
+                    <th><i class="bi bi-circle me-1"></i>Tires</th>
+                    <th><i class="bi bi-gear me-1"></i>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{range .Vehicles}}
+                  <tr data-vehicle-id="{{.VehicleID}}">
+                    <td>
+                      <div class="vehicle-id">{{.VehicleID}}</div>
+                    </td>
+                    <td>
+                      <div>
+                        <div class="fw-semibold">
+                          {{if .Model}}{{.Model}}{{else if .Description}}{{.Description}}{{else}}Unknown Model{{end}}
+                        </div>
+                        {{if and .Model .Description}}
+                        <div class="vehicle-details">{{.Description}}</div>
+                        {{end}}
+                        <span class="vehicle-type-badge type-{{if .Model}}{{if contains .Model "BUS"}}bus{{else if contains .Model "TRUCK"}}truck{{else if contains .Model "VAN"}}van{{else}}other{{end}}{{else}}other{{end}}">
+                          {{if .Model}}{{.Model}}{{else}}Vehicle{{end}}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      {{if .Year}}{{.Year}}{{else}}<span class="text-muted">--</span>{{end}}
+                    </td>
+                    <td>
+                      {{if .TireSize}}{{.TireSize}}{{else}}<span class="text-muted">--</span>{{end}}
+                    </td>
+                    <td>
+                      {{if .License}}{{.License}}{{else}}<span class="text-muted">--</span>{{end}}
+                    </td>
+                    <td>
+                      <div class="dropdown">
+                        <button class="btn btn-sm status-light oil-status-{{.OilStatus}} dropdown-toggle" 
+                                type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                title="Oil Status: {{.OilStatus}}">
+                          <i class="bi bi-circle-fill"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li>
+                            <a href="#" class="dropdown-item update-status" 
+                               data-id="{{.VehicleID}}" data-type="oil_status" data-value="good">
+                              <i class="bi bi-circle-fill text-success me-2"></i>Good
+                            </a>
+                          </li>
+                          <li>
+                            <a href="#" class="dropdown-item update-status" 
+                               data-id="{{.VehicleID}}" data-type="oil_status" data-value="needs_service">
+                              <i class="bi bi-circle-fill text-warning me-2"></i>Needs Service
+                            </a>
+                          </li>
+                          <li>
+                            <a href="#" class="dropdown-item update-status" 
+                               data-id="{{.VehicleID}}" data-type="oil_status" data-value="overdue">
+                              <i class="bi bi-circle-fill text-danger me-2"></i>Overdue
+                            </a>
+                          </li>
+                        </ul>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="dropdown">
+                        <button class="btn btn-sm status-light tire-status-{{.TireStatus}} dropdown-toggle" 
+                                type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                title="Tire Status: {{.TireStatus}}">
+                          <i class="bi bi-circle-fill"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li>
+                            <a href="#" class="dropdown-item update-status" 
+                               data-id="{{.VehicleID}}" data-type="tire_status" data-value="good">
+                              <i class="bi bi-circle-fill text-success me-2"></i>Good
+                            </a>
+                          </li>
+                          <li>
+                            <a href="#" class="dropdown-item update-status" 
+                               data-id="{{.VehicleID}}" data-type="tire_status" data-value="worn">
+                              <i class="bi bi-circle-fill text-warning me-2"></i>Worn
+                            </a>
+                          </li>
+                          <li>
+                            <a href="#" class="dropdown-item update-status" 
+                               data-id="{{.VehicleID}}" data-type="tire_status" data-value="replace">
+                              <i class="bi bi-circle-fill text-danger me-2"></i>Replace
+                            </a>
+                          </li>
+                        </ul>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="dropdown">
+                        <button class="btn btn-sm status-light vehicle-status-{{.Status}} dropdown-toggle" 
+                                type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                title="Vehicle Status: {{.Status}}">
+                          <i class="bi bi-circle-fill"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li>
+                            <a href="#" class="dropdown-item update-status" 
+                               data-id="{{.VehicleID}}" data-type="status" data-value="active">
+                              <i class="bi bi-circle-fill text-success me-2"></i>Active
+                            </a>
+                          </li>
+                          <li>
+                            <a href="#" class="dropdown-item update-status" 
+                               data-id="{{.VehicleID}}" data-type="status" data-value="maintenance">
+                              <i class="bi bi-circle-fill text-warning me-2"></i>Maintenance
+                            </a>
+                          </li>
+                          <li>
+                            <a href="#" class="dropdown-item update-status" 
+                               data-id="{{.VehicleID}}" data-type="status" data-value="out_of_service">
+                              <i class="bi bi-circle-fill text-danger me-2"></i>Out of Service
+                            </a>
+                          </li>
+                        </ul>
+                      </div>
+                    </td>
+                  </tr>
+                  {{end}}
+                </tbody>
+              </table>
+            </div>
+            {{else}}
+            <div class="empty-state">
+              <i class="bi bi-truck"></i>
+              <h6>No Vehicles Found</h6>
+              <p class="mb-0">No vehicles are currently registered in the company fleet</p>
+            </div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    function normalize(s) {
-      return s.toString().toLowerCase();
-    }
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const searchInput = document.getElementById('searchInput');
+      const tableRows = Array.from(document.querySelectorAll('#fleetTable tbody tr'));
 
-    function filterRows() {
-      const query = normalize(searchInput.value);
-      tableRows.forEach(row => {
-        const rowText = normalize(row.textContent);
-        row.style.display = rowText.includes(query) ? '' : 'none';
-      });
-    }
+      // Calculate and display statistics
+      calculateStatistics();
 
-    searchInput.addEventListener('input', filterRows);
-
-    document.querySelectorAll('.update-status').forEach(link => {
-      link.addEventListener('click', function (e) {
-        e.preventDefault();
-        const vehicleId = this.dataset.id;
-        const type = this.dataset.type;
-        const value = this.dataset.value;
-        updateStatus(vehicleId, type, value);
-      });
-    });
-  });
-
-  function updateStatus(vehicleId, statusType, newStatus) {
-    const formData = new FormData();
-    formData.append('vehicle_id', vehicleId);
-    formData.append('status_type', statusType);
-    formData.append('new_status', newStatus);
-
-    fetch('/update-vehicle-status', {
-      method: 'POST',
-      body: formData
-    })
-    .then(res => {
-      if (res.ok) {
-        setTimeout(() => window.location.reload(), 500);
-      } else {
-        alert('Update failed. Please try again.');
-        window.location.reload();
+      // Search functionality
+      function normalize(s) {
+        return s.toString().toLowerCase();
       }
-    })
-    .catch(() => {
-      alert('Network error. Please try again.');
-      window.location.reload();
+
+      function filterRows() {
+        const query = normalize(searchInput.value);
+        let visibleCount = 0;
+        
+        tableRows.forEach(row => {
+          const rowText = normalize(row.textContent);
+          const shouldShow = rowText.includes(query);
+          row.style.display = shouldShow ? '' : 'none';
+          if (shouldShow) visibleCount++;
+        });
+
+        // Update visible count
+        document.getElementById('vehicleCount').textContent = visibleCount;
+      }
+
+      searchInput.addEventListener('input', filterRows);
+
+      // Status update functionality
+      document.querySelectorAll('.update-status').forEach(link => {
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          const vehicleId = this.dataset.id;
+          const type = this.dataset.type;
+          const value = this.dataset.value;
+          
+          console.log('Updating status:', {vehicleId, type, value});
+          updateStatus(vehicleId, type, value);
+        });
+      });
+
+      function calculateStatistics() {
+        {{if .Vehicles}}
+        const vehicles = [
+          {{range .Vehicles}}
+          {status: "{{.Status}}", oilStatus: "{{.OilStatus}}", tireStatus: "{{.TireStatus}}"},
+          {{end}}
+        ];
+
+        let activeCount = 0;
+        let maintenanceCount = 0;
+        let outOfServiceCount = 0;
+
+        vehicles.forEach(vehicle => {
+          switch(vehicle.status) {
+            case 'active':
+              activeCount++;
+              break;
+            case 'maintenance':
+              maintenanceCount++;
+              break;
+            case 'out_of_service':
+              outOfServiceCount++;
+              break;
+          }
+        });
+
+        document.getElementById('activeVehicles').textContent = activeCount;
+        document.getElementById('maintenanceVehicles').textContent = maintenanceCount;
+        document.getElementById('outOfServiceVehicles').textContent = outOfServiceCount;
+        {{end}}
+      }
+
+      function updateStatus(vehicleId, statusType, newStatus) {
+        console.log('=== STATUS UPDATE DEBUG ===');
+        console.log('Vehicle ID:', vehicleId);
+        console.log('Status Type (Column Name):', statusType);  // Now: "oil_status", "tire_status", or "status"
+        console.log('New Status:', newStatus);
+        console.log('This should match your database column names!');
+        
+        // Show loading state
+        const button = document.querySelector(`[data-id="${vehicleId}"][data-type="${statusType}"]`);
+        const originalContent = button.innerHTML;
+        button.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div>';
+        button.disabled = true;
+
+        // Send the correct column names that match your database
+        const formData = new FormData();
+        formData.append('vehicle_id', vehicleId);
+        formData.append('status_type', statusType);  // Now sends: "oil_status", "tire_status", or "status"
+        formData.append('new_status', newStatus);
+
+        // Also try URL encoded format as backup
+        const urlEncodedData = new URLSearchParams();
+        urlEncodedData.append('vehicle_id', vehicleId);
+        urlEncodedData.append('status_type', statusType);  // Correct column names
+        urlEncodedData.append('new_status', newStatus);
+
+        console.log('Sending FormData:', Array.from(formData.entries()));
+        console.log('Endpoint: /update-vehicle-status');
+
+        fetch('/update-vehicle-status', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => {
+          console.log('Response status:', response.status);
+          console.log('Response headers:', response.headers);
+          
+          // Check if response is JSON or text
+          const contentType = response.headers.get('content-type');
+          console.log('Content-Type:', contentType);
+          
+          if (response.ok) {
+            console.log('✅ Status update successful!');
+            // Update the button class and reload
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
+          } else {
+            // Try to get error message from response
+            return response.text().then(text => {
+              console.log('❌ Error response body:', text);
+              throw new Error(`HTTP ${response.status}: ${text}`);
+            });
+          }
+        })
+        .catch(error => {
+          console.error('❌ Error updating status:', error);
+          
+          // Restore button state
+          button.innerHTML = originalContent;
+          button.disabled = false;
+          
+          // Show detailed error for debugging
+          const errorMessage = `Failed to update ${statusType} status for vehicle ${vehicleId}.\n\nDetails:\n${error.message}\n\nCheck the browser console (F12) for more info.`;
+          alert(errorMessage);
+          
+          // Try alternative endpoint format as fallback
+          console.log('🔄 Trying alternative request format...');
+          tryAlternativeUpdate(vehicleId, statusType, newStatus, button, originalContent);
+        });
+      }
+
+      function tryAlternativeUpdate(vehicleId, statusType, newStatus, button, originalContent) {
+        // Try with URL-encoded data instead of FormData
+        const urlEncodedData = new URLSearchParams();
+        urlEncodedData.append('vehicle_id', vehicleId);
+        urlEncodedData.append('status_type', statusType);  // Already correct: "oil_status", "tire_status", or "status"
+        urlEncodedData.append('new_status', newStatus);
+
+        console.log('Trying URL-encoded data:', urlEncodedData.toString());
+
+        fetch('/update-vehicle-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: urlEncodedData.toString()
+        })
+        .then(response => {
+          console.log('Alternative request response status:', response.status);
+          if (response.ok) {
+            console.log('✅ Alternative request successful!');
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
+          } else {
+            return response.text().then(text => {
+              console.log('❌ Alternative request failed:', text);
+              throw new Error(`Both request methods failed. HTTP ${response.status}: ${text}`);
+            });
+          }
+        })
+        .catch(error => {
+          console.error('❌ Alternative request also failed:', error);
+          button.innerHTML = originalContent;
+          button.disabled = false;
+          
+          alert(`All update attempts failed. Please check:\n1. Is the backend running?\n2. Does /update-vehicle-status endpoint exist?\n3. Check network tab in dev tools (F12)\n\nError: ${error.message}`);
+        });
+      }
+
+      // Add animation to cards
+      const cards = document.querySelectorAll('.enhanced-card');
+      cards.forEach((card, index) => {
+        setTimeout(() => {
+          card.style.opacity = '0';
+          card.style.transform = 'translateY(20px)';
+          card.style.transition = 'all 0.5s ease';
+          setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+          }, 100);
+        }, index * 200);
+      });
     });
-  }
-</script>
+  </script>
 </body>
 </html>
