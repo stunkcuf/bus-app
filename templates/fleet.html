@@ -637,7 +637,7 @@
         let outOfServiceCount = 0;
 
         buses.forEach(function(bus) {
-          switch(bus.status) {
+          switch(bus.status || bus.Status) {
             case 'active': activeCount++; break;
             case 'maintenance': maintenanceCount++; break;
             case 'out_of_service': outOfServiceCount++; break;
@@ -671,48 +671,72 @@
         const container = document.getElementById('available-vehicles');
         
         // Filter for buses (MIDCO, STARCRAFT models) that aren't already in bus fleet
-        const busModels = ['MIDCO', 'STARCRAFT'];
-        const existingBusIds = buses.map(bus => bus.BusID);
+        const busKeywords = ['MIDCO', 'STARCRAFT'];
+        const existingBusIds = buses.map(bus => bus.bus_id || bus.BusID);
         
         const availableBuses = vehicles.filter(vehicle => {
-          const modelMatch = busModels.some(model => 
-            vehicle.Model && vehicle.Model.toUpperCase().includes(model.toUpperCase())
-          );
-          const notAlreadyImported = !existingBusIds.includes(vehicle.VehicleID);
-          return modelMatch && notAlreadyImported;
+            // Check BOTH model AND description fields for keywords
+            const checkString = ((vehicle.model || vehicle.Model || '') + ' ' + (vehicle.description || vehicle.Description || '')).toUpperCase();
+            
+            const keywordMatch = busKeywords.some(keyword => 
+                checkString.includes(keyword.toUpperCase())
+            );
+            
+            // Also check if vehicle_id exists in either format
+            const vehicleId = vehicle.vehicle_id || vehicle.VehicleID;
+            const notAlreadyImported = !existingBusIds.includes(vehicleId);
+            
+            console.log(`Vehicle ${vehicleId}: "${checkString}" - Match: ${keywordMatch}, Not imported: ${notAlreadyImported}`);
+            
+            return keywordMatch && notAlreadyImported;
         });
 
+        console.log(`Found ${availableBuses.length} importable buses out of ${vehicles.length} total vehicles`);
+
         if (availableBuses.length === 0) {
-          container.innerHTML = `
-            <div class="text-center py-4">
-              <i class="bi bi-info-circle fs-2 text-muted mb-3"></i>
-              <h6 class="text-muted">No Importable Buses Found</h6>
-              <p class="text-muted mb-0">No MIDCO or STARCRAFT vehicles available for import from company fleet</p>
-            </div>
-          `;
-          return;
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="bi bi-info-circle fs-2 text-muted mb-3"></i>
+                    <h6 class="text-muted">No Importable Buses Found</h6>
+                    <p class="text-muted mb-0">No MIDCO or STARCRAFT vehicles available for import from company fleet</p>
+                    <small class="text-muted">Total vehicles checked: ${vehicles.length}</small>
+                </div>
+            `;
+            return;
         }
 
-        const vehicleCards = availableBuses.map(vehicle => `
-          <div class="col-md-6 col-lg-4">
-            <div class="vehicle-import-card">
-              <h6 class="mb-2">${vehicle.Model || 'Unknown Model'}</h6>
-              <p class="text-muted mb-2">ID: ${vehicle.VehicleID}</p>
-              <p class="small mb-3">
-                Year: ${vehicle.Year || 'N/A'} • 
-                License: ${vehicle.License || 'N/A'}
-              </p>
-              <button class="import-btn" onclick="importVehicle('${vehicle.VehicleID}', '${vehicle.Model}', '${vehicle.Year}')">
-                <i class="bi bi-download me-1"></i>Import as Bus
-              </button>
-            </div>
-          </div>
-        `).join('');
+        const vehicleCards = availableBuses.map(vehicle => {
+            // Get vehicle details with proper field names
+            const vehicleId = vehicle.vehicle_id || vehicle.VehicleID;
+            const model = vehicle.model || vehicle.Model || 'Unknown Model';
+            const description = vehicle.description || vehicle.Description || '';
+            const year = vehicle.year || vehicle.Year || 'N/A';
+            const license = vehicle.license || vehicle.License || 'N/A';
+            
+            // Use description if model is generic
+            const displayName = description || model;
+            
+            return `
+                <div class="col-md-6 col-lg-4">
+                    <div class="vehicle-import-card">
+                        <h6 class="mb-2">${displayName}</h6>
+                        <p class="text-muted mb-2">ID: ${vehicleId}</p>
+                        <p class="small mb-3">
+                            Year: ${year} • 
+                            License: ${license}
+                        </p>
+                        <button class="import-btn" onclick="importVehicle('${vehicleId}', '${model}', '${year}')">
+                            <i class="bi bi-download me-1"></i>Import as Bus
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
 
         container.innerHTML = `
-          <div class="row g-3">
-            ${vehicleCards}
-          </div>
+            <div class="row g-3">
+                ${vehicleCards}
+            </div>
         `;
       }
 
@@ -829,27 +853,27 @@
 
       // Global functions for import
       window.importVehicle = function(vehicleId, model, year) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/import-vehicle-as-bus';
-        form.style.display = 'none';
+        if (confirm(`Import vehicle ${vehicleId} as a bus?`)) {
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '/import-vehicle-as-bus';
+          form.style.display = 'none';
 
-        const inputs = [
-          {name: 'vehicle_id', value: vehicleId},
-          {name: 'model', value: model || ''},
-          {name: 'year', value: year || ''}
-        ];
+          const inputs = [
+            {name: 'vehicle_id', value: vehicleId}
+          ];
 
-        inputs.forEach(input => {
-          const element = document.createElement('input');
-          element.type = 'hidden';
-          element.name = input.name;
-          element.value = input.value;
-          form.appendChild(element);
-        });
+          inputs.forEach(input => {
+            const element = document.createElement('input');
+            element.type = 'hidden';
+            element.name = input.name;
+            element.value = input.value;
+            form.appendChild(element);
+          });
 
-        document.body.appendChild(form);
-        form.submit();
+          document.body.appendChild(form);
+          form.submit();
+        }
       };
     });
   </script>
