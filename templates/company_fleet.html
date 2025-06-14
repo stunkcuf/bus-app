@@ -342,7 +342,7 @@
                         {{if and .Model .Description}}
                         <div class="vehicle-details">{{.Description}}</div>
                         {{end}}
-                        <span class="vehicle-type-badge type-{{if .Model}}{{if contains .Model "BUS"}}bus{{else if contains .Model "TRUCK"}}truck{{else if contains .Model "VAN"}}van{{else}}other{{end}}{{else}}other{{end}}">
+                        <span class="vehicle-type-badge type-other">
                           {{if .Model}}{{.Model}}{{else}}Vehicle{{end}}
                         </span>
                       </div>
