@@ -2,59 +2,391 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Student Management</title>
+  <title>Student Management - Fleet Management System</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --grad-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --grad-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      --grad-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --grad-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --grad-danger: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
+    }
+    
+    body {
+      background-color: #f8f9fa;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    
+    .page-header {
+      background: var(--grad-success);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 15px;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 30px rgba(17, 153, 142, 0.3);
+    }
+    
+    .page-header .btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      transition: all 0.3s ease;
+    }
+    
+    .page-header .btn:hover {
+      background: rgba(255,255,255,0.3);
+      transform: translateY(-2px);
+      color: white;
+    }
+    
+    .enhanced-card {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+    
+    .enhanced-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    
+    .enhanced-card .card-header {
+      background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+      border-bottom: 2px solid #dee2e6;
+      padding: 1.25rem;
+    }
+    
+    .enhanced-card .card-header h5 {
+      margin: 0;
+      font-weight: 600;
+      color: #495057;
+    }
+    
+    .student-card {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+      transition: all 0.3s ease;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+    
+    .student-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    
+    .student-avatar {
+      width: 50px;
+      height: 50px;
+      background: var(--grad-info);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: white;
+      margin-right: 1rem;
+    }
+    
+    .position-badge {
+      width: 35px;
+      height: 35px;
+      background: var(--grad-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: white;
+    }
+    
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .status-active {
+      background: var(--grad-success);
+      color: white;
+    }
+    
+    .status-inactive {
+      background: var(--grad-danger);
+      color: white;
+    }
+    
+    .location-badge {
+      padding: 0.25rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-right: 0.25rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .location-pickup {
+      background: var(--grad-info);
+      color: white;
+    }
+    
+    .location-dropoff {
+      background: var(--grad-warning);
+      color: white;
+    }
+    
+    .form-control, .form-select {
+      border: 2px solid #e9ecef;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+      border-color: #11998e;
+      box-shadow: 0 0 0 0.2rem rgba(17, 153, 142, 0.25);
+    }
+    
+    .form-label {
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--grad-success);
+      border: none;
+      padding: 0.75rem 2rem;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+      background: var(--grad-success);
+    }
+    
+    .btn-secondary {
+      background: var(--grad-info);
+      border: none;
+      padding: 0.75rem 2rem;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+      background: var(--grad-info);
+    }
+    
+    .btn-outline-secondary {
+      border: 2px solid #6c757d;
+      color: #6c757d;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-outline-secondary:hover {
+      background: var(--grad-info);
+      border-color: transparent;
+      transform: translateY(-1px);
+    }
+    
+    .btn-outline-danger {
+      border: 2px solid #dc3545;
+      color: #dc3545;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-outline-danger:hover {
+      background: var(--grad-danger);
+      border-color: transparent;
+      transform: translateY(-1px);
+    }
+    
+    .stats-row {
+      background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+      border-radius: 15px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-item {
+      text-align: center;
+      padding: 1rem;
+    }
+    
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      display: block;
+      color: #11998e;
+    }
+    
+    .stat-label {
+      font-size: 0.9rem;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #6c757d;
+    }
+    
+    .empty-state i {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      opacity: 0.3;
+    }
+    
+    .modal-content {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    
+    .modal-header {
+      background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+      border-radius: 15px 15px 0 0;
+    }
+    
+    .add-location-btn {
+      background: var(--grad-info);
+      border: none;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      transition: all 0.3s ease;
+    }
+    
+    .add-location-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+    }
+  </style>
 </head>
-<body class="bg-light">
-  <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 class="mb-0">Student Management - {{.User.Username}}</h2>
-      <div>
-        <a href="/driver-dashboard" class="btn btn-outline-primary me-2">Back to Dashboard</a>
-        <a href="/logout" class="btn btn-outline-danger">Logout</a>
+<body>
+  <div class="container-fluid py-4">
+    <!-- Header -->
+    <header class="page-header">
+      <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+          <h1 class="fs-3 mb-1">
+            <i class="bi bi-people-fill me-2"></i>Student Management
+          </h1>
+          <p class="mb-0 opacity-75">Manage student roster and transportation details for {{.User.Username}}</p>
+        </div>
+        <nav class="btn-group btn-group-sm" role="group">
+          <button class="btn" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+            <i class="bi bi-person-plus me-1"></i>Add Student
+          </button>
+          <a href="/driver-dashboard" class="btn">
+            <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+          </a>
+          <a href="/logout" class="btn">
+            <i class="bi bi-box-arrow-right me-1"></i>Logout
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Student Statistics -->
+    <div class="stats-row">
+      <div class="row g-4">
+        <div class="col-md-3">
+          <div class="stat-item">
+            <span class="stat-number" id="totalStudents">{{len .Students}}</span>
+            <div class="stat-label">Total Students</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-item">
+            <span class="stat-number" id="activeStudents">0</span>
+            <div class="stat-label">Active Students</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-item">
+            <span class="stat-number" id="morningPickups">0</span>
+            <div class="stat-label">Morning Pickups</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-item">
+            <span class="stat-number" id="afternoonDropoffs">0</span>
+            <div class="stat-label">Afternoon Dropoffs</div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Add New Student Button -->
-    <div class="mb-4">
-      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
-        + Add New Student
-      </button>
-    </div>
-
     <!-- Students List -->
-    <div class="row">
+    <div class="row g-4">
+      {{if .Students}}
       {{range .Students}}
-      <div class="col-md-6 mb-4">
-        <div class="card">
+      <div class="col-lg-6 col-xl-4">
+        <div class="student-card">
           <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">{{.Name}} - Position #{{.PositionNumber}}</h5>
+            <div class="d-flex align-items-center">
+              <div class="student-avatar">
+                <i class="bi bi-person"></i>
+              </div>
+              <div>
+                <h6 class="mb-1">{{.Name}}</h6>
+                <div class="position-badge">{{.PositionNumber}}</div>
+              </div>
+            </div>
             <div>
               {{if .Active}}
-                <span class="badge bg-success">Active</span>
+                <span class="status-badge status-active">Active</span>
               {{else}}
-                <span class="badge bg-secondary">Inactive</span>
+                <span class="status-badge status-inactive">Inactive</span>
               {{end}}
             </div>
           </div>
           <div class="card-body">
-            <p><strong>Guardian:</strong> {{.Guardian}}</p>
-            <p><strong>Phone:</strong> {{.PhoneNumber}}
-              {{if .AltPhoneNumber}}<br><strong>Alt Phone:</strong> {{.AltPhoneNumber}}{{end}}
-            </p>
-            <p><strong>Pickup Time:</strong> {{.PickupTime}} | <strong>Dropoff Time:</strong> {{.DropoffTime}}</p>
-
-            <h6>Locations:</h6>
-            {{range .Locations}}
-            <div class="mb-2">
-              <span class="badge {{if eq .Type "pickup"}}bg-info{{else}}bg-warning{{end}}">{{.Type}}</span>
-              <strong>{{.Address}}</strong>
-              {{if .Description}}<br><small class="text-muted">{{.Description}}</small>{{end}}
+            <div class="mb-3">
+              <strong><i class="bi bi-person-heart me-1"></i>Guardian:</strong> {{.Guardian}}<br>
+              <strong><i class="bi bi-telephone me-1"></i>Phone:</strong> {{.PhoneNumber}}
+              {{if .AltPhoneNumber}}<br><strong><i class="bi bi-telephone-plus me-1"></i>Alt:</strong> {{.AltPhoneNumber}}{{end}}
             </div>
-            {{end}}
+            
+            <div class="mb-3">
+              <strong><i class="bi bi-clock me-1"></i>Schedule:</strong><br>
+              <small class="text-muted">
+                Pickup: {{.PickupTime}} | Dropoff: {{.DropoffTime}}
+              </small>
+            </div>
 
-            <div class="mt-3">
-              <button class="btn btn-sm btn-outline-secondary edit-student-btn" 
+            <div class="mb-3">
+              <strong><i class="bi bi-geo-alt me-1"></i>Locations:</strong><br>
+              {{range .Locations}}
+              <span class="location-badge {{if eq .Type "pickup"}}location-pickup{{else}}location-dropoff{{end}}">
+                {{.Type}}: {{.Address}}
+              </span>
+              {{end}}
+            </div>
+
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-secondary edit-student-btn flex-fill" 
                       data-student-id="{{.StudentID}}" 
                       data-name="{{.Name}}" 
                       data-phone="{{.PhoneNumber}}" 
@@ -66,21 +398,32 @@
                       data-route-id="{{.RouteID}}" 
                       data-active="{{.Active}}"
                       data-locations='{{.Locations | json}}'>
-                Edit
+                <i class="bi bi-pencil me-1"></i>Edit
               </button>
-              <form method="POST" action="/remove-student" class="d-inline remove-student-form">
+              <form method="POST" action="/remove-student" class="remove-student-form">
                 <input type="hidden" name="student_id" value="{{.StudentID}}">
-                <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-trash"></i>
+                </button>
               </form>
             </div>
           </div>
         </div>
       </div>
+      {{end}}
       {{else}}
       <div class="col-12">
-        <div class="alert alert-info">
-          <h5>No Students Added Yet</h5>
-          <p>Click "Add New Student" to add your first student.</p>
+        <div class="enhanced-card">
+          <div class="card-body">
+            <div class="empty-state">
+              <i class="bi bi-person-plus"></i>
+              <h5>No Students Added Yet</h5>
+              <p class="mb-3">Get started by adding your first student to the roster</p>
+              <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                <i class="bi bi-person-plus me-2"></i>Add First Student
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       {{end}}
@@ -92,22 +435,28 @@
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Add New Student</h5>
+          <h5 class="modal-title">
+            <i class="bi bi-person-plus me-2"></i>Add New Student
+          </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <form method="POST" action="/add-student">
+        <form method="POST" action="/add-student" id="addStudentForm">
           <div class="modal-body">
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Student Name</label>
-                  <input type="text" class="form-control" name="name" required>
+                  <label class="form-label">
+                    <i class="bi bi-person me-2"></i>Student Name
+                  </label>
+                  <input type="text" class="form-control" name="name" placeholder="Enter student's full name" required>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Position Number</label>
-                  <input type="number" class="form-control" name="position_number" required>
+                  <label class="form-label">
+                    <i class="bi bi-123 me-2"></i>Position Number
+                  </label>
+                  <input type="number" class="form-control" name="position_number" placeholder="Seat position" required>
                 </div>
               </div>
             </div>
@@ -115,13 +464,17 @@
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Guardian/Contact Person</label>
-                  <input type="text" class="form-control" name="guardian" required>
+                  <label class="form-label">
+                    <i class="bi bi-person-heart me-2"></i>Guardian/Contact Person
+                  </label>
+                  <input type="text" class="form-control" name="guardian" placeholder="Parent or guardian name" required>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Route</label>
+                  <label class="form-label">
+                    <i class="bi bi-signpost-2 me-2"></i>Route
+                  </label>
                   <select name="route_id" class="form-select" required>
                     <option value="">Select Route</option>
                     {{range .Routes}}
@@ -133,16 +486,20 @@
             </div>
 
             <div class="row">
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Phone Number</label>
-                  <input type="tel" class="form-control" name="phone_number" required>
+                  <label class="form-label">
+                    <i class="bi bi-telephone me-2"></i>Phone Number
+                  </label>
+                  <input type="tel" class="form-control" name="phone_number" placeholder="Primary contact number" required>
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Alt Phone Number</label>
-                  <input type="tel" class="form-control" name="alt_phone_number">
+                  <label class="form-label">
+                    <i class="bi bi-telephone-plus me-2"></i>Alternate Phone
+                  </label>
+                  <input type="tel" class="form-control" name="alt_phone_number" placeholder="Secondary contact (optional)">
                 </div>
               </div>
             </div>
@@ -150,47 +507,63 @@
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Pickup Time</label>
+                  <label class="form-label">
+                    <i class="bi bi-clock me-2"></i>Pickup Time
+                  </label>
                   <input type="time" class="form-control" name="pickup_time" required>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Dropoff Time</label>
+                  <label class="form-label">
+                    <i class="bi bi-clock-history me-2"></i>Dropoff Time
+                  </label>
                   <input type="time" class="form-control" name="dropoff_time" required>
                 </div>
               </div>
             </div>
 
-            <h6>Pickup Locations</h6>
+            <h6 class="mb-3">
+              <i class="bi bi-geo-alt me-2"></i>Pickup Locations
+            </h6>
             <div id="pickupLocations">
               <div class="row mb-2">
                 <div class="col-md-6">
-                  <input type="text" class="form-control" name="pickup_address" placeholder="Pickup Address">
+                  <input type="text" class="form-control" name="pickup_address" placeholder="Pickup address">
                 </div>
                 <div class="col-md-6">
                   <input type="text" class="form-control" name="pickup_description" placeholder="Description (optional)">
                 </div>
               </div>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-primary mb-3 add-pickup-location">+ Add Another Pickup Location</button>
+            <button type="button" class="btn btn-sm add-location-btn mb-3 add-pickup-location">
+              <i class="bi bi-plus-circle me-1"></i>Add Another Pickup Location
+            </button>
 
-            <h6>Dropoff Locations</h6>
+            <h6 class="mb-3">
+              <i class="bi bi-geo-alt-fill me-2"></i>Dropoff Locations
+            </h6>
             <div id="dropoffLocations">
               <div class="row mb-2">
                 <div class="col-md-6">
-                  <input type="text" class="form-control" name="dropoff_address" placeholder="Dropoff Address">
+                  <input type="text" class="form-control" name="dropoff_address" placeholder="Dropoff address">
                 </div>
                 <div class="col-md-6">
                   <input type="text" class="form-control" name="dropoff_description" placeholder="Description (optional)">
                 </div>
               </div>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-primary add-dropoff-location">+ Add Another Dropoff Location</button>
+            <button type="button" class="btn btn-sm add-location-btn add-dropoff-location">
+              <i class="bi bi-plus-circle me-1"></i>Add Another Dropoff Location
+            </button>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">Add Student</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              <i class="bi bi-x-circle me-2"></i>Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-circle me-2"></i>Add Student
+            </button>
           </div>
         </form>
       </div>
@@ -202,22 +575,29 @@
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Edit Student</h5>
+          <h5 class="modal-title">
+            <i class="bi bi-pencil-square me-2"></i>Edit Student
+          </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <form method="POST" action="/edit-student" id="editStudentForm">
           <input type="hidden" name="student_id" id="edit_student_id">
           <div class="modal-body">
+            <!-- Edit form fields would be similar to add form -->
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Student Name</label>
+                  <label class="form-label">
+                    <i class="bi bi-person me-2"></i>Student Name
+                  </label>
                   <input type="text" class="form-control" name="name" id="edit_name" required>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Position Number</label>
+                  <label class="form-label">
+                    <i class="bi bi-123 me-2"></i>Position Number
+                  </label>
                   <input type="number" class="form-control" name="position_number" id="edit_position_number" required>
                 </div>
               </div>
@@ -226,13 +606,17 @@
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Guardian/Contact Person</label>
+                  <label class="form-label">
+                    <i class="bi bi-person-heart me-2"></i>Guardian/Contact Person
+                  </label>
                   <input type="text" class="form-control" name="guardian" id="edit_guardian" required>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Route</label>
+                  <label class="form-label">
+                    <i class="bi bi-signpost-2 me-2"></i>Route
+                  </label>
                   <select name="route_id" id="edit_route_id" class="form-select" required>
                     <option value="">Select Route</option>
                     {{range .Routes}}
@@ -246,22 +630,28 @@
             <div class="row">
               <div class="col-md-4">
                 <div class="mb-3">
-                  <label class="form-label">Phone Number</label>
+                  <label class="form-label">
+                    <i class="bi bi-telephone me-2"></i>Phone Number
+                  </label>
                   <input type="tel" class="form-control" name="phone_number" id="edit_phone_number" required>
                 </div>
               </div>
               <div class="col-md-4">
                 <div class="mb-3">
-                  <label class="form-label">Alt Phone Number</label>
+                  <label class="form-label">
+                    <i class="bi bi-telephone-plus me-2"></i>Alt Phone Number
+                  </label>
                   <input type="tel" class="form-control" name="alt_phone_number" id="edit_alt_phone_number">
                 </div>
               </div>
               <div class="col-md-4">
                 <div class="mb-3">
-                  <label class="form-label">Status</label>
-                  <div class="form-check">
+                  <label class="form-label">
+                    <i class="bi bi-toggle-on me-2"></i>Status
+                  </label>
+                  <div class="form-check form-switch mt-2">
                     <input class="form-check-input" type="checkbox" name="active" id="edit_active">
-                    <label class="form-check-label">Active</label>
+                    <label class="form-check-label">Active Student</label>
                   </div>
                 </div>
               </div>
@@ -270,29 +660,45 @@
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Pickup Time</label>
+                  <label class="form-label">
+                    <i class="bi bi-clock me-2"></i>Pickup Time
+                  </label>
                   <input type="time" class="form-control" name="pickup_time" id="edit_pickup_time" required>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Dropoff Time</label>
+                  <label class="form-label">
+                    <i class="bi bi-clock-history me-2"></i>Dropoff Time
+                  </label>
                   <input type="time" class="form-control" name="dropoff_time" id="edit_dropoff_time" required>
                 </div>
               </div>
             </div>
 
-            <h6>Pickup Locations</h6>
+            <h6 class="mb-3">
+              <i class="bi bi-geo-alt me-2"></i>Pickup Locations
+            </h6>
             <div id="editPickupLocations"></div>
-            <button type="button" class="btn btn-sm btn-outline-primary mb-3 add-edit-pickup-location">+ Add Another Pickup Location</button>
+            <button type="button" class="btn btn-sm add-location-btn mb-3 add-edit-pickup-location">
+              <i class="bi bi-plus-circle me-1"></i>Add Another Pickup Location
+            </button>
 
-            <h6>Dropoff Locations</h6>
+            <h6 class="mb-3">
+              <i class="bi bi-geo-alt-fill me-2"></i>Dropoff Locations
+            </h6>
             <div id="editDropoffLocations"></div>
-            <button type="button" class="btn btn-sm btn-outline-primary add-edit-dropoff-location">+ Add Another Dropoff Location</button>
+            <button type="button" class="btn btn-sm add-location-btn add-edit-dropoff-location">
+              <i class="bi bi-plus-circle me-1"></i>Add Another Dropoff Location
+            </button>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">Update Student</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              <i class="bi bi-x-circle me-2"></i>Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-circle me-2"></i>Update Student
+            </button>
           </div>
         </form>
       </div>
@@ -302,56 +708,61 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      // Calculate statistics
+      {{if .Students}}
+      const students = [
+        {{range .Students}}
+        {active: {{.Active}}, pickupTime: "{{.PickupTime}}", dropoffTime: "{{.DropoffTime}}"},
+        {{end}}
+      ];
       
-      // Handle add pickup location buttons
+      const activeCount = students.filter(s => s.active).length;
+      const morningCount = students.filter(s => s.pickupTime && s.pickupTime < "12:00").length;
+      const afternoonCount = students.filter(s => s.dropoffTime && s.dropoffTime >= "12:00").length;
+      
+      document.getElementById('activeStudents').textContent = activeCount;
+      document.getElementById('morningPickups').textContent = morningCount;
+      document.getElementById('afternoonDropoffs').textContent = afternoonCount;
+      {{end}}
+
+      // Handle form actions
       document.addEventListener('click', function(e) {
         if (e.target.closest('.add-pickup-location')) {
           addPickupLocation();
         }
-        
         if (e.target.closest('.add-dropoff-location')) {
           addDropoffLocation();
         }
-        
         if (e.target.closest('.add-edit-pickup-location')) {
           addEditPickupLocation();
         }
-        
         if (e.target.closest('.add-edit-dropoff-location')) {
           addEditDropoffLocation();
         }
-        
         if (e.target.closest('.edit-student-btn')) {
           const btn = e.target.closest('.edit-student-btn');
-          const studentId = btn.dataset.studentId;
-          const name = btn.dataset.name;
-          const phone = btn.dataset.phone;
-          const altPhone = btn.dataset.altPhone;
-          const guardian = btn.dataset.guardian;
-          const pickupTime = btn.dataset.pickupTime;
-          const dropoffTime = btn.dataset.dropoffTime;
-          const position = btn.dataset.position;
-          const routeId = btn.dataset.routeId;
-          const active = btn.dataset.active === 'true';
-          
-          let locations = [];
-          try {
-            locations = JSON.parse(btn.dataset.locations || '[]');
-          } catch (e) {
-            console.error('Error parsing locations:', e);
-            locations = [];
-          }
-          
-          editStudent(studentId, name, phone, altPhone, guardian, pickupTime, dropoffTime, position, routeId, active, locations);
+          editStudent(btn.dataset);
         }
       });
 
-      // Handle remove student form submissions
+      // Handle form submissions
       document.addEventListener('submit', function(e) {
         if (e.target.closest('.remove-student-form')) {
           if (!confirm('Are you sure you want to remove this student?')) {
             e.preventDefault();
           }
+        }
+        
+        if (e.target.closest('#addStudentForm')) {
+          const submitBtn = e.target.querySelector('button[type="submit"]');
+          submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Adding Student...';
+          submitBtn.disabled = true;
+        }
+        
+        if (e.target.closest('#editStudentForm')) {
+          const submitBtn = e.target.querySelector('button[type="submit"]');
+          submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating Student...';
+          submitBtn.disabled = true;
         }
       });
 
@@ -359,12 +770,14 @@
         const container = document.getElementById('pickupLocations');
         const div = document.createElement('div');
         div.className = 'row mb-2';
-        div.innerHTML = '<div class="col-md-6">' +
-          '<input type="text" class="form-control" name="pickup_address" placeholder="Pickup Address">' +
-          '</div>' +
-          '<div class="col-md-6">' +
-          '<input type="text" class="form-control" name="pickup_description" placeholder="Description (optional)">' +
-          '</div>';
+        div.innerHTML = `
+          <div class="col-md-6">
+            <input type="text" class="form-control" name="pickup_address" placeholder="Pickup address">
+          </div>
+          <div class="col-md-6">
+            <input type="text" class="form-control" name="pickup_description" placeholder="Description (optional)">
+          </div>
+        `;
         container.appendChild(div);
       }
 
@@ -372,12 +785,14 @@
         const container = document.getElementById('dropoffLocations');
         const div = document.createElement('div');
         div.className = 'row mb-2';
-        div.innerHTML = '<div class="col-md-6">' +
-          '<input type="text" class="form-control" name="dropoff_address" placeholder="Dropoff Address">' +
-          '</div>' +
-          '<div class="col-md-6">' +
-          '<input type="text" class="form-control" name="dropoff_description" placeholder="Description (optional)">' +
-          '</div>';
+        div.innerHTML = `
+          <div class="col-md-6">
+            <input type="text" class="form-control" name="dropoff_address" placeholder="Dropoff address">
+          </div>
+          <div class="col-md-6">
+            <input type="text" class="form-control" name="dropoff_description" placeholder="Description (optional)">
+          </div>
+        `;
         container.appendChild(div);
       }
 
@@ -385,12 +800,14 @@
         const container = document.getElementById('editPickupLocations');
         const div = document.createElement('div');
         div.className = 'row mb-2';
-        div.innerHTML = '<div class="col-md-6">' +
-          '<input type="text" class="form-control" name="pickup_address" placeholder="Pickup Address">' +
-          '</div>' +
-          '<div class="col-md-6">' +
-          '<input type="text" class="form-control" name="pickup_description" placeholder="Description (optional)">' +
-          '</div>';
+        div.innerHTML = `
+          <div class="col-md-6">
+            <input type="text" class="form-control" name="pickup_address" placeholder="Pickup address">
+          </div>
+          <div class="col-md-6">
+            <input type="text" class="form-control" name="pickup_description" placeholder="Description (optional)">
+          </div>
+        `;
         container.appendChild(div);
       }
 
@@ -398,57 +815,67 @@
         const container = document.getElementById('editDropoffLocations');
         const div = document.createElement('div');
         div.className = 'row mb-2';
-        div.innerHTML = '<div class="col-md-6">' +
-          '<input type="text" class="form-control" name="dropoff_address" placeholder="Dropoff Address">' +
-          '</div>' +
-          '<div class="col-md-6">' +
-          '<input type="text" class="form-control" name="dropoff_description" placeholder="Description (optional)">' +
-          '</div>';
+        div.innerHTML = `
+          <div class="col-md-6">
+            <input type="text" class="form-control" name="dropoff_address" placeholder="Dropoff address">
+          </div>
+          <div class="col-md-6">
+            <input type="text" class="form-control" name="dropoff_description" placeholder="Description (optional)">
+          </div>
+        `;
         container.appendChild(div);
       }
 
-      function editStudent(studentId, name, phone, altPhone, guardian, pickupTime, dropoffTime, position, routeId, active, locations) {
-        document.getElementById('edit_student_id').value = studentId;
-        document.getElementById('edit_name').value = name;
-        document.getElementById('edit_phone_number').value = phone;
-        document.getElementById('edit_alt_phone_number').value = altPhone || '';
-        document.getElementById('edit_guardian').value = guardian;
-        document.getElementById('edit_pickup_time').value = pickupTime;
-        document.getElementById('edit_dropoff_time').value = dropoffTime;
-        document.getElementById('edit_position_number').value = position;
-        document.getElementById('edit_route_id').value = routeId;
-        document.getElementById('edit_active').checked = active;
+      function editStudent(data) {
+        document.getElementById('edit_student_id').value = data.studentId;
+        document.getElementById('edit_name').value = data.name;
+        document.getElementById('edit_phone_number').value = data.phone;
+        document.getElementById('edit_alt_phone_number').value = data.altPhone || '';
+        document.getElementById('edit_guardian').value = data.guardian;
+        document.getElementById('edit_pickup_time').value = data.pickupTime;
+        document.getElementById('edit_dropoff_time').value = data.dropoffTime;
+        document.getElementById('edit_position_number').value = data.position;
+        document.getElementById('edit_route_id').value = data.routeId;
+        document.getElementById('edit_active').checked = data.active === 'true';
 
-        // Clear existing locations
+        // Clear and populate locations
         document.getElementById('editPickupLocations').innerHTML = '';
         document.getElementById('editDropoffLocations').innerHTML = '';
 
-        // Add existing locations
-        locations.forEach(function(location) {
-          if (location.Type === 'pickup') {
-            const container = document.getElementById('editPickupLocations');
-            const div = document.createElement('div');
-            div.className = 'row mb-2';
-            div.innerHTML = '<div class="col-md-6">' +
-              '<input type="text" class="form-control" name="pickup_address" value="' + (location.Address || '') + '" placeholder="Pickup Address">' +
-              '</div>' +
-              '<div class="col-md-6">' +
-              '<input type="text" class="form-control" name="pickup_description" value="' + (location.Description || '') + '" placeholder="Description (optional)">' +
-              '</div>';
-            container.appendChild(div);
-          } else if (location.Type === 'dropoff') {
-            const container = document.getElementById('editDropoffLocations');
-            const div = document.createElement('div');
-            div.className = 'row mb-2';
-            div.innerHTML = '<div class="col-md-6">' +
-              '<input type="text" class="form-control" name="dropoff_address" value="' + (location.Address || '') + '" placeholder="Dropoff Address">' +
-              '</div>' +
-              '<div class="col-md-6">' +
-              '<input type="text" class="form-control" name="dropoff_description" value="' + (location.Description || '') + '" placeholder="Description (optional)">' +
-              '</div>';
-            container.appendChild(div);
-          }
-        });
+        try {
+          const locations = JSON.parse(data.locations || '[]');
+          locations.forEach(function(location) {
+            if (location.Type === 'pickup') {
+              const container = document.getElementById('editPickupLocations');
+              const div = document.createElement('div');
+              div.className = 'row mb-2';
+              div.innerHTML = `
+                <div class="col-md-6">
+                  <input type="text" class="form-control" name="pickup_address" value="${location.Address || ''}" placeholder="Pickup address">
+                </div>
+                <div class="col-md-6">
+                  <input type="text" class="form-control" name="pickup_description" value="${location.Description || ''}" placeholder="Description (optional)">
+                </div>
+              `;
+              container.appendChild(div);
+            } else if (location.Type === 'dropoff') {
+              const container = document.getElementById('editDropoffLocations');
+              const div = document.createElement('div');
+              div.className = 'row mb-2';
+              div.innerHTML = `
+                <div class="col-md-6">
+                  <input type="text" class="form-control" name="dropoff_address" value="${location.Address || ''}" placeholder="Dropoff address">
+                </div>
+                <div class="col-md-6">
+                  <input type="text" class="form-control" name="dropoff_description" value="${location.Description || ''}" placeholder="Description (optional)">
+                </div>
+              `;
+              container.appendChild(div);
+            }
+          });
+        } catch (e) {
+          console.error('Error parsing locations:', e);
+        }
 
         // Ensure at least one location input for each type
         if (document.getElementById('editPickupLocations').children.length === 0) {
@@ -462,12 +889,19 @@
         modal.show();
       }
 
-      // Make functions available globally if needed
-      window.addPickupLocation = addPickupLocation;
-      window.addDropoffLocation = addDropoffLocation;
-      window.addEditPickupLocation = addEditPickupLocation;
-      window.addEditDropoffLocation = addEditDropoffLocation;
-      window.editStudent = editStudent;
+      // Add animation to cards
+      const cards = document.querySelectorAll('.student-card, .enhanced-card');
+      cards.forEach((card, index) => {
+        setTimeout(() => {
+          card.style.opacity = '0';
+          card.style.transform = 'translateY(20px)';
+          card.style.transition = 'all 0.5s ease';
+          setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+          }, 100);
+        }, index * 100);
+      });
     });
   </script>
 </body>
