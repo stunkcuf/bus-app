@@ -505,6 +505,35 @@
         });
       });
 
+      // Handle dropdown conflicts - close other dropdowns when one opens
+      document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
+        toggle.addEventListener('show.bs.dropdown', function() {
+          // Close all other dropdowns
+          document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+            if (menu !== this.nextElementSibling) {
+              const dropdown = bootstrap.Dropdown.getInstance(menu.previousElementSibling);
+              if (dropdown) dropdown.hide();
+            }
+          });
+          
+          // Add high z-index to this dropdown's row
+          const row = this.closest('tr');
+          if (row) {
+            row.style.zIndex = '1055';
+            row.style.position = 'relative';
+          }
+        });
+
+        toggle.addEventListener('hide.bs.dropdown', function() {
+          // Reset z-index when dropdown closes
+          const row = this.closest('tr');
+          if (row) {
+            row.style.zIndex = '';
+            row.style.position = '';
+          }
+        });
+      });
+
       function calculateStatistics() {
         {{if .Vehicles}}
         const vehicles = [
@@ -540,110 +569,103 @@
       function updateStatus(vehicleId, statusType, newStatus) {
         console.log('=== STATUS UPDATE DEBUG ===');
         console.log('Vehicle ID:', vehicleId);
-        console.log('Status Type (Column Name):', statusType);  // Now: "oil_status", "tire_status", or "status"
+        console.log('Status Type (Column Name):', statusType);
         console.log('New Status:', newStatus);
-        console.log('This should match your database column names!');
-        
+
         // Show loading state
         const button = document.querySelector(`[data-id="${vehicleId}"][data-type="${statusType}"]`);
         const originalContent = button.innerHTML;
         button.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div>';
         button.disabled = true;
 
-        // Send the correct column names that match your database
+        // Try different parameter combinations that your backend might expect
+        const attempts = [
+          // Attempt 1: Current format
+          {
+            vehicle_id: vehicleId,
+            status_type: statusType,
+            new_status: newStatus
+          },
+          // Attempt 2: Maybe backend expects 'id' instead of 'vehicle_id'
+          {
+            id: vehicleId,
+            status_type: statusType,
+            new_status: newStatus
+          },
+          // Attempt 3: Maybe backend expects 'field' instead of 'status_type'
+          {
+            vehicle_id: vehicleId,
+            field: statusType,
+            value: newStatus
+          },
+          // Attempt 4: Maybe backend expects 'column' instead of 'status_type'
+          {
+            vehicle_id: vehicleId,
+            column: statusType,
+            new_status: newStatus
+          },
+          // Attempt 5: Maybe backend expects short names like 'oil' instead of 'oil_status'
+          {
+            vehicle_id: vehicleId,
+            status_type: statusType.replace('_status', ''), // 'oil_status' → 'oil'
+            new_status: newStatus
+          },
+          // Attempt 6: Combination of #2 and #5
+          {
+            id: vehicleId,
+            status_type: statusType.replace('_status', ''),
+            new_status: newStatus
+          }
+        ];
+
+        tryNextAttempt(0, attempts, button, originalContent);
+      }
+
+      function tryNextAttempt(attemptIndex, attempts, button, originalContent) {
+        if (attemptIndex >= attempts.length) {
+          console.log('❌ All attempts failed!');
+          button.innerHTML = originalContent;
+          button.disabled = false;
+          
+          alert(`All ${attempts.length} attempts failed. Your backend might expect different parameter names.\n\nPlease check your backend code for the /update-vehicle-status endpoint and let me know what parameter names it expects.`);
+          return;
+        }
+
+        const params = attempts[attemptIndex];
+        console.log(`\n🔄 Attempt ${attemptIndex + 1}/${attempts.length}:`, params);
+
         const formData = new FormData();
-        formData.append('vehicle_id', vehicleId);
-        formData.append('status_type', statusType);  // Now sends: "oil_status", "tire_status", or "status"
-        formData.append('new_status', newStatus);
-
-        // Also try URL encoded format as backup
-        const urlEncodedData = new URLSearchParams();
-        urlEncodedData.append('vehicle_id', vehicleId);
-        urlEncodedData.append('status_type', statusType);  // Correct column names
-        urlEncodedData.append('new_status', newStatus);
-
-        console.log('Sending FormData:', Array.from(formData.entries()));
-        console.log('Endpoint: /update-vehicle-status');
+        Object.keys(params).forEach(key => {
+          formData.append(key, params[key]);
+        });
 
         fetch('/update-vehicle-status', {
           method: 'POST',
           body: formData
         })
         .then(response => {
-          console.log('Response status:', response.status);
-          console.log('Response headers:', response.headers);
-          
-          // Check if response is JSON or text
-          const contentType = response.headers.get('content-type');
-          console.log('Content-Type:', contentType);
+          console.log(`Attempt ${attemptIndex + 1} response status:`, response.status);
           
           if (response.ok) {
-            console.log('✅ Status update successful!');
-            // Update the button class and reload
-            setTimeout(() => {
-              window.location.reload();
-            }, 500);
-          } else {
-            // Try to get error message from response
-            return response.text().then(text => {
-              console.log('❌ Error response body:', text);
-              throw new Error(`HTTP ${response.status}: ${text}`);
-            });
-          }
-        })
-        .catch(error => {
-          console.error('❌ Error updating status:', error);
-          
-          // Restore button state
-          button.innerHTML = originalContent;
-          button.disabled = false;
-          
-          // Show detailed error for debugging
-          const errorMessage = `Failed to update ${statusType} status for vehicle ${vehicleId}.\n\nDetails:\n${error.message}\n\nCheck the browser console (F12) for more info.`;
-          alert(errorMessage);
-          
-          // Try alternative endpoint format as fallback
-          console.log('🔄 Trying alternative request format...');
-          tryAlternativeUpdate(vehicleId, statusType, newStatus, button, originalContent);
-        });
-      }
-
-      function tryAlternativeUpdate(vehicleId, statusType, newStatus, button, originalContent) {
-        // Try with URL-encoded data instead of FormData
-        const urlEncodedData = new URLSearchParams();
-        urlEncodedData.append('vehicle_id', vehicleId);
-        urlEncodedData.append('status_type', statusType);  // Already correct: "oil_status", "tire_status", or "status"
-        urlEncodedData.append('new_status', newStatus);
-
-        console.log('Trying URL-encoded data:', urlEncodedData.toString());
-
-        fetch('/update-vehicle-status', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: urlEncodedData.toString()
-        })
-        .then(response => {
-          console.log('Alternative request response status:', response.status);
-          if (response.ok) {
-            console.log('✅ Alternative request successful!');
+            console.log(`✅ Attempt ${attemptIndex + 1} SUCCESS!`);
+            console.log('✅ Working parameters:', params);
+            console.log('📝 Remember these parameter names for future reference!');
+            
             setTimeout(() => {
               window.location.reload();
             }, 500);
           } else {
             return response.text().then(text => {
-              console.log('❌ Alternative request failed:', text);
-              throw new Error(`Both request methods failed. HTTP ${response.status}: ${text}`);
+              console.log(`❌ Attempt ${attemptIndex + 1} failed:`, text);
+              // Try next attempt
+              tryNextAttempt(attemptIndex + 1, attempts, button, originalContent);
             });
           }
         })
         .catch(error => {
-          console.error('❌ Alternative request also failed:', error);
-          button.innerHTML = originalContent;
-          button.disabled = false;
-          
-          alert(`All update attempts failed. Please check:\n1. Is the backend running?\n2. Does /update-vehicle-status endpoint exist?\n3. Check network tab in dev tools (F12)\n\nError: ${error.message}`);
+          console.log(`❌ Attempt ${attemptIndex + 1} network error:`, error);
+          // Try next attempt
+          tryNextAttempt(attemptIndex + 1, attempts, button, originalContent);
         });
       }
 
