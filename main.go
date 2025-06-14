@@ -3185,15 +3185,35 @@ func importVehicleAsBus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Determine capacity based on vehicle type
+	capacity := 30 // Default
+	description := strings.ToUpper(sourceVehicle.Description)
+	
+	// Try to determine capacity from description
+	if strings.Contains(description, "EXPRESS") || strings.Contains(description, "STARCRAFT") {
+		capacity = 25
+	} else if strings.Contains(description, "MIDCO") {
+		capacity = 20
+	} else if strings.Contains(description, "CUTAWAY") {
+		capacity = 15
+	}
+
+	// Use description as the model name since it's more descriptive
+	modelName := sourceVehicle.Description
+	if modelName == "" {
+		modelName = sourceVehicle.Model
+	}
+	
 	// Create new bus from vehicle data
 	newBus := &Bus{
-		BusID:            vehicleID, // Use vehicle ID as bus ID
+		BusID:            vehicleID,
 		Status:           "active",
-		Model:            sourceVehicle.Model,
-		Capacity:         30, // Default capacity, can be edited later
+		Model:            modelName, // Use description as model name
+		Capacity:         capacity,
 		OilStatus:        sourceVehicle.OilStatus,
 		TireStatus:       sourceVehicle.TireStatus,
-		MaintenanceNotes: fmt.Sprintf("Imported from company fleet. License: %s, Year: %s", sourceVehicle.License, sourceVehicle.Year),
+		MaintenanceNotes: fmt.Sprintf("Imported from company fleet. License: %s, Year: %s, Original Model: %s", 
+			sourceVehicle.License, sourceVehicle.Year, sourceVehicle.Model),
 	}
 
 	buses = append(buses, newBus)
@@ -3203,7 +3223,7 @@ func importVehicleAsBus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Successfully imported vehicle %s as bus", vehicleID)
+	log.Printf("Successfully imported vehicle %s (%s) as bus", vehicleID, modelName)
 	http.Redirect(w, r, "/fleet", http.StatusFound)
 }
 
