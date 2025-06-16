@@ -4,201 +4,22 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	git "github.com/go-git/go-git/v5"
 	"html/template"
 	"log"
 	"net/http"
-	"path/filepath"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
-	"database/sql"
-	_ "github.com/lib/pq"
-	"io"
+
+	git "github.com/go-git/go-git/v5"
 )
-
-type User struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Role     string `json:"role"`
-}
-
-type Attendance struct {
-	Date    string `json:"date"`
-	Driver  string `json:"driver"`
-	Route   string `json:"route"`
-	Present int    `json:"present"`
-}
-
-type Mileage struct {
-	Date   string  `json:"date"`
-	Driver string  `json:"driver"`
-	Route  string  `json:"route"`
-	Miles  float64 `json:"miles"`
-}
-
-type Activity struct {
-	Date       string  `json:"date"`
-	Driver     string  `json:"driver"`
-	TripName   string  `json:"trip_name"`
-	Attendance int     `json:"attendance"`
-	Miles      float64 `json:"miles"`
-	Notes      string  `json:"notes"`
-}
-
-type DriverSummary struct {
-	Name              string
-	TotalMorning      int
-	TotalEvening      int
-	TotalMiles        float64
-	MonthlyAvgMiles   float64
-	MonthlyAttendance int
-}
-
-type RouteStats struct {
-	RouteName       string
-	TotalMiles      float64
-	AvgMiles        float64
-	AttendanceDay   int
-	AttendanceWeek  int
-	AttendanceMonth int
-}
-
-type Route struct {
-	RouteID     string `json:"route_id"`
-	RouteName   string `json:"route_name"`
-	Description string `json:"description"`
-	Positions []struct {
-		Position int    `json:"position"`
-		Student  string `json:"student"`
-	} `json:"positions"`
-}
-
-type Bus struct {
-	BusID            string `json:"bus_id"`
-	Status           string `json:"status"` // active, maintenance, out_of_service
-	Model            string `json:"model"`
-	Capacity         int    `json:"capacity"`
-	OilStatus        string `json:"oil_status"`        // good, due, overdue
-	TireStatus       string `json:"tire_status"`       // good, worn, replace
-	MaintenanceNotes string `json:"maintenance_notes"`
-}
-
-type Vehicle struct {
-	VehicleID        string `json:"vehicle_id"`
-	Model            string `json:"model"`
-	Description      string `json:"description"`
-	Year             string `json:"year"`
-	TireSize         string `json:"tire_size"`
-	License          string `json:"license"`
-	OilStatus        string `json:"oil_status"`
-	TireStatus       string `json:"tire_status"`
-	Status           string `json:"status"`
-	MaintenanceNotes string `json:"maintenance_notes"`
-	SerialNumber     string `json:"serial_number"`     // Add this field
-	Base             string `json:"base"`              // Add this field
-	ServiceInterval  int    `json:"service_interval"`  // Add this field
-}
-
-type Student struct {
-	StudentID       string     `json:"student_id"`
-	Name            string     `json:"name"`
-	Locations       []Location `json:"locations"`
-	PhoneNumber     string     `json:"phone_number"`
-	AltPhoneNumber  string     `json:"alt_phone_number"`
-	Guardian        string     `json:"guardian"`
-	PickupTime      string     `json:"pickup_time"`
-	DropoffTime     string     `json:"dropoff_time"`
-	PositionNumber  int        `json:"position_number"`
-	RouteID         string     `json:"route_id"`
-	Driver          string     `json:"driver"`
-	Active          bool       `json:"active"`
-}
-
-type Location struct {
-	Type        string `json:"type"` // "pickup" or "dropoff"
-	Address     string `json:"address"`
-	Description string `json:"description"`
-}
-
-type RouteAssignment struct {
-	Driver       string `json:"driver"`
-	BusID        string `json:"bus_id"`
-	RouteID      string `json:"route_id"`
-	RouteName    string `json:"route_name"`
-	AssignedDate string `json:"assigned_date"`
-}
-
-type DriverLog struct {
-	Driver     string `json:"driver"`
-	BusID      string `json:"bus_id"`
-	RouteID    string `json:"route_id"`
-	Date       string `json:"date"`
-	Period     string `json:"period"`
-	Departure  string `json:"departure_time"`
-	Arrival    string `json:"arrival_time"`
-	Mileage    float64 `json:"mileage"`
-	Attendance []struct {
-		Position   int    `json:"position"`
-		Present    bool   `json:"present"`
-		PickupTime string `json:"pickup_time,omitempty"`
-	} `json:"attendance"`
-}
-
-type DashboardData struct {
-	User            *User
-	Role            string
-	DriverSummaries []*DriverSummary
-	RouteStats      []*RouteStats
-	Activities      []Activity
-	Routes          []Route
-	Users           []User
-	Buses           []*Bus
-}
-
-type AssignRouteData struct {
-	User            *User
-	Assignments     []RouteAssignment
-	Drivers         []User
-	AvailableRoutes []Route
-	AvailableBuses  []*Bus
-}
-
-type FleetData struct {
-	User  *User
-	Buses []*Bus
-	Today string
-}
-
-type MaintenanceLog struct {
-	BusID    string `json:"bus_id"`
-	Date     string `json:"date"`      // YYYY‑MM‑DD
-	Category string `json:"category"`  // oil, tires, brakes, etc.
-	Notes    string `json:"notes"`
-	Mileage  int    `json:"mileage"`   // optional
-}
-
-type StudentData struct {
-	User     *User
-	Students []Student
-	Routes   []Route
-}
-
-type CompanyFleetData struct {
-	User     *User
-	Vehicles []Vehicle
-}
 
 //go:embed templates/*.html
 var tmplFS embed.FS
 
 var templates *template.Template
-
-// PostgreSQL database connection
-var db *sql.DB
 
 func init() {
 	var err error
@@ -240,1388 +61,7 @@ func init() {
 }
 
 // =============================================================================
-// DATABASE FUNCTIONS
-// =============================================================================
-
-// Database initialization function
-func initDatabase() error {
-	// Railway automatically provides DATABASE_URL environment variable
-	databaseURL := os.Getenv("DATABASE_URL")
-	if databaseURL == "" {
-		return fmt.Errorf("DATABASE_URL environment variable not set")
-	}
-
-	var err error
-	db, err = sql.Open("postgres", databaseURL)
-	if err != nil {
-		return fmt.Errorf("failed to connect to database: %w", err)
-	}
-
-	if err = db.Ping(); err != nil {
-		return fmt.Errorf("failed to ping database: %w", err)
-	}
-
-	log.Println("✅ Connected to PostgreSQL database")
-	return createTables()
-}
-
-// Create all necessary tables WITH the description column
-func createTables() error {
-	queries := []string{
-		// Users table
-		`CREATE TABLE IF NOT EXISTS users (
-			id SERIAL PRIMARY KEY,
-			username VARCHAR(255) UNIQUE NOT NULL,
-			password VARCHAR(255) NOT NULL,
-			role VARCHAR(50) NOT NULL,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
-
-		// Buses table
-		`CREATE TABLE IF NOT EXISTS buses (
-			id SERIAL PRIMARY KEY,
-			bus_id VARCHAR(255) UNIQUE NOT NULL,
-			status VARCHAR(50) NOT NULL DEFAULT 'active',
-			model VARCHAR(255),
-			capacity INTEGER DEFAULT 0,
-			oil_status VARCHAR(50) DEFAULT 'good',
-			tire_status VARCHAR(50) DEFAULT 'good',
-			maintenance_notes TEXT,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
-
-		// Routes table - NOW WITH DESCRIPTION
-		`CREATE TABLE IF NOT EXISTS routes (
-			id SERIAL PRIMARY KEY,
-			route_id VARCHAR(255) UNIQUE NOT NULL,
-			route_name VARCHAR(255) NOT NULL,
-			description TEXT,
-			positions JSONB,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
-
-		// Students table
-		`CREATE TABLE IF NOT EXISTS students (
-			id SERIAL PRIMARY KEY,
-			student_id VARCHAR(255) UNIQUE NOT NULL,
-			name VARCHAR(255) NOT NULL,
-			locations JSONB,
-			phone_number VARCHAR(50),
-			alt_phone_number VARCHAR(50),
-			guardian VARCHAR(255),
-			pickup_time TIME,
-			dropoff_time TIME,
-			position_number INTEGER,
-			route_id VARCHAR(255),
-			driver VARCHAR(255),
-			active BOOLEAN DEFAULT true,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
-
-		// Route assignments table
-		`CREATE TABLE IF NOT EXISTS route_assignments (
-			id SERIAL PRIMARY KEY,
-			driver VARCHAR(255) NOT NULL,
-			bus_id VARCHAR(255) NOT NULL,
-			route_id VARCHAR(255) NOT NULL,
-			route_name VARCHAR(255),
-			assigned_date DATE,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			UNIQUE(driver)
-		)`,
-
-		// Driver logs table
-		`CREATE TABLE IF NOT EXISTS driver_logs (
-			id SERIAL PRIMARY KEY,
-			driver VARCHAR(255) NOT NULL,
-			bus_id VARCHAR(255),
-			route_id VARCHAR(255),
-			date DATE NOT NULL,
-			period VARCHAR(50) NOT NULL,
-			departure_time VARCHAR(10),
-			arrival_time VARCHAR(10),
-			mileage DECIMAL(10,2) DEFAULT 0,
-			attendance JSONB,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			UNIQUE(driver, date, period)
-		)`,
-
-		// Maintenance logs table
-		`CREATE TABLE IF NOT EXISTS maintenance_logs (
-			id SERIAL PRIMARY KEY,
-			bus_id VARCHAR(255) NOT NULL,
-			date DATE NOT NULL,
-			category VARCHAR(100),
-			notes TEXT,
-			mileage INTEGER DEFAULT 0,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
-
-		// Vehicles table (for company fleet)
-		`CREATE TABLE IF NOT EXISTS vehicles (
-			id SERIAL PRIMARY KEY,
-			vehicle_id VARCHAR(255) UNIQUE NOT NULL,
-			model VARCHAR(255),
-			description TEXT,
-			year VARCHAR(4),
-			tire_size VARCHAR(50),
-			license VARCHAR(50),
-			oil_status VARCHAR(50) DEFAULT 'good',
-			tire_status VARCHAR(50) DEFAULT 'good',
-			status VARCHAR(50) DEFAULT 'active',
-			maintenance_notes TEXT,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
-	}
-
-	for _, query := range queries {
-		if _, err := db.Exec(query); err != nil {
-			return fmt.Errorf("failed to create table: %w", err)
-		}
-	}
-
-	log.Println("✅ Database tables created successfully")
-	
-	// Add missing columns if they don't exist (for existing databases)
-	if err := ensureSchemaUpdates(); err != nil {
-		log.Printf("⚠️  Warning: Schema updates failed: %v", err)
-		// Don't fail completely, just log the warning
-	}
-	
-	return nil
-}
-
-// New function to handle schema evolution
-func ensureSchemaUpdates() error {
-	log.Println("🔧 Checking for schema updates...")
-	
-	// Add missing columns if they don't exist
-	schemaUpdates := []struct {
-		table      string
-		column     string
-		definition string
-	}{
-		{"routes", "description", "ALTER TABLE routes ADD COLUMN IF NOT EXISTS description TEXT"},
-		{"vehicles", "serial_number", "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS serial_number VARCHAR(255)"},
-		{"vehicles", "base", "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS base VARCHAR(255)"},
-		{"buses", "updated_at", "ALTER TABLE buses ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"},
-	}
-
-	for _, update := range schemaUpdates {
-		// PostgreSQL specific: ADD COLUMN IF NOT EXISTS
-		if _, err := db.Exec(update.definition); err != nil {
-			log.Printf("⚠️  Could not add column %s.%s: %v", update.table, update.column, err)
-			// Continue with other updates
-		} else {
-			log.Printf("✅ Ensured column %s.%s exists", update.table, update.column)
-		}
-	}
-
-	return nil
-}
-
-// Migration function to move JSON data to PostgreSQL
-func migrateJSONToPostgreSQL() error {
-	log.Println("🔄 Starting migration from JSON files to PostgreSQL...")
-
-	// Migrate Users
-	if err := migrateUsers(); err != nil {
-		log.Printf("❌ Failed to migrate users: %v", err)
-		return err
-	}
-
-	// Migrate Buses
-	if err := migrateBuses(); err != nil {
-		log.Printf("❌ Failed to migrate buses: %v", err)
-		return err
-	}
-
-	// Migrate Routes
-	if err := migrateRoutes(); err != nil {
-		log.Printf("❌ Failed to migrate routes: %v", err)
-		return err
-	}
-
-	// Migrate Students
-	if err := migrateStudents(); err != nil {
-		log.Printf("❌ Failed to migrate students: %v", err)
-		return err
-	}
-
-	// Migrate Route Assignments
-	if err := migrateRouteAssignments(); err != nil {
-		log.Printf("❌ Failed to migrate route assignments: %v", err)
-		return err
-	}
-
-	// Migrate Driver Logs
-	if err := migrateDriverLogs(); err != nil {
-		log.Printf("❌ Failed to migrate driver logs: %v", err)
-		return err
-	}
-
-	// Migrate Maintenance Logs
-	if err := migrateMaintenanceLogs(); err != nil {
-		log.Printf("❌ Failed to migrate maintenance logs: %v", err)
-		return err
-	}
-
-	// Migrate Vehicles
-	if err := migrateVehicles(); err != nil {
-		log.Printf("❌ Failed to migrate vehicles: %v", err)
-		return err
-	}
-
-	log.Println("✅ Migration completed successfully!")
-	return nil
-}
-
-func migrateUsers() error {
-	users := loadUsersFromJSON()
-	if len(users) == 0 {
-		log.Println("📝 No users to migrate")
-		return nil
-	}
-
-	for _, user := range users {
-		_, err := db.Exec(`
-			INSERT INTO users (username, password, role) 
-			VALUES ($1, $2, $3) 
-			ON CONFLICT (username) DO UPDATE SET 
-				password = EXCLUDED.password,
-				role = EXCLUDED.role
-		`, user.Username, user.Password, user.Role)
-		
-		if err != nil {
-			return fmt.Errorf("failed to insert user %s: %w", user.Username, err)
-		}
-	}
-
-	log.Printf("✅ Migrated %d users", len(users))
-	return nil
-}
-
-func migrateBuses() error {
-	buses := loadBusesFromJSON()
-	if len(buses) == 0 {
-		log.Println("📝 No buses to migrate")
-		return nil
-	}
-
-	for _, bus := range buses {
-		_, err := db.Exec(`
-			INSERT INTO buses (bus_id, status, model, capacity, oil_status, tire_status, maintenance_notes) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7) 
-			ON CONFLICT (bus_id) DO UPDATE SET 
-				status = EXCLUDED.status,
-				model = EXCLUDED.model,
-				capacity = EXCLUDED.capacity,
-				oil_status = EXCLUDED.oil_status,
-				tire_status = EXCLUDED.tire_status,
-				maintenance_notes = EXCLUDED.maintenance_notes,
-				updated_at = CURRENT_TIMESTAMP
-		`, bus.BusID, bus.Status, bus.Model, bus.Capacity, bus.OilStatus, bus.TireStatus, bus.MaintenanceNotes)
-		
-		if err != nil {
-			return fmt.Errorf("failed to insert bus %s: %w", bus.BusID, err)
-		}
-	}
-
-	log.Printf("✅ Migrated %d buses", len(buses))
-	return nil
-}
-
-func migrateRoutes() error {
-	routes, err := loadJSON[Route]("data/routes.json")
-	if err != nil {
-		log.Println("📝 No routes to migrate")
-		return nil
-	}
-
-	for _, route := range routes {
-		positionsJSON, _ := json.Marshal(route.Positions)
-		
-		// Try to insert with all columns including description
-		_, err := db.Exec(`
-			INSERT INTO routes (route_id, route_name, description, positions) 
-			VALUES ($1, $2, $3, $4) 
-			ON CONFLICT (route_id) DO UPDATE SET 
-				route_name = EXCLUDED.route_name,
-				description = EXCLUDED.description,
-				positions = EXCLUDED.positions
-		`, route.RouteID, route.RouteName, route.Description, positionsJSON)
-		
-		if err != nil {
-			return fmt.Errorf("failed to insert route %s: %w", route.RouteID, err)
-		}
-	}
-
-	log.Printf("✅ Migrated %d routes", len(routes))
-	return nil
-}
-
-func migrateStudents() error {
-	students := loadStudentsFromJSON()
-	if len(students) == 0 {
-		log.Println("📝 No students to migrate")
-		return nil
-	}
-
-	for _, student := range students {
-		locationsJSON, _ := json.Marshal(student.Locations)
-		
-		_, err := db.Exec(`
-			INSERT INTO students (student_id, name, locations, phone_number, alt_phone_number, 
-				guardian, pickup_time, dropoff_time, position_number, route_id, driver, active) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
-			ON CONFLICT (student_id) DO UPDATE SET 
-				name = EXCLUDED.name,
-				locations = EXCLUDED.locations,
-				phone_number = EXCLUDED.phone_number,
-				alt_phone_number = EXCLUDED.alt_phone_number,
-				guardian = EXCLUDED.guardian,
-				pickup_time = EXCLUDED.pickup_time,
-				dropoff_time = EXCLUDED.dropoff_time,
-				position_number = EXCLUDED.position_number,
-				route_id = EXCLUDED.route_id,
-				driver = EXCLUDED.driver,
-				active = EXCLUDED.active
-		`, student.StudentID, student.Name, locationsJSON, student.PhoneNumber, student.AltPhoneNumber,
-		   student.Guardian, student.PickupTime, student.DropoffTime, student.PositionNumber, 
-		   student.RouteID, student.Driver, student.Active)
-		
-		if err != nil {
-			return fmt.Errorf("failed to insert student %s: %w", student.StudentID, err)
-		}
-	}
-
-	log.Printf("✅ Migrated %d students", len(students))
-	return nil
-}
-
-func migrateRouteAssignments() error {
-	assignments, err := loadRouteAssignmentsFromJSON()
-	if err != nil {
-		log.Println("📝 No route assignments to migrate")
-		return nil
-	}
-
-	for _, assignment := range assignments {
-		_, err := db.Exec(`
-			INSERT INTO route_assignments (driver, bus_id, route_id, route_name, assigned_date) 
-			VALUES ($1, $2, $3, $4, $5) 
-			ON CONFLICT (driver) DO UPDATE SET 
-				bus_id = EXCLUDED.bus_id,
-				route_id = EXCLUDED.route_id,
-				route_name = EXCLUDED.route_name,
-				assigned_date = EXCLUDED.assigned_date
-		`, assignment.Driver, assignment.BusID, assignment.RouteID, assignment.RouteName, assignment.AssignedDate)
-		
-		if err != nil {
-			return fmt.Errorf("failed to insert assignment for driver %s: %w", assignment.Driver, err)
-		}
-	}
-
-	log.Printf("✅ Migrated %d route assignments", len(assignments))
-	return nil
-}
-
-func migrateDriverLogs() error {
-	logs, err := loadJSON[DriverLog]("data/driver_logs.json")
-	if err != nil {
-		log.Println("📝 No driver logs to migrate")
-		return nil
-	}
-
-	for _, driverLog := range logs {  // FIXED: renamed from 'log' to 'driverLog'
-		attendanceJSON, _ := json.Marshal(driverLog.Attendance)
-		
-		_, err := db.Exec(`
-			INSERT INTO driver_logs (driver, bus_id, route_id, date, period, departure_time, 
-				arrival_time, mileage, attendance) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
-			ON CONFLICT (driver, date, period) DO UPDATE SET 
-				bus_id = EXCLUDED.bus_id,
-				route_id = EXCLUDED.route_id,
-				departure_time = EXCLUDED.departure_time,
-				arrival_time = EXCLUDED.arrival_time,
-				mileage = EXCLUDED.mileage,
-				attendance = EXCLUDED.attendance
-		`, driverLog.Driver, driverLog.BusID, driverLog.RouteID, driverLog.Date, driverLog.Period, driverLog.Departure,
-		   driverLog.Arrival, driverLog.Mileage, attendanceJSON)
-		
-		if err != nil {
-			return fmt.Errorf("failed to insert driver log for %s: %w", driverLog.Driver, err)
-		}
-	}
-
-	log.Printf("✅ Migrated %d driver logs", len(logs))
-	return nil
-}
-
-func migrateMaintenanceLogs() error {
-	logs, _ := loadJSON[MaintenanceLog]("data/maintenance.json")
-	if len(logs) == 0 {
-		log.Println("📝 No maintenance logs to migrate")
-		return nil
-	}
-
-	for _, maintLog := range logs {  // FIXED: renamed from 'log' to 'maintLog'
-		_, err := db.Exec(`
-			INSERT INTO maintenance_logs (bus_id, date, category, notes, mileage) 
-			VALUES ($1, $2, $3, $4, $5)
-		`, maintLog.BusID, maintLog.Date, maintLog.Category, maintLog.Notes, maintLog.Mileage)
-		
-		if err != nil {
-			return fmt.Errorf("failed to insert maintenance log for bus %s: %w", maintLog.BusID, err)
-		}
-	}
-
-	log.Printf("✅ Migrated %d maintenance logs", len(logs))
-	return nil
-}
-
-func migrateVehicles() error {
-	vehicles := loadVehiclesFromJSON()
-	if len(vehicles) == 0 {
-		log.Println("📝 No vehicles to migrate")
-		return nil
-	}
-
-	for _, vehicle := range vehicles {
-		_, err := db.Exec(`
-			INSERT INTO vehicles (vehicle_id, model, description, year, tire_size, license, 
-				oil_status, tire_status, status, maintenance_notes) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
-			ON CONFLICT (vehicle_id) DO UPDATE SET 
-				model = EXCLUDED.model,
-				description = EXCLUDED.description,
-				year = EXCLUDED.year,
-				tire_size = EXCLUDED.tire_size,
-				license = EXCLUDED.license,
-				oil_status = EXCLUDED.oil_status,
-				tire_status = EXCLUDED.tire_status,
-				status = EXCLUDED.status,
-				maintenance_notes = EXCLUDED.maintenance_notes
-		`, vehicle.VehicleID, vehicle.Model, vehicle.Description, vehicle.Year, vehicle.TireSize,
-		   vehicle.License, vehicle.OilStatus, vehicle.TireStatus, vehicle.Status, vehicle.MaintenanceNotes)
-		
-		if err != nil {
-			return fmt.Errorf("failed to insert vehicle %s: %w", vehicle.VehicleID, err)
-		}
-	}
-
-	log.Printf("✅ Migrated %d vehicles", len(vehicles))
-	return nil
-}
-
-// Setup database with migration
-func setupDatabase() {
-	log.Println("🗄️  Setting up database...")
-	
-	if err := initDatabase(); err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
-	}
-
-	// Run migration if JSON files exist
-	if _, err := os.Stat("data"); err == nil {
-		if err := migrateJSONToPostgreSQL(); err != nil {
-			log.Printf("⚠️  Migration failed: %v", err)
-			log.Println("Continuing with database setup...")
-		}
-	}
-}
-
-// =============================================================================
-// LOAD/SAVE FUNCTIONS (PostgreSQL + JSON Fallback)
-// =============================================================================
-
-var userCache []User
-var userCacheTime time.Time
-var userCacheMutex sync.RWMutex
-
-// Load users - PostgreSQL first, JSON fallback
-func loadUsers() []User {
-	if db != nil {
-		rows, err := db.Query("SELECT username, password, role FROM users ORDER BY username")
-		if err != nil {
-			log.Printf("Error loading users from database: %v", err)
-			return loadUsersFromJSON() // Fallback
-		}
-		defer rows.Close()
-
-		var users []User
-		for rows.Next() {
-			var user User
-			err := rows.Scan(&user.Username, &user.Password, &user.Role)
-			if err != nil {
-				log.Printf("Error scanning user: %v", err)
-				continue
-			}
-			users = append(users, user)
-		}
-		return users
-	}
-	return loadUsersFromJSON()
-}
-
-// JSON fallback for users
-func loadUsersFromJSON() []User {
-	userCacheMutex.RLock()
-	if time.Since(userCacheTime) < 30*time.Second && userCache != nil {
-		defer userCacheMutex.RUnlock()
-		return userCache
-	}
-	userCacheMutex.RUnlock()
-
-	userCacheMutex.Lock()
-	defer userCacheMutex.Unlock()
-
-	f, err := os.Open("data/users.json")
-	if err != nil {
-		return nil
-	}
-	defer f.Close()
-	var users []User
-	json.NewDecoder(f).Decode(&users)
-	userCache = users
-	userCacheTime = time.Now()
-	return users
-}
-
-// Save users - PostgreSQL first, JSON fallback
-func saveUsers(users []User) error {
-	if db != nil {
-		tx, err := db.Begin()
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-
-		// Clear existing users
-		_, err = tx.Exec("DELETE FROM users")
-		if err != nil {
-			return err
-		}
-
-		// Insert new users
-		for _, user := range users {
-			_, err = tx.Exec("INSERT INTO users (username, password, role) VALUES ($1, $2, $3)",
-				user.Username, user.Password, user.Role)
-			if err != nil {
-				return err
-			}
-		}
-
-		return tx.Commit()
-	}
-	return saveUsersToJSON(users)
-}
-
-func saveUsersToJSON(users []User) error {
-	f, err := os.Create("data/users.json")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(users)
-}
-
-// Load buses - PostgreSQL first, JSON fallback
-// Load buses - PostgreSQL first, JSON fallback - NEVER returns nil
-func loadBuses() []*Bus {
-	// Initialize with empty slice to ensure we never return nil
-	buses := make([]*Bus, 0)
-	
-	if db != nil {
-		rows, err := db.Query(`SELECT bus_id, status, model, capacity, oil_status, tire_status, maintenance_notes 
-			FROM buses ORDER BY bus_id`)
-		if err != nil {
-			log.Printf("Error loading buses from database: %v", err)
-			// Try JSON fallback
-			jsonBuses := loadBusesFromJSON()
-			if jsonBuses != nil {
-				return jsonBuses
-			}
-			// Return empty slice, not nil
-			return buses
-		}
-		defer rows.Close()
-
-		for rows.Next() {
-			bus := &Bus{}
-			err := rows.Scan(&bus.BusID, &bus.Status, &bus.Model, &bus.Capacity, 
-				&bus.OilStatus, &bus.TireStatus, &bus.MaintenanceNotes)
-			if err != nil {
-				log.Printf("Error scanning bus: %v", err)
-				continue
-			}
-			buses = append(buses, bus)
-		}
-		
-		log.Printf("Loaded %d buses from database", len(buses))
-		return buses
-	}
-	
-	// No database, use JSON
-	jsonBuses := loadBusesFromJSON()
-	if jsonBuses != nil {
-		return jsonBuses
-	}
-	
-	// Always return at least an empty slice
-	return buses
-}
-
-func loadBusesFromJSON() []*Bus {
-	// Initialize with empty slice
-	buses := make([]*Bus, 0)
-	
-	f, err := os.Open("data/buses.json")
-	if err != nil {
-		if os.IsNotExist(err) {
-			log.Printf("buses.json not found, returning empty slice")
-			return buses // Return empty slice, not nil
-		}
-		log.Printf("Error opening buses.json: %v", err)
-		return buses // Return empty slice, not nil
-	}
-	defer f.Close()
-
-	decoder := json.NewDecoder(f)
-	if err := decoder.Decode(&buses); err != nil {
-		log.Printf("Error decoding buses.json: %v", err)
-		// Reset to empty slice on decode error
-		buses = make([]*Bus, 0)
-		return buses
-	}
-	
-	log.Printf("Loaded %d buses from JSON", len(buses))
-	return buses
-}
-// Save buses - PostgreSQL first, JSON fallback
-func saveBuses(buses []*Bus) error {
-	if db != nil {
-		tx, err := db.Begin()
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-
-		for _, bus := range buses {
-			_, err = tx.Exec(`
-				INSERT INTO buses (bus_id, status, model, capacity, oil_status, tire_status, maintenance_notes) 
-				VALUES ($1, $2, $3, $4, $5, $6, $7) 
-				ON CONFLICT (bus_id) DO UPDATE SET 
-					status = EXCLUDED.status,
-					model = EXCLUDED.model,
-					capacity = EXCLUDED.capacity,
-					oil_status = EXCLUDED.oil_status,
-					tire_status = EXCLUDED.tire_status,
-					maintenance_notes = EXCLUDED.maintenance_notes,
-					updated_at = CURRENT_TIMESTAMP
-			`, bus.BusID, bus.Status, bus.Model, bus.Capacity, bus.OilStatus, bus.TireStatus, bus.MaintenanceNotes)
-			
-			if err != nil {
-				return err
-			}
-		}
-
-		return tx.Commit()
-	}
-	return saveBusesToJSON(buses)
-}
-
-func saveBusesToJSON(buses []*Bus) error {
-	f, err := os.Create("data/buses.json")
-	if err != nil {
-		return fmt.Errorf("failed to create buses.json: %w", err)
-	}
-	defer f.Close()
-
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(buses); err != nil {
-		return fmt.Errorf("failed to encode buses: %w", err)
-	}
-
-	return nil
-}
-
-// Load routes - PostgreSQL first, JSON fallback
-func loadRoutes() ([]Route, error) {
-	if db != nil {
-		rows, err := db.Query("SELECT route_id, route_name, description, positions FROM routes ORDER BY route_id")
-		if err != nil {
-			log.Printf("loadRoutes: Database query error: %v, falling back to JSON", err)
-			return loadRoutesFromJSON()
-		}
-		defer rows.Close()
-
-		var routes []Route
-		for rows.Next() {
-			var route Route
-			var positionsJSON []byte
-			var description sql.NullString
-			err := rows.Scan(&route.RouteID, &route.RouteName, &description, &positionsJSON)
-			if err != nil {
-				log.Printf("Error scanning route: %v", err)
-				continue
-			}
-
-			if description.Valid {
-				route.Description = description.String
-			}
-
-			// Parse positions JSON
-			if len(positionsJSON) > 0 {
-				err = json.Unmarshal(positionsJSON, &route.Positions)
-				if err != nil {
-					log.Printf("Error parsing positions JSON: %v", err)
-					route.Positions = []struct {
-						Position int    `json:"position"`
-						Student  string `json:"student"`
-					}{}
-				}
-			}
-
-			routes = append(routes, route)
-		}
-		return routes, nil
-	}
-	return loadRoutesFromJSON()
-}
-
-// Helper function to load routes from JSON file
-func loadRoutesFromJSON() ([]Route, error) {
-	log.Printf("loadRoutesFromJSON: Attempting to load routes from JSON file")
-	
-	// Check if file exists
-	if _, err := os.Stat("data/routes.json"); os.IsNotExist(err) {
-		log.Printf("loadRoutesFromJSON: routes.json does not exist, returning empty array")
-		return []Route{}, nil
-	}
-	
-	f, err := os.Open("data/routes.json")
-	if err != nil {
-		log.Printf("loadRoutesFromJSON: Error opening file: %v", err)
-		if os.IsPermission(err) {
-			return nil, fmt.Errorf("permission denied accessing routes.json")
-		}
-		return nil, fmt.Errorf("failed to open routes file: %w", err)
-	}
-	defer f.Close()
-
-	var routes []Route
-	decoder := json.NewDecoder(f)
-	if err := decoder.Decode(&routes); err != nil {
-		log.Printf("loadRoutesFromJSON: Error decoding JSON: %v", err)
-		// Check if it's empty file
-		if err == io.EOF {
-			log.Printf("loadRoutesFromJSON: Empty file, returning empty array")
-			return []Route{}, nil
-		}
-		return nil, fmt.Errorf("invalid JSON in routes file: %w", err)
-	}
-	
-	log.Printf("loadRoutesFromJSON: Successfully loaded %d routes from JSON", len(routes))
-	return routes, nil
-}
-
-// Load route assignments - PostgreSQL first, JSON fallback
-func loadRouteAssignments() ([]RouteAssignment, error) {
-	if db != nil {
-		rows, err := db.Query(`SELECT driver, bus_id, route_id, route_name, assigned_date 
-			FROM route_assignments ORDER BY driver`)
-		if err != nil {
-			return loadRouteAssignmentsFromJSON() // Fallback
-		}
-		defer rows.Close()
-
-		var assignments []RouteAssignment
-		for rows.Next() {
-			var assignment RouteAssignment
-			err := rows.Scan(&assignment.Driver, &assignment.BusID, &assignment.RouteID,
-				&assignment.RouteName, &assignment.AssignedDate)
-			if err != nil {
-				log.Printf("Error scanning assignment: %v", err)
-				continue
-			}
-			assignments = append(assignments, assignment)
-		}
-		return assignments, nil
-	}
-	return loadRouteAssignmentsFromJSON()
-}
-
-func loadRouteAssignmentsFromJSON() ([]RouteAssignment, error) {
-	assignments, err := loadJSON[RouteAssignment]("data/route_assignments.json")
-	if err != nil {
-		if os.IsNotExist(err) {
-			return []RouteAssignment{}, nil
-		}
-		return nil, fmt.Errorf("failed to load route assignments: %w", err)
-	}
-	return assignments, nil
-}
-
-// Save route assignments - PostgreSQL first, JSON fallback
-func saveRouteAssignments(assignments []RouteAssignment) error {
-	if db != nil {
-		tx, err := db.Begin()
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-
-		// Clear existing assignments
-		_, err = tx.Exec("DELETE FROM route_assignments")
-		if err != nil {
-			return err
-		}
-
-		// Insert assignments
-		for _, assignment := range assignments {
-			_, err = tx.Exec(`
-				INSERT INTO route_assignments (driver, bus_id, route_id, route_name, assigned_date) 
-				VALUES ($1, $2, $3, $4, $5)
-			`, assignment.Driver, assignment.BusID, assignment.RouteID, assignment.RouteName, assignment.AssignedDate)
-			
-			if err != nil {
-				return err
-			}
-		}
-
-		return tx.Commit()
-	}
-	return saveRouteAssignmentsToJSON(assignments)
-}
-
-func saveRouteAssignmentsToJSON(assignments []RouteAssignment) error {
-	f, err := os.Create("data/route_assignments.json")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(assignments)
-}
-
-// Load driver logs - PostgreSQL first, JSON fallback
-func loadDriverLogs() ([]DriverLog, error) {
-	if db != nil {
-		rows, err := db.Query(`SELECT driver, bus_id, route_id, date, period, departure_time, 
-			arrival_time, mileage, attendance FROM driver_logs ORDER BY date DESC, driver`)
-		if err != nil {
-			return loadJSON[DriverLog]("data/driver_logs.json")
-		}
-		defer rows.Close()
-
-		var logs []DriverLog
-		for rows.Next() {
-			var driverLog DriverLog  // FIXED: renamed from 'log' to 'driverLog'
-			var attendanceJSON []byte
-			err := rows.Scan(&driverLog.Driver, &driverLog.BusID, &driverLog.RouteID, &driverLog.Date, &driverLog.Period,
-				&driverLog.Departure, &driverLog.Arrival, &driverLog.Mileage, &attendanceJSON)
-			if err != nil {
-				log.Printf("Error scanning driver log: %v", err)
-				continue
-			}
-
-			// Parse attendance JSON
-			err = json.Unmarshal(attendanceJSON, &driverLog.Attendance)
-			if err != nil {
-				log.Printf("Error parsing attendance JSON: %v", err)
-				continue
-			}
-
-			logs = append(logs, driverLog)
-		}
-		return logs, nil
-	}
-	return loadJSON[DriverLog]("data/driver_logs.json")
-}
-
-// Save driver logs - PostgreSQL first, JSON fallback
-func saveDriverLogs(logs []DriverLog) error {
-	if db != nil {
-		tx, err := db.Begin()
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-
-		for _, driverLog := range logs {  // FIXED: renamed from 'log' to 'driverLog'
-			attendanceJSON, _ := json.Marshal(driverLog.Attendance)
-			_, err = tx.Exec(`
-				INSERT INTO driver_logs (driver, bus_id, route_id, date, period, departure_time, 
-					arrival_time, mileage, attendance) 
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
-				ON CONFLICT (driver, date, period) DO UPDATE SET 
-					bus_id = EXCLUDED.bus_id,
-					route_id = EXCLUDED.route_id,
-					departure_time = EXCLUDED.departure_time,
-					arrival_time = EXCLUDED.arrival_time,
-					mileage = EXCLUDED.mileage,
-					attendance = EXCLUDED.attendance
-			`, driverLog.Driver, driverLog.BusID, driverLog.RouteID, driverLog.Date, driverLog.Period, driverLog.Departure,
-			   driverLog.Arrival, driverLog.Mileage, attendanceJSON)
-			
-			if err != nil {
-				return err
-			}
-		}
-
-		return tx.Commit()
-	}
-	return saveDriverLogsToJSON(logs)
-}
-
-func saveDriverLogsToJSON(logs []DriverLog) error {
-	f, err := os.Create("data/driver_logs.json")
-	if err != nil {
-		return fmt.Errorf("failed to create driver logs file: %w", err)
-	}
-	defer f.Close()
-
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(logs); err != nil {
-		return fmt.Errorf("failed to encode driver logs: %w", err)
-	}
-
-	return nil
-}
-
-// Load students - PostgreSQL first, JSON fallback
-func loadStudents() []Student {
-	if db != nil {
-		rows, err := db.Query(`SELECT student_id, name, locations, phone_number, alt_phone_number, 
-			guardian, pickup_time, dropoff_time, position_number, route_id, driver, active 
-			FROM students ORDER BY name`)
-		if err != nil {
-			log.Printf("Error loading students from database: %v", err)
-			return loadStudentsFromJSON()
-		}
-		defer rows.Close()
-
-		var students []Student
-		for rows.Next() {
-			var student Student
-			var locationsJSON []byte
-			err := rows.Scan(&student.StudentID, &student.Name, &locationsJSON, &student.PhoneNumber,
-				&student.AltPhoneNumber, &student.Guardian, &student.PickupTime, &student.DropoffTime,
-				&student.PositionNumber, &student.RouteID, &student.Driver, &student.Active)
-			if err != nil {
-				log.Printf("Error scanning student: %v", err)
-				continue
-			}
-
-			// Parse locations JSON
-			err = json.Unmarshal(locationsJSON, &student.Locations)
-			if err != nil {
-				log.Printf("Error parsing locations JSON: %v", err)
-				continue
-			}
-
-			students = append(students, student)
-		}
-		return students
-	}
-	return loadStudentsFromJSON()
-}
-
-func loadStudentsFromJSON() []Student {
-	f, err := os.Open("data/students.json")
-	if err != nil {
-		return []Student{}
-	}
-	defer f.Close()
-	var students []Student
-	json.NewDecoder(f).Decode(&students)
-	return students
-}
-
-// Save students - PostgreSQL first, JSON fallback
-func saveStudents(students []Student) error {
-	if db != nil {
-		tx, err := db.Begin()
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-
-		// Clear existing students
-		_, err = tx.Exec("DELETE FROM students")
-		if err != nil {
-			return err
-		}
-
-		// Insert students
-		for _, student := range students {
-			locationsJSON, _ := json.Marshal(student.Locations)
-			_, err = tx.Exec(`
-				INSERT INTO students (student_id, name, locations, phone_number, alt_phone_number, 
-					guardian, pickup_time, dropoff_time, position_number, route_id, driver, active) 
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-			`, student.StudentID, student.Name, locationsJSON, student.PhoneNumber, student.AltPhoneNumber,
-			   student.Guardian, student.PickupTime, student.DropoffTime, student.PositionNumber,
-			   student.RouteID, student.Driver, student.Active)
-			
-			if err != nil {
-				return err
-			}
-		}
-
-		return tx.Commit()
-	}
-	return saveStudentsToJSON(students)
-}
-
-func saveStudentsToJSON(students []Student) error {
-	f, err := os.Create("data/students.json")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(students)
-}
-
-// Load maintenance logs - PostgreSQL first, JSON fallback
-func loadMaintenanceLogs() []MaintenanceLog {
-	if db != nil {
-		rows, err := db.Query("SELECT bus_id, date, category, notes, mileage FROM maintenance_logs ORDER BY date DESC")
-		if err != nil {
-			log.Printf("Error loading maintenance logs: %v", err)
-			logs, _ := loadJSON[MaintenanceLog]("data/maintenance.json")
-			return logs
-		}
-		defer rows.Close()
-
-		var logs []MaintenanceLog
-		for rows.Next() {
-			var maintLog MaintenanceLog  // FIXED: renamed from 'log' to 'maintLog'
-			err := rows.Scan(&maintLog.BusID, &maintLog.Date, &maintLog.Category, &maintLog.Notes, &maintLog.Mileage)
-			if err != nil {
-				log.Printf("Error scanning maintenance log: %v", err)
-				continue
-			}
-			logs = append(logs, maintLog)
-		}
-		return logs
-	}
-	logs, _ := loadJSON[MaintenanceLog]("data/maintenance.json")
-	return logs
-}
-
-// Save maintenance logs - PostgreSQL first, JSON fallback
-func saveMaintenanceLogs(logs []MaintenanceLog) error {
-	if db != nil {
-		tx, err := db.Begin()
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-
-		for _, maintLog := range logs {  // FIXED: renamed from 'log' to 'maintLog'
-			_, err = tx.Exec(`
-				INSERT INTO maintenance_logs (bus_id, date, category, notes, mileage) 
-				VALUES ($1, $2, $3, $4, $5)
-			`, maintLog.BusID, maintLog.Date, maintLog.Category, maintLog.Notes, maintLog.Mileage)
-			
-			if err != nil {
-				return err
-			}
-		}
-
-		return tx.Commit()
-	}
-	return saveMaintenanceLogsToJSON(logs)
-}
-
-func saveMaintenanceLogsToJSON(logs []MaintenanceLog) error {
-	f, err := os.Create("data/maintenance.json")
-	if err != nil { 
-		return err 
-	}
-	defer f.Close()
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(logs)
-}
-
-// Load vehicles - PostgreSQL first, JSON fallback
-// Update your existing loadVehicles() function in main.go
-// to include the service_interval field:
-func loadVehiclesFromJSON() []Vehicle {
-	f, err := os.Open("data/vehicle.json")
-	if err != nil {
-		log.Printf("Error loading vehicles: %v", err)
-		return []Vehicle{}
-	}
-	defer f.Close()
-	var vehicles []Vehicle
-	json.NewDecoder(f).Decode(&vehicles)
-	return vehicles
-}
-
-// 3. Add the saveVehiclesToJSON function:
-func saveVehiclesToJSON(vehicles []Vehicle) error {
-	f, err := os.Create("data/vehicle.json")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(vehicles)
-}
-
-// 4. Update your loadVehicles function to properly handle the new fields:
-func loadVehicles() []Vehicle {
-	if db != nil {
-		rows, err := db.Query(`
-			SELECT vehicle_id, model, description, year, tire_size, license, 
-			       oil_status, tire_status, status, maintenance_notes,
-			       COALESCE(serial_number, ''), COALESCE(base, ''),
-			       COALESCE(service_interval, 5000)
-			FROM vehicles 
-			ORDER BY vehicle_id
-		`)
-		if err != nil {
-			log.Printf("Error loading vehicles from database: %v", err)
-			return loadVehiclesFromJSON()
-		}
-		defer rows.Close()
-
-		var vehicles []Vehicle
-		for rows.Next() {
-			var vehicle Vehicle
-			err := rows.Scan(
-				&vehicle.VehicleID, &vehicle.Model, &vehicle.Description, 
-				&vehicle.Year, &vehicle.TireSize, &vehicle.License,
-				&vehicle.OilStatus, &vehicle.TireStatus, &vehicle.Status, 
-				&vehicle.MaintenanceNotes, &vehicle.SerialNumber, 
-				&vehicle.Base, &vehicle.ServiceInterval,
-			)
-			if err != nil {
-				log.Printf("Error scanning vehicle: %v", err)
-				continue
-			}
-			vehicles = append(vehicles, vehicle)
-		}
-		return vehicles
-	}
-	return loadVehiclesFromJSON()
-}
-
-// 5. Update your saveVehicles function:
-func saveVehicles(vehicles []Vehicle) error {
-	if db != nil {
-		tx, err := db.Begin()
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-
-		for _, vehicle := range vehicles {
-			_, err = tx.Exec(`
-				INSERT INTO vehicles (
-					vehicle_id, model, description, year, tire_size, license, 
-					oil_status, tire_status, status, maintenance_notes,
-					serial_number, base, service_interval
-				) 
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
-				ON CONFLICT (vehicle_id) DO UPDATE SET 
-					model = EXCLUDED.model,
-					description = EXCLUDED.description,
-					year = EXCLUDED.year,
-					tire_size = EXCLUDED.tire_size,
-					license = EXCLUDED.license,
-					oil_status = EXCLUDED.oil_status,
-					tire_status = EXCLUDED.tire_status,
-					status = EXCLUDED.status,
-					maintenance_notes = EXCLUDED.maintenance_notes,
-					serial_number = EXCLUDED.serial_number,
-					base = EXCLUDED.base,
-					service_interval = EXCLUDED.service_interval
-			`, vehicle.VehicleID, vehicle.Model, vehicle.Description, vehicle.Year, 
-			   vehicle.TireSize, vehicle.License, vehicle.OilStatus, vehicle.TireStatus,
-			   vehicle.Status, vehicle.MaintenanceNotes, vehicle.SerialNumber, 
-			   vehicle.Base, vehicle.ServiceInterval)
-			
-			if err != nil {
-				return err
-			}
-		}
-
-		return tx.Commit()
-	}
-	return saveVehiclesToJSON(vehicles)
-}
-
-// =============================================================================
-// HELPER FUNCTIONS (Keep existing)
-// =============================================================================
-
-// Helper function to safely execute templates
-func executeTemplate(w http.ResponseWriter, name string, data interface{}) {
-	if err := templates.ExecuteTemplate(w, name, data); err != nil {
-		log.Printf("Error executing template %s: %v", name, err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
-}
-
-func ensureDataFiles() {
-	os.MkdirAll("data", os.ModePerm)
-	if _, err := os.Stat("data/users.json"); os.IsNotExist(err) {
-		defaultUsers := []User{{"admin", "adminpass", "manager"}}
-		f, _ := os.Create("data/users.json")
-		json.NewEncoder(f).Encode(defaultUsers)
-		f.Close()
-	}
-	if _, err := os.Stat("data/route_assignments.json"); os.IsNotExist(err) {
-		f, _ := os.Create("data/route_assignments.json")
-		json.NewEncoder(f).Encode([]RouteAssignment{})
-		f.Close()
-	}
-}
-
-func loadJSON[T any](filename string) ([]T, error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	var data []T
-	err = json.NewDecoder(f).Decode(&data)
-	return data, err
-}
-
-func seedJSON[T any](path string, defaultData T) error {
-	if _, err := os.Stat(path); err == nil {
-		return nil // already present
-	} else if !os.IsNotExist(err) {
-		return fmt.Errorf("stat %s: %w", path, err)
-	}
-
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fmt.Errorf("mkdir: %w", err)
-	}
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
-	if err != nil {
-		return fmt.Errorf("create: %w", err)
-	}
-	defer f.Close()
-
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(defaultData); err != nil {
-		return fmt.Errorf("encode: %w", err)
-	}
-	log.Printf("Seeded %s", path)
-	return nil
-}
-
-// getDriverRouteAssignment returns the current route assignment for a driver
-func getDriverRouteAssignment(driverUsername string) (*RouteAssignment, error) {
-	assignments, err := loadRouteAssignments()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load assignments: %w", err)
-	}
-
-	for _, assignment := range assignments {
-		if assignment.Driver == driverUsername {
-			return &assignment, nil
-		}
-	}
-
-	return nil, fmt.Errorf("no assignment found for driver %s", driverUsername)
-}
-
-// validateRouteAssignment checks if a route assignment is valid
-func validateRouteAssignment(assignment RouteAssignment) error {
-	if assignment.Driver == "" {
-		return fmt.Errorf("driver cannot be empty")
-	}
-	if assignment.BusID == "" {
-		return fmt.Errorf("bus ID cannot be empty")
-	}
-	if assignment.RouteID == "" {
-		return fmt.Errorf("route ID cannot be empty")
-	}
-
-	// Check if driver exists
-	users := loadUsers()
-	driverExists := false
-	for _, u := range users {
-		if u.Username == assignment.Driver && u.Role == "driver" {
-			driverExists = true
-			break
-		}
-	}
-	if !driverExists {
-		return fmt.Errorf("driver %s does not exist", assignment.Driver)
-	}
-
-	// Check if bus exists and is active
-	buses := loadBuses()
-	busExists := false
-	for _, b := range buses {
-		if b.BusID == assignment.BusID {
-			if b.Status != "active" {
-				return fmt.Errorf("bus %s is not active", assignment.BusID)
-			}
-			busExists = true
-			break
-		}
-	}
-	if !busExists {
-		return fmt.Errorf("bus %s does not exist", assignment.BusID)
-	}
-
-	// Check if route exists
-	routes, err := loadRoutes()
-	if err != nil {
-		return fmt.Errorf("failed to load routes: %w", err)
-	}
-	routeExists := false
-	for _, r := range routes {
-		// Check both RouteID and RouteName for flexibility
-		if r.RouteID == assignment.RouteID || r.RouteName == assignment.RouteName {
-			routeExists = true
-			break
-		}
-	}
-	if !routeExists {
-		return fmt.Errorf("route %s does not exist", assignment.RouteID)
-	}
-
-	return nil
-}
-
-func getUserFromSession(r *http.Request) *User {
-	cookie, err := r.Cookie("session_user")
-	if err != nil {
-		return nil
-	}
-	uname := cookie.Value
-	for _, u := range loadUsers() {
-		if u.Username == uname {
-			return &u
-		}
-	}
-	return nil
-}
-
-// =============================================================================
-// HTTP HANDLERS (Keep all existing handlers)
+// HTTP HANDLERS - These will be moved to separate files later
 // =============================================================================
 
 func newUserPage(w http.ResponseWriter, r *http.Request) {
@@ -1740,7 +180,7 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Process driver logs
-	for _, driverLog := range driverLogs {  // FIXED: renamed from 'log' to 'driverLog'
+	for _, driverLog := range driverLogs {
 		// Get or create driver summary
 		s := driverData[driverLog.Driver]
 		if s == nil {
@@ -1796,21 +236,6 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			// If still not found, check if it's a numeric ID that needs mapping
-			if routeName == "" {
-				for _, r := range routes {
-					if (driverLog.RouteID == "1" && r.RouteID == "1") ||
-						 (driverLog.RouteID == "2" && r.RouteID == "2") ||
-						 (driverLog.RouteID == "3" && r.RouteID == "3") ||
-						 (driverLog.RouteID == "4" && r.RouteID == "4") ||
-						 (driverLog.RouteID == "5" && r.RouteID == "5") ||
-						 (driverLog.RouteID == "6" && r.RouteID == "6") {
-						routeName = r.RouteName
-						break
-					}
-				}
-			}
-
 			// Update route statistics if we found a route
 			if routeName != "" {
 				route := routeData[routeName]
@@ -1848,7 +273,7 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 		if r.TotalMiles > 0 {
 			// Count logs for this route to calculate average
 			logCount := 0
-			for _, driverLog := range driverLogs {  // FIXED: renamed from 'log' to 'driverLog'
+			for _, driverLog := range driverLogs {
 				// Find route name for this log (same logic as above)
 				var logRouteName string
 				for _, route := range routes {
@@ -1918,9 +343,9 @@ func driverProfileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		User   *User
-		Name   string
-		Logs   []DriverLog
+		User *User
+		Name string
+		Logs []DriverLog
 	}{
 		User: user,
 		Name: name,
@@ -1973,7 +398,6 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	assignment, err := getDriverRouteAssignment(user.Username)
 	if err != nil {
 		log.Printf("Warning: No assignment found for driver %s: %v", user.Username, err)
-		// Continue without assignment - driver might not be assigned yet
 	}
 
 	// Load all buses
@@ -1983,7 +407,6 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	if assignment != nil {
 		// Use assignment data (preferred)
 		for _, r := range routes {
-			// Try exact match first, then try by route name
 			if r.RouteID == assignment.RouteID || r.RouteName == assignment.RouteName {
 				driverRoute = &r
 				break
@@ -2013,22 +436,6 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// If we still don't have a route but have an assignment, let's also check by converting route ID
-	if driverRoute == nil && assignment != nil {
-		// Try to match by numeric ID conversion (e.g., "1" -> "RT001")
-		for _, r := range routes {
-			if assignment.RouteID == "1" && r.RouteID == "RT001" ||
-				 assignment.RouteID == "2" && r.RouteID == "RT002" ||
-				 assignment.RouteID == "3" && r.RouteID == "RT003" ||
-				 assignment.RouteID == "4" && r.RouteID == "RT004" ||
-				 assignment.RouteID == "5" && r.RouteID == "RT005" ||
-				 assignment.RouteID == "6" && r.RouteID == "RT006" {
-				driverRoute = &r
-				break
-			}
-		}
-	}
-
 	// Load students and filter for this driver's active students on this route
 	students := loadStudents()
 	var activeStudentPositions []struct {
@@ -2040,8 +447,8 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 		// Create a map of active students for this driver and route
 		activeStudentMap := make(map[int]string)
 		for _, student := range students {
-			if student.Active && student.Driver == user.Username && 
-				 (student.RouteID == driverRoute.RouteID || (assignment != nil && student.RouteID == assignment.RouteID)) {
+			if student.Active && student.Driver == user.Username &&
+				(student.RouteID == driverRoute.RouteID || (assignment != nil && student.RouteID == assignment.RouteID)) {
 				activeStudentMap[student.PositionNumber] = student.Name
 			}
 		}
@@ -2082,13 +489,6 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 		Route:     driverRoute,
 		DriverLog: driverLog,
 		Bus:       assignedBus,
-	}
-
-	if driverRoute == nil && assignment != nil {
-		log.Printf("Warning: No route found for route ID %s", assignment.RouteID)
-	}
-	if assignedBus == nil && assignment != nil {
-		log.Printf("Warning: No bus found for bus ID %s", assignment.BusID)
 	}
 
 	executeTemplate(w, "driver_dashboard.html", data)
@@ -2136,7 +536,7 @@ func pullLatest() string {
 
 	err = w.Pull(&git.PullOptions{
 		RemoteName: "origin",
-		Auth:       nil, // Add credentials if needed
+		Auth:       nil,
 		Force:      true,
 	})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
@@ -2167,14 +567,13 @@ func runPullHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleWebhook(w http.ResponseWriter, r *http.Request) {
-	// Optional: Validate GitHub signature
 	cmd := exec.Command("git", "pull", "origin", "main")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		http.Error(w, "Git pull failed: "+err.Error(), 500)
 		return
 	}
-	exec.Command("kill", "1").Run() // triggers a Replit restart
+	exec.Command("kill", "1").Run()
 	fmt.Fprintf(w, "Updated:\n%s", string(output))
 }
 
@@ -2193,7 +592,7 @@ func saveDriverLog(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	date := r.FormValue("date")
 	period := r.FormValue("period")
-	busID := r.FormValue("bus_id")  // Changed from bus_number to bus_id
+	busID := r.FormValue("bus_id")
 	departure := r.FormValue("departure")
 	arrival := r.FormValue("arrival")
 	mileage, _ := strconv.ParseFloat(r.FormValue("mileage"), 64)
@@ -2228,14 +627,7 @@ func saveDriverLog(w http.ResponseWriter, r *http.Request) {
 
 	// Find the correct route using RouteID from assignment
 	for _, rt := range routes {
-		// Try exact match first, then by route name, then by ID mapping
-		if rt.RouteID == assignment.RouteID || rt.RouteName == assignment.RouteName ||
-			 (assignment.RouteID == "1" && rt.RouteID == "RT001") ||
-			 (assignment.RouteID == "2" && rt.RouteID == "RT002") ||
-			 (assignment.RouteID == "3" && rt.RouteID == "RT003") ||
-			 (assignment.RouteID == "4" && rt.RouteID == "RT004") ||
-			 (assignment.RouteID == "5" && rt.RouteID == "RT005") ||
-			 (assignment.RouteID == "6" && rt.RouteID == "RT006") {
+		if rt.RouteID == assignment.RouteID || rt.RouteName == assignment.RouteName {
 			positions = rt.Positions
 			break
 		}
@@ -2262,7 +654,6 @@ func saveDriverLog(w http.ResponseWriter, r *http.Request) {
 	logs, err := loadDriverLogs()
 	if err != nil {
 		log.Printf("Error loading driver logs: %v", err)
-		// Continue with empty slice if file doesn't exist
 		logs = []DriverLog{}
 	}
 
@@ -2387,7 +778,6 @@ func assignRoutesPage(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, "assign_routes.html", data)
 }
 
-// FIXED addRoute function with proper error handling
 func addRoute(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -2417,7 +807,6 @@ func addRoute(w http.ResponseWriter, r *http.Request) {
 	routes, err := loadRoutes()
 	if err != nil {
 		log.Printf("addRoute: Error loading routes: %v", err)
-		// Don't continue with empty routes - return error to user
 		http.Error(w, "Unable to load existing routes. Please check system logs.", http.StatusInternalServerError)
 		return
 	}
@@ -2433,7 +822,7 @@ func addRoute(w http.ResponseWriter, r *http.Request) {
 
 	// Generate unique route ID
 	routeID := fmt.Sprintf("RT%03d", len(routes)+1)
-	
+
 	// Ensure unique route ID (in case of gaps in numbering)
 	idExists := true
 	counter := len(routes) + 1
@@ -2479,23 +868,17 @@ func addRoute(w http.ResponseWriter, r *http.Request) {
 			INSERT INTO routes (route_id, route_name, description, positions) 
 			VALUES ($1, $2, $3, $4)
 		`, newRoute.RouteID, newRoute.RouteName, newRoute.Description, positionsJSON)
-		
+
 		if err != nil {
 			log.Printf("addRoute: Database error saving route: %v", err)
-			// Check if it's a connection error
-			if pingErr := db.Ping(); pingErr != nil {
-				log.Printf("addRoute: Database connection lost: %v", pingErr)
-				http.Error(w, "Database connection error. Please contact administrator.", http.StatusServiceUnavailable)
-				return
-			}
 			http.Error(w, "Unable to save route to database", http.StatusInternalServerError)
 			return
 		}
 		log.Printf("addRoute: Successfully saved route %s to database", routeID)
 	} else {
-		// Fallback to JSON with better error handling
+		// Fallback to JSON
 		log.Printf("addRoute: Using JSON storage fallback")
-		
+
 		// Ensure data directory exists
 		if err := os.MkdirAll("data", 0755); err != nil {
 			log.Printf("addRoute: Error creating data directory: %v", err)
@@ -2508,15 +891,10 @@ func addRoute(w http.ResponseWriter, r *http.Request) {
 		f, err := os.Create(tempFile)
 		if err != nil {
 			log.Printf("addRoute: Error creating temp file: %v", err)
-			// Check if it's a permission issue
-			if os.IsPermission(err) {
-				http.Error(w, "File permission error. Please contact administrator.", http.StatusForbidden)
-				return
-			}
 			http.Error(w, "Unable to save route", http.StatusInternalServerError)
 			return
 		}
-		
+
 		enc := json.NewEncoder(f)
 		enc.SetIndent("", "  ")
 		if err := enc.Encode(routes); err != nil {
@@ -2526,7 +904,7 @@ func addRoute(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Unable to save route data", http.StatusInternalServerError)
 			return
 		}
-		
+
 		if err := f.Close(); err != nil {
 			os.Remove(tempFile)
 			log.Printf("addRoute: Error closing file: %v", err)
@@ -2541,7 +919,7 @@ func addRoute(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Unable to finalize route save", http.StatusInternalServerError)
 			return
 		}
-		
+
 		log.Printf("addRoute: Successfully saved route %s to JSON file", routeID)
 	}
 
@@ -2603,7 +981,7 @@ func editRoute(w http.ResponseWriter, r *http.Request) {
 			SET route_name = $1, description = $2 
 			WHERE route_id = $3
 		`, routeName, description, routeID)
-		
+
 		if err != nil {
 			log.Printf("Error updating route in database: %v", err)
 			http.Error(w, "Unable to update route", http.StatusInternalServerError)
@@ -2618,7 +996,7 @@ func editRoute(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer f.Close()
-		
+
 		enc := json.NewEncoder(f)
 		enc.SetIndent("", "  ")
 		if err := enc.Encode(routes); err != nil {
@@ -2704,7 +1082,7 @@ func deleteRoute(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer f.Close()
-		
+
 		enc := json.NewEncoder(f)
 		enc.SetIndent("", "  ")
 		if err := enc.Encode(newRoutes); err != nil {
@@ -2731,7 +1109,7 @@ func assignRoute(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 	driver := r.FormValue("driver")
-	busID := r.FormValue("bus_id")  // Changed from bus_number
+	busID := r.FormValue("bus_id")
 	routeID := r.FormValue("route_id")
 
 	if driver == "" || busID == "" || routeID == "" {
@@ -2852,7 +1230,7 @@ func unassignRoute(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 	driver := r.FormValue("driver")
-	busID := r.FormValue("bus_id")  // Changed from bus_number
+	busID := r.FormValue("bus_id")
 
 	assignments, err := loadRouteAssignments()
 	if err != nil {
@@ -2916,7 +1294,7 @@ func addBus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.ParseForm()
-	busID := r.FormValue("bus_id")  // Changed from bus_number
+	busID := r.FormValue("bus_id")
 	status := r.FormValue("status")
 	model := r.FormValue("model")
 	capacity, _ := strconv.Atoi(r.FormValue("capacity"))
@@ -2976,11 +1354,7 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 	tireStatus := r.FormValue("tire_status")
 	maintenanceNotes := r.FormValue("maintenance_notes")
 
-	// Debug logging
-	log.Printf("EditBus: originalBusID='%s', newBusID='%s', status='%s'", originalBusID, busID, status)
-
 	buses := loadBuses()
-	log.Printf("EditBus: loaded %d buses", len(buses))
 
 	// Check if new bus ID conflicts with existing (unless it's the same bus)
 	if busID != originalBusID {
@@ -2995,7 +1369,6 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 	// Find the original bus to check status change
 	var originalBus *Bus
 	for _, b := range buses {
-		log.Printf("EditBus: checking bus ID '%s' against original '%s'", b.BusID, originalBusID)
 		if b.BusID == originalBusID {
 			originalBus = b
 			break
@@ -3004,12 +1377,6 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 
 	if originalBus == nil {
 		log.Printf("EditBus: Bus not found with ID '%s'", originalBusID)
-		// List all available bus IDs for debugging
-		busIDs := make([]string, len(buses))
-		for i, b := range buses {
-			busIDs[i] = b.BusID
-		}
-		log.Printf("EditBus: Available bus IDs: %v", busIDs)
 		http.Error(w, fmt.Sprintf("Bus not found with ID '%s'", originalBusID), http.StatusNotFound)
 		return
 	}
@@ -3066,13 +1433,12 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 			Date:     time.Now().Format("2006-01-02"),
 			Category: "status_change",
 			Notes:    fmt.Sprintf("Bus status changed from '%s' to '%s'. %s", originalBus.Status, status, maintenanceNotes),
-			Mileage:  0, // Could be enhanced to track mileage
+			Mileage:  0,
 		}
 
 		maintenanceLogs = append(maintenanceLogs, logEntry)
 		if err := saveMaintenanceLogs(maintenanceLogs); err != nil {
 			log.Printf("Warning: Failed to save maintenance log: %v", err)
-			// Don't fail the bus update for this
 		} else {
 			log.Printf("Maintenance log created for bus %s status change", busID)
 		}
@@ -3094,7 +1460,7 @@ func removeBus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.ParseForm()
-	busID := r.FormValue("bus_id")  // Changed from bus_number
+	busID := r.FormValue("bus_id")
 
 	// Check if bus is currently assigned
 	assignments, err := loadRouteAssignments()
@@ -3148,7 +1514,6 @@ func companyFleetPage(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, "company_fleet.html", data)
 }
 
-// Get company fleet data as JSON for import functionality
 func companyFleetDataHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
@@ -3157,7 +1522,7 @@ func companyFleetDataHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vehicles := loadVehicles()
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(vehicles); err != nil {
 		log.Printf("Error encoding vehicles: %v", err)
@@ -3165,7 +1530,6 @@ func companyFleetDataHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Import a vehicle from company fleet as a bus
 func importVehicleAsBus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -3213,7 +1577,7 @@ func importVehicleAsBus(w http.ResponseWriter, r *http.Request) {
 	// Determine capacity based on vehicle type
 	capacity := 30 // Default
 	description := strings.ToUpper(sourceVehicle.Description)
-	
+
 	// Try to determine capacity from description
 	if strings.Contains(description, "EXPRESS") || strings.Contains(description, "STARCRAFT") {
 		capacity = 25
@@ -3228,16 +1592,16 @@ func importVehicleAsBus(w http.ResponseWriter, r *http.Request) {
 	if modelName == "" {
 		modelName = sourceVehicle.Model
 	}
-	
+
 	// Create new bus from vehicle data
 	newBus := &Bus{
 		BusID:            vehicleID,
 		Status:           "active",
-		Model:            modelName, // Use description as model name
+		Model:            modelName,
 		Capacity:         capacity,
 		OilStatus:        sourceVehicle.OilStatus,
 		TireStatus:       sourceVehicle.TireStatus,
-		MaintenanceNotes: fmt.Sprintf("Imported from company fleet. License: %s, Year: %s, Original Model: %s", 
+		MaintenanceNotes: fmt.Sprintf("Imported from company fleet. License: %s, Year: %s, Original Model: %s",
 			sourceVehicle.License, sourceVehicle.Year, sourceVehicle.Model),
 	}
 
@@ -3536,7 +1900,6 @@ func reassignDriverBus(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Driver reassigned successfully"))
 }
 
-// Updated maintenance log function to use BusID
 func addMaintenanceLog(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
@@ -3551,7 +1914,7 @@ func addMaintenanceLog(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	mileage, _ := strconv.Atoi(r.FormValue("mileage"))
 	logEntry := MaintenanceLog{
-		BusID:    r.FormValue("bus_id"), // Changed from bus_number
+		BusID:    r.FormValue("bus_id"),
 		Date:     r.FormValue("date"),
 		Category: r.FormValue("category"),
 		Notes:    r.FormValue("notes"),
@@ -3662,14 +2025,14 @@ func removeUser(w http.ResponseWriter, r *http.Request) {
 
 func updateVehicleStatus(w http.ResponseWriter, r *http.Request) {
 	log.Printf("🔍 updateVehicleStatus: Request received - Method: %s, URL: %s", r.Method, r.URL.String())
-	
+
 	if r.Method != http.MethodPost {
 		log.Printf("❌ updateVehicleStatus: Invalid method %s", r.Method)
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// 🔍 DEBUG: Check user session first
+	// Check user session
 	user := getUserFromSession(r)
 	log.Printf("🔍 updateVehicleStatus: User from session: %+v", user)
 	if user == nil {
@@ -3684,18 +2047,15 @@ func updateVehicleStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("✅ updateVehicleStatus: User %s is authorized as manager", user.Username)
 
-	// 🔍 DEBUG: Log request headers and content type
-	log.Printf("🔍 updateVehicleStatus: Content-Type: %s", r.Header.Get("Content-Type"))
-	
-	// 🔍 DEBUG: Parse and log form data
+	// Parse form data
 	if err := r.ParseForm(); err != nil {
 		log.Printf("❌ updateVehicleStatus: Error parsing form: %v", err)
 		http.Error(w, "Error parsing form data", http.StatusBadRequest)
 		return
 	}
-	
+
 	log.Printf("🔍 updateVehicleStatus: Raw form data: %+v", r.Form)
-	
+
 	// Extract form values
 	vehicleID := r.FormValue("vehicle_id")
 	statusType := r.FormValue("status_type")
@@ -3708,26 +2068,23 @@ func updateVehicleStatus(w http.ResponseWriter, r *http.Request) {
 
 	// Check for missing parameters
 	if vehicleID == "" || statusType == "" || newStatus == "" {
-		log.Printf("❌ updateVehicleStatus: Missing required parameters:")
-		log.Printf("  - vehicle_id empty: %t", vehicleID == "")
-		log.Printf("  - status_type empty: %t", statusType == "")
-		log.Printf("  - new_status empty: %t", newStatus == "")
+		log.Printf("❌ updateVehicleStatus: Missing required parameters")
 		http.Error(w, "Missing required parameters", http.StatusBadRequest)
 		return
 	}
-	
+
 	log.Printf("✅ updateVehicleStatus: All parameters present, proceeding with update")
 
 	// Load current vehicles
 	vehicles := loadVehicles()
 	log.Printf("🔍 updateVehicleStatus: Loaded %d vehicles from database", len(vehicles))
-	
+
 	// Find and update the vehicle
 	updated := false
 	for i, vehicle := range vehicles {
 		if vehicle.VehicleID == vehicleID {
 			log.Printf("✅ updateVehicleStatus: Found matching vehicle at index %d", i)
-			
+
 			switch statusType {
 			case "oil":
 				log.Printf("🔍 updateVehicleStatus: Updating oil status from '%s' to '%s'", vehicles[i].OilStatus, newStatus)
@@ -3822,7 +2179,7 @@ func updateBusStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Save updated buses using your existing save system
+	// Save updated buses
 	if err := saveBuses(buses); err != nil {
 		log.Printf("Error saving buses: %v", err)
 		http.Error(w, "Failed to save changes", http.StatusInternalServerError)
@@ -3851,217 +2208,9 @@ func rootHealthCheck(w http.ResponseWriter, r *http.Request) {
 	loginPage(w, r)
 }
 
-func withRecovery(h http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		defer func() {
-			duration := time.Since(start)
-			log.Printf("%s %s - %v", r.Method, r.URL.Path, duration)
-			if err := recover(); err != nil {
-				log.Printf("Recovered from panic in handler %s: %v", r.URL.Path, err)
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
-			}
-		}()
-		h(w, r)
-	}
-}
-
-// Updated initialization with proper ID structure
-func initDataFiles() {
-	// Ensure data directory exists with proper permissions
-	if err := os.MkdirAll("data", 0755); err != nil {
-		log.Printf("Warning: failed to create data directory: %v", err)
-		return
-	}
-
-	// Create buses.json if it doesn't exist, and seed with ID-based data
-	if _, err := os.Stat("data/buses.json"); os.IsNotExist(err) {
-		defaultBuses := []*Bus{
-			{BusID: "BUS001", Status: "active", Model: "Ford Transit", Capacity: 20, OilStatus: "good", TireStatus: "good", MaintenanceNotes: ""},
-			{BusID: "BUS002", Status: "active", Model: "Chevrolet Express", Capacity: 25, OilStatus: "due", TireStatus: "good", MaintenanceNotes: "Oil change scheduled"},
-			{BusID: "BUS003", Status: "maintenance", Model: "Toyota Coaster", Capacity: 15, OilStatus: "good", TireStatus: "worn", MaintenanceNotes: "Brake inspection in progress"},
-		}
-		f, err := os.OpenFile("data/buses.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-		if err != nil {
-			log.Printf("Warning: failed to create buses.json: %v", err)
-			return
-		}
-		defer f.Close()
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(defaultBuses); err != nil {
-			log.Printf("Warning: failed to encode buses to json: %v", err)
-			return
-		}
-		log.Println("Created and seeded data/buses.json with ID-based structure")
-	}
-
-	// Create vehicle.json if it doesn't exist
-	if _, err := os.Stat("data/vehicle.json"); os.IsNotExist(err) {
-		defaultVehicles := []Vehicle{
-			{VehicleID: "VEH001", Model: "Ford F-150", Year: "2022", License: "ABC123", Status: "active", OilStatus: "good", TireStatus: "good"},
-			{VehicleID: "VEH002", Model: "Chevrolet Silverado", Year: "2021", License: "XYZ789", Status: "active", OilStatus: "needs_service", TireStatus: "worn"},
-		}
-		f, err := os.OpenFile("data/vehicle.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-		if err != nil {
-			log.Printf("Warning: failed to create vehicle.json: %v", err)
-			return
-		}
-		defer f.Close()
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(defaultVehicles); err != nil {
-			log.Printf("Warning: failed to encode vehicles to json: %v", err)
-			return
-		}
-		log.Println("Created and seeded data/vehicle.json")
-	}
-
-	// Create students.json if it doesn't exist
-	if _, err := os.Stat("data/students.json"); os.IsNotExist(err) {
-		defaultStudents := []Student{}
-		f, err := os.OpenFile("data/students.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-		if err != nil {
-			log.Printf("Warning: failed to create students.json: %v", err)
-			return
-		}
-		defer f.Close()
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(defaultStudents); err != nil {
-			log.Printf("Warning: failed to encode students to json: %v", err)
-			return
-		}
-		log.Println("Created data/students.json")
-	}
-
-	// Create routes.json if it doesn't exist, and seed with RouteID-based data
-	if _, err := os.Stat("data/routes.json"); os.IsNotExist(err) {
-		routes := []Route{
-			{
-				RouteID:     "RT001",
-				RouteName:   "Victory Square",
-				Description: "Downtown Victory Square route",
-				Positions: []struct {
-					Position int    `json:"position"`
-					Student  string `json:"student"`
-				}{{Position: 1, Student: "Alice Johnson"}, {Position: 2, Student: "Bob Smith"}},
-			},
-			{
-				RouteID:     "RT002",
-				RouteName:   "Airportway",
-				Description: "Airport way business district",
-				Positions: []struct {
-					Position int    `json:"position"`
-					Student  string `json:"student"`
-				}{{Position: 1, Student: "Charlie Brown"}, {Position: 2, Student: "David Wilson"}},
-			},
-			{
-				RouteID:     "RT003",
-				RouteName:   "NELC",
-				Description: "Northeast Learning Center route",
-				Positions: []struct {
-					Position int    `json:"position"`
-					Student  string `json:"student"`
-				}{{Position: 1, Student: "Emma Davis"}, {Position: 2, Student: "Frank Miller"}},
-			},
-			{
-				RouteID:     "RT004",
-				RouteName:   "Irrigon",
-				Description: "Irrigon community route",
-				Positions: []struct {
-					Position int    `json:"position"`
-					Student  string `json:"student"`
-				}{{Position: 1, Student: "Grace Lee"}, {Position: 2, Student: "Henry Clark"}},
-			},
-			{
-				RouteID:     "RT005",
-				RouteName:   "PELC",
-				Description: "Pacific Educational Learning Center",
-				Positions: []struct {
-					Position int    `json:"position"`
-					Student  string `json:"student"`
-				}{{Position: 1, Student: "Ivy Rodriguez"}, {Position: 2, Student: "Jack Thompson"}},
-			},
-			{
-				RouteID:     "RT006",
-				RouteName:   "Umatilla",
-				Description: "Umatilla district route",
-				Positions: []struct {
-					Position int    `json:"position"`
-					Student  string `json:"student"`
-				}{{Position: 1, Student: "Kate Anderson"}, {Position: 2, Student: "Liam Garcia"}},
-			},
-		}
-		f, err := os.OpenFile("data/routes.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-		if err != nil {
-			log.Printf("Warning: failed to create routes.json: %v", err)
-			return
-		}
-		defer f.Close()
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(routes); err != nil {
-			log.Printf("Warning: failed to encode routes to json: %v", err)
-			return
-		}
-		log.Println("Created and seeded data/routes.json with RouteID structure")
-	}
-
-	// Create route_assignments.json if it doesn't exist
-	if _, err := os.Stat("data/route_assignments.json"); os.IsNotExist(err) {
-		defaultAssignments := []RouteAssignment{}
-		f, err := os.OpenFile("data/route_assignments.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-		if err != nil {
-			log.Printf("Warning: failed to create route_assignments.json: %v", err)
-			return
-		}
-		defer f.Close()
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(defaultAssignments); err != nil {
-			log.Printf("Warning: failed to encode assignments to json: %v", err)
-			return
-		}
-		log.Println("Created data/route_assignments.json")
-	}
-
-	// Create maintenance.json if it doesn't exist
-	if _, err := os.Stat("data/maintenance.json"); os.IsNotExist(err) {
-		defaultMaintenance := []MaintenanceLog{}
-		f, err := os.OpenFile("data/maintenance.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-		if err != nil {
-			log.Printf("Warning: failed to create maintenance.json: %v", err)
-			return
-		}
-		defer f.Close()
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(defaultMaintenance); err != nil {
-			log.Printf("Warning: failed to encode maintenance to json: %v", err)
-			return
-		}
-		log.Println("Created data/maintenance.json")
-	}
-
-	// Create driver_logs.json if it doesn't exist
-	if _, err := os.Stat("data/driver_logs.json"); os.IsNotExist(err) {
-		defaultLogs := []DriverLog{}
-		f, err := os.OpenFile("data/driver_logs.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-		if err != nil {
-			log.Printf("Warning: failed to create driver_logs.json: %v", err)
-			return
-		}
-		defer f.Close()
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(defaultLogs); err != nil {
-			log.Printf("Warning: failed to encode driver logs to json: %v", err)
-			return
-		}
-		log.Println("Created data/driver_logs.json")
-	}
-}
+// =============================================================================
+// MAIN FUNCTION
+// =============================================================================
 
 func main() {
 	// Add defer to catch any panics
@@ -4074,7 +2223,7 @@ func main() {
 
 	log.Println("Starting bus transportation app...")
 
-	// 🆕 NEW: Setup database first if DATABASE_URL exists
+	// Setup database if DATABASE_URL exists
 	if os.Getenv("DATABASE_URL") != "" {
 		log.Println("🗄️  Setting up PostgreSQL database...")
 		setupDatabase()
@@ -4143,17 +2292,8 @@ func main() {
 		MaxHeaderBytes: 1 << 20, // 1 MB
 	}
 
-	log.Printf("Server starting on port %s with PostgreSQL migration support", port)
-	log.Printf("Data structure: BusID, RouteID, StudentID for consistent identification")
-	log.Printf("PostgreSQL: Auto-migration from JSON files on first run")
-	log.Printf("Vehicle Import: MIDCO/STARCRAFT models can be imported as buses")
+	log.Printf("Server starting on port %s", port)
 	log.Printf("Server will be accessible at: http://0.0.0.0:%s", port)
-	log.Printf("Starting HTTP server...")
-
-	go func() {
-		time.Sleep(2 * time.Second)
-		log.Printf("Server should be ready now - check the webview")
-	}()
 
 	if err := server.ListenAndServe(); err != nil {
 		if err == http.ErrServerClosed {
