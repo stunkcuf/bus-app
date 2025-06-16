@@ -1466,50 +1466,6 @@ func saveVehicles(vehicles []Vehicle) error {
 	return saveVehiclesToJSON(vehicles)
 }
 
-// 6. If you need to update the migrateVehicles function as well:
-func migrateVehicles() error {
-	vehicles := loadVehiclesFromJSON()
-	if len(vehicles) == 0 {
-		log.Println("📝 No vehicles to migrate")
-		return nil
-	}
-
-	for _, vehicle := range vehicles {
-		// Set default service interval if not set
-		if vehicle.ServiceInterval == 0 {
-			vehicle.ServiceInterval = 5000
-		}
-		
-		_, err := db.Exec(`
-			INSERT INTO vehicles (vehicle_id, model, description, year, tire_size, license, 
-				oil_status, tire_status, status, maintenance_notes, serial_number, base, service_interval) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
-			ON CONFLICT (vehicle_id) DO UPDATE SET 
-				model = EXCLUDED.model,
-				description = EXCLUDED.description,
-				year = EXCLUDED.year,
-				tire_size = EXCLUDED.tire_size,
-				license = EXCLUDED.license,
-				oil_status = EXCLUDED.oil_status,
-				tire_status = EXCLUDED.tire_status,
-				status = EXCLUDED.status,
-				maintenance_notes = EXCLUDED.maintenance_notes,
-				serial_number = EXCLUDED.serial_number,
-				base = EXCLUDED.base,
-				service_interval = EXCLUDED.service_interval
-		`, vehicle.VehicleID, vehicle.Model, vehicle.Description, vehicle.Year, vehicle.TireSize,
-		   vehicle.License, vehicle.OilStatus, vehicle.TireStatus, vehicle.Status, vehicle.MaintenanceNotes,
-		   vehicle.SerialNumber, vehicle.Base, vehicle.ServiceInterval)
-		
-		if err != nil {
-			return fmt.Errorf("failed to insert vehicle %s: %w", vehicle.VehicleID, err)
-		}
-	}
-
-	log.Printf("✅ Migrated %d vehicles", len(vehicles))
-	return nil
-}
-
 // =============================================================================
 // HELPER FUNCTIONS (Keep existing)
 // =============================================================================
