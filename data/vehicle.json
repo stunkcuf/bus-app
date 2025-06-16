@@ -9,7 +9,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "2",
@@ -21,7 +22,8 @@
     "tire_size": "LT225/75R16",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "4",
@@ -33,7 +35,8 @@
     "tire_size": "LT225/75R16",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "6",
@@ -45,7 +48,8 @@
     "tire_size": "LT225/75R16",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "7",
@@ -57,7 +61,8 @@
     "tire_size": "LT225/75R16",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "8",
@@ -69,7 +74,8 @@
     "tire_size": "LT225/75R16",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "11",
@@ -81,7 +87,8 @@
     "tire_size": "LT225/75R16",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+     "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "12",
@@ -93,7 +100,8 @@
     "tire_size": "LT225/75R16",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "13",
@@ -105,7 +113,8 @@
     "tire_size": "LT235/80R225",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "1",
@@ -117,7 +126,8 @@
     "tire_size": "LT235/85R16",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "23",
@@ -129,7 +139,8 @@
     "tire_size": "225/75R 16",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "24",
@@ -141,7 +152,8 @@
     "tire_size": "nan",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+     "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "25",
@@ -153,7 +165,8 @@
     "tire_size": "nan",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "61",
@@ -165,7 +178,8 @@
     "tire_size": "nan",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "26",
@@ -177,7 +191,8 @@
     "tire_size": "nan",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "52",
@@ -189,7 +204,8 @@
     "tire_size": "nan",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "58",
@@ -201,7 +217,8 @@
     "tire_size": "nan",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "59",
@@ -213,7 +230,8 @@
     "tire_size": "nan",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "60",
@@ -225,7 +243,8 @@
     "tire_size": "nan",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "GRN VAN",
@@ -237,7 +256,8 @@
     "tire_size": "205/75R14",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "GRAY",
@@ -249,7 +269,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "Dodge PU",
@@ -261,7 +282,8 @@
     "tire_size": "265/70/R17",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "red",
@@ -273,7 +295,8 @@
     "tire_size": "P215/70R 17",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "GREY",
@@ -285,7 +308,8 @@
     "tire_size": "195x60Rx15     studs: 185x60Rx15",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "BLACK",
@@ -297,7 +321,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "WHITE",
@@ -309,7 +334,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "GREY",
@@ -321,7 +347,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "WHITE",
@@ -333,7 +360,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "SLATE",
@@ -345,7 +373,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "BROWN",
@@ -357,7 +386,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "GRAY",
@@ -369,7 +399,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "DARK BLUE/AQUA",
@@ -381,7 +412,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "WHITE",
@@ -393,7 +425,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "WHITE",
@@ -405,7 +438,8 @@
     "tire_size": "nan",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "SILVER",
@@ -417,7 +451,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "BLACK",
@@ -429,7 +464,8 @@
     "tire_size": "nan",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "SILVER",
@@ -441,7 +477,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "SILVER",
@@ -453,7 +490,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "SILVER",
@@ -465,7 +503,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "SILVER",
@@ -477,7 +516,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "CHARCOAL",
@@ -489,7 +529,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "SILVER VAN",
@@ -501,7 +542,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "red",
@@ -513,7 +555,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "RED",
@@ -525,7 +568,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "GOLD",
@@ -537,7 +581,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "HIGHLANDER",
@@ -549,7 +594,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "SILVER",
@@ -561,7 +607,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "SILVER",
@@ -573,7 +620,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "PEARL- WHITE",
@@ -585,7 +633,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "CELESTIAL BLUE",
@@ -597,7 +646,8 @@
     "tire_size": "195/65 R15XL",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "CELESTIAL BLUE",
@@ -609,7 +659,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "GRAY",
@@ -621,7 +672,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "GRAY",
@@ -633,7 +685,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "BLACK",
@@ -645,7 +698,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "WHITE",
@@ -657,7 +711,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "SILVER",
@@ -669,7 +724,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "WHITE",
@@ -681,7 +737,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "BLUE",
@@ -693,7 +750,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "WHITE",
@@ -705,7 +763,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "WINDCHILL",
@@ -717,7 +776,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "GRAY",
@@ -729,7 +789,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "BLACK",
@@ -741,7 +802,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "WHITE",
@@ -753,7 +815,8 @@
     "tire_size": "195/60R15",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "nan",
@@ -765,7 +828,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "CHARCOAL",
@@ -777,7 +841,8 @@
     "tire_size": "PINE TREE",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "white",
@@ -789,7 +854,8 @@
     "tire_size": "studs:",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "SILVER",
@@ -801,7 +867,8 @@
     "tire_size": "P225/75R-15",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "SILVER VAN",
@@ -813,7 +880,8 @@
     "tire_size": "P215/70R15",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "WHITE",
@@ -825,7 +893,8 @@
     "tire_size": "",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "BLU VAN",
@@ -837,7 +906,8 @@
     "tire_size": "195/75R-14",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "IRIS VAN",
@@ -849,7 +919,8 @@
     "tire_size": "P215/65R15",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "01 PICKUP",
@@ -861,7 +932,8 @@
     "tire_size": "LT225/75R16",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "SILVER BULLET",
@@ -873,7 +945,8 @@
     "tire_size": "LT235/75R16",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "WHITE",
@@ -885,7 +958,8 @@
     "tire_size": "P185/70R14",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "SILVER",
@@ -897,7 +971,8 @@
     "tire_size": "P225/70R15",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "RED",
@@ -909,7 +984,8 @@
     "tire_size": "studs:",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   },
   {
     "vehicle_id": "SILVER",
@@ -921,6 +997,7 @@
     "tire_size": "195/60R15",
     "status": "active",
     "oil_status": "good",
-    "tire_status": "good"
+    "tire_status": "good",
+    "service_interval": 5000
   }
 ]
