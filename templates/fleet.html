@@ -375,6 +375,11 @@
                   </div>
 
                   <div class="bus-actions mt-3">
+                    <a href="/vehicle-maintenance?vehicle_id={{.BusID}}" 
+                       class="btn btn-sm btn-outline-primary" 
+                       title="View Maintenance History">
+                      <i class="bi bi-wrench me-1"></i>Maintenance
+                    </a>
                     <button type="button" class="btn btn-sm btn-outline-primary edit-bus-btn" 
                             data-bus-id="{{.BusID}}" 
                             data-status="{{.Status}}" 
