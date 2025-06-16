@@ -9,34 +9,6 @@ import (
 )
 
 // =============================================================================
-// HELPER FUNCTIONS - Moved to top to ensure they're available
-// =============================================================================
-
-func loadUsersFromJSON() []User {
-	users, _ := loadJSON[User]("data/users.json")
-	return users
-}
-
-func loadBusesFromJSON() []*Bus {
-	buses, _ := loadJSON[*Bus]("data/buses.json")
-	return buses
-}
-
-func loadStudentsFromJSON() []Student {
-	students, _ := loadJSON[Student]("data/students.json")
-	return students
-}
-
-func loadRouteAssignmentsFromJSON() ([]RouteAssignment, error) {
-	return loadJSON[RouteAssignment]("data/route_assignments.json")
-}
-
-func loadVehiclesFromJSON() []Vehicle {
-	vehicles, _ := loadJSON[Vehicle]("data/vehicle.json")
-	return vehicles
-}
-
-// =============================================================================
 // USER FUNCTIONS
 // =============================================================================
 
@@ -78,6 +50,11 @@ func saveUsersToDB(users []User) error {
 	// This would typically be handled by individual user creation
 	// For bulk operations, we'd need transaction handling
 	return nil
+}
+
+func loadUsersFromJSON() []User {
+	users, _ := loadJSON[User]("data/users.json")
+	return users
 }
 
 func saveUsersToJSON(users []User) error {
@@ -156,6 +133,11 @@ func saveBusesToDB(buses []*Bus) error {
 	}
 
 	return nil
+}
+
+func loadBusesFromJSON() []*Bus {
+	buses, _ := loadJSON[*Bus]("data/buses.json")
+	return buses
 }
 
 func saveBusesToJSON(buses []*Bus) error {
@@ -284,6 +266,11 @@ func saveStudentsToDB(students []Student) error {
 	return nil
 }
 
+func loadStudentsFromJSON() []Student {
+	students, _ := loadJSON[Student]("data/students.json")
+	return students
+}
+
 func saveStudentsToJSON(students []Student) error {
 	return saveJSONFile("data/students.json", students)
 }
@@ -333,6 +320,10 @@ func loadRouteAssignmentsFromDB() ([]RouteAssignment, error) {
 func saveRouteAssignmentsToDB(assignments []RouteAssignment) error {
 	// Individual assignment operations are handled in handlers
 	return nil
+}
+
+func loadRouteAssignmentsFromJSON() ([]RouteAssignment, error) {
+	return loadJSON[RouteAssignment]("data/route_assignments.json")
 }
 
 func saveRouteAssignmentsToJSON(assignments []RouteAssignment) error {
@@ -539,6 +530,11 @@ func saveVehiclesToDB(vehicles []Vehicle) error {
 	}
 
 	return nil
+}
+
+func loadVehiclesFromJSON() []Vehicle {
+	vehicles, _ := loadJSON[Vehicle]("data/vehicle.json")
+	return vehicles
 }
 
 func saveVehiclesToJSON(vehicles []Vehicle) error {
