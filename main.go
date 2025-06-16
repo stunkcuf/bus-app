@@ -1354,10 +1354,19 @@ func saveMaintenanceLogsToJSON(logs []MaintenanceLog) error {
 }
 
 // Load vehicles - PostgreSQL first, JSON fallback
+// Update your existing loadVehicles() function in main.go
+// to include the service_interval field:
+
 func loadVehicles() []Vehicle {
 	if db != nil {
-		rows, err := db.Query(`SELECT vehicle_id, model, description, year, tire_size, license, 
-			oil_status, tire_status, status, maintenance_notes FROM vehicles ORDER BY vehicle_id`)
+		rows, err := db.Query(`
+			SELECT vehicle_id, model, description, year, tire_size, license, 
+			       oil_status, tire_status, status, maintenance_notes,
+			       COALESCE(serial_number, ''), COALESCE(base, ''),
+			       COALESCE(service_interval, 5000)
+			FROM vehicles 
+			ORDER BY vehicle_id
+		`)
 		if err != nil {
 			log.Printf("Error loading vehicles from database: %v", err)
 			return loadVehiclesFromJSON()
@@ -1367,9 +1376,13 @@ func loadVehicles() []Vehicle {
 		var vehicles []Vehicle
 		for rows.Next() {
 			var vehicle Vehicle
-			err := rows.Scan(&vehicle.VehicleID, &vehicle.Model, &vehicle.Description, &vehicle.Year,
-				&vehicle.TireSize, &vehicle.License, &vehicle.OilStatus, &vehicle.TireStatus,
-				&vehicle.Status, &vehicle.MaintenanceNotes)
+			err := rows.Scan(
+				&vehicle.VehicleID, &vehicle.Model, &vehicle.Description, 
+				&vehicle.Year, &vehicle.TireSize, &vehicle.License,
+				&vehicle.OilStatus, &vehicle.TireStatus, &vehicle.Status, 
+				&vehicle.MaintenanceNotes, &vehicle.SerialNumber, 
+				&vehicle.Base, &vehicle.ServiceInterval,
+			)
 			if err != nil {
 				log.Printf("Error scanning vehicle: %v", err)
 				continue
@@ -1381,19 +1394,7 @@ func loadVehicles() []Vehicle {
 	return loadVehiclesFromJSON()
 }
 
-func loadVehiclesFromJSON() []Vehicle {
-	f, err := os.Open("data/vehicle.json")
-	if err != nil {
-		log.Printf("Error loading vehicles: %v", err)
-		return []Vehicle{}
-	}
-	defer f.Close()
-	var vehicles []Vehicle
-	json.NewDecoder(f).Decode(&vehicles)
-	return vehicles
-}
-
-// Save vehicles - PostgreSQL first, JSON fallback
+// Also update saveVehicles() to include service_interval:
 func saveVehicles(vehicles []Vehicle) error {
 	if db != nil {
 		tx, err := db.Begin()
@@ -1404,9 +1405,12 @@ func saveVehicles(vehicles []Vehicle) error {
 
 		for _, vehicle := range vehicles {
 			_, err = tx.Exec(`
-				INSERT INTO vehicles (vehicle_id, model, description, year, tire_size, license, 
-					oil_status, tire_status, status, maintenance_notes) 
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+				INSERT INTO vehicles (
+					vehicle_id, model, description, year, tire_size, license, 
+					oil_status, tire_status, status, maintenance_notes,
+					serial_number, base, service_interval
+				) 
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
 				ON CONFLICT (vehicle_id) DO UPDATE SET 
 					model = EXCLUDED.model,
 					description = EXCLUDED.description,
@@ -1416,9 +1420,14 @@ func saveVehicles(vehicles []Vehicle) error {
 					oil_status = EXCLUDED.oil_status,
 					tire_status = EXCLUDED.tire_status,
 					status = EXCLUDED.status,
-					maintenance_notes = EXCLUDED.maintenance_notes
-			`, vehicle.VehicleID, vehicle.Model, vehicle.Description, vehicle.Year, vehicle.TireSize,
-			   vehicle.License, vehicle.OilStatus, vehicle.TireStatus, vehicle.Status, vehicle.MaintenanceNotes)
+					maintenance_notes = EXCLUDED.maintenance_notes,
+					serial_number = EXCLUDED.serial_number,
+					base = EXCLUDED.base,
+					service_interval = EXCLUDED.service_interval
+			`, vehicle.VehicleID, vehicle.Model, vehicle.Description, vehicle.Year, 
+			   vehicle.TireSize, vehicle.License, vehicle.OilStatus, vehicle.TireStatus,
+			   vehicle.Status, vehicle.MaintenanceNotes, vehicle.SerialNumber, 
+			   vehicle.Base, vehicle.ServiceInterval)
 			
 			if err != nil {
 				return err
@@ -1428,17 +1437,6 @@ func saveVehicles(vehicles []Vehicle) error {
 		return tx.Commit()
 	}
 	return saveVehiclesToJSON(vehicles)
-}
-
-func saveVehiclesToJSON(vehicles []Vehicle) error {
-	f, err := os.Create("data/vehicle.json")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(vehicles)
 }
 
 // =============================================================================
