@@ -3636,60 +3636,109 @@ func removeUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateVehicleStatus(w http.ResponseWriter, r *http.Request) {
+	log.Printf("🔍 updateVehicleStatus: Request received - Method: %s, URL: %s", r.Method, r.URL.String())
+	
 	if r.Method != http.MethodPost {
+		log.Printf("❌ updateVehicleStatus: Invalid method %s", r.Method)
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	// 🔍 DEBUG: Check user session first
 	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	log.Printf("🔍 updateVehicleStatus: User from session: %+v", user)
+	if user == nil {
+		log.Printf("❌ updateVehicleStatus: No user in session")
+		http.Error(w, "Unauthorized - No session", http.StatusUnauthorized)
 		return
 	}
+	if user.Role != "manager" {
+		log.Printf("❌ updateVehicleStatus: User %s has role %s, expected manager", user.Username, user.Role)
+		http.Error(w, "Unauthorized - Not a manager", http.StatusUnauthorized)
+		return
+	}
+	log.Printf("✅ updateVehicleStatus: User %s is authorized as manager", user.Username)
 
-	r.ParseForm()
+	// 🔍 DEBUG: Log request headers and content type
+	log.Printf("🔍 updateVehicleStatus: Content-Type: %s", r.Header.Get("Content-Type"))
+	
+	// 🔍 DEBUG: Parse and log form data
+	if err := r.ParseForm(); err != nil {
+		log.Printf("❌ updateVehicleStatus: Error parsing form: %v", err)
+		http.Error(w, "Error parsing form data", http.StatusBadRequest)
+		return
+	}
+	
+	log.Printf("🔍 updateVehicleStatus: Raw form data: %+v", r.Form)
+	
+	// Extract form values
 	vehicleID := r.FormValue("vehicle_id")
 	statusType := r.FormValue("status_type")
 	newStatus := r.FormValue("new_status")
 
+	log.Printf("🔍 updateVehicleStatus: Extracted values:")
+	log.Printf("  - vehicle_id: '%s' (len=%d)", vehicleID, len(vehicleID))
+	log.Printf("  - status_type: '%s' (len=%d)", statusType, len(statusType))
+	log.Printf("  - new_status: '%s' (len=%d)", newStatus, len(newStatus))
+
+	// Check for missing parameters
 	if vehicleID == "" || statusType == "" || newStatus == "" {
+		log.Printf("❌ updateVehicleStatus: Missing required parameters:")
+		log.Printf("  - vehicle_id empty: %t", vehicleID == "")
+		log.Printf("  - status_type empty: %t", statusType == "")
+		log.Printf("  - new_status empty: %t", newStatus == "")
 		http.Error(w, "Missing required parameters", http.StatusBadRequest)
 		return
 	}
+	
+	log.Printf("✅ updateVehicleStatus: All parameters present, proceeding with update")
 
+	// Load current vehicles
 	vehicles := loadVehicles()
+	log.Printf("🔍 updateVehicleStatus: Loaded %d vehicles from database", len(vehicles))
+	
+	// Find and update the vehicle
 	updated := false
-
 	for i, vehicle := range vehicles {
 		if vehicle.VehicleID == vehicleID {
+			log.Printf("✅ updateVehicleStatus: Found matching vehicle at index %d", i)
+			
 			switch statusType {
 			case "oil":
+				log.Printf("🔍 updateVehicleStatus: Updating oil status from '%s' to '%s'", vehicles[i].OilStatus, newStatus)
 				vehicles[i].OilStatus = newStatus
 			case "tire":
+				log.Printf("🔍 updateVehicleStatus: Updating tire status from '%s' to '%s'", vehicles[i].TireStatus, newStatus)
 				vehicles[i].TireStatus = newStatus
 			case "status":
+				log.Printf("🔍 updateVehicleStatus: Updating vehicle status from '%s' to '%s'", vehicles[i].Status, newStatus)
 				vehicles[i].Status = newStatus
 			default:
+				log.Printf("❌ updateVehicleStatus: Invalid status type: '%s'", statusType)
 				http.Error(w, "Invalid status type", http.StatusBadRequest)
 				return
 			}
 			updated = true
+			log.Printf("✅ updateVehicleStatus: Vehicle updated successfully")
 			break
 		}
 	}
 
 	if !updated {
+		log.Printf("❌ updateVehicleStatus: Vehicle not found with ID: '%s'", vehicleID)
 		http.Error(w, "Vehicle not found", http.StatusNotFound)
 		return
 	}
 
 	// Save updated vehicles
+	log.Printf("🔍 updateVehicleStatus: Saving updated vehicles to database...")
 	if err := saveVehicles(vehicles); err != nil {
-		log.Printf("Error saving vehicles: %v", err)
+		log.Printf("❌ updateVehicleStatus: Error saving vehicles: %v", err)
 		http.Error(w, "Failed to save changes", http.StatusInternalServerError)
 		return
 	}
 
+	log.Printf("✅ updateVehicleStatus: Successfully updated vehicle %s", vehicleID)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Status updated successfully"))
 }
