@@ -98,6 +98,9 @@ type Vehicle struct {
 	TireStatus       string `json:"tire_status"`
 	Status           string `json:"status"`
 	MaintenanceNotes string `json:"maintenance_notes"`
+	SerialNumber     string `json:"serial_number"`     // Add this field
+	Base             string `json:"base"`              // Add this field
+	ServiceInterval  int    `json:"service_interval"`  // Add this field
 }
 
 type Student struct {
@@ -1356,7 +1359,31 @@ func saveMaintenanceLogsToJSON(logs []MaintenanceLog) error {
 // Load vehicles - PostgreSQL first, JSON fallback
 // Update your existing loadVehicles() function in main.go
 // to include the service_interval field:
+func loadVehiclesFromJSON() []Vehicle {
+	f, err := os.Open("data/vehicle.json")
+	if err != nil {
+		log.Printf("Error loading vehicles: %v", err)
+		return []Vehicle{}
+	}
+	defer f.Close()
+	var vehicles []Vehicle
+	json.NewDecoder(f).Decode(&vehicles)
+	return vehicles
+}
 
+// 3. Add the saveVehiclesToJSON function:
+func saveVehiclesToJSON(vehicles []Vehicle) error {
+	f, err := os.Create("data/vehicle.json")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	return enc.Encode(vehicles)
+}
+
+// 4. Update your loadVehicles function to properly handle the new fields:
 func loadVehicles() []Vehicle {
 	if db != nil {
 		rows, err := db.Query(`
@@ -1394,7 +1421,7 @@ func loadVehicles() []Vehicle {
 	return loadVehiclesFromJSON()
 }
 
-// Also update saveVehicles() to include service_interval:
+// 5. Update your saveVehicles function:
 func saveVehicles(vehicles []Vehicle) error {
 	if db != nil {
 		tx, err := db.Begin()
@@ -1437,6 +1464,50 @@ func saveVehicles(vehicles []Vehicle) error {
 		return tx.Commit()
 	}
 	return saveVehiclesToJSON(vehicles)
+}
+
+// 6. If you need to update the migrateVehicles function as well:
+func migrateVehicles() error {
+	vehicles := loadVehiclesFromJSON()
+	if len(vehicles) == 0 {
+		log.Println("📝 No vehicles to migrate")
+		return nil
+	}
+
+	for _, vehicle := range vehicles {
+		// Set default service interval if not set
+		if vehicle.ServiceInterval == 0 {
+			vehicle.ServiceInterval = 5000
+		}
+		
+		_, err := db.Exec(`
+			INSERT INTO vehicles (vehicle_id, model, description, year, tire_size, license, 
+				oil_status, tire_status, status, maintenance_notes, serial_number, base, service_interval) 
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+			ON CONFLICT (vehicle_id) DO UPDATE SET 
+				model = EXCLUDED.model,
+				description = EXCLUDED.description,
+				year = EXCLUDED.year,
+				tire_size = EXCLUDED.tire_size,
+				license = EXCLUDED.license,
+				oil_status = EXCLUDED.oil_status,
+				tire_status = EXCLUDED.tire_status,
+				status = EXCLUDED.status,
+				maintenance_notes = EXCLUDED.maintenance_notes,
+				serial_number = EXCLUDED.serial_number,
+				base = EXCLUDED.base,
+				service_interval = EXCLUDED.service_interval
+		`, vehicle.VehicleID, vehicle.Model, vehicle.Description, vehicle.Year, vehicle.TireSize,
+		   vehicle.License, vehicle.OilStatus, vehicle.TireStatus, vehicle.Status, vehicle.MaintenanceNotes,
+		   vehicle.SerialNumber, vehicle.Base, vehicle.ServiceInterval)
+		
+		if err != nil {
+			return fmt.Errorf("failed to insert vehicle %s: %w", vehicle.VehicleID, err)
+		}
+	}
+
+	log.Printf("✅ Migrated %d vehicles", len(vehicles))
+	return nil
 }
 
 // =============================================================================
