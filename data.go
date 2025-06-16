@@ -55,44 +55,6 @@ func saveUsersToDB(users []User) error {
 func saveUsersToJSON(users []User) error {
 	return saveJSONFile("data/users.json", users)
 }
-// =============================================================================
-// Vehicle FUNCTIONS
-// =============================================================================
-
-func saveVehiclesToDB(vehicles []Vehicle) error {
-    // Start a transaction for bulk update
-    tx, err := db.Begin()
-    if err != nil {
-        return fmt.Errorf("failed to begin transaction: %w", err)
-    }
-    defer tx.Rollback()
-
-    // For each vehicle, update its status fields
-    for _, vehicle := range vehicles {
-        _, err := tx.Exec(`
-            UPDATE vehicles 
-            SET model = $2, description = $3, year = $4, tire_size = $5, 
-                license = $6, oil_status = $7, tire_status = $8, status = $9, 
-                maintenance_notes = $10, serial_number = $11, base = $12, 
-                service_interval = $13
-            WHERE vehicle_id = $1
-        `, vehicle.VehicleID, vehicle.Model, vehicle.Description, vehicle.Year,
-           vehicle.TireSize, vehicle.License, vehicle.OilStatus, vehicle.TireStatus,
-           vehicle.Status, vehicle.MaintenanceNotes, vehicle.SerialNumber, 
-           vehicle.Base, vehicle.ServiceInterval)
-        
-        if err != nil {
-            return fmt.Errorf("failed to update vehicle %s: %w", vehicle.VehicleID, err)
-        }
-    }
-
-    // Commit the transaction
-    if err := tx.Commit(); err != nil {
-        return fmt.Errorf("failed to commit transaction: %w", err)
-    }
-
-    return nil
-}
 
 // =============================================================================
 // BUS FUNCTIONS
@@ -137,36 +99,40 @@ func loadBusesFromDB() []*Bus {
 }
 
 func saveBusesToDB(buses []*Bus) error {
-    // Start a transaction for bulk update
-    tx, err := db.Begin()
-    if err != nil {
-        return fmt.Errorf("failed to begin transaction: %w", err)
-    }
-    defer tx.Rollback()
+	// Start a transaction for bulk update
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
 
-    // For each bus, update its fields
-    for _, bus := range buses {
-        _, err := tx.Exec(`
-            UPDATE buses 
-            SET status = $2, model = $3, capacity = $4, 
-                oil_status = $5, tire_status = $6, maintenance_notes = $7,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE bus_id = $1
-        `, bus.BusID, bus.Status, bus.Model, bus.Capacity,
-           bus.OilStatus, bus.TireStatus, bus.MaintenanceNotes)
-        
-        if err != nil {
-            return fmt.Errorf("failed to update bus %s: %w", bus.BusID, err)
-        }
-    }
+	// For each bus, update its fields
+	for _, bus := range buses {
+		_, err := tx.Exec(`
+			UPDATE buses 
+			SET status = $2, model = $3, capacity = $4, 
+				oil_status = $5, tire_status = $6, maintenance_notes = $7,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE bus_id = $1
+		`, bus.BusID, bus.Status, bus.Model, bus.Capacity,
+		   bus.OilStatus, bus.TireStatus, bus.MaintenanceNotes)
+		
+		if err != nil {
+			return fmt.Errorf("failed to update bus %s: %w", bus.BusID, err)
+		}
+	}
 
-    // Commit the transaction
-    if err := tx.Commit(); err != nil {
-        return fmt.Errorf("failed to commit transaction: %w", err)
-    }
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
 
-    return nil
+	return nil
 }
+
+func loadBusesFromJSON() []*Bus {
+	buses, _ := loadJSON[*Bus]("data/buses.json")
+	return buses
 }
 
 func saveBusesToJSON(buses []*Bus) error {
@@ -295,6 +261,11 @@ func saveStudentsToDB(students []Student) error {
 	return nil
 }
 
+func loadStudentsFromJSON() []Student {
+	students, _ := loadJSON[Student]("data/students.json")
+	return students
+}
+
 func saveStudentsToJSON(students []Student) error {
 	return saveJSONFile("data/students.json", students)
 }
@@ -344,6 +315,10 @@ func loadRouteAssignmentsFromDB() ([]RouteAssignment, error) {
 func saveRouteAssignmentsToDB(assignments []RouteAssignment) error {
 	// Individual assignment operations are handled in handlers
 	return nil
+}
+
+func loadRouteAssignmentsFromJSON() ([]RouteAssignment, error) {
+	return loadJSON[RouteAssignment]("data/route_assignments.json")
 }
 
 func saveRouteAssignmentsToJSON(assignments []RouteAssignment) error {
@@ -518,8 +493,43 @@ func loadVehiclesFromDB() []Vehicle {
 }
 
 func saveVehiclesToDB(vehicles []Vehicle) error {
-	// Individual vehicle operations are handled in handlers
+	// Start a transaction for bulk update
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// For each vehicle, update its status fields
+	for _, vehicle := range vehicles {
+		_, err := tx.Exec(`
+			UPDATE vehicles 
+			SET model = $2, description = $3, year = $4, tire_size = $5, 
+				license = $6, oil_status = $7, tire_status = $8, status = $9, 
+				maintenance_notes = $10, serial_number = $11, base = $12, 
+				service_interval = $13
+			WHERE vehicle_id = $1
+		`, vehicle.VehicleID, vehicle.Model, vehicle.Description, vehicle.Year,
+		   vehicle.TireSize, vehicle.License, vehicle.OilStatus, vehicle.TireStatus,
+		   vehicle.Status, vehicle.MaintenanceNotes, vehicle.SerialNumber, 
+		   vehicle.Base, vehicle.ServiceInterval)
+		
+		if err != nil {
+			return fmt.Errorf("failed to update vehicle %s: %w", vehicle.VehicleID, err)
+		}
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
 	return nil
+}
+
+func loadVehiclesFromJSON() []Vehicle {
+	vehicles, _ := loadJSON[Vehicle]("data/vehicle.json")
+	return vehicles
 }
 
 func saveVehiclesToJSON(vehicles []Vehicle) error {
