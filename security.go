@@ -1,5 +1,4 @@
-// security.go - Drop this file into your project root
-// This adds security features without breaking existing code
+// security.go - Standalone security utilities
 package main
 
 import (
@@ -100,7 +99,7 @@ func ValidateBusID(busID string) bool {
 	return busIDRegex.MatchString(busID)
 }
 
-// ValidateRouteID checks if route ID matches expected format
+// ValidateRouteID checks if route ID matches expected format  
 func ValidateRouteID(routeID string) bool {
 	return routeIDRegex.MatchString(routeID)
 }
@@ -268,7 +267,7 @@ func SetSecureCookie(w http.ResponseWriter, name, value string) {
 }
 
 // ==============================================================
-// SECURE HANDLERS - Drop-in replacements for existing handlers
+// SECURE MIDDLEWARE - Drop-in authentication middleware
 // ==============================================================
 
 // SecureAuthMiddleware checks if user is authenticated
@@ -311,162 +310,6 @@ func SecureAuthMiddleware(requiredRole string, next http.HandlerFunc) http.Handl
 	}
 }
 
-// SecureLoginHandler - Enhanced login with bcrypt and sessions
-func SecureLoginHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		// For GET, just use your existing login page
-		loginPage(w, r)
-		return
-	}
-	
-	// Apply rate limiting to prevent brute force
-	if !rateLimiter.GetVisitor(r.RemoteAddr).Allow() {
-		http.Error(w, "Too many login attempts", http.StatusTooManyRequests)
-		return
-	}
-	
-	// Sanitize inputs
-	username := SanitizeFormValue(r, "username")
-	password := r.FormValue("password") // Don't sanitize passwords
-	
-	// Validate username format
-	if !ValidateUsername(username) {
-		http.Error(w, "Invalid username format", http.StatusBadRequest)
-		return
-	}
-	
-	// Load users (your existing function)
-	users := loadUsers()
-	
-	var userFound *User
-	for _, u := range users {
-		if u.Username == username {
-			userFound = &u
-			break
-		}
-	}
-	
-	if userFound == nil {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
-		return
-	}
-	
-	// Check password
-	// If password_hash exists, use bcrypt, otherwise fall back to plain text
-	// This allows gradual migration
-	validPassword := false
-	if userFound.Password != "" && !strings.HasPrefix(userFound.Password, "$2a$") {
-		// Plain text password (legacy)
-		validPassword = userFound.Password == password
-	} else {
-		// Bcrypt password
-		validPassword = CheckPasswordHash(password, userFound.Password)
-	}
-	
-	if !validPassword {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
-		return
-	}
-	
-	// Create secure session
-	sessionID, _, err := CreateSecureSession(username, userFound.Role)
-	if err != nil {
-		http.Error(w, "Session creation failed", http.StatusInternalServerError)
-		return
-	}
-	
-	// Set secure cookie
-	SetSecureCookie(w, "session_id", sessionID)
-	
-	// Store CSRF token for templates (you'll need to pass this to your templates)
-	// For now, just redirect
-	if userFound.Role == "manager" {
-		http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
-	} else {
-		http.Redirect(w, r, "/driver-dashboard", http.StatusFound)
-	}
-}
-
-// ==============================================================
-// SECURE HANDLER EXAMPLES
-// ==============================================================
-
-// SecureAddBus - Example of how to secure the addBus handler
-func SecureAddBus(w http.ResponseWriter, r *http.Request) {
-	// Get session from cookie
-	cookie, err := r.Cookie("session_id")
-	if err != nil {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-	
-	session, exists := GetSecureSession(cookie.Value)
-	if !exists || session.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusForbidden)
-		return
-	}
-	
-	// Validate CSRF token for POST
-	if r.Method == "POST" {
-		if !ValidateCSRFToken(cookie.Value, r.FormValue("csrf_token")) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
-	}
-	
-	// Input validation
-	busID := SanitizeFormValue(r, "bus_id")
-	if !ValidateBusID(busID) {
-		http.Error(w, "Invalid bus ID format (must be BUS###)", http.StatusBadRequest)
-		return
-	}
-	
-	model := SanitizeFormValue(r, "model")
-	if len(model) < 3 || len(model) > 50 {
-		http.Error(w, "Model must be 3-50 characters", http.StatusBadRequest)
-		return
-	}
-	
-	status := SanitizeFormValue(r, "status")
-	if status != "active" && status != "maintenance" && status != "out_of_service" {
-		http.Error(w, "Invalid status", http.StatusBadRequest)
-		return
-	}
-	
-	// Continue with your existing addBus logic...
-	// Just replace the form values with the sanitized versions
-}
-
-// ==============================================================
-// MIGRATION HELPER - Gradually update passwords to bcrypt
-// ==============================================================
-
-func MigratePasswordToBcrypt(username, plainPassword string) error {
-	users := loadUsers()
-	
-	for i, user := range users {
-		if user.Username == username {
-			// Only hash if not already hashed
-			if !strings.HasPrefix(user.Password, "$2a$") {
-				hash, err := HashPassword(plainPassword)
-				if err != nil {
-					return err
-				}
-				users[i].Password = hash
-				return saveUsers(users)
-			}
-			break
-		}
-	}
-	
-	return nil
-}
-
-// Call this in your existing login handler to gradually migrate passwords
-func MigrateOnLogin(username, password string) {
-	go MigratePasswordToBcrypt(username, password)
-}
-
 // ==============================================================
 // HELPER FUNCTIONS
 // ==============================================================
@@ -498,10 +341,7 @@ func ClearUserSessions(username string) {
 	}
 }
 
-// ==============================================================
-// SECURITY HEADERS MIDDLEWARE
-// ==============================================================
-
+// SecurityHeaders adds security headers to responses
 func SecurityHeaders(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Security headers
@@ -517,5 +357,62 @@ func SecurityHeaders(next http.HandlerFunc) http.HandlerFunc {
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';")
 		
 		next(w, r)
+	}
+}
+
+// ==============================================================
+// EXAMPLE HANDLER CREATORS - Use these in your main.go
+// ==============================================================
+
+// CreateSecureLoginHandler creates a login handler using your existing functions
+func CreateSecureLoginHandler(loginPageFunc func(http.ResponseWriter, *http.Request), 
+	loadUsersFunc func() []User,
+	checkUserFunc func(username, password string) (*User, bool)) http.HandlerFunc {
+	
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			loginPageFunc(w, r)
+			return
+		}
+		
+		// Rate limiting check
+		if !rateLimiter.GetVisitor(r.RemoteAddr).Allow() {
+			http.Error(w, "Too many login attempts", http.StatusTooManyRequests)
+			return
+		}
+		
+		// Sanitize inputs
+		username := SanitizeFormValue(r, "username")
+		password := r.FormValue("password")
+		
+		// Validate username format
+		if !ValidateUsername(username) {
+			http.Error(w, "Invalid username format", http.StatusBadRequest)
+			return
+		}
+		
+		// Check user credentials
+		user, valid := checkUserFunc(username, password)
+		if !valid || user == nil {
+			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+			return
+		}
+		
+		// Create secure session
+		sessionID, _, err := CreateSecureSession(username, user.Role)
+		if err != nil {
+			http.Error(w, "Session creation failed", http.StatusInternalServerError)
+			return
+		}
+		
+		// Set secure cookie
+		SetSecureCookie(w, "session_id", sessionID)
+		
+		// Redirect based on role
+		if user.Role == "manager" {
+			http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
+		} else {
+			http.Redirect(w, r, "/driver-dashboard", http.StatusFound)
+		}
 	}
 }
