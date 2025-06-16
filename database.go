@@ -474,27 +474,12 @@ func migrateVehicles() error {
 	return nil
 }
 
-// Helper functions to load from JSON (these need to be implemented in your other files)
-func loadUsersFromJSON() []User {
-	users, _ := loadJSON[User]("data/users.json")
-	return users
-}
-
-func loadBusesFromJSON() []*Bus {
-	buses, _ := loadJSON[*Bus]("data/buses.json")
-	return buses
-}
-
-func loadStudentsFromJSON() []Student {
-	students, _ := loadJSON[Student]("data/students.json")
-	return students
-}
-
-func loadRouteAssignmentsFromJSON() ([]RouteAssignment, error) {
-	return loadJSON[RouteAssignment]("data/route_assignments.json")
-}
-
-func loadVehiclesFromJSON() []Vehicle {
-	vehicles, _ := loadJSON[Vehicle]("data/vehicle.json")
-	return vehicles
-}
+// ============================================================================= 
+// IMPORTANT: The following functions are already defined in data.go
+// DO NOT ADD THEM HERE - This was causing the duplicate declaration error
+// =============================================================================
+// loadUsersFromJSON() - defined in data.go
+// loadBusesFromJSON() - defined in data.go  
+// loadStudentsFromJSON() - defined in data.go
+// loadRouteAssignmentsFromJSON() - defined in data.go
+// loadVehiclesFromJSON() - defined in data.go
