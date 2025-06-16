@@ -1,17 +1,15 @@
+// models.go - All data structures for the bus transportation app
+// This file can be created without breaking anything in main.go
 package main
 
-import (
-	"database/sql"
-	"encoding/json"
-)
-
-// Move all your structs here
+// User represents a system user (driver or manager)
 type User struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Role     string `json:"role"`
 }
 
+// Attendance tracks student attendance
 type Attendance struct {
 	Date    string `json:"date"`
 	Driver  string `json:"driver"`
@@ -19,6 +17,7 @@ type Attendance struct {
 	Present int    `json:"present"`
 }
 
+// Mileage tracks route mileage
 type Mileage struct {
 	Date   string  `json:"date"`
 	Driver string  `json:"driver"`
@@ -26,6 +25,7 @@ type Mileage struct {
 	Miles  float64 `json:"miles"`
 }
 
+// Activity represents a special trip or activity
 type Activity struct {
 	Date       string  `json:"date"`
 	Driver     string  `json:"driver"`
@@ -35,6 +35,7 @@ type Activity struct {
 	Notes      string  `json:"notes"`
 }
 
+// DriverSummary contains aggregated driver statistics
 type DriverSummary struct {
 	Name              string
 	TotalMorning      int
@@ -44,6 +45,7 @@ type DriverSummary struct {
 	MonthlyAttendance int
 }
 
+// RouteStats contains route statistics
 type RouteStats struct {
 	RouteName       string
 	TotalMiles      float64
@@ -53,26 +55,29 @@ type RouteStats struct {
 	AttendanceMonth int
 }
 
+// Route represents a bus route
 type Route struct {
 	RouteID     string `json:"route_id"`
 	RouteName   string `json:"route_name"`
 	Description string `json:"description"`
-	Positions []struct {
+	Positions   []struct {
 		Position int    `json:"position"`
 		Student  string `json:"student"`
 	} `json:"positions"`
 }
 
+// Bus represents a school bus
 type Bus struct {
 	BusID            string `json:"bus_id"`
-	Status           string `json:"status"`
+	Status           string `json:"status"` // active, maintenance, out_of_service
 	Model            string `json:"model"`
 	Capacity         int    `json:"capacity"`
-	OilStatus        string `json:"oil_status"`
-	TireStatus       string `json:"tire_status"`
+	OilStatus        string `json:"oil_status"`        // good, due, overdue
+	TireStatus       string `json:"tire_status"`       // good, worn, replace
 	MaintenanceNotes string `json:"maintenance_notes"`
 }
 
+// Vehicle represents a company vehicle
 type Vehicle struct {
 	VehicleID        string `json:"vehicle_id"`
 	Model            string `json:"model"`
@@ -89,6 +94,7 @@ type Vehicle struct {
 	ServiceInterval  int    `json:"service_interval"`
 }
 
+// Student represents a student rider
 type Student struct {
 	StudentID       string     `json:"student_id"`
 	Name            string     `json:"name"`
@@ -104,12 +110,14 @@ type Student struct {
 	Active          bool       `json:"active"`
 }
 
+// Location represents a pickup or dropoff location
 type Location struct {
-	Type        string `json:"type"`
+	Type        string `json:"type"` // "pickup" or "dropoff"
 	Address     string `json:"address"`
 	Description string `json:"description"`
 }
 
+// RouteAssignment links drivers to routes and buses
 type RouteAssignment struct {
 	Driver       string `json:"driver"`
 	BusID        string `json:"bus_id"`
@@ -118,14 +126,15 @@ type RouteAssignment struct {
 	AssignedDate string `json:"assigned_date"`
 }
 
+// DriverLog represents a completed route log
 type DriverLog struct {
-	Driver     string `json:"driver"`
-	BusID      string `json:"bus_id"`
-	RouteID    string `json:"route_id"`
-	Date       string `json:"date"`
-	Period     string `json:"period"`
-	Departure  string `json:"departure_time"`
-	Arrival    string `json:"arrival_time"`
+	Driver     string  `json:"driver"`
+	BusID      string  `json:"bus_id"`
+	RouteID    string  `json:"route_id"`
+	Date       string  `json:"date"`
+	Period     string  `json:"period"` // morning or evening
+	Departure  string  `json:"departure_time"`
+	Arrival    string  `json:"arrival_time"`
 	Mileage    float64 `json:"mileage"`
 	Attendance []struct {
 		Position   int    `json:"position"`
@@ -134,15 +143,16 @@ type DriverLog struct {
 	} `json:"attendance"`
 }
 
+// MaintenanceLog tracks vehicle maintenance
 type MaintenanceLog struct {
 	BusID    string `json:"bus_id"`
-	Date     string `json:"date"`
-	Category string `json:"category"`
+	Date     string `json:"date"`      // YYYY-MM-DD
+	Category string `json:"category"`  // oil, tires, brakes, etc.
 	Notes    string `json:"notes"`
-	Mileage  int    `json:"mileage"`
+	Mileage  int    `json:"mileage"`   // optional
 }
 
-// Template data structures
+// DashboardData is used for the manager dashboard template
 type DashboardData struct {
 	User            *User
 	Role            string
@@ -154,6 +164,7 @@ type DashboardData struct {
 	Buses           []*Bus
 }
 
+// AssignRouteData is used for the route assignment page
 type AssignRouteData struct {
 	User            *User
 	Assignments     []RouteAssignment
@@ -162,18 +173,21 @@ type AssignRouteData struct {
 	AvailableBuses  []*Bus
 }
 
+// FleetData is used for the fleet management page
 type FleetData struct {
 	User  *User
 	Buses []*Bus
 	Today string
 }
 
+// StudentData is used for the student management page
 type StudentData struct {
 	User     *User
 	Students []Student
 	Routes   []Route
 }
 
+// CompanyFleetData is used for the company fleet page
 type CompanyFleetData struct {
 	User     *User
 	Vehicles []Vehicle
