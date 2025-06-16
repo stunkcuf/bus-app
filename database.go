@@ -1,4 +1,171 @@
-// Add these migration functions to the end of your database.go file
+// database.go - Database operations and migration functions
+package main
+
+import (
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"log"
+	"os"
+
+	_ "github.com/lib/pq"
+)
+
+var db *sql.DB
+
+// setupDatabase initializes the PostgreSQL connection and creates tables
+func setupDatabase() {
+	var err error
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		log.Println("DATABASE_URL not set, skipping database setup")
+		return
+	}
+
+	db, err = sql.Open("postgres", databaseURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	if err = db.Ping(); err != nil {
+		log.Fatalf("Failed to ping database: %v", err)
+	}
+
+	log.Println("Connected to PostgreSQL database")
+
+	// Create tables
+	createTables()
+
+	// Run migration if data exists
+	if shouldMigrate() {
+		log.Println("Running data migration from JSON to PostgreSQL...")
+		if err := migrateJSONToPostgreSQL(); err != nil {
+			log.Printf("Migration failed: %v", err)
+		}
+	}
+}
+
+// createTables creates all necessary database tables
+func createTables() {
+	tables := []string{
+		`CREATE TABLE IF NOT EXISTS users (
+			id SERIAL PRIMARY KEY,
+			username VARCHAR(50) UNIQUE NOT NULL,
+			password VARCHAR(255) NOT NULL,
+			role VARCHAR(20) NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		
+		`CREATE TABLE IF NOT EXISTS buses (
+			id SERIAL PRIMARY KEY,
+			bus_id VARCHAR(20) UNIQUE NOT NULL,
+			status VARCHAR(20) DEFAULT 'active',
+			model VARCHAR(100),
+			capacity INTEGER,
+			oil_status VARCHAR(20) DEFAULT 'good',
+			tire_status VARCHAR(20) DEFAULT 'good',
+			maintenance_notes TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		
+		`CREATE TABLE IF NOT EXISTS routes (
+			id SERIAL PRIMARY KEY,
+			route_id VARCHAR(20) UNIQUE NOT NULL,
+			route_name VARCHAR(100) NOT NULL,
+			description TEXT,
+			positions JSONB,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		
+		`CREATE TABLE IF NOT EXISTS students (
+			id SERIAL PRIMARY KEY,
+			student_id VARCHAR(20) UNIQUE NOT NULL,
+			name VARCHAR(100) NOT NULL,
+			locations JSONB,
+			phone_number VARCHAR(20),
+			alt_phone_number VARCHAR(20),
+			guardian VARCHAR(100),
+			pickup_time TIME,
+			dropoff_time TIME,
+			position_number INTEGER,
+			route_id VARCHAR(20),
+			driver VARCHAR(50),
+			active BOOLEAN DEFAULT true,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		
+		`CREATE TABLE IF NOT EXISTS route_assignments (
+			id SERIAL PRIMARY KEY,
+			driver VARCHAR(50) UNIQUE NOT NULL,
+			bus_id VARCHAR(20) NOT NULL,
+			route_id VARCHAR(20) NOT NULL,
+			route_name VARCHAR(100),
+			assigned_date DATE,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		
+		`CREATE TABLE IF NOT EXISTS driver_logs (
+			id SERIAL PRIMARY KEY,
+			driver VARCHAR(50) NOT NULL,
+			bus_id VARCHAR(20),
+			route_id VARCHAR(20),
+			date DATE NOT NULL,
+			period VARCHAR(10) NOT NULL,
+			departure_time TIME,
+			arrival_time TIME,
+			mileage DECIMAL(8,2),
+			attendance JSONB,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(driver, date, period)
+		)`,
+		
+		`CREATE TABLE IF NOT EXISTS maintenance_logs (
+			id SERIAL PRIMARY KEY,
+			bus_id VARCHAR(20) NOT NULL,
+			date DATE NOT NULL,
+			category VARCHAR(50),
+			notes TEXT,
+			mileage INTEGER,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		
+		`CREATE TABLE IF NOT EXISTS vehicles (
+			id SERIAL PRIMARY KEY,
+			vehicle_id VARCHAR(20) UNIQUE NOT NULL,
+			model VARCHAR(100),
+			description TEXT,
+			year VARCHAR(4),
+			tire_size VARCHAR(20),
+			license VARCHAR(20),
+			oil_status VARCHAR(20) DEFAULT 'good',
+			tire_status VARCHAR(20) DEFAULT 'good',
+			status VARCHAR(20) DEFAULT 'active',
+			maintenance_notes TEXT,
+			serial_number VARCHAR(50),
+			base VARCHAR(100),
+			service_interval INTEGER DEFAULT 5000,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+	}
+
+	for _, table := range tables {
+		if _, err := db.Exec(table); err != nil {
+			log.Printf("Error creating table: %v", err)
+		}
+	}
+
+	log.Println("Database tables created successfully")
+}
+
+// shouldMigrate checks if there are JSON files that need to be migrated
+func shouldMigrate() bool {
+	// Check if users.json exists and has data
+	if _, err := os.Stat("data/users.json"); err == nil {
+		return true
+	}
+	return false
+}
 
 // =============================================================================
 // MIGRATION FUNCTIONS - JSON to PostgreSQL
@@ -305,4 +472,29 @@ func migrateVehicles() error {
 
 	log.Printf("✅ Migrated %d vehicles", len(vehicles))
 	return nil
+}
+
+// Helper functions to load from JSON (these need to be implemented in your other files)
+func loadUsersFromJSON() []User {
+	users, _ := loadJSON[User]("data/users.json")
+	return users
+}
+
+func loadBusesFromJSON() []*Bus {
+	buses, _ := loadJSON[*Bus]("data/buses.json")
+	return buses
+}
+
+func loadStudentsFromJSON() []Student {
+	students, _ := loadJSON[Student]("data/students.json")
+	return students
+}
+
+func loadRouteAssignmentsFromJSON() ([]RouteAssignment, error) {
+	return loadJSON[RouteAssignment]("data/route_assignments.json")
+}
+
+func loadVehiclesFromJSON() []Vehicle {
+	vehicles, _ := loadJSON[Vehicle]("data/vehicle.json")
+	return vehicles
 }
