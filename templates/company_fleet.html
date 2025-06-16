@@ -566,144 +566,93 @@
         {{end}}
       }
 
-     function updateStatus(vehicleId, type, status) {
-  console.log('=== STATUS UPDATE DEBUG ===');
-  console.log('Vehicle ID:', vehicleId);
-  console.log('Status Type (Column Name):', type);
-  console.log('New Status:', status);
+      function updateStatus(vehicleId, type, status) {
+        console.log('=== STATUS UPDATE DEBUG ===');
+        console.log('Vehicle ID:', vehicleId);
+        console.log('Status Type (Column Name):', type);
+        console.log('New Status:', status);
 
-  // Validate parameters before sending
-  if (!vehicleId || !type || !status) {
-    console.error('❌ Missing required parameters:', {vehicleId, type, status});
-    alert('Error: Missing required parameters for status update');
-    return;
-  }
-
-  // Show loading state
-  const button = document.querySelector(`[data-id="${vehicleId}"][data-type="${type}"]`);
-  if (!button) {
-    console.error('❌ Could not find button element for:', {vehicleId, type});
-    return;
-  }
-
-  const originalContent = button.innerHTML;
-  button.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div>';
-  button.disabled = true;
-
-  // ✅ Fix status type mapping: remove "_status" suffix for backend compatibility
-  let backendStatusType = type;
-  if (type === 'oil_status') {
-    backendStatusType = 'oil';
-  } else if (type === 'tire_status') {
-    backendStatusType = 'tire';
-  }
-  // 'status' stays as 'status'
-
-  // ✅ Use URLSearchParams for proper form encoding (not FormData)
-  const params = new URLSearchParams();
-  params.append('vehicle_id', vehicleId);
-  params.append('status_type', backendStatusType);
-  params.append('new_status', status);
-
-  console.log('📤 Sending request with parameters:', {
-    vehicle_id: vehicleId,
-    status_type: backendStatusType,
-    new_status: status
-  });
-
-  console.log('📤 Request body (URL encoded):', params.toString());
-
-  fetch('/update-vehicle-status', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: params.toString()
-  })
-  .then(response => {
-    console.log('📥 Response status:', response.status);
-    console.log('📥 Response headers:', [...response.headers.entries()]);
-    
-    if (response.ok) {
-      console.log('✅ Status update successful!');
-      // Close any open dropdowns
-      document.querySelectorAll('.status-dropdown.show').forEach(dd => {
-        dd.classList.remove('show');
-      });
-      // Reload page to show updated status
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
-      return;
-    }
-    
-    // Handle error response
-    return response.text().then(text => {
-      throw new Error(`Server error (${response.status}): ${text}`);
-    });
-  })
-  .catch(error => {
-    console.error('❌ Error updating status:', error);
-    // Restore button state
-    button.innerHTML = originalContent;
-    button.disabled = false;
-    
-    // Show user-friendly error message
-    if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-      alert('Error: You need to be logged in as a manager to update vehicle status');
-    } else if (error.message.includes('400') || error.message.includes('Missing required parameters')) {
-      alert('Error: Missing required parameters. Please check the console for details.');
-    } else {
-      alert('Error updating status: ' + error.message);
-    }
-  });
-}
-    
-      function tryNextAttempt(attemptIndex, attempts, button, originalContent) {
-        if (attemptIndex >= attempts.length) {
-          console.log('❌ All attempts failed!');
-          button.innerHTML = originalContent;
-          button.disabled = false;
-          
-          alert(`All ${attempts.length} attempts failed. Your backend might expect different parameter names.\n\nPlease check your backend code for the /update-vehicle-status endpoint and let me know what parameter names it expects.`);
+        // Validate parameters before sending
+        if (!vehicleId || !type || !status) {
+          console.error('❌ Missing required parameters:', {vehicleId, type, status});
+          alert('Error: Missing required parameters for status update');
           return;
         }
 
-        const params = attempts[attemptIndex];
-        console.log(`\n🔄 Attempt ${attemptIndex + 1}/${attempts.length}:`, params);
+        // Show loading state
+        const button = document.querySelector(`[data-id="${vehicleId}"][data-type="${type}"]`);
+        if (!button) {
+          console.error('❌ Could not find button element for:', {vehicleId, type});
+          return;
+        }
 
-        const formData = new FormData();
-        Object.keys(params).forEach(key => {
-          formData.append(key, params[key]);
+        const originalContent = button.innerHTML;
+        button.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div>';
+        button.disabled = true;
+
+        // ✅ Fix status type mapping: remove "_status" suffix for backend compatibility
+        let backendStatusType = type;
+        if (type === 'oil_status') {
+          backendStatusType = 'oil';
+        } else if (type === 'tire_status') {
+          backendStatusType = 'tire';
+        }
+        // 'status' stays as 'status'
+
+        // ✅ Use URLSearchParams for proper form encoding (not FormData)
+        const params = new URLSearchParams();
+        params.append('vehicle_id', vehicleId);
+        params.append('status_type', backendStatusType);
+        params.append('new_status', status);
+
+        console.log('📤 Sending request with parameters:', {
+          vehicle_id: vehicleId,
+          status_type: backendStatusType,
+          new_status: status
         });
 
         fetch('/update-vehicle-status', {
           method: 'POST',
-          body: formData
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: params.toString()
         })
         .then(response => {
-          console.log(`Attempt ${attemptIndex + 1} response status:`, response.status);
+          console.log('📥 Response status:', response.status);
           
           if (response.ok) {
-            console.log(`✅ Attempt ${attemptIndex + 1} SUCCESS!`);
-            console.log('✅ Working parameters:', params);
-            console.log('📝 Remember these parameter names for future reference!');
-            
+            console.log('✅ Status update successful!');
+            // Close any open dropdowns
+            document.querySelectorAll('.dropdown-menu.show').forEach(dd => {
+              dd.classList.remove('show');
+            });
+            // Reload page to show updated status
             setTimeout(() => {
               window.location.reload();
             }, 500);
-          } else {
-            return response.text().then(text => {
-              console.log(`❌ Attempt ${attemptIndex + 1} failed:`, text);
-              // Try next attempt
-              tryNextAttempt(attemptIndex + 1, attempts, button, originalContent);
-            });
+            return;
           }
+          
+          // Handle error response
+          return response.text().then(text => {
+            throw new Error(`Server error (${response.status}): ${text}`);
+          });
         })
         .catch(error => {
-          console.log(`❌ Attempt ${attemptIndex + 1} network error:`, error);
-          // Try next attempt
-          tryNextAttempt(attemptIndex + 1, attempts, button, originalContent);
+          console.error('❌ Error updating status:', error);
+          // Restore button state
+          button.innerHTML = originalContent;
+          button.disabled = false;
+          
+          // Show user-friendly error message
+          if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+            alert('Error: You need to be logged in as a manager to update vehicle status');
+          } else if (error.message.includes('400') || error.message.includes('Missing required parameters')) {
+            alert('Error: Missing required parameters. Please check the console for details.');
+          } else {
+            alert('Error updating status: ' + error.message);
+          }
         });
       }
 
