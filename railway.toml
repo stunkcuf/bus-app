@@ -1,0 +1,88 @@
+# railway.toml - Railway configuration file
+[build]
+builder = "NIXPACKS"
+buildCommand = "go build -o main ./cmd/server"
+
+[deploy]
+startCommand = "./main"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[[services]]
+name = "bus-app"
+type = "web"
+
+# Railway automatically provides these environment variables:
+# - DATABASE_URL (PostgreSQL connection string)
+# - PORT (the port your app should listen on)
+# - RAILWAY_ENVIRONMENT (production, staging, etc.)
+
+# railway.json - Alternative configuration format
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "go build -o main ."
+  },
+  "deploy": {
+    "startCommand": "./main",
+    "healthcheckPath": "/health",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  }
+}
+
+# .gitignore - Updated for Railway deployment
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+main
+
+# Test binary
+*.test
+
+# Output of go coverage tool
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# Environment files (NEVER commit these!)
+.env
+.env.local
+.env.production
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Railway specific
+railway.json
+railway.toml
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
