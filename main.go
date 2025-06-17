@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/subtle"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -847,6 +849,45 @@ func getSecureUser(r *http.Request) *User {
 		}
 	}
 	return nil
+}
+
+func SanitizeInput(input string) string {
+	return strings.TrimSpace(input) // Add any HTML/entity escaping if needed
+}
+
+func ValidateUsername(username string) bool {
+	return len(username) > 2 // Add more logic like regex if needed
+}
+
+func ValidateDate(date string) bool {
+	_, err := time.Parse("2006-01-02", date)
+	return err == nil
+}
+
+func SetSecureCookie(w http.ResponseWriter, name, value string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    value,
+		HttpOnly: true,
+		Path:     "/",
+		Expires:  time.Now().Add(24 * time.Hour),
+		Secure:   false, // Set to true in production with HTTPS
+		SameSite: http.SameSiteStrictMode,
+	})
+}
+
+func executeTemplate(w http.ResponseWriter, tmpl string, data interface{}) {
+	err := templates.ExecuteTemplate(w, tmpl, data)
+	if err != nil {
+		http.Error(w, "Template rendering error", http.StatusInternalServerError)
+		log.Printf("Template execution error for %s: %v", tmpl, err)
+	}
+}
+
+func CreateSecureSession(username, role string) (string, string, error) {
+	sessionID := fmt.Sprintf("%d_%s", time.Now().UnixNano(), username)
+	csrfToken := fmt.Sprintf("%x", time.Now().UnixNano())
+	return sessionID, csrfToken, nil
 }
 
 func getCSRFToken(r *http.Request) string {
