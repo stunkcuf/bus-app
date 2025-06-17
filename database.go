@@ -1,4 +1,4 @@
-// database.go - Fleet Maintenance Database Operations
+// database.go - Complete PostgreSQL Database Operations
 package main
 
 import (
@@ -16,18 +16,19 @@ var db *sqlx.DB
 // setupDatabase initializes the database connection
 func setupDatabase() {
     if err := initDatabase(); err != nil {
-        log.Printf("Failed to initialize database: %v", err)
-        log.Println("Continuing without database support")
-        // Don't exit - allow the app to run with JSON files only
-        db = nil
-    } else {
-        log.Println("Database initialized successfully")
-        
-        // Optionally run migrations or check database health
-        if err := checkDatabaseHealth(); err != nil {
-            log.Printf("Database health check failed: %v", err)
-            db = nil
-        }
+        log.Fatalf("Failed to initialize database: %v", err)
+    }
+    
+    log.Println("Database initialized successfully")
+    
+    // Run migrations
+    if err := runMigrations(); err != nil {
+        log.Fatalf("Failed to run migrations: %v", err)
+    }
+    
+    // Check database health
+    if err := checkDatabaseHealth(); err != nil {
+        log.Fatalf("Database health check failed: %v", err)
     }
 }
 
@@ -57,6 +58,10 @@ func initDatabase() error {
         return fmt.Errorf("failed to connect to database: %v", err)
     }
     
+    // Configure connection pool
+    db.SetMaxOpenConns(25)
+    db.SetMaxIdleConns(5)
+    
     // Test the connection
     if err = db.Ping(); err != nil {
         return fmt.Errorf("failed to ping database: %v", err)
@@ -66,117 +71,275 @@ func initDatabase() error {
     return nil
 }
 
-// Get vehicle list for the fleet overview page
-func getVehicleList() ([]VehicleWithStats, error) {
-    query := `
-        SELECT 
-            v.vehicle_number,
-            v.make,
-            v.model,
-            v.year,
-            COALESCE(v.vin, '') as vin,
-            COALESCE(v.description, '') as description,
-            COUNT(m.id) as maintenance_count,
-            COALESCE(SUM(m.cost), 0) as total_cost,
-            MAX(m.maintenance_date) as last_service
-        FROM fleet_vehicles v
-        LEFT JOIN maintenance_records m ON v.vehicle_number = m.vehicle_number
-        GROUP BY v.vehicle_number, v.make, v.model, v.year, v.vin, v.description
-        ORDER BY v.vehicle_number ASC`
+// runMigrations creates all necessary tables if they don't exist
+func runMigrations() error {
+    // Read and execute the schema
+    schema := `
+    -- Users table
+    CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(20) NOT NULL CHECK (role IN ('driver', 'manager')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Buses table
+    CREATE TABLE IF NOT EXISTS buses (
+        id SERIAL PRIMARY KEY,
+        bus_id VARCHAR(20) UNIQUE NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'maintenance', 'out_of_service')),
+        model VARCHAR(100),
+        capacity INTEGER DEFAULT 0,
+        oil_status VARCHAR(20) DEFAULT 'good' CHECK (oil_status IN ('good', 'due', 'overdue')),
+        tire_status VARCHAR(20) DEFAULT 'good' CHECK (tire_status IN ('good', 'worn', 'replace')),
+        maintenance_notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Routes table
+    CREATE TABLE IF NOT EXISTS routes (
+        id SERIAL PRIMARY KEY,
+        route_id VARCHAR(20) UNIQUE NOT NULL,
+        route_name VARCHAR(100) NOT NULL,
+        description TEXT,
+        positions JSONB DEFAULT '[]'::jsonb,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Students table
+    CREATE TABLE IF NOT EXISTS students (
+        id SERIAL PRIMARY KEY,
+        student_id VARCHAR(20) UNIQUE NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        locations JSONB DEFAULT '[]'::jsonb,
+        phone_number VARCHAR(20),
+        alt_phone_number VARCHAR(20),
+        guardian VARCHAR(100),
+        pickup_time TIME,
+        dropoff_time TIME,
+        position_number INTEGER,
+        route_id VARCHAR(20),
+        driver VARCHAR(50),
+        active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Route assignments table
+    CREATE TABLE IF NOT EXISTS route_assignments (
+        id SERIAL PRIMARY KEY,
+        driver VARCHAR(50) NOT NULL,
+        bus_id VARCHAR(20) NOT NULL,
+        route_id VARCHAR(20) NOT NULL,
+        route_name VARCHAR(100),
+        assigned_date DATE DEFAULT CURRENT_DATE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(driver)
+    );
+
+    -- Driver logs table
+    CREATE TABLE IF NOT EXISTS driver_logs (
+        id SERIAL PRIMARY KEY,
+        driver VARCHAR(50) NOT NULL,
+        bus_id VARCHAR(20) NOT NULL,
+        route_id VARCHAR(20) NOT NULL,
+        date DATE NOT NULL,
+        period VARCHAR(20) NOT NULL CHECK (period IN ('morning', 'afternoon', 'evening')),
+        departure_time TIME,
+        arrival_time TIME,
+        mileage DECIMAL(10,2),
+        attendance JSONB DEFAULT '[]'::jsonb,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(driver, date, period)
+    );
+
+    -- Bus maintenance logs table
+    CREATE TABLE IF NOT EXISTS bus_maintenance_logs (
+        id SERIAL PRIMARY KEY,
+        bus_id VARCHAR(20) NOT NULL,
+        date DATE NOT NULL,
+        category VARCHAR(50) NOT NULL,
+        notes TEXT,
+        mileage INTEGER,
+        cost DECIMAL(10,2),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Company vehicles table
+    CREATE TABLE IF NOT EXISTS vehicles (
+        id SERIAL PRIMARY KEY,
+        vehicle_id VARCHAR(20) UNIQUE NOT NULL,
+        model VARCHAR(100),
+        description TEXT,
+        year VARCHAR(4),
+        tire_size VARCHAR(50),
+        license VARCHAR(20),
+        oil_status VARCHAR(20) DEFAULT 'good' CHECK (oil_status IN ('good', 'needs_service', 'overdue')),
+        tire_status VARCHAR(20) DEFAULT 'good' CHECK (tire_status IN ('good', 'worn', 'replace')),
+        status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'maintenance', 'out_of_service')),
+        maintenance_notes TEXT,
+        serial_number VARCHAR(100),
+        base VARCHAR(100),
+        service_interval INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Activities table
+    CREATE TABLE IF NOT EXISTS activities (
+        id SERIAL PRIMARY KEY,
+        date DATE NOT NULL,
+        driver VARCHAR(50) NOT NULL,
+        trip_name VARCHAR(100) NOT NULL,
+        attendance INTEGER DEFAULT 0,
+        miles DECIMAL(10,2) DEFAULT 0,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Create update triggers
+    CREATE OR REPLACE FUNCTION update_updated_at_column()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        NEW.updated_at = CURRENT_TIMESTAMP;
+        RETURN NEW;
+    END;
+    $$ language 'plpgsql';
+    `
     
-    var vehicles []VehicleWithStats
-    err := db.Select(&vehicles, query)
-    if err != nil {
-        return nil, fmt.Errorf("failed to fetch vehicles: %v", err)
+    // Execute the schema
+    if _, err := db.Exec(schema); err != nil {
+        return fmt.Errorf("failed to create schema: %v", err)
     }
     
-    return vehicles, nil
-}
-
-// Get a specific vehicle by vehicle number
-func getVehicle(vehicleNumber int) (*Vehicle, error) {
-    var vehicle Vehicle
-    query := `
-        SELECT vehicle_number, make, model, year, vin, description 
-        FROM fleet_vehicles 
-        WHERE vehicle_number = $1`
-    
-    err := db.Get(&vehicle, query, vehicleNumber)
-    if err != nil {
-        if err == sql.ErrNoRows {
-            return nil, fmt.Errorf("vehicle not found")
+    // Create triggers for each table that has updated_at
+    tables := []string{"users", "buses", "routes", "students", "route_assignments", "vehicles"}
+    for _, table := range tables {
+        triggerSQL := fmt.Sprintf(`
+            DROP TRIGGER IF EXISTS update_%s_updated_at ON %s;
+            CREATE TRIGGER update_%s_updated_at BEFORE UPDATE ON %s
+                FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+        `, table, table, table, table)
+        
+        if _, err := db.Exec(triggerSQL); err != nil {
+            log.Printf("Warning: Failed to create trigger for %s: %v", table, err)
         }
-        return nil, fmt.Errorf("failed to fetch vehicle: %v", err)
     }
     
-    return &vehicle, nil
+    // Create indexes
+    indexes := []string{
+        "CREATE INDEX IF NOT EXISTS idx_buses_status ON buses(status)",
+        "CREATE INDEX IF NOT EXISTS idx_students_driver ON students(driver)",
+        "CREATE INDEX IF NOT EXISTS idx_students_route ON students(route_id)",
+        "CREATE INDEX IF NOT EXISTS idx_driver_logs_driver_date ON driver_logs(driver, date)",
+        "CREATE INDEX IF NOT EXISTS idx_maintenance_bus_date ON bus_maintenance_logs(bus_id, date)",
+        "CREATE INDEX IF NOT EXISTS idx_route_assignments_driver ON route_assignments(driver)",
+    }
+    
+    for _, idx := range indexes {
+        if _, err := db.Exec(idx); err != nil {
+            log.Printf("Warning: Failed to create index: %v", err)
+        }
+    }
+    
+    // Insert default admin user if it doesn't exist
+    _, err := db.Exec(`
+        INSERT INTO users (username, password, role) 
+        VALUES ('admin', 'adminpass', 'manager')
+        ON CONFLICT (username) DO NOTHING
+    `)
+    if err != nil {
+        log.Printf("Warning: Failed to create default admin user: %v", err)
+    }
+    
+    log.Println("Database migrations completed successfully")
+    return nil
 }
 
-// Get maintenance records for a specific vehicle
-func getVehicleMaintenanceRecords(vehicleNumber int) ([]MaintenanceLog, error) {
+// Get vehicle list for the fleet overview page (legacy function for compatibility)
+func getVehicleList() ([]VehicleWithStats, error) {
+    // This function is not used in the new system
+    return []VehicleWithStats{}, nil
+}
+
+// Get a specific vehicle by vehicle number (legacy function)
+func getVehicle(vehicleNumber int) (*Vehicle, error) {
+    // This function is not used in the new system
+    return nil, fmt.Errorf("legacy function not implemented")
+}
+
+// Get maintenance records for a specific bus
+func getBusMaintenanceRecords(busID string) ([]BusMaintenanceLog, error) {
     query := `
-        SELECT 
-            id,
-            vehicle_number,
-            maintenance_date as service_date,
-            mileage,
-            po_number,
-            cost,
-            work_done,
-            created_at
-        FROM maintenance_records 
-        WHERE vehicle_number = $1 
-        ORDER BY maintenance_date DESC`
+        SELECT bus_id, date, category, notes, mileage, cost
+        FROM bus_maintenance_logs 
+        WHERE bus_id = $1 
+        ORDER BY date DESC`
     
-    var records []MaintenanceLog
-    err := db.Select(&records, query, vehicleNumber)
+    var records []BusMaintenanceLog
+    rows, err := db.Query(query, busID)
     if err != nil {
         return nil, fmt.Errorf("failed to fetch maintenance records: %v", err)
+    }
+    defer rows.Close()
+    
+    for rows.Next() {
+        var record BusMaintenanceLog
+        var date sql.NullTime
+        var cost sql.NullFloat64
+        
+        if err := rows.Scan(&record.BusID, &date, &record.Category, 
+            &record.Notes, &record.Mileage, &cost); err != nil {
+            log.Printf("Error scanning maintenance record: %v", err)
+            continue
+        }
+        
+        if date.Valid {
+            record.Date = date.Time.Format("2006-01-02")
+        }
+        
+        records = append(records, record)
     }
     
     return records, nil
 }
 
-// Add a new maintenance record
+// Get maintenance records for a specific vehicle (legacy compatibility)
+func getVehicleMaintenanceRecords(vehicleNumber int) ([]MaintenanceLog, error) {
+    // Convert to new system - this is for compatibility
+    return []MaintenanceLog{}, nil
+}
+
+// Add a new maintenance record (legacy compatibility)
 func addMaintenanceRecord(record MaintenanceLog) error {
-    query := `
-        INSERT INTO maintenance_records 
-        (vehicle_number, maintenance_date, mileage, po_number, cost, work_done)
-        VALUES ($1, $2, $3, $4, $5, $6)`
-    
-    _, err := db.Exec(query, 
-        record.VehicleNumber,
-        record.ServiceDate,
-        record.Mileage,
-        record.PONumber,
-        record.Cost,
-        record.WorkDone)
-    
-    if err != nil {
-        return fmt.Errorf("failed to add maintenance record: %v", err)
-    }
-    
-    return nil
+    // Convert to new system - this is for compatibility
+    return fmt.Errorf("use saveMaintenanceLog instead")
 }
 
 // Get fleet statistics
 func getFleetStats() (*FleetStats, error) {
     var stats FleetStats
     
-    // Get total vehicles
-    err := db.Get(&stats.TotalVehicles, "SELECT COUNT(*) FROM fleet_vehicles")
+    // Get total buses
+    err := db.Get(&stats.TotalVehicles, "SELECT COUNT(*) FROM buses")
     if err != nil {
-        return nil, fmt.Errorf("failed to get vehicle count: %v", err)
+        return nil, fmt.Errorf("failed to get bus count: %v", err)
     }
     
     // Get total maintenance records
-    err = db.Get(&stats.TotalMaintenanceRecords, "SELECT COUNT(*) FROM maintenance_records")
+    err = db.Get(&stats.TotalMaintenanceRecords, "SELECT COUNT(*) FROM bus_maintenance_logs")
     if err != nil {
         return nil, fmt.Errorf("failed to get maintenance count: %v", err)
     }
     
     // Get total maintenance cost
-    err = db.Get(&stats.TotalMaintenanceCost, "SELECT COALESCE(SUM(cost), 0) FROM maintenance_records WHERE cost IS NOT NULL")
+    err = db.Get(&stats.TotalMaintenanceCost, 
+        "SELECT COALESCE(SUM(cost), 0) FROM bus_maintenance_logs WHERE cost IS NOT NULL")
     if err != nil {
         return nil, fmt.Errorf("failed to get total cost: %v", err)
     }
@@ -186,80 +349,59 @@ func getFleetStats() (*FleetStats, error) {
         stats.AverageMaintenanceCost = stats.TotalMaintenanceCost / float64(stats.TotalMaintenanceRecords)
     }
     
-    // Get vehicles by year range
-    yearQuery := `
-        SELECT 
-            MIN(year) as min_year,
-            MAX(year) as max_year
-        FROM fleet_vehicles`
-    
-    var minYear, maxYear sql.NullInt32
-    err = db.QueryRow(yearQuery).Scan(&minYear, &maxYear)
-    if err != nil {
-        log.Printf("Failed to get year range: %v", err)
-    } else if minYear.Valid && maxYear.Valid {
-        stats.YearRange = fmt.Sprintf("%d-%d", minYear.Int32, maxYear.Int32)
-    }
-    
-    // Get unique makes
-    err = db.Get(&stats.UniqueMakes, "SELECT COUNT(DISTINCT make) FROM fleet_vehicles")
-    if err != nil {
-        return nil, fmt.Errorf("failed to get unique makes: %v", err)
-    }
-    
     return &stats, nil
 }
 
 // Get recent maintenance activity
-func getRecentMaintenanceActivity(limit int) ([]MaintenanceLog, error) {
+func getRecentMaintenanceActivity(limit int) ([]BusMaintenanceLog, error) {
     query := `
-        SELECT 
-            m.id,
-            m.vehicle_number,
-            m.maintenance_date as service_date,
-            m.mileage,
-            m.po_number,
-            m.cost,
-            m.work_done,
-            m.created_at
-        FROM maintenance_records m
-        ORDER BY m.maintenance_date DESC, m.created_at DESC
+        SELECT bus_id, date, category, notes, mileage, cost
+        FROM bus_maintenance_logs
+        ORDER BY date DESC, created_at DESC
         LIMIT $1`
     
-    var records []MaintenanceLog
-    err := db.Select(&records, query, limit)
+    var records []BusMaintenanceLog
+    rows, err := db.Query(query, limit)
     if err != nil {
         return nil, fmt.Errorf("failed to fetch recent maintenance: %v", err)
+    }
+    defer rows.Close()
+    
+    for rows.Next() {
+        var record BusMaintenanceLog
+        var date sql.NullTime
+        var cost sql.NullFloat64
+        
+        if err := rows.Scan(&record.BusID, &date, &record.Category, 
+            &record.Notes, &record.Mileage, &cost); err != nil {
+            log.Printf("Error scanning maintenance record: %v", err)
+            continue
+        }
+        
+        if date.Valid {
+            record.Date = date.Time.Format("2006-01-02")
+        }
+        
+        records = append(records, record)
     }
     
     return records, nil
 }
 
-// Search vehicles by make, model, or vehicle number
-func searchVehicles(searchTerm string) ([]VehicleWithStats, error) {
+// Search vehicles by ID, model, or description
+func searchVehicles(searchTerm string) ([]Vehicle, error) {
     searchPattern := "%" + searchTerm + "%"
     query := `
-        SELECT 
-            v.vehicle_number,
-            v.make,
-            v.model,
-            v.year,
-            COALESCE(v.vin, '') as vin,
-            COALESCE(v.description, '') as description,
-            COUNT(m.id) as maintenance_count,
-            COALESCE(SUM(m.cost), 0) as total_cost,
-            MAX(m.maintenance_date) as last_service
-        FROM fleet_vehicles v
-        LEFT JOIN maintenance_records m ON v.vehicle_number = m.vehicle_number
+        SELECT vehicle_id, model, description, year, tire_size, license,
+            oil_status, tire_status, status, maintenance_notes, serial_number, base, service_interval
+        FROM vehicles
         WHERE 
-            CAST(v.vehicle_number AS TEXT) ILIKE $1 OR
-            v.make ILIKE $1 OR 
-            v.model ILIKE $1 OR
-            v.description ILIKE $1
-        GROUP BY v.vehicle_number, v.make, v.model, v.year, v.vin, v.description
-        ORDER BY v.vehicle_number ASC`
+            vehicle_id ILIKE $1 OR
+            model ILIKE $1 OR 
+            description ILIKE $1
+        ORDER BY vehicle_id ASC`
     
-    var vehicles []VehicleWithStats
+    var vehicles []Vehicle
     err := db.Select(&vehicles, query, searchPattern)
     if err != nil {
         return nil, fmt.Errorf("failed to search vehicles: %v", err)
@@ -279,20 +421,31 @@ func checkDatabaseHealth() error {
     }
     
     // Verify tables exist
-    var vehicleCount int
-    err := db.Get(&vehicleCount, "SELECT COUNT(*) FROM fleet_vehicles")
-    if err != nil {
-        return fmt.Errorf("cannot access fleet_vehicles table: %v", err)
+    tables := []string{"users", "buses", "routes", "students", "route_assignments", 
+                      "driver_logs", "bus_maintenance_logs", "vehicles", "activities"}
+    
+    for _, table := range tables {
+        var exists bool
+        err := db.Get(&exists, `
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = $1
+            )`, table)
+        
+        if err != nil || !exists {
+            return fmt.Errorf("table %s does not exist", table)
+        }
     }
     
-    var maintenanceCount int
-    err = db.Get(&maintenanceCount, "SELECT COUNT(*) FROM maintenance_records")
-    if err != nil {
-        return fmt.Errorf("cannot access maintenance_records table: %v", err)
-    }
-    
-    log.Printf("Database health check passed: %d vehicles, %d maintenance records", 
-        vehicleCount, maintenanceCount)
-    
+    log.Println("Database health check passed")
     return nil
+}
+
+// Cleanup function to close database connection
+func closeDatabase() {
+    if db != nil {
+        db.Close()
+        log.Println("Database connection closed")
+    }
 }
