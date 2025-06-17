@@ -520,6 +520,8 @@ func vehicleMaintenancePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("Fetching maintenance records for vehicle ID: %s", vehicleID)
+
 	// Check if database is available and vehicle is numeric (fleet vehicle)
 	if db != nil {
 		if vehicleNumber, err := strconv.Atoi(vehicleID); err == nil {
@@ -534,8 +536,49 @@ func vehicleMaintenancePage(w http.ResponseWriter, r *http.Request) {
 			if err != nil && err != sql.ErrNoRows {
 				log.Printf("Database error: %v", err)
 			} else if err == nil {
-				// Found in database - continue with database approach
-				// ... rest of database logic
+				// Found in database - get maintenance records
+				var maintenanceLogs []MaintenanceLog
+				maintenanceQuery := `
+					SELECT id, vehicle_number, maintenance_date as service_date, 
+						   mileage, po_number, cost, work_done, created_at
+					FROM maintenance_records 
+					WHERE vehicle_number = $1 
+					ORDER BY maintenance_date DESC`
+
+				err = db.Select(&maintenanceLogs, maintenanceQuery, vehicleNumber)
+				if err != nil {
+					log.Printf("Error fetching maintenance records: %v", err)
+					maintenanceLogs = []MaintenanceLog{}
+				}
+
+				// Calculate summary statistics
+				var totalCost float64
+				for _, log := range maintenanceLogs {
+					if log.Cost != nil {
+						totalCost += *log.Cost
+					}
+				}
+
+				// Prepare template data for database vehicle
+				data := struct {
+					Vehicle         Vehicle
+					MaintenanceLogs []MaintenanceLog
+					TotalRecords    int
+					TotalCost       float64
+					AverageCost     float64
+				}{
+					Vehicle:         vehicle,
+					MaintenanceLogs: maintenanceLogs,
+					TotalRecords:    len(maintenanceLogs),
+					TotalCost:       totalCost,
+					AverageCost: func() float64 {
+						if len(maintenanceLogs) > 0 {
+							return totalCost / float64(len(maintenanceLogs))
+						}
+						return 0
+					}(),
+				}
+
 				executeTemplate(w, "vehicle_maintenance.html", data)
 				return
 			}
@@ -553,14 +596,72 @@ func vehicleMaintenancePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if targetBus == nil {
+		log.Printf("Vehicle/Bus not found with ID: %s", vehicleID)
 		http.Error(w, "Vehicle not found", http.StatusNotFound)
 		return
 	}
 
-	// ... rest of bus maintenance logic
+	// Load maintenance logs for this bus
+	allMaintenanceLogs := loadMaintenanceLogs()
+	var vehicleMaintenanceLogs []BusMaintenanceLog
+	
+	for _, log := range allMaintenanceLogs {
+		if log.BusID == vehicleID {
+			vehicleMaintenanceLogs = append(vehicleMaintenanceLogs, log)
+		}
+	}
+
+	// Convert BusMaintenanceLog to MaintenanceLog format for template compatibility
+	var maintenanceLogs []MaintenanceLog
+	for _, busLog := range vehicleMaintenanceLogs {
+		// Convert mileage to pointer
+		var mileagePtr *int
+		if busLog.Mileage > 0 {
+			mileagePtr = &busLog.Mileage
+		}
+		
+		maintenanceLogs = append(maintenanceLogs, MaintenanceLog{
+			VehicleNumber: func() int {
+				if num, err := strconv.Atoi(strings.TrimPrefix(vehicleID, "BUS")); err == nil {
+					return num
+				}
+				return 0
+			}(),
+			ServiceDate: busLog.Date,
+			Mileage:     mileagePtr,
+			WorkDone:    fmt.Sprintf("%s: %s", busLog.Category, busLog.Notes),
+		})
+	}
+
+	// Prepare template data for bus
+	data := struct {
+		Vehicle         Vehicle
+		MaintenanceLogs []MaintenanceLog
+		TotalRecords    int
+		TotalCost       float64
+		AverageCost     float64
+	}{
+		Vehicle: Vehicle{
+			VehicleNumber: func() int {
+				if num, err := strconv.Atoi(strings.TrimPrefix(vehicleID, "BUS")); err == nil {
+					return num
+				}
+				return 0
+			}(),
+			Make:        "Bus Fleet",
+			Model:       targetBus.Model,
+			Year:        "",
+			VIN:         vehicleID,
+			Description: fmt.Sprintf("Capacity: %d passengers", targetBus.Capacity),
+		},
+		MaintenanceLogs: maintenanceLogs,
+		TotalRecords:    len(maintenanceLogs),
+		TotalCost:       0, // BusMaintenanceLog doesn't track cost
+		AverageCost:     0,
+	}
+
 	executeTemplate(w, "vehicle_maintenance.html", data)
 }
-
 func loginPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseForm()
