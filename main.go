@@ -63,7 +63,7 @@ func init() {
 }
 
 // =============================================================================
-// HTTP HANDLERS - These will be moved to separate files later
+// HTTP HANDLERS
 // =============================================================================
 
 func newUserPage(w http.ResponseWriter, r *http.Request) {
@@ -79,11 +79,9 @@ func newUserPage(w http.ResponseWriter, r *http.Request) {
 		password := r.FormValue("password")
 		role := r.FormValue("role")
 
-		users := loadUsers()
-		users = append(users, User{Username: username, Password: password, Role: role})
-
-		if err := saveUsers(users); err != nil {
-			log.Printf("Error saving users: %v", err)
+		newUser := User{Username: username, Password: password, Role: role}
+		if err := saveUser(newUser); err != nil {
+			log.Printf("Error saving user: %v", err)
 			http.Error(w, "Unable to save user", http.StatusInternalServerError)
 			return
 		}
@@ -158,7 +156,7 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 
 	// Load all data
 	driverLogs, _ := loadDriverLogs()
-	activities, _ := loadJSON[Activity]("data/activities.json")
+	activities, _ := loadActivities()
 	users := loadUsers()
 	routes, _ := loadRoutes()
 	buses := loadBuses()
@@ -506,6 +504,12 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func vehicleMaintenancePage(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
 	// Get vehicle ID from query parameter or URL path
 	vehicleID := r.URL.Query().Get("vehicle_id")
 	if vehicleID == "" {
@@ -522,160 +526,121 @@ func vehicleMaintenancePage(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Fetching maintenance records for vehicle ID: %s", vehicleID)
 
-	// Check if database is available and vehicle is numeric (fleet vehicle)
-	if db != nil {
-		if vehicleNumber, err := strconv.Atoi(vehicleID); err == nil {
-			// Try database approach for fleet vehicles
-			var vehicle struct {
-				VehicleNumber int    `db:"vehicle_number"`
-				Make          string `db:"make"`
-				Model         string `db:"model"`
-				Year          string `db:"year"`
-				VIN           string `db:"vin"`
-				Description   string `db:"description"`
-			}
-			
-			vehicleQuery := `
-				SELECT vehicle_number, make, model, year, vin, description 
-				FROM fleet_vehicles 
-				WHERE vehicle_number = $1`
-
-			err = db.Get(&vehicle, vehicleQuery, vehicleNumber)
-			if err != nil && err != sql.ErrNoRows {
-				log.Printf("Database error: %v", err)
-			} else if err == nil {
-				// Found in database - get maintenance records
-				var maintenanceLogs []MaintenanceLog
-				maintenanceQuery := `
-					SELECT id, vehicle_number, maintenance_date as service_date, 
-						   mileage, po_number, cost, work_done, created_at
-					FROM maintenance_records 
-					WHERE vehicle_number = $1 
-					ORDER BY maintenance_date DESC`
-
-				err = db.Select(&maintenanceLogs, maintenanceQuery, vehicleNumber)
-				if err != nil {
-					log.Printf("Error fetching maintenance records: %v", err)
-					maintenanceLogs = []MaintenanceLog{}
-				}
-
-				// Calculate summary statistics
-				var totalCost float64
-				for _, log := range maintenanceLogs {
-					if log.Cost != nil {
-						totalCost += *log.Cost
-					}
-				}
-
-				// Prepare template data for database vehicle
-				data := struct {
-					Vehicle         interface{}
-					MaintenanceLogs []MaintenanceLog
-					TotalRecords    int
-					TotalCost       float64
-					AverageCost     float64
-				}{
-					Vehicle:         vehicle,
-					MaintenanceLogs: maintenanceLogs,
-					TotalRecords:    len(maintenanceLogs),
-					TotalCost:       totalCost,
-					AverageCost: func() float64 {
-						if len(maintenanceLogs) > 0 {
-							return totalCost / float64(len(maintenanceLogs))
-						}
-						return 0
-					}(),
-				}
-
-				executeTemplate(w, "vehicle_maintenance.html", data)
-				return
-			}
-		}
-	}
-
-	// Fall back to bus maintenance approach
-	buses := loadBuses()
-	var targetBus *Bus
-	for _, bus := range buses {
-		if bus.BusID == vehicleID {
-			targetBus = bus
-			break
-		}
-	}
-
-	if targetBus == nil {
-		log.Printf("Vehicle/Bus not found with ID: %s", vehicleID)
-		http.Error(w, "Vehicle not found", http.StatusNotFound)
-		return
-	}
-
-	// Load maintenance logs for this bus
-	allMaintenanceLogs := loadMaintenanceLogs()
-	var vehicleMaintenanceLogs []BusMaintenanceLog
-	
-	for _, log := range allMaintenanceLogs {
-		if log.BusID == vehicleID {
-			vehicleMaintenanceLogs = append(vehicleMaintenanceLogs, log)
-		}
-	}
-
-	// Convert BusMaintenanceLog to MaintenanceLog format for template compatibility
-	var maintenanceLogs []MaintenanceLog
-	for _, busLog := range vehicleMaintenanceLogs {
-		// Convert mileage to pointer
-		var mileagePtr *int
-		if busLog.Mileage > 0 {
-			mileagePtr = &busLog.Mileage
-		}
-		
-		maintenanceLogs = append(maintenanceLogs, MaintenanceLog{
-			VehicleNumber: func() int {
-				if num, err := strconv.Atoi(strings.TrimPrefix(vehicleID, "BUS")); err == nil {
-					return num
-				}
-				return 0
-			}(),
-			ServiceDate: busLog.Date,
-			Mileage:     mileagePtr,
-			WorkDone:    fmt.Sprintf("%s: %s", busLog.Category, busLog.Notes),
-		})
-	}
-
-	// Create a vehicle struct that matches what the template expects
-	vehicleForTemplate := struct {
-		VehicleNumber int
-		Make          string
-		Model         string
-		Year          string
-		VIN           string
-		Description   string
-	}{
-		VehicleNumber: func() int {
-			if num, err := strconv.Atoi(strings.TrimPrefix(vehicleID, "BUS")); err == nil {
-				return num
-			}
-			return 0
-		}(),
-		Make:        "Bus Fleet",
-		Model:       targetBus.Model,
-		Year:        "",
-		VIN:         vehicleID,
-		Description: fmt.Sprintf("Capacity: %d passengers", targetBus.Capacity),
-	}
-
-	// Prepare template data for bus
+	// Prepare template data structure
 	data := struct {
 		Vehicle         interface{}
 		MaintenanceLogs []MaintenanceLog
 		TotalRecords    int
 		TotalCost       float64
 		AverageCost     float64
-	}{
-		Vehicle:         vehicleForTemplate,
-		MaintenanceLogs: maintenanceLogs,
-		TotalRecords:    len(maintenanceLogs),
-		TotalCost:       0, // BusMaintenanceLog doesn't track cost
-		AverageCost:     0,
+	}{}
+
+	// Get maintenance logs from database
+	busLogs, err := getBusMaintenanceRecords(vehicleID)
+	if err != nil {
+		log.Printf("Error loading maintenance records: %v", err)
+	}
+
+	// Convert BusMaintenanceLog to MaintenanceLog format
+	var maintenanceLogs []MaintenanceLog
+	var totalCost float64
+	
+	for _, busLog := range busLogs {
+		var mileagePtr *int
+		if busLog.Mileage > 0 {
+			mileagePtr = &busLog.Mileage
+		}
+		
+		maintenanceLogs = append(maintenanceLogs, MaintenanceLog{
+			ServiceDate: busLog.Date,
+			Mileage:     mileagePtr,
+			WorkDone:    fmt.Sprintf("%s: %s", busLog.Category, busLog.Notes),
+		})
+	}
+
+	// Sort by date (newest first)
+	sort.Slice(maintenanceLogs, func(i, j int) bool {
+		return maintenanceLogs[i].ServiceDate > maintenanceLogs[j].ServiceDate
+	})
+
+	// Try to find the vehicle/bus details
+	buses := loadBuses()
+	var foundBus *Bus
+	for _, bus := range buses {
+		if bus.BusID == vehicleID {
+			foundBus = bus
+			break
+		}
+	}
+
+	if foundBus != nil {
+		// Create a vehicle struct for template compatibility
+		vehicleForTemplate := struct {
+			VehicleNumber int
+			Make          string
+			Model         string
+			Year          string
+			VIN           string
+			Description   string
+		}{
+			VehicleNumber: func() int {
+				if num, err := strconv.Atoi(strings.TrimPrefix(vehicleID, "BUS")); err == nil {
+					return num
+				}
+				return 0
+			}(),
+			Make:        "Bus Fleet",
+			Model:       foundBus.Model,
+			Year:        "",
+			VIN:         vehicleID,
+			Description: fmt.Sprintf("Capacity: %d passengers", foundBus.Capacity),
+		}
+		data.Vehicle = vehicleForTemplate
+	} else {
+		// Try company vehicles
+		vehicles := loadVehicles()
+		var foundVehicle *Vehicle
+		for _, vehicle := range vehicles {
+			if vehicle.VehicleID == vehicleID {
+				foundVehicle = &vehicle
+				break
+			}
+		}
+
+		if foundVehicle == nil {
+			log.Printf("Vehicle/Bus not found with ID: %s", vehicleID)
+			http.Error(w, "Vehicle not found", http.StatusNotFound)
+			return
+		}
+
+		vehicleForTemplate := struct {
+			VehicleNumber int
+			Make          string
+			Model         string
+			Year          string
+			VIN           string
+			Description   string
+		}{
+			VehicleNumber: func() int {
+				if num, err := strconv.Atoi(strings.TrimPrefix(vehicleID, "VEH")); err == nil {
+					return num
+				}
+				return 0
+			}(),
+			Make:        foundVehicle.Model,
+			Model:       foundVehicle.Model,
+			Year:        foundVehicle.Year,
+			VIN:         vehicleID,
+			Description: foundVehicle.Description,
+		}
+		data.Vehicle = vehicleForTemplate
+	}
+
+	data.MaintenanceLogs = maintenanceLogs
+	data.TotalRecords = len(maintenanceLogs)
+	data.TotalCost = totalCost
+	if data.TotalRecords > 0 && data.TotalCost > 0 {
+		data.AverageCost = data.TotalCost / float64(data.TotalRecords)
 	}
 
 	executeTemplate(w, "vehicle_maintenance.html", data)
@@ -837,46 +802,22 @@ func saveDriverLog(w http.ResponseWriter, r *http.Request) {
 		}{p.Position, present, pickup})
 	}
 
-	// Load existing logs
-	logs, err := loadDriverLogs()
-	if err != nil {
-		log.Printf("Error loading driver logs: %v", err)
-		logs = []DriverLog{}
+	// Create driver log
+	driverLog := DriverLog{
+		Driver:     user.Username,
+		BusID:      busID,
+		RouteID:    assignment.RouteID,
+		Date:       date,
+		Period:     period,
+		Departure:  departure,
+		Arrival:    arrival,
+		Mileage:    mileage,
+		Attendance: attendance,
 	}
 
-	// Check if we're updating an existing log
-	updated := false
-	for i := range logs {
-		if logs[i].Driver == user.Username && logs[i].Date == date && logs[i].Period == period {
-			logs[i].BusID = busID
-			logs[i].RouteID = assignment.RouteID
-			logs[i].Departure = departure
-			logs[i].Arrival = arrival
-			logs[i].Mileage = mileage
-			logs[i].Attendance = attendance
-			updated = true
-			break
-		}
-	}
-
-	// If not updating, create new log entry
-	if !updated {
-		logs = append(logs, DriverLog{
-			Driver:     user.Username,
-			BusID:      busID,
-			RouteID:    assignment.RouteID,
-			Date:       date,
-			Period:     period,
-			Departure:  departure,
-			Arrival:    arrival,
-			Mileage:    mileage,
-			Attendance: attendance,
-		})
-	}
-
-	// Save the logs
-	if err := saveDriverLogs(logs); err != nil {
-		log.Printf("Error saving driver logs: %v", err)
+	// Save the log
+	if err := saveDriverLog(driverLog); err != nil {
+		log.Printf("Error saving driver log: %v", err)
 		http.Error(w, "Unable to save log", http.StatusInternalServerError)
 		return
 	}
@@ -899,6 +840,7 @@ func dashboardRouter(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
+
 func assignRoutesPage(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
@@ -989,11 +931,11 @@ func addRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load existing routes with proper error handling
+	// Load existing routes
 	routes, err := loadRoutes()
 	if err != nil {
 		log.Printf("addRoute: Error loading routes: %v", err)
-		http.Error(w, "Unable to load existing routes. Please check system logs.", http.StatusInternalServerError)
+		http.Error(w, "Unable to load existing routes", http.StatusInternalServerError)
 		return
 	}
 
@@ -1007,22 +949,11 @@ func addRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate unique route ID
-	routeID := fmt.Sprintf("RT%03d", len(routes)+1)
-
-	// Ensure unique route ID (in case of gaps in numbering)
-	idExists := true
-	counter := len(routes) + 1
-	for idExists {
-		idExists = false
-		for _, r := range routes {
-			if r.RouteID == routeID {
-				idExists = true
-				counter++
-				routeID = fmt.Sprintf("RT%03d", counter)
-				break
-			}
-		}
+	existingIDs := make([]string, len(routes))
+	for i, r := range routes {
+		existingIDs[i] = r.RouteID
 	}
+	routeID := ensureUniqueID("RT", existingIDs)
 
 	// Create new route
 	newRoute := Route{
@@ -1032,84 +963,19 @@ func addRoute(w http.ResponseWriter, r *http.Request) {
 		Positions: []struct {
 			Position int    `json:"position"`
 			Student  string `json:"student"`
-		}{}, // Empty positions initially
+		}{},
 	}
 
 	log.Printf("addRoute: Creating new route with ID %s", routeID)
 
-	// Add to routes slice
-	routes = append(routes, newRoute)
-
-	// Save using your existing save system
-	if db != nil {
-		// Save to PostgreSQL
-		positionsJSON, err := json.Marshal(newRoute.Positions)
-		if err != nil {
-			log.Printf("addRoute: Error marshaling positions: %v", err)
-			http.Error(w, "Internal error creating route", http.StatusInternalServerError)
-			return
-		}
-
-		_, err = db.Exec(`
-			INSERT INTO routes (route_id, route_name, description, positions) 
-			VALUES ($1, $2, $3, $4)
-		`, newRoute.RouteID, newRoute.RouteName, newRoute.Description, positionsJSON)
-
-		if err != nil {
-			log.Printf("addRoute: Database error saving route: %v", err)
-			http.Error(w, "Unable to save route to database", http.StatusInternalServerError)
-			return
-		}
-		log.Printf("addRoute: Successfully saved route %s to database", routeID)
-	} else {
-		// Fallback to JSON
-		log.Printf("addRoute: Using JSON storage fallback")
-
-		// Ensure data directory exists
-		if err := os.MkdirAll("data", 0755); err != nil {
-			log.Printf("addRoute: Error creating data directory: %v", err)
-			http.Error(w, "Unable to create data directory", http.StatusInternalServerError)
-			return
-		}
-
-		// Create temporary file first to avoid corruption
-		tempFile := "data/routes.json.tmp"
-		f, err := os.Create(tempFile)
-		if err != nil {
-			log.Printf("addRoute: Error creating temp file: %v", err)
-			http.Error(w, "Unable to save route", http.StatusInternalServerError)
-			return
-		}
-
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(routes); err != nil {
-			f.Close()
-			os.Remove(tempFile)
-			log.Printf("addRoute: Error encoding routes: %v", err)
-			http.Error(w, "Unable to save route data", http.StatusInternalServerError)
-			return
-		}
-
-		if err := f.Close(); err != nil {
-			os.Remove(tempFile)
-			log.Printf("addRoute: Error closing file: %v", err)
-			http.Error(w, "Unable to save route", http.StatusInternalServerError)
-			return
-		}
-
-		// Atomic rename to avoid corruption
-		if err := os.Rename(tempFile, "data/routes.json"); err != nil {
-			os.Remove(tempFile)
-			log.Printf("addRoute: Error renaming temp file: %v", err)
-			http.Error(w, "Unable to finalize route save", http.StatusInternalServerError)
-			return
-		}
-
-		log.Printf("addRoute: Successfully saved route %s to JSON file", routeID)
+	// Save to database
+	if err := saveRoute(newRoute); err != nil {
+		log.Printf("addRoute: Error saving route: %v", err)
+		http.Error(w, "Unable to save route", http.StatusInternalServerError)
+		return
 	}
 
-	log.Printf("addRoute: Route %s added successfully, redirecting to /assign-routes", routeID)
+	log.Printf("addRoute: Route %s added successfully", routeID)
 	http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
 }
 
@@ -1144,52 +1010,26 @@ func editRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Find and update the route
-	updated := false
+	var routeToUpdate *Route
 	for i, route := range routes {
 		if route.RouteID == routeID {
 			routes[i].RouteName = routeName
 			routes[i].Description = description
-			updated = true
+			routeToUpdate = &routes[i]
 			break
 		}
 	}
 
-	if !updated {
+	if routeToUpdate == nil {
 		http.Error(w, "Route not found", http.StatusNotFound)
 		return
 	}
 
-	// Save using your existing save system
-	if db != nil {
-		// Save to PostgreSQL
-		_, err := db.Exec(`
-			UPDATE routes 
-			SET route_name = $1, description = $2 
-			WHERE route_id = $3
-		`, routeName, description, routeID)
-
-		if err != nil {
-			log.Printf("Error updating route in database: %v", err)
-			http.Error(w, "Unable to update route", http.StatusInternalServerError)
-			return
-		}
-	} else {
-		// Fallback to JSON
-		f, err := os.Create("data/routes.json")
-		if err != nil {
-			log.Printf("Error creating routes file: %v", err)
-			http.Error(w, "Unable to save route", http.StatusInternalServerError)
-			return
-		}
-		defer f.Close()
-
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(routes); err != nil {
-			log.Printf("Error encoding routes: %v", err)
-			http.Error(w, "Unable to save route", http.StatusInternalServerError)
-			return
-		}
+	// Save to database
+	if err := saveRoute(*routeToUpdate); err != nil {
+		log.Printf("Error updating route: %v", err)
+		http.Error(w, "Unable to update route", http.StatusInternalServerError)
+		return
 	}
 
 	http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
@@ -1226,56 +1066,11 @@ func deleteRoute(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Load existing routes
-	routes, err := loadRoutes()
-	if err != nil {
-		log.Printf("Error loading routes: %v", err)
-		http.Error(w, "Unable to load routes", http.StatusInternalServerError)
+	// Delete from database
+	if err := deleteRoute(routeID); err != nil {
+		log.Printf("Error deleting route: %v", err)
+		http.Error(w, "Unable to delete route", http.StatusInternalServerError)
 		return
-	}
-
-	// Find and remove the route
-	var newRoutes []Route
-	found := false
-	for _, route := range routes {
-		if route.RouteID != routeID {
-			newRoutes = append(newRoutes, route)
-		} else {
-			found = true
-		}
-	}
-
-	if !found {
-		http.Error(w, "Route not found", http.StatusNotFound)
-		return
-	}
-
-	// Save using your existing save system
-	if db != nil {
-		// Delete from PostgreSQL
-		_, err := db.Exec("DELETE FROM routes WHERE route_id = $1", routeID)
-		if err != nil {
-			log.Printf("Error deleting route from database: %v", err)
-			http.Error(w, "Unable to delete route", http.StatusInternalServerError)
-			return
-		}
-	} else {
-		// Fallback to JSON
-		f, err := os.Create("data/routes.json")
-		if err != nil {
-			log.Printf("Error creating routes file: %v", err)
-			http.Error(w, "Unable to save routes", http.StatusInternalServerError)
-			return
-		}
-		defer f.Close()
-
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(newRoutes); err != nil {
-			log.Printf("Error encoding routes: %v", err)
-			http.Error(w, "Unable to save routes", http.StatusInternalServerError)
-			return
-		}
 	}
 
 	http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
@@ -1345,45 +1140,7 @@ func assignRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	assignments, err := loadRouteAssignments()
-	if err != nil {
-		log.Printf("Error loading assignments: %v", err)
-		assignments = []RouteAssignment{}
-	}
-
-	// Check if driver already has an assignment
-	for i, a := range assignments {
-		if a.Driver == driver {
-			// Update existing assignment
-			assignments[i].BusID = busID
-			assignments[i].RouteID = routeID
-			assignments[i].RouteName = routeName
-			assignments[i].AssignedDate = time.Now().Format("2006-01-02")
-
-			if err := saveRouteAssignments(assignments); err != nil {
-				log.Printf("Error saving assignments: %v", err)
-				http.Error(w, "Unable to save assignment", http.StatusInternalServerError)
-				return
-			}
-
-			http.Redirect(w, r, "/assign-routes", http.StatusFound)
-			return
-		}
-	}
-
-	// Check if route or bus is already assigned
-	for _, a := range assignments {
-		if a.RouteID == routeID {
-			http.Error(w, "Route is already assigned", http.StatusBadRequest)
-			return
-		}
-		if a.BusID == busID {
-			http.Error(w, "Bus is already assigned", http.StatusBadRequest)
-			return
-		}
-	}
-
-	// Add new assignment
+	// Create or update assignment
 	newAssignment := RouteAssignment{
 		Driver:       driver,
 		BusID:        busID,
@@ -1392,9 +1149,8 @@ func assignRoute(w http.ResponseWriter, r *http.Request) {
 		AssignedDate: time.Now().Format("2006-01-02"),
 	}
 
-	assignments = append(assignments, newAssignment)
-	if err := saveRouteAssignments(assignments); err != nil {
-		log.Printf("Error saving assignments: %v", err)
+	if err := saveRouteAssignment(newAssignment); err != nil {
+		log.Printf("Error saving assignment: %v", err)
 		http.Error(w, "Unable to save assignment", http.StatusInternalServerError)
 		return
 	}
@@ -1416,34 +1172,10 @@ func unassignRoute(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 	driver := r.FormValue("driver")
-	busID := r.FormValue("bus_id")
 
-	assignments, err := loadRouteAssignments()
-	if err != nil {
-		log.Printf("Error loading assignments: %v", err)
-		http.Error(w, "Unable to load assignments", http.StatusInternalServerError)
-		return
-	}
-
-	// Remove assignment
-	var newAssignments []RouteAssignment
-	found := false
-	for _, a := range assignments {
-		if !(a.Driver == driver && a.BusID == busID) {
-			newAssignments = append(newAssignments, a)
-		} else {
-			found = true
-		}
-	}
-
-	if !found {
-		http.Error(w, "Assignment not found", http.StatusNotFound)
-		return
-	}
-
-	if err := saveRouteAssignments(newAssignments); err != nil {
-		log.Printf("Error saving assignments: %v", err)
-		http.Error(w, "Unable to save assignments", http.StatusInternalServerError)
+	if err := deleteRouteAssignment(driver); err != nil {
+		log.Printf("Error deleting assignment: %v", err)
+		http.Error(w, "Unable to remove assignment", http.StatusInternalServerError)
 		return
 	}
 
@@ -1488,9 +1220,8 @@ func addBus(w http.ResponseWriter, r *http.Request) {
 	tireStatus := r.FormValue("tire_status")
 	maintenanceNotes := r.FormValue("maintenance_notes")
 
-	buses := loadBuses()
-
 	// Check if bus ID already exists
+	buses := loadBuses()
 	for _, b := range buses {
 		if b.BusID == busID {
 			http.Error(w, "Bus ID already exists", http.StatusBadRequest)
@@ -1508,9 +1239,8 @@ func addBus(w http.ResponseWriter, r *http.Request) {
 		MaintenanceNotes: maintenanceNotes,
 	}
 
-	buses = append(buses, newBus)
-	if err := saveBuses(buses); err != nil {
-		log.Printf("Error saving buses: %v", err)
+	if err := saveBus(newBus); err != nil {
+		log.Printf("Error saving bus: %v", err)
 		http.Error(w, "Unable to save bus", http.StatusInternalServerError)
 		return
 	}
@@ -1584,36 +1314,25 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	updated := false
-	for i, b := range buses {
-		if b.BusID == originalBusID {
-			buses[i].BusID = busID
-			buses[i].Status = status
-			buses[i].Model = model
-			buses[i].Capacity = capacity
-			buses[i].OilStatus = oilStatus
-			buses[i].TireStatus = tireStatus
-			buses[i].MaintenanceNotes = maintenanceNotes
-			updated = true
-			break
-		}
+	// Update the bus
+	updatedBus := &Bus{
+		BusID:            busID,
+		Status:           status,
+		Model:            model,
+		Capacity:         capacity,
+		OilStatus:        oilStatus,
+		TireStatus:       tireStatus,
+		MaintenanceNotes: maintenanceNotes,
 	}
 
-	if !updated {
-		http.Error(w, "Bus not found", http.StatusNotFound)
-		return
-	}
-
-	if err := saveBuses(buses); err != nil {
-		log.Printf("Error saving buses: %v", err)
+	if err := saveBus(updatedBus); err != nil {
+		log.Printf("Error saving bus: %v", err)
 		http.Error(w, "Unable to save bus", http.StatusInternalServerError)
 		return
 	}
 
 	// Auto-create maintenance log if status changed to maintenance or out_of_service
 	if statusChangingToInactive || (status == "maintenance" && originalBus.Status != "maintenance") {
-		maintenanceLogs := loadMaintenanceLogs()
-		
 		logEntry := BusMaintenanceLog{
 			BusID:    busID,
 			Date:     time.Now().Format("2006-01-02"),
@@ -1622,8 +1341,7 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 			Mileage:  0,
 		}
 
-		maintenanceLogs = append(maintenanceLogs, logEntry)
-		if err := saveMaintenanceLogs(maintenanceLogs); err != nil {
+		if err := saveMaintenanceLog(logEntry); err != nil {
 			log.Printf("Warning: Failed to save maintenance log: %v", err)
 		} else {
 			log.Printf("Maintenance log created for bus %s status change", busID)
@@ -1659,25 +1377,9 @@ func removeBus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	buses := loadBuses()
-	var newBuses []*Bus
-	found := false
-	for _, b := range buses {
-		if b.BusID != busID {
-			newBuses = append(newBuses, b)
-		} else {
-			found = true
-		}
-	}
-
-	if !found {
-		http.Error(w, "Bus not found", http.StatusNotFound)
-		return
-	}
-
-	if err := saveBuses(newBuses); err != nil {
-		log.Printf("Error saving buses: %v", err)
-		http.Error(w, "Unable to save buses", http.StatusInternalServerError)
+	if err := deleteBus(busID); err != nil {
+		log.Printf("Error deleting bus: %v", err)
+		http.Error(w, "Unable to remove bus", http.StatusInternalServerError)
 		return
 	}
 
@@ -1791,9 +1493,8 @@ func importVehicleAsBus(w http.ResponseWriter, r *http.Request) {
 			sourceVehicle.License, sourceVehicle.Year, sourceVehicle.Model),
 	}
 
-	buses = append(buses, newBus)
-	if err := saveBuses(buses); err != nil {
-		log.Printf("Error saving buses: %v", err)
+	if err := saveBus(newBus); err != nil {
+		log.Printf("Error saving bus: %v", err)
 		http.Error(w, "Unable to save bus", http.StatusInternalServerError)
 		return
 	}
@@ -1886,10 +1587,13 @@ func addStudent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	students := loadStudents()
-
 	// Generate student ID
-	studentID := fmt.Sprintf("STU_%d", len(students)+1)
+	students := loadStudents()
+	existingIDs := make([]string, len(students))
+	for i, s := range students {
+		existingIDs[i] = s.StudentID
+	}
+	studentID := ensureUniqueID("STU", existingIDs)
 
 	newStudent := Student{
 		StudentID:      studentID,
@@ -1906,12 +1610,12 @@ func addStudent(w http.ResponseWriter, r *http.Request) {
 		Active:         true,
 	}
 
-	students = append(students, newStudent)
-	if err := saveStudents(students); err != nil {
-		log.Printf("Error saving students: %v", err)
+	if err := saveStudent(newStudent); err != nil {
+		log.Printf("Error saving student: %v", err)
 		http.Error(w, "Unable to save student", http.StatusInternalServerError)
 		return
 	}
+	
 	http.Redirect(w, r, "/students", http.StatusFound)
 }
 
@@ -1974,8 +1678,8 @@ func editStudent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Find and update student
 	students := loadStudents()
-
 	for i, s := range students {
 		if s.StudentID == studentID && s.Driver == user.Username {
 			students[i].Name = name
@@ -1988,15 +1692,16 @@ func editStudent(w http.ResponseWriter, r *http.Request) {
 			students[i].PositionNumber = positionNumber
 			students[i].RouteID = routeID
 			students[i].Active = active
+			
+			if err := saveStudent(students[i]); err != nil {
+				log.Printf("Error saving student: %v", err)
+				http.Error(w, "Unable to save student", http.StatusInternalServerError)
+				return
+			}
 			break
 		}
 	}
 
-	if err := saveStudents(students); err != nil {
-		log.Printf("Error saving students: %v", err)
-		http.Error(w, "Unable to save student", http.StatusInternalServerError)
-		return
-	}
 	http.Redirect(w, r, "/students", http.StatusFound)
 }
 
@@ -2015,19 +1720,27 @@ func removeStudent(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	studentID := r.FormValue("student_id")
 
+	// Verify the student belongs to this driver before deleting
 	students := loadStudents()
-	var newStudents []Student
+	studentBelongsToDriver := false
 	for _, s := range students {
-		if !(s.StudentID == studentID && s.Driver == user.Username) {
-			newStudents = append(newStudents, s)
+		if s.StudentID == studentID && s.Driver == user.Username {
+			studentBelongsToDriver = true
+			break
 		}
 	}
 
-	if err := saveStudents(newStudents); err != nil {
-		log.Printf("Error saving students: %v", err)
-		http.Error(w, "Unable to save students", http.StatusInternalServerError)
+	if !studentBelongsToDriver {
+		http.Error(w, "Unauthorized", http.StatusForbidden)
 		return
 	}
+
+	if err := deleteStudent(studentID); err != nil {
+		log.Printf("Error deleting student: %v", err)
+		http.Error(w, "Unable to remove student", http.StatusInternalServerError)
+		return
+	}
+	
 	http.Redirect(w, r, "/students", http.StatusFound)
 }
 
@@ -2062,9 +1775,14 @@ func reassignDriverBus(w http.ResponseWriter, r *http.Request) {
 
 	// Find and update the driver's assignment
 	updated := false
-	for i, assignment := range assignments {
+	for _, assignment := range assignments {
 		if assignment.Driver == driverName {
-			assignments[i].BusID = newBusID
+			assignment.BusID = newBusID
+			if err := saveRouteAssignment(assignment); err != nil {
+				log.Printf("Error saving assignment: %v", err)
+				http.Error(w, "Unable to save assignment", http.StatusInternalServerError)
+				return
+			}
 			updated = true
 			break
 		}
@@ -2072,13 +1790,6 @@ func reassignDriverBus(w http.ResponseWriter, r *http.Request) {
 
 	if !updated {
 		http.Error(w, "Driver assignment not found", http.StatusNotFound)
-		return
-	}
-
-	// Save updated assignments
-	if err := saveRouteAssignments(assignments); err != nil {
-		log.Printf("Error saving assignments: %v", err)
-		http.Error(w, "Unable to save assignment", http.StatusInternalServerError)
 		return
 	}
 
@@ -2092,6 +1803,7 @@ func addMaintenanceLog(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
+	
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
@@ -2122,13 +1834,12 @@ func addMaintenanceLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logs := loadMaintenanceLogs()
-	logs = append(logs, logEntry)
-	if err := saveMaintenanceLogs(logs); err != nil {
-		log.Printf("Error saving maintenance logs: %v", err)
-		http.Error(w, "Unable to save", http.StatusInternalServerError)
+	if err := saveMaintenanceLog(logEntry); err != nil {
+		log.Printf("Error saving maintenance log: %v", err)
+		http.Error(w, "Unable to save maintenance log", http.StatusInternalServerError)
 		return
 	}
+	
 	http.Redirect(w, r, "/fleet", http.StatusFound)
 }
 
@@ -2169,14 +1880,13 @@ func removeUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if user exists
 	users := loadUsers()
-	var newUsers []User
 	userFound := false
 	for _, u := range users {
-		if u.Username != usernameToRemove {
-			newUsers = append(newUsers, u)
-		} else {
+		if u.Username == usernameToRemove {
 			userFound = true
+			break
 		}
 	}
 
@@ -2186,23 +1896,14 @@ func removeUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If removing a driver, also remove their route assignments
-	if userFound {
-		assignments, err := loadRouteAssignments()
-		if err == nil {
-			var newAssignments []RouteAssignment
-			for _, assignment := range assignments {
-				if assignment.Driver != usernameToRemove {
-					newAssignments = append(newAssignments, assignment)
-				}
-			}
-			saveRouteAssignments(newAssignments)
-		}
+	if err := deleteRouteAssignment(usernameToRemove); err != nil {
+		log.Printf("Warning: Failed to delete route assignment for %s: %v", usernameToRemove, err)
 	}
 
-	// Save updated users list
-	if err := saveUsers(newUsers); err != nil {
-		log.Printf("Error saving users: %v", err)
-		http.Error(w, "Unable to save users", http.StatusInternalServerError)
+	// Delete the user
+	if err := deleteUser(usernameToRemove); err != nil {
+		log.Printf("Error deleting user: %v", err)
+		http.Error(w, "Unable to delete user", http.StatusInternalServerError)
 		return
 	}
 
@@ -2286,6 +1987,14 @@ func updateVehicleStatus(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Invalid status type", http.StatusBadRequest)
 				return
 			}
+			
+			// Save individual vehicle
+			if err := saveVehicle(vehicles[i]); err != nil {
+				log.Printf("❌ updateVehicleStatus: Error saving vehicle: %v", err)
+				http.Error(w, "Failed to save changes", http.StatusInternalServerError)
+				return
+			}
+			
 			updated = true
 			log.Printf("✅ updateVehicleStatus: Vehicle updated successfully")
 			break
@@ -2295,14 +2004,6 @@ func updateVehicleStatus(w http.ResponseWriter, r *http.Request) {
 	if !updated {
 		log.Printf("❌ updateVehicleStatus: Vehicle not found with ID: '%s'", vehicleID)
 		http.Error(w, "Vehicle not found", http.StatusNotFound)
-		return
-	}
-
-	// Save updated vehicles
-	log.Printf("🔍 updateVehicleStatus: Saving updated vehicles to database...")
-	if err := saveVehicles(vehicles); err != nil {
-		log.Printf("❌ updateVehicleStatus: Error saving vehicles: %v", err)
-		http.Error(w, "Failed to save changes", http.StatusInternalServerError)
 		return
 	}
 
@@ -2353,6 +2054,14 @@ func updateBusStatus(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Invalid status type", http.StatusBadRequest)
 				return
 			}
+			
+			// Save individual bus
+			if err := saveBus(buses[i]); err != nil {
+				log.Printf("Error saving bus: %v", err)
+				http.Error(w, "Failed to save changes", http.StatusInternalServerError)
+				return
+			}
+			
 			updated = true
 			log.Printf("Updated bus %s: %s status to %s", busID, statusType, newStatus)
 			break
@@ -2362,13 +2071,6 @@ func updateBusStatus(w http.ResponseWriter, r *http.Request) {
 	if !updated {
 		log.Printf("Bus not found: %s", busID)
 		http.Error(w, "Bus not found", http.StatusNotFound)
-		return
-	}
-
-	// Save updated buses
-	if err := saveBuses(buses); err != nil {
-		log.Printf("Error saving buses: %v", err)
-		http.Error(w, "Failed to save changes", http.StatusInternalServerError)
 		return
 	}
 
@@ -2409,20 +2111,12 @@ func main() {
 
 	log.Println("Starting bus transportation app...")
 
-	// Setup database if DATABASE_URL exists
-	if os.Getenv("DATABASE_URL") != "" {
-		log.Println("🗄️  Setting up PostgreSQL database...")
-		setupDatabase()
-		log.Println("Using PostgreSQL database")
-	} else {
-		log.Println("No DATABASE_URL found, using local file storage")
-		// Ensure basic data files exist
-		log.Println("Initializing data files...")
-		ensureDataFiles()
-		// Initialize data files with proper structure
-		initDataFiles()
-		log.Println("Using local file storage only")
-	}
+	// Setup database - REQUIRED
+	log.Println("🗄️  Setting up PostgreSQL database...")
+	setupDatabase()
+	defer closeDatabase()
+	
+	log.Println("✅ Database setup complete")
 
 	// Setup HTTP routes with recovery middleware
 	log.Println("Setting up HTTP routes...")
@@ -2467,9 +2161,6 @@ func main() {
 		port = "5000"
 	}
 
-	// Check if port is available before trying to bind
-	log.Printf("Checking if port %s is available...", port)
-
 	server := &http.Server{
 		Addr:           "0.0.0.0:" + port,
 		Handler:        http.DefaultServeMux,
@@ -2487,8 +2178,6 @@ func main() {
 			log.Println("Server was closed")
 		} else {
 			log.Printf("Server failed to start: %v", err)
-			log.Printf("This usually means port %s is already in use", port)
-			log.Println("Try running: pkill -f 'go run main.go' or lsof -ti:5000 | xargs kill -9")
 			os.Exit(1)
 		}
 	}
