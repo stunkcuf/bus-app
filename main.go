@@ -1530,12 +1530,12 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 	if statusChangingToInactive || (status == "maintenance" && originalBus.Status != "maintenance") {
 		maintenanceLogs := loadMaintenanceLogs()
 
+		mileage := 0
 		logEntry := MaintenanceLog{
-			BusID:    busID,
-			Date:     time.Now().Format("2006-01-02"),
-			Category: "status_change",
-			Notes:    fmt.Sprintf("Bus status changed from '%s' to '%s'. %s", originalBus.Status, status, maintenanceNotes),
-			Mileage:  0,
+		    VehicleNumber: busID,  // Note: This might need conversion if BusID is string
+		    ServiceDate:   time.Now().Format("2006-01-02"),
+		    WorkDone:      fmt.Sprintf("Bus status changed from '%s' to '%s'. %s", originalBus.Status, status, maintenanceNotes),
+		    Mileage:       &mileage,
 		}
 
 		maintenanceLogs = append(maintenanceLogs, logEntry)
