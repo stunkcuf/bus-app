@@ -142,13 +142,34 @@ type DriverLog struct {
 	} `json:"attendance"`
 }
 
-// MaintenanceLog tracks vehicle maintenance
+// Fixed MaintenanceLog struct to match template expectations and database schema
 type MaintenanceLog struct {
-	BusID    string `json:"bus_id"`
-	Date     string `json:"date"`      // YYYY-MM-DD
-	Category string `json:"category"`  // oil, tires, brakes, etc.
-	Notes    string `json:"notes"`
-	Mileage  int    `json:"mileage"`   // optional
+    ID            int     `json:"id" db:"id"`
+    VehicleNumber int     `json:"vehicle_number" db:"vehicle_number"`  // Changed from BusID
+    ServiceDate   string  `json:"service_date" db:"maintenance_date"`   // Matches template expectation
+    Mileage       *int    `json:"mileage" db:"mileage"`                // Pointer for nullable values
+    PONumber      *string `json:"po_number" db:"po_number"`            // Added for template
+    Cost          *float64 `json:"cost" db:"cost"`                     // Added for template
+    WorkDone      string  `json:"work_done" db:"work_done"`            // Matches template expectation
+    CreatedAt     string  `json:"created_at" db:"created_at"`
+}
+
+// Vehicle struct to match your fleet database
+type Vehicle struct {
+    VehicleNumber int    `json:"vehicle_number" db:"vehicle_number"`
+    Make          string `json:"make" db:"make"`
+    Model         string `json:"model" db:"model"`
+    Year          int    `json:"year" db:"year"`
+    VIN           string `json:"vin" db:"vin"`
+    Description   string `json:"description" db:"description"`
+}
+
+// Combined struct for displaying vehicle with maintenance count
+type VehicleWithStats struct {
+    Vehicle
+    MaintenanceCount int     `json:"maintenance_count"`
+    TotalCost        float64 `json:"total_cost"`
+    LastService      *string `json:"last_service"`
 }
 
 // DashboardData is used for the manager dashboard template
