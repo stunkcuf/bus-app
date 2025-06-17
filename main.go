@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -374,6 +375,7 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	routes, _ := loadRoutes()
 	logs, _ := loadDriverLogs()
 
+	// Find current log for this date/period
 	var driverLog *DriverLog
 	for _, logEntry := range logs {
 		if logEntry.Driver == user.Username && logEntry.Date == date && logEntry.Period == period {
@@ -382,13 +384,14 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	type PageData struct {
-		User      *User
-		Date      string
-		Period    string
-		Route     *Route
-		DriverLog *DriverLog
-		Bus       *Bus
+	// Get recent logs for this driver (last 5)
+	var recentLogs []DriverLog
+	count := 0
+	for i := len(logs) - 1; i >= 0 && count < 5; i-- {
+		if logs[i].Driver == user.Username {
+			recentLogs = append(recentLogs, logs[i])
+			count++
+		}
 	}
 
 	var driverRoute *Route
@@ -453,17 +456,23 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Filter route positions to only include active students
-		for _, position := range driverRoute.Positions {
-			if studentName, exists := activeStudentMap[position.Position]; exists {
-				activeStudentPositions = append(activeStudentPositions, struct {
-					Position int    `json:"position"`
-					Student  string `json:"student"`
-				}{
-					Position: position.Position,
-					Student:  studentName,
-				})
-			}
+		// Build positions based on active students
+		// Get all position numbers and sort them
+		positions := make([]int, 0, len(activeStudentMap))
+		for pos := range activeStudentMap {
+			positions = append(positions, pos)
+		}
+		sort.Ints(positions)
+
+		// Create the positions slice
+		for _, pos := range positions {
+			activeStudentPositions = append(activeStudentPositions, struct {
+				Position int    `json:"position"`
+				Student  string `json:"student"`
+			}{
+				Position: pos,
+				Student:  activeStudentMap[pos],
+			})
 		}
 
 		// Update the route with filtered positions
@@ -482,13 +491,14 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	data := PageData{
-		User:      user,
-		Date:      date,
-		Period:    period,
-		Route:     driverRoute,
-		DriverLog: driverLog,
-		Bus:       assignedBus,
+	data := DriverDashboardData{
+		User:       user,
+		Date:       date,
+		Period:     period,
+		Route:      driverRoute,
+		DriverLog:  driverLog,
+		Bus:        assignedBus,
+		RecentLogs: recentLogs,
 	}
 
 	executeTemplate(w, "driver_dashboard.html", data)
