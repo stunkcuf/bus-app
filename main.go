@@ -506,106 +506,97 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func vehicleMaintenancePage(w http.ResponseWriter, r *http.Request) {
-	var vehicleNumber int
-	var err error
-
-	// First try to get from query parameter
-	vehicleIDStr := r.URL.Query().Get("vehicle_id")
-	if vehicleIDStr != "" {
-		vehicleNumber, err = strconv.Atoi(vehicleIDStr)
-		if err != nil {
-			http.Error(w, "Invalid vehicle number", http.StatusBadRequest)
-			return
-		}
-	} else {
-		// Fall back to path extraction
+	// Get vehicle ID from query parameter or URL path
+	vehicleID := r.URL.Query().Get("vehicle_id")
+	if vehicleID == "" {
+		// Try to extract from URL path
 		pathParts := strings.Split(r.URL.Path, "/")
-		if len(pathParts) < 3 {
-			http.Error(w, "Invalid vehicle ID", http.StatusBadRequest)
-			return
-		}
-
-		vehicleNumber, err = strconv.Atoi(pathParts[2])
-		if err != nil {
-			http.Error(w, "Invalid vehicle number", http.StatusBadRequest)
-			return
+		if len(pathParts) >= 3 {
+			vehicleID = pathParts[2]
 		}
 	}
 
-	// Get vehicle details from database
-	var vehicle Vehicle
-	vehicleQuery := `
-        SELECT vehicle_number, make, model, year, vin, description 
-        FROM fleet_vehicles 
-        WHERE vehicle_number = $1`
-
-	err = db.Get(&vehicle, vehicleQuery, vehicleNumber)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			http.Error(w, "Vehicle not found", http.StatusNotFound)
-			return
-		}
-		log.Printf("Database error: %v", err)
-		http.Error(w, "Database error", http.StatusInternalServerError)
+	if vehicleID == "" {
+		log.Printf("No vehicle ID provided in request")
+		http.Error(w, "Vehicle ID required", http.StatusBadRequest)
 		return
 	}
 
-	// Get maintenance records for this vehicle
-	var maintenanceLogs []MaintenanceLog
-	maintenanceQuery := `
-        SELECT id, vehicle_number, maintenance_date as service_date, 
-               mileage, po_number, cost, work_done, created_at
-        FROM maintenance_records 
-        WHERE vehicle_number = $1 
-        ORDER BY maintenance_date DESC`
+	log.Printf("Fetching maintenance records for vehicle ID: %s", vehicleID)
 
-	err = db.Select(&maintenanceLogs, maintenanceQuery, vehicleNumber)
-	if err != nil {
-		log.Printf("Error fetching maintenance records: %v", err)
-		// Continue with empty maintenance logs rather than failing
-		maintenanceLogs = []MaintenanceLog{}
-	}
-
-	// Calculate summary statistics
-	var totalCost float64
-	for _, log := range maintenanceLogs {
-		if log.Cost != nil {
-			totalCost += *log.Cost
+	// Since this is for bus maintenance, let's check if it's a bus
+	buses := loadBuses()
+	var targetBus *Bus
+	for _, bus := range buses {
+		if bus.BusID == vehicleID {
+			targetBus = bus
+			break
 		}
 	}
 
-	// Prepare template data
+	if targetBus == nil {
+		log.Printf("Bus not found with ID: %s", vehicleID)
+		http.Error(w, "Vehicle not found", http.StatusNotFound)
+		return
+	}
+
+	// Load maintenance logs for this bus
+	allMaintenanceLogs := loadMaintenanceLogs() // This returns []BusMaintenanceLog
+	var vehicleMaintenanceLogs []BusMaintenanceLog
+	
+	for _, log := range allMaintenanceLogs {
+		if log.BusID == vehicleID {
+			vehicleMaintenanceLogs = append(vehicleMaintenanceLogs, log)
+		}
+	}
+
+	// Calculate summary statistics
+	var totalCost float64 = 0 // BusMaintenanceLog doesn't have cost field
+
+	// Prepare template data - using a simplified structure
 	data := struct {
-		Vehicle         Vehicle
-		MaintenanceLogs []MaintenanceLog
+		Vehicle struct {
+			VehicleNumber int
+			Make          string
+			Model         string
+			Year          string
+			VIN           string
+			Description   string
+		}
+		MaintenanceLogs []BusMaintenanceLog
 		TotalRecords    int
 		TotalCost       float64
 		AverageCost     float64
 	}{
-		Vehicle:         vehicle,
-		MaintenanceLogs: maintenanceLogs,
-		TotalRecords:    len(maintenanceLogs),
+		Vehicle: struct {
+			VehicleNumber int
+			Make          string
+			Model         string
+			Year          string
+			VIN           string
+			Description   string
+		}{
+			VehicleNumber: func() int {
+				// Try to extract number from BUS001 format
+				if num, err := strconv.Atoi(strings.TrimPrefix(vehicleID, "BUS")); err == nil {
+					return num
+				}
+				return 0
+			}(),
+			Make:        "Bus Fleet",
+			Model:       targetBus.Model,
+			Year:        "",
+			VIN:         vehicleID,
+			Description: fmt.Sprintf("Capacity: %d passengers", targetBus.Capacity),
+		},
+		MaintenanceLogs: vehicleMaintenanceLogs,
+		TotalRecords:    len(vehicleMaintenanceLogs),
 		TotalCost:       totalCost,
-		AverageCost: func() float64 {
-			if len(maintenanceLogs) > 0 {
-				return totalCost / float64(len(maintenanceLogs))
-			}
-			return 0
-		}(),
+		AverageCost:     0,
 	}
 
-	// Execute template
-	tmpl, err := template.ParseFiles("templates/vehicle_maintenance.html")
-	if err != nil {
-		http.Error(w, "Template error", http.StatusInternalServerError)
-		return
-	}
-
-	err = tmpl.Execute(w, data)
-	if err != nil {
-		http.Error(w, "Template execution error", http.StatusInternalServerError)
-		return
-	}
+	// Use the embedded templates
+	executeTemplate(w, "vehicle_maintenance.html", data)
 }
 
 func loginPage(w http.ResponseWriter, r *http.Request) {
