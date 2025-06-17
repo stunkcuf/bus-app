@@ -26,7 +26,6 @@ var templates *template.Template
 func init() {
 	var err error
 
-	// Create function map for templates
 	funcMap := template.FuncMap{
 		"json": func(v interface{}) template.JS {
 			b, err := json.Marshal(v)
@@ -53,7 +52,6 @@ func init() {
 		},
 	}
 
-	// Parse templates from embedded filesystem
 	templates, err = template.New("").Funcs(funcMap).ParseFS(tmplFS, "templates/*.html")
 	if err != nil {
 		log.Fatalf("Template parsing failed: %v", err)
@@ -69,6 +67,10 @@ func init() {
 type SessionManager struct {
 	sessions map[string]*SessionData
 	mu       sync.RWMutex
+}
+
+var sessionMgr = &SessionManager{
+	sessions: make(map[string]*SessionData),
 }
 
 type SessionData struct {
