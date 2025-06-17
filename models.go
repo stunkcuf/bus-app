@@ -76,7 +76,7 @@ type Bus struct {
 	MaintenanceNotes string `json:"maintenance_notes"`
 }
 
-// Vehicle represents a company vehicle
+// Vehicle represents a company vehicle (ONLY ONE DECLARATION)
 type Vehicle struct {
 	VehicleID        string `json:"vehicle_id"`
 	Model            string `json:"model"`
@@ -142,34 +142,43 @@ type DriverLog struct {
 	} `json:"attendance"`
 }
 
-// Fixed MaintenanceLog struct to match template expectations and database schema
+// MaintenanceLog for database - matches your fleet database schema
 type MaintenanceLog struct {
-    ID            int     `json:"id" db:"id"`
-    VehicleNumber int     `json:"vehicle_number" db:"vehicle_number"`  // Changed from BusID
-    ServiceDate   string  `json:"service_date" db:"maintenance_date"`   // Matches template expectation
-    Mileage       *int    `json:"mileage" db:"mileage"`                // Pointer for nullable values
-    PONumber      *string `json:"po_number" db:"po_number"`            // Added for template
-    Cost          *float64 `json:"cost" db:"cost"`                     // Added for template
-    WorkDone      string  `json:"work_done" db:"work_done"`            // Matches template expectation
-    CreatedAt     string  `json:"created_at" db:"created_at"`
+	ID            int      `json:"id" db:"id"`
+	VehicleNumber int      `json:"vehicle_number" db:"vehicle_number"`
+	ServiceDate   string   `json:"service_date" db:"maintenance_date"`
+	Mileage       *int     `json:"mileage" db:"mileage"`
+	PONumber      *string  `json:"po_number" db:"po_number"`
+	Cost          *float64 `json:"cost" db:"cost"`
+	WorkDone      string   `json:"work_done" db:"work_done"`
+	CreatedAt     string   `json:"created_at" db:"created_at"`
 }
 
-// Vehicle struct to match your fleet database
-type Vehicle struct {
-    VehicleNumber int    `json:"vehicle_number" db:"vehicle_number"`
-    Make          string `json:"make" db:"make"`
-    Model         string `json:"model" db:"model"`
-    Year          int    `json:"year" db:"year"`
-    VIN           string `json:"vin" db:"vin"`
-    Description   string `json:"description" db:"description"`
+// BusMaintenanceLog for bus-specific maintenance (JSON files)
+type BusMaintenanceLog struct {
+	BusID    string `json:"bus_id"`
+	Date     string `json:"date"`
+	Category string `json:"category"`
+	Notes    string `json:"notes"`
+	Mileage  int    `json:"mileage"`
 }
 
-// Combined struct for displaying vehicle with maintenance count
+// VehicleWithStats for displaying vehicle with maintenance count
 type VehicleWithStats struct {
-    Vehicle
-    MaintenanceCount int     `json:"maintenance_count"`
-    TotalCost        float64 `json:"total_cost"`
-    LastService      *string `json:"last_service"`
+	Vehicle
+	MaintenanceCount int     `json:"maintenance_count"`
+	TotalCost        float64 `json:"total_cost"`
+	LastService      *string `json:"last_service"`
+}
+
+// FleetStats contains overall fleet statistics
+type FleetStats struct {
+	TotalVehicles           int     `json:"total_vehicles"`
+	TotalMaintenanceRecords int     `json:"total_maintenance_records"`
+	TotalMaintenanceCost    float64 `json:"total_maintenance_cost"`
+	AverageMaintenanceCost  float64 `json:"average_maintenance_cost"`
+	YearRange               string  `json:"year_range"`
+	UniqueMakes             int     `json:"unique_makes"`
 }
 
 // DashboardData is used for the manager dashboard template
