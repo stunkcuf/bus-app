@@ -400,34 +400,34 @@ func saveDriverLogsToJSON(logs []DriverLog) error {
 // MAINTENANCE LOG FUNCTIONS
 // =============================================================================
 
-func loadMaintenanceLogs() []MaintenanceLog {
+func loadMaintenanceLogs() []BusMaintenanceLog {
 	if db != nil {
 		return loadMaintenanceLogsFromDB()
 	}
 	return loadMaintenanceLogsFromJSON()
 }
 
-func saveMaintenanceLogs(logs []MaintenanceLog) error {
+func saveMaintenanceLogs(logs []BusMaintenanceLog) error {
 	if db != nil {
 		return saveMaintenanceLogsToDB(logs)
 	}
 	return saveMaintenanceLogsToJSON(logs)
 }
 
-func loadMaintenanceLogsFromDB() []MaintenanceLog {
+func loadMaintenanceLogsFromDB() []BusMaintenanceLog {
 	rows, err := db.Query(`
 		SELECT bus_id, date, category, notes, mileage 
 		FROM maintenance_logs ORDER BY date DESC
 	`)
 	if err != nil {
 		log.Printf("Error loading maintenance logs from DB: %v", err)
-		return []MaintenanceLog{}
+		return []BusMaintenanceLog{}
 	}
 	defer rows.Close()
 
-	var logs []MaintenanceLog
+	var logs []BusMaintenanceLog
 	for rows.Next() {
-		var maintenanceLog MaintenanceLog
+		var maintenanceLog BusMaintenanceLog
 		if err := rows.Scan(&maintenanceLog.BusID, &maintenanceLog.Date,
 			&maintenanceLog.Category, &maintenanceLog.Notes, &maintenanceLog.Mileage); err != nil {
 			log.Printf("Error scanning maintenance log: %v", err)
@@ -438,20 +438,17 @@ func loadMaintenanceLogsFromDB() []MaintenanceLog {
 	return logs
 }
 
-func saveMaintenanceLogsToDB(logs []MaintenanceLog) error {
-    // This function is for database MaintenanceLog type
-    // Individual log operations are handled in handlers
-    // The actual saving would use fields like:
-    // log.VehicleNumber, log.ServiceDate, log.Mileage, log.Cost, log.WorkDone
-    return nil
+func saveMaintenanceLogsToDB(logs []BusMaintenanceLog) error {
+	// Individual log operations are handled in handlers
+	return nil
 }
 
-func loadMaintenanceLogsFromJSON() []MaintenanceLog {
-	logs, _ := loadJSON[MaintenanceLog]("data/maintenance.json")
+func loadMaintenanceLogsFromJSON() []BusMaintenanceLog {
+	logs, _ := loadJSON[BusMaintenanceLog]("data/maintenance.json")
 	return logs
 }
 
-func saveMaintenanceLogsToJSON(logs []MaintenanceLog) error {
+func saveMaintenanceLogsToJSON(logs []BusMaintenanceLog) error {
 	return saveJSONFile("data/maintenance.json", logs)
 }
 
