@@ -314,10 +314,10 @@ func initDataFiles() {
 		log.Println("Created and seeded data/routes.json with RouteID structure")
 	}
 
-	// Create other empty JSON files
-	createEmptyJSONIfNotExists("data/route_assignments.json", []RouteAssignment{})
-	createEmptyJSONIfNotExists("data/maintenance.json", []MaintenanceLog{})
-	createEmptyJSONIfNotExists("data/driver_logs.json", []DriverLog{})
+			// Create other empty JSON files
+		createEmptyJSONIfNotExists("data/route_assignments.json", []RouteAssignment{})
+		createEmptyJSONIfNotExists("data/maintenance.json", []BusMaintenanceLog{})  // Changed from MaintenanceLog
+		createEmptyJSONIfNotExists("data/driver_logs.json", []DriverLog{})
 }
 
 // createEmptyJSONIfNotExists creates an empty JSON array file if it doesn't exist
