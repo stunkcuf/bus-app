@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fleet Management - Bus Management System</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Driver Dashboard - Fleet Management System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
     :root {
       --grad-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -20,23 +20,23 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     }
     
-    .page-header {
-      background: var(--grad-primary);
+    .dashboard-header {
+      background: var(--grad-success);
       color: white;
       padding: 1.5rem;
       border-radius: 15px;
       margin-bottom: 2rem;
-      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+      box-shadow: 0 10px 30px rgba(17, 153, 142, 0.3);
     }
     
-    .page-header .btn {
+    .dashboard-header .btn {
       background: rgba(255,255,255,0.2);
       color: white;
       border: 1px solid rgba(255,255,255,0.3);
       transition: all 0.3s ease;
     }
     
-    .page-header .btn:hover {
+    .dashboard-header .btn:hover {
       background: rgba(255,255,255,0.3);
       transform: translateY(-2px);
       color: white;
@@ -55,183 +55,214 @@
       box-shadow: 0 15px 35px rgba(0,0,0,0.1);
     }
     
-    .stats-row {
+    .enhanced-card .card-header {
       background: linear-gradient(45deg, #f8f9fa, #e9ecef);
-      border-radius: 15px;
-      padding: 1.5rem;
-      margin-bottom: 2rem;
+      border-bottom: 2px solid #dee2e6;
+      padding: 1.25rem;
     }
     
-    .stat-item {
-      text-align: center;
-      padding: 1rem;
-    }
-    
-    .stat-number {
-      font-size: 2rem;
-      font-weight: 700;
-      display: block;
-    }
-    
-    .stat-label {
-      font-size: 0.9rem;
-      color: #6c757d;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .stat-active { color: #28a745; }
-    .stat-maintenance { color: #ffc107; }
-    .stat-danger { color: #dc3545; }
-    .stat-primary { color: #667eea; }
-    
-    .bus-card {
-      border: none;
-      border-radius: 15px;
-      padding: 1.5rem;
-      margin-bottom: 1rem;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-      transition: all 0.3s ease;
-      background: white;
-    }
-    
-    .bus-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-    }
-    
-    .bus-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-    }
-    
-    .bus-id {
-      font-size: 1.3rem;
-      font-weight: 700;
+    .enhanced-card .card-header h5 {
+      margin: 0;
+      font-weight: 600;
       color: #495057;
     }
     
-    .status-badge {
+    .info-card {
+      border-left: 4px solid #667eea;
+      background: linear-gradient(45deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+    }
+    
+    .metric-card {
+      border: none;
+      border-radius: 15px;
+      transition: all 0.3s ease;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .metric-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    
+    .metric-card .card-body {
+      padding: 1.5rem;
+    }
+    
+    .metric-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      opacity: 0.9;
+    }
+    
+    .metric-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    
+    .metric-label {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      opacity: 0.8;
+    }
+    
+    .bg-gradient-primary { background: var(--grad-primary); }
+    .bg-gradient-success { background: var(--grad-success); }
+    .bg-gradient-info { background: var(--grad-info); }
+    .bg-gradient-warning { background: var(--grad-warning); }
+    .bg-gradient-danger { background: var(--grad-danger); }
+    
+    .quick-action-card {
+      border: 2px dashed #dee2e6;
+      border-radius: 15px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    
+    .quick-action-card:hover {
+      border-color: #11998e;
+      background-color: rgba(17, 153, 142, 0.05);
+      transform: translateY(-3px);
+    }
+    
+    .assignment-info {
+      background: linear-gradient(45deg, rgba(17, 153, 142, 0.1), rgba(56, 239, 125, 0.1));
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .assignment-badge {
       padding: 0.5rem 1rem;
       border-radius: 20px;
       font-size: 0.85rem;
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-    }
-    
-    .status-active { background: var(--grad-success); color: white; }
-    .status-maintenance { background: var(--grad-warning); color: white; }
-    .status-out_of_service { background: var(--grad-danger); color: white; }
-    
-    .status-container {
-      position: relative;
-      display: inline-block;
-    }
-    
-    .status-toggle {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.25rem 0.5rem;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      border: 2px solid transparent;
-    }
-    
-    .status-toggle:hover {
-      background-color: rgba(102, 126, 234, 0.1);
-      border-color: #667eea;
-    }
-    
-    .status-dropdown {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      background: white;
-      border: 1px solid #dee2e6;
-      border-radius: 8px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.15);
-      padding: 0.5rem 0;
-      min-width: 120px;
-      z-index: 1000;
-      display: none;
-    }
-    
-    .status-dropdown.show {
-      display: block;
-    }
-    
-    .status-option {
-      padding: 0.5rem 1rem;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: background-color 0.2s ease;
-    }
-    
-    .status-option:hover {
-      background-color: #f8f9fa;
-    }
-    
-    .vehicle-import-card {
-      border: 2px dashed #dee2e6;
-      border-radius: 15px;
-      padding: 1.5rem;
-      text-align: center;
-      transition: all 0.3s ease;
-      cursor: pointer;
-      margin-bottom: 1rem;
-    }
-    
-    .vehicle-import-card:hover {
-      border-color: #667eea;
-      background-color: rgba(102, 126, 234, 0.05);
-    }
-    
-    .import-btn {
-      background: var(--grad-info);
-      border: none;
+      background: var(--grad-success);
       color: white;
-      padding: 0.5rem 1rem;
+    }
+    
+    .alert-item {
+      padding: 1rem;
+      border-left: 4px solid #ffc107;
+      margin-bottom: 0.5rem;
+      background: white;
+      border-radius: 0 8px 8px 0;
+      transition: all 0.2s ease;
+    }
+    
+    .alert-item:hover {
+      border-left-color: #11998e;
+      transform: translateX(5px);
+    }
+    
+    .trip-log-item {
+      padding: 1rem;
+      background: white;
+      border-radius: 10px;
+      margin-bottom: 0.5rem;
+      border-left: 4px solid #17a2b8;
+      transition: all 0.2s ease;
+    }
+    
+    .trip-log-item:hover {
+      transform: translateX(5px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .time-display {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #495057;
+    }
+    
+    .btn-primary {
+      background: var(--grad-success);
+      border: none;
+      padding: 0.75rem 2rem;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+      background: var(--grad-success);
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: #6c757d;
+    }
+    
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.3;
+    }
+    
+    .student-table {
+      font-size: 0.9rem;
+    }
+    
+    .student-table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 0.5px;
+    }
+    
+    .route-positions {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .position-item {
+      padding: 0.5rem;
+      margin-bottom: 0.25rem;
+      background-color: #f8f9fa;
       border-radius: 8px;
-      font-weight: 500;
-      transition: all 0.3s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     
-    .import-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
-    }
-    
-    .bus-actions .btn {
-      margin-right: 0.5rem;
-      transition: all 0.3s ease;
-    }
-    
-    .bus-actions .btn:hover {
-      transform: translateY(-2px);
+    .position-number {
+      width: 30px;
+      height: 30px;
+      background: var(--grad-primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.9rem;
     }
   </style>
 </head>
 <body>
-  <div class="container-fluid py-4">
+  <main class="container-fluid py-4" aria-labelledby="pageTitle">
     <!-- Header -->
-    <header class="page-header">
+    <header class="dashboard-header">
       <div class="d-flex justify-content-between align-items-center flex-wrap">
         <div>
-          <h1 class="fs-3 mb-1">
-            <i class="bi bi-bus-front-fill me-2"></i>Fleet Management
+          <h1 id="pageTitle" class="fs-3 mb-1">
+            <i class="bi bi-bus-front me-2"></i>Driver Dashboard
           </h1>
-          <p class="mb-0 opacity-75">Manage your bus fleet and import vehicles from company fleet</p>
+          <p class="mb-0 opacity-75">Welcome back, {{.User.Username}}! Here's your route overview.</p>
         </div>
-        <nav class="btn-group btn-group-sm" role="group">
-          <a href="/dashboard" class="btn">
-            <i class="bi bi-speedometer2 me-1"></i>Dashboard
-          </a>
-          <a href="/company-fleet" class="btn">
-            <i class="bi bi-truck me-1"></i>Company Fleet
+        <nav class="btn-group btn-group-sm" role="group" aria-label="Primary actions">
+          <a href="/students" class="btn">
+            <i class="bi bi-people me-1"></i>Manage Students
           </a>
           <a href="/logout" class="btn">
             <i class="bi bi-box-arrow-right me-1"></i>Logout
@@ -240,646 +271,318 @@
       </div>
     </header>
 
-    <!-- Fleet Summary -->
-    <div class="stats-row">
-      <div class="row g-4">
-        <div class="col-md-3">
-          <div class="stat-item">
-            <span class="stat-number stat-primary" id="total-count">{{len .Buses}}</span>
-            <div class="stat-label">Total Buses</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="stat-item">
-            <span class="stat-number stat-active" id="active-count">0</span>
-            <div class="stat-label">Active</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="stat-item">
-            <span class="stat-number stat-maintenance" id="maintenance-count">0</span>
-            <div class="stat-label">Maintenance</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="stat-item">
-            <span class="stat-number stat-danger" id="out-of-service-count">0</span>
-            <div class="stat-label">Out of Service</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Import from Company Fleet -->
+    <!-- Route Assignment Status -->
     <div class="row g-4 mb-4">
       <div class="col-12">
         <div class="enhanced-card">
-          <div class="card-header bg-white border-0">
-            <h5 class="mb-0">
-              <i class="bi bi-download me-2"></i>Import Buses from Company Fleet
-            </h5>
+          <div class="card-header">
+            <h5><i class="bi bi-clipboard-check me-2"></i>Daily Route Log</h5>
           </div>
           <div class="card-body">
-            <div id="available-vehicles">
-              <!-- This will be populated by JavaScript -->
-              <div class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                  <span class="visually-hidden">Loading vehicles...</span>
+            <form action="/save-log" method="POST">
+              <!-- CSRF Token -->
+              <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+              
+              <div class="row mb-3">
+                <div class="col-md-3">
+                  <label class="form-label">Date</label>
+                  <input type="date" class="form-control" name="date" value="{{.Date}}" required>
                 </div>
-                <p class="mt-2 text-muted">Loading available vehicles...</p>
+                <div class="col-md-3">
+                  <label class="form-label">Period</label>
+                  <select class="form-select" name="period">
+                    <option value="morning" {{if eq .Period "morning"}}selected{{end}}>Morning</option>
+                    <option value="afternoon" {{if eq .Period "afternoon"}}selected{{end}}>Afternoon</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Departure Time</label>
+                  <input type="time" class="form-control" name="departure" 
+                         value="{{if .DriverLog}}{{.DriverLog.Departure}}{{end}}" required>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Arrival Time</label>
+                  <input type="time" class="form-control" name="arrival" 
+                         value="{{if .DriverLog}}{{.DriverLog.Arrival}}{{end}}" required>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Current Fleet -->
-    <div class="row g-4 mb-4">
-      <div class="col-12">
-        <div class="enhanced-card">
-          <div class="card-header bg-white border-0">
-            <h5 class="mb-0">
-              <i class="bi bi-bus-front me-2"></i>Current Bus Fleet
-            </h5>
-          </div>
-          <div class="card-body">
-            {{if .Buses}}
-            <div class="row g-4">
-              {{range .Buses}}
-              <div class="col-lg-6 col-xl-4">
-                <div class="bus-card">
-                  <div class="bus-header">
-                    <div class="bus-id">Bus #{{.BusID}}</div>
-                    <span class="status-badge status-{{.Status}}">
-                      {{if eq .Status "active"}}Active{{end}}
-                      {{if eq .Status "maintenance"}}Maintenance{{end}}
-                      {{if eq .Status "out_of_service"}}Out of Service{{end}}
-                    </span>
+              {{if .Route}}
+              <input type="hidden" name="route_id" value="{{.Route.RouteID}}">
+              <input type="hidden" name="bus_id" value="{{if .Bus}}{{.Bus.BusID}}{{end}}">
+              
+              <div class="assignment-info mb-3">
+                <div class="row">
+                  <div class="col-md-4">
+                    <strong><i class="bi bi-bus-front me-1"></i>Bus:</strong> 
+                    {{if .Bus}}#{{.Bus.BusID}} - {{.Bus.Model}}{{else}}Not Assigned{{end}}
                   </div>
-
-                  <div class="bus-details">
-                    <div class="mb-2">
-                      <strong>Model:</strong> {{if .Model}}{{.Model}}{{else}}Not specified{{end}}
-                    </div>
-                    <div class="mb-2">
-                      <strong>Capacity:</strong> {{.Capacity}} passengers
-                    </div>
-                    <div class="mb-2">
-                      <strong>Oil Status:</strong> 
-                      <div class="status-container">
-                        <span class="status-toggle" data-bus="{{.BusID}}" data-type="oil" 
-                              title="Click to change oil status">
-                          {{if eq .OilStatus "good"}}✅ Good{{else if eq .OilStatus "due"}}⚠️ Due{{else if eq .OilStatus "overdue"}}❌ Overdue{{else}}❓ Unknown{{end}}
-                        </span>
-                        <div class="status-dropdown">
-                          <div class="status-option" data-value="good">✅ Good</div>
-                          <div class="status-option" data-value="due">⚠️ Due</div>
-                          <div class="status-option" data-value="overdue">❌ Overdue</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="mb-2">
-                      <strong>Tire Status:</strong> 
-                      <div class="status-container">
-                        <span class="status-toggle" data-bus="{{.BusID}}" data-type="tire" 
-                              title="Click to change tire status">
-                          {{if eq .TireStatus "good"}}✅ Good{{else if eq .TireStatus "worn"}}⚠️ Worn{{else if eq .TireStatus "replace"}}❌ Replace{{else}}❓ Unknown{{end}}
-                        </span>
-                        <div class="status-dropdown">
-                          <div class="status-option" data-value="good">✅ Good</div>
-                          <div class="status-option" data-value="worn">⚠️ Worn</div>
-                          <div class="status-option" data-value="replace">❌ Replace</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="mb-2">
-                      <strong>Bus Status:</strong> 
-                      <div class="status-container">
-                        <span class="status-toggle" data-bus="{{.BusID}}" data-type="status" 
-                              title="Click to change bus status">
-                          {{if eq .Status "active"}}✅ Active{{else if eq .Status "maintenance"}}⚠️ Maintenance{{else if eq .Status "out_of_service"}}❌ Out of Service{{end}}
-                        </span>
-                        <div class="status-dropdown">
-                          <div class="status-option" data-value="active">✅ Active</div>
-                          <div class="status-option" data-value="maintenance">⚠️ Maintenance</div>
-                          <div class="status-option" data-value="out_of_service">❌ Out of Service</div>
-                        </div>
-                      </div>
-                    </div>
-                    {{if .MaintenanceNotes}}
-                    <div class="mb-2">
-                      <strong>Notes:</strong> {{.MaintenanceNotes}}
-                    </div>
-                    {{end}}
+                  <div class="col-md-4">
+                    <strong><i class="bi bi-map me-1"></i>Route:</strong> 
+                    {{.Route.RouteName}} ({{.Route.RouteID}})
                   </div>
-
-                  <div class="bus-actions mt-3">
-                    <a href="/vehicle-maintenance?vehicle_id={{.BusID}}" 
-                       class="btn btn-sm btn-outline-primary" 
-                       title="View Maintenance History">
-                      <i class="bi bi-wrench me-1"></i>Maintenance
-                    </a>
-                    <button type="button" class="btn btn-sm btn-outline-primary edit-bus-btn" 
-                            data-bus-id="{{.BusID}}" 
-                            data-status="{{.Status}}" 
-                            data-model="{{if .Model}}{{.Model}}{{end}}" 
-                            data-capacity="{{if .Capacity}}{{.Capacity}}{{else}}0{{end}}" 
-                            data-oil-status="{{if .OilStatus}}{{.OilStatus}}{{else}}good{{end}}" 
-                            data-tire-status="{{if .TireStatus}}{{.TireStatus}}{{else}}good{{end}}" 
-                            data-maintenance-notes="{{if .MaintenanceNotes}}{{.MaintenanceNotes}}{{end}}">
-                      <i class="bi bi-pencil me-1"></i>Edit
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger remove-bus-btn" 
-                            data-bus-id="{{.BusID}}">
-                      <i class="bi bi-trash me-1"></i>Remove
-                    </button>
+                  <div class="col-md-4">
+                    <strong><i class="bi bi-speedometer2 me-1"></i>Mileage:</strong>
+                    <input type="number" class="form-control form-control-sm d-inline-block w-auto" 
+                           name="mileage" step="0.1" placeholder="0.0" 
+                           value="{{if .DriverLog}}{{.DriverLog.Mileage}}{{end}}" required>
                   </div>
                 </div>
+              </div>
+
+              <h6 class="mb-3"><i class="bi bi-people me-2"></i>Student Attendance</h6>
+              <div class="route-positions">
+                {{if .Route.Positions}}
+                <div class="table-responsive">
+                  <table class="table student-table">
+                    <thead>
+                      <tr>
+                        <th width="80">Position</th>
+                        <th>Student Name</th>
+                        <th width="100">Present</th>
+                        <th width="150">Pickup Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {{range .Route.Positions}}
+                      <tr>
+                        <td>
+                          <div class="position-number">{{.Position}}</div>
+                        </td>
+                        <td>{{.Student}}</td>
+                        <td>
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" 
+                                   name="present_{{.Position}}" id="present_{{.Position}}"
+                                   {{if $.DriverLog}}
+                                     {{range $.DriverLog.Attendance}}
+                                       {{if eq .Position $.Position}}{{if .Present}}checked{{end}}{{end}}
+                                     {{end}}
+                                   {{end}}>
+                          </div>
+                        </td>
+                        <td>
+                          <input type="time" class="form-control form-control-sm" 
+                                 name="pickup_{{.Position}}"
+                                 {{if $.DriverLog}}
+                                   {{range $.DriverLog.Attendance}}
+                                     {{if eq .Position $.Position}}value="{{.PickupTime}}"{{end}}
+                                   {{end}}
+                                 {{end}}>
+                        </td>
+                      </tr>
+                      {{end}}
+                    </tbody>
+                  </table>
+                </div>
+                {{else}}
+                <div class="alert alert-info">
+                  <i class="bi bi-info-circle me-2"></i>
+                  No students assigned to this route yet.
+                </div>
+                {{end}}
+              </div>
+
+              <div class="mt-3">
+                <button type="submit" class="btn btn-primary">
+                  <i class="bi bi-check-circle me-2"></i>Save Route Log
+                </button>
+              </div>
+              {{else}}
+              <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>No Route Assignment</strong><br>
+                You have not been assigned to a route yet. Please contact your manager.
               </div>
               {{end}}
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats Row -->
+    {{if .Route}}
+    <div class="row g-4 mb-4">
+      <div class="col-lg-3 col-md-6">
+        <div class="card metric-card bg-gradient-primary text-white">
+          <div class="card-body text-center">
+            <i class="bi bi-clock-fill metric-icon"></i>
+            <div class="metric-value" id="currentTime">--:--</div>
+            <div class="metric-label">Current Time</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <div class="card metric-card bg-gradient-success text-white">
+          <div class="card-body text-center">
+            <i class="bi bi-people-fill metric-icon"></i>
+            <div class="metric-value">{{if .Route.Positions}}{{len .Route.Positions}}{{else}}0{{end}}</div>
+            <div class="metric-label">Students on Route</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <div class="card metric-card bg-gradient-info text-white">
+          <div class="card-body text-center">
+            <i class="bi bi-bus-front metric-icon"></i>
+            <div class="metric-value">{{if .Bus}}{{.Bus.BusID}}{{else}}--{{end}}</div>
+            <div class="metric-label">Assigned Bus</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <div class="card metric-card bg-gradient-warning text-white">
+          <div class="card-body text-center">
+            <i class="bi bi-speedometer2 metric-icon"></i>
+            <div class="metric-value">{{if .DriverLog}}{{printf "%.1f" .DriverLog.Mileage}}{{else}}0.0{{end}}</div>
+            <div class="metric-label">Today's Miles</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {{end}}
+
+    <!-- Recent Logs -->
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="enhanced-card">
+          <div class="card-header">
+            <h5><i class="bi bi-clock-history me-2"></i>Recent Trip Logs</h5>
+          </div>
+          <div class="card-body">
+            {{if .RecentLogs}}
+            {{range .RecentLogs}}
+            <div class="trip-log-item">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>{{.Date}} - {{.Period}}</strong>
+                  <p class="mb-0 text-muted small">
+                    <i class="bi bi-clock me-1"></i>{{.Departure}} - {{.Arrival}} • 
+                    <i class="bi bi-speedometer2 me-1"></i>{{printf "%.1f" .Mileage}} miles • 
+                    <i class="bi bi-people me-1"></i>{{len .Attendance}} students
+                  </p>
+                </div>
+                <span class="badge bg-success">Completed</span>
+              </div>
             </div>
+            {{end}}
             {{else}}
-            <div class="text-center py-5">
-              <i class="bi bi-bus-front fs-1 text-muted mb-3"></i>
-              <h5 class="text-muted">No Buses in Fleet</h5>
-              <p class="text-muted">Import buses from your company fleet or add them manually below</p>
+            <div class="empty-state">
+              <i class="bi bi-journal-plus"></i>
+              <h6>No Recent Trips</h6>
+              <p class="mb-0">Your trip logs will appear here once you start logging</p>
             </div>
             {{end}}
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Add Bus and Maintenance Forms -->
-    <div class="row g-4">
-      <div class="col-md-6">
+      <!-- Alerts & Quick Actions -->
+      <div class="col-lg-4">
         <div class="enhanced-card">
-          <div class="card-header bg-white border-0">
-            <h5 class="mb-0">
-              <i class="bi bi-plus-circle me-2"></i>Add New Bus Manually
-            </h5>
+          <div class="card-header">
+            <h5><i class="bi bi-lightning-fill me-2"></i>Quick Actions</h5>
           </div>
           <div class="card-body">
-            <form action="/add-bus" method="POST">
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label class="form-label">Bus ID</label>
-                  <input type="text" name="bus_id" class="form-control" placeholder="e.g., BUS001" required>
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label class="form-label">Status</label>
-                  <select name="status" class="form-select" required>
-                    <option value="active">✅ Active</option>
-                    <option value="maintenance">⚠️ Maintenance</option>
-                    <option value="out_of_service">❌ Out of Service</option>
-                  </select>
-                </div>
+            <div class="row g-3">
+              <div class="col-6">
+                <a href="/students" class="text-decoration-none">
+                  <div class="quick-action-card">
+                    <i class="bi bi-people fs-2 text-success d-block mb-2"></i>
+                    <h6 class="fw-semibold">Students</h6>
+                    <small class="text-muted">Manage roster</small>
+                  </div>
+                </a>
               </div>
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label class="form-label">Model</label>
-                  <input type="text" name="model" class="form-control" placeholder="e.g., MIDCO, STARCRAFT">
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label class="form-label">Capacity</label>
-                  <input type="number" name="capacity" class="form-control" min="1" placeholder="e.g., 30">
-                </div>
+              <div class="col-6">
+                <a href="/driver-dashboard?date={{.Date}}&period=morning" class="text-decoration-none">
+                  <div class="quick-action-card">
+                    <i class="bi bi-sunrise fs-2 text-warning d-block mb-2"></i>
+                    <h6 class="fw-semibold">Morning</h6>
+                    <small class="text-muted">AM Route</small>
+                  </div>
+                </a>
               </div>
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label class="form-label">Oil Status</label>
-                  <select name="oil_status" class="form-select">
-                    <option value="good">✅ Good</option>
-                    <option value="due">⚠️ Due</option>
-                    <option value="overdue">❌ Overdue</option>
-                  </select>
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label class="form-label">Tire Status</label>
-                  <select name="tire_status" class="form-select">
-                    <option value="good">✅ Good</option>
-                    <option value="worn">⚠️ Worn</option>
-                    <option value="replace">❌ Replace</option>
-                  </select>
-                </div>
+              <div class="col-6">
+                <a href="/driver-dashboard?date={{.Date}}&period=afternoon" class="text-decoration-none">
+                  <div class="quick-action-card">
+                    <i class="bi bi-sunset fs-2 text-info d-block mb-2"></i>
+                    <h6 class="fw-semibold">Afternoon</h6>
+                    <small class="text-muted">PM Route</small>
+                  </div>
+                </a>
               </div>
-              <div class="mb-3">
-                <label class="form-label">Maintenance Notes</label>
-                <textarea name="maintenance_notes" class="form-control" rows="2" placeholder="Optional maintenance notes"></textarea>
+              <div class="col-6">
+                <a href="/reports" class="text-decoration-none">
+                  <div class="quick-action-card">
+                    <i class="bi bi-file-text fs-2 text-primary d-block mb-2"></i>
+                    <h6 class="fw-semibold">Reports</h6>
+                    <small class="text-muted">View history</small>
+                  </div>
+                </a>
               </div>
-              <button type="submit" class="btn btn-primary w-100">
-                <i class="bi bi-plus-circle me-2"></i>Add Bus
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-6">
-        <div class="enhanced-card">
-          <div class="card-header bg-white border-0">
-            <h5 class="mb-0">
-              <i class="bi bi-tools me-2"></i>Add Maintenance Log
-            </h5>
-          </div>
-          <div class="card-body">
-            <form action="/add-maint" method="POST">
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label class="form-label">Bus ID</label>
-                  <select name="bus_id" class="form-select" required>
-                    <option value="">Select Bus</option>
-                    {{range .Buses}}
-                    <option value="{{.BusID}}">Bus #{{.BusID}} ({{.Status}})</option>
-                    {{end}}
-                  </select>
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label class="form-label">Date</label>
-                  <input type="date" name="date" class="form-control" value="{{.Today}}" required>
-                </div>
-              </div>
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label class="form-label">Category</label>
-                  <select name="category" class="form-select" required>
-                    <option value="">Select Category</option>
-                    <option value="oil">Oil Change</option>
-                    <option value="tires">Tire Service</option>
-                    <option value="brakes">Brake Service</option>
-                    <option value="engine">Engine Service</option>
-                    <option value="transmission">Transmission</option>
-                    <option value="electrical">Electrical</option>
-                    <option value="body">Body/Exterior</option>
-                    <option value="inspection">Inspection</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label class="form-label">Mileage (optional)</label>
-                  <input type="number" name="mileage" class="form-control" placeholder="0">
-                </div>
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Notes</label>
-                <textarea name="notes" class="form-control" rows="2" placeholder="Describe the maintenance work performed..." required></textarea>
-              </div>
-              <button type="submit" class="btn btn-warning w-100">
-                <i class="bi bi-tools me-2"></i>Add Maintenance Log
-              </button>
-            </form>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Edit Bus Modal -->
-  <div class="modal fade" id="editBusModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">
-            <i class="bi bi-pencil me-2"></i>Edit Bus
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <form id="editBusForm" action="/edit-bus" method="POST">
-          <div class="modal-body">
-            <input type="hidden" name="original_bus_id" id="editOriginalBusId">
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Bus ID</label>
-                <input type="text" name="bus_id" id="editBusId" class="form-control" required>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Status</label>
-                <select name="status" id="editStatus" class="form-select" required>
-                  <option value="active">✅ Active</option>
-                  <option value="maintenance">⚠️ Maintenance</option>
-                  <option value="out_of_service">❌ Out of Service</option>
-                </select>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Model</label>
-                <input type="text" name="model" id="editModel" class="form-control">
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Capacity</label>
-                <input type="number" name="capacity" id="editCapacity" class="form-control" min="1">
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Oil Status</label>
-                <select name="oil_status" id="editOilStatus" class="form-select">
-                  <option value="good">✅ Good</option>
-                  <option value="due">⚠️ Due</option>
-                  <option value="overdue">❌ Overdue</option>
-                </select>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Tire Status</label>
-                <select name="tire_status" id="editTireStatus" class="form-select">
-                  <option value="good">✅ Good</option>
-                  <option value="worn">⚠️ Worn</option>
-                  <option value="replace">❌ Replace</option>
-                </select>
-              </div>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Maintenance Notes</label>
-              <textarea name="maintenance_notes" id="editMaintenanceNotes" class="form-control" rows="2"></textarea>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">
-              <i class="bi bi-check-circle me-2"></i>Save Changes
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- Hidden JSON data for JavaScript -->
-  <script type="application/json" id="buses-data">{{.Buses | json}}</script>
+  </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Get buses data from JSON script tag
-      let buses = [];
-      try {
-        const busesScript = document.getElementById('buses-data');
-        if (busesScript) {
-          buses = JSON.parse(busesScript.textContent);
-        }
-      } catch (e) {
-        console.error('Error parsing buses data:', e);
-        buses = [];
+      // Update current time
+      function updateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', { 
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        document.getElementById('currentTime').textContent = timeString;
       }
+      updateTime();
+      setInterval(updateTime, 1000);
 
-      console.log('Buses loaded from server:', buses);
+      // Add animation to metric cards
+      const metricCards = document.querySelectorAll('.metric-card');
+      metricCards.forEach((card, index) => {
+        setTimeout(() => {
+          card.style.opacity = '0';
+          card.style.transform = 'translateY(20px)';
+          card.style.transition = 'all 0.5s ease';
+          setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+          }, 100);
+        }, index * 150);
+      });
 
-      // Update summary counts
-      updateSummaryCards();
+      // Add animation to other cards
+      const cards = document.querySelectorAll('.enhanced-card');
+      cards.forEach((card, index) => {
+        setTimeout(() => {
+          card.style.opacity = '0';
+          card.style.transform = 'translateY(20px)';
+          card.style.transition = 'all 0.5s ease';
+          setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+          }, 100);
+        }, (index + 4) * 200); // Start after metric cards
+      });
 
-      // Load available vehicles from company fleet
-      loadAvailableVehicles();
-
-      // Event handlers
-      document.addEventListener('click', handleClicks);
-      window.addEventListener('click', closeDropdowns);
-
-      function updateSummaryCards() {
-        let activeCount = 0;
-        let maintenanceCount = 0;
-        let outOfServiceCount = 0;
-
-        buses.forEach(function(bus) {
-          switch(bus.status || bus.Status) {
-            case 'active': activeCount++; break;
-            case 'maintenance': maintenanceCount++; break;
-            case 'out_of_service': outOfServiceCount++; break;
+      // Auto-check present when pickup time is entered
+      document.querySelectorAll('input[name^="pickup_"]').forEach(function(input) {
+        input.addEventListener('change', function() {
+          const position = this.name.replace('pickup_', '');
+          const checkbox = document.getElementById('present_' + position);
+          if (this.value && checkbox) {
+            checkbox.checked = true;
           }
         });
-
-        const activeCountEl = document.getElementById('active-count');
-        const maintenanceCountEl = document.getElementById('maintenance-count');
-        const outOfServiceCountEl = document.getElementById('out-of-service-count');
-        
-        if (activeCountEl) activeCountEl.textContent = activeCount;
-        if (maintenanceCountEl) maintenanceCountEl.textContent = maintenanceCount;
-        if (outOfServiceCountEl) outOfServiceCountEl.textContent = outOfServiceCount;
-      }
-
-      function loadAvailableVehicles() {
-        // Load company vehicles that can be imported as buses
-        fetch('/company-fleet-data')
-          .then(response => response.json())
-          .then(vehicles => {
-            console.log('Company vehicles loaded:', vehicles);
-            displayAvailableVehicles(vehicles);
-          })
-          .catch(error => {
-            console.error('Error loading vehicles:', error);
-            displayNoVehicles();
-          });
-      }
-
-      function displayAvailableVehicles(vehicles) {
-        const container = document.getElementById('available-vehicles');
-        
-        // Filter for buses (MIDCO, STARCRAFT models) that aren't already in bus fleet
-        const busKeywords = ['MIDCO', 'STARCRAFT'];
-        const existingBusIds = buses.map(bus => bus.bus_id || bus.BusID);
-        
-        const availableBuses = vehicles.filter(vehicle => {
-            // Check BOTH model AND description fields for keywords
-            const checkString = ((vehicle.model || vehicle.Model || '') + ' ' + (vehicle.description || vehicle.Description || '')).toUpperCase();
-            
-            const keywordMatch = busKeywords.some(keyword => 
-                checkString.includes(keyword.toUpperCase())
-            );
-            
-            // Also check if vehicle_id exists in either format
-            const vehicleId = vehicle.vehicle_id || vehicle.VehicleID;
-            const notAlreadyImported = !existingBusIds.includes(vehicleId);
-            
-            console.log(`Vehicle ${vehicleId}: "${checkString}" - Match: ${keywordMatch}, Not imported: ${notAlreadyImported}`);
-            
-            return keywordMatch && notAlreadyImported;
-        });
-
-        console.log(`Found ${availableBuses.length} importable buses out of ${vehicles.length} total vehicles`);
-
-        if (availableBuses.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-4">
-                    <i class="bi bi-info-circle fs-2 text-muted mb-3"></i>
-                    <h6 class="text-muted">No Importable Buses Found</h6>
-                    <p class="text-muted mb-0">No MIDCO or STARCRAFT vehicles available for import from company fleet</p>
-                    <small class="text-muted">Total vehicles checked: ${vehicles.length}</small>
-                </div>
-            `;
-            return;
-        }
-
-        const vehicleCards = availableBuses.map(vehicle => {
-            // Get vehicle details with proper field names
-            const vehicleId = vehicle.vehicle_id || vehicle.VehicleID;
-            const model = vehicle.model || vehicle.Model || 'Unknown Model';
-            const description = vehicle.description || vehicle.Description || '';
-            const year = vehicle.year || vehicle.Year || 'N/A';
-            const license = vehicle.license || vehicle.License || 'N/A';
-            
-            // Use description if model is generic
-            const displayName = description || model;
-            
-            return `
-                <div class="col-md-6 col-lg-4">
-                    <div class="vehicle-import-card">
-                        <h6 class="mb-2">${displayName}</h6>
-                        <p class="text-muted mb-2">ID: ${vehicleId}</p>
-                        <p class="small mb-3">
-                            Year: ${year} • 
-                            License: ${license}
-                        </p>
-                        <button class="import-btn" onclick="importVehicle('${vehicleId}', '${model}', '${year}')">
-                            <i class="bi bi-download me-1"></i>Import as Bus
-                        </button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        container.innerHTML = `
-            <div class="row g-3">
-                ${vehicleCards}
-            </div>
-        `;
-      }
-
-      function displayNoVehicles() {
-        const container = document.getElementById('available-vehicles');
-        container.innerHTML = `
-          <div class="text-center py-4">
-            <i class="bi bi-exclamation-triangle fs-2 text-warning mb-3"></i>
-            <h6 class="text-muted">Unable to Load Company Vehicles</h6>
-            <p class="text-muted mb-0">Please check your connection or try again later</p>
-          </div>
-        `;
-      }
-
-      function handleClicks(e) {
-        if (e.target.closest('.edit-bus-btn')) {
-          const btn = e.target.closest('.edit-bus-btn');
-          editBus(btn.dataset);
-        }
-
-        if (e.target.closest('.remove-bus-btn')) {
-          const btn = e.target.closest('.remove-bus-btn');
-          removeBus(btn.dataset.busId);
-        }
-
-        if (e.target.closest('.status-toggle')) {
-          const toggle = e.target.closest('.status-toggle');
-          toggleStatusDropdown(toggle);
-        }
-
-        if (e.target.closest('.status-option')) {
-          const option = e.target.closest('.status-option');
-          const container = option.closest('.status-container');
-          const toggle = container.querySelector('.status-toggle');
-          updateStatus(toggle.dataset.bus, toggle.dataset.type, option.dataset.value);
-        }
-      }
-
-      function editBus(data) {
-        document.getElementById('editOriginalBusId').value = data.busId;
-        document.getElementById('editBusId').value = data.busId;
-        document.getElementById('editStatus').value = data.status || 'active';
-        document.getElementById('editModel').value = data.model || '';
-        document.getElementById('editCapacity').value = data.capacity || '';
-        document.getElementById('editOilStatus').value = data.oilStatus || 'good';
-        document.getElementById('editTireStatus').value = data.tireStatus || 'good';
-        document.getElementById('editMaintenanceNotes').value = data.maintenanceNotes || '';
-
-        const modal = new bootstrap.Modal(document.getElementById('editBusModal'));
-        modal.show();
-      }
-
-      function removeBus(busId) {
-        if (confirm(`Are you sure you want to remove Bus #${busId}? This action cannot be undone.`)) {
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = '/remove-bus';
-          form.style.display = 'none';
-
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = 'bus_id';
-          input.value = busId;
-          form.appendChild(input);
-
-          document.body.appendChild(form);
-          form.submit();
-        }
-      }
-
-      function toggleStatusDropdown(element) {
-        const dropdown = element.parentElement.querySelector('.status-dropdown');
-        document.querySelectorAll('.status-dropdown.show').forEach(dd => {
-          if (dd !== dropdown) dd.classList.remove('show');
-        });
-        dropdown.classList.toggle('show');
-      }
-
-      function updateStatus(busId, type, status) {
-        console.log('Updating status:', {busId, type, status});
-
-        fetch('/update-bus-status', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: `bus_id=${encodeURIComponent(busId)}&status_type=${encodeURIComponent(type)}&new_status=${encodeURIComponent(status)}`
-        })
-        .then(response => {
-          if (response.ok) {
-            document.querySelectorAll('.status-dropdown.show').forEach(dd => {
-              dd.classList.remove('show');
-            });
-            location.reload();
-          } else {
-            return response.text().then(text => {
-              throw new Error(`Server error: ${text}`);
-            });
-          }
-        })
-        .catch(error => {
-          console.error('Error updating status:', error);
-          alert('Error updating status: ' + error.message);
-        });
-      }
-
-      function closeDropdowns(e) {
-        if (!e.target.closest('.status-container')) {
-          document.querySelectorAll('.status-dropdown.show').forEach(dropdown => {
-            dropdown.classList.remove('show');
-          });
-        }
-      }
-
-      // Global functions for import
-      window.importVehicle = function(vehicleId, model, year) {
-        if (confirm(`Import vehicle ${vehicleId} as a bus?`)) {
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = '/import-vehicle-as-bus';
-          form.style.display = 'none';
-
-          const inputs = [
-            {name: 'vehicle_id', value: vehicleId}
-          ];
-
-          inputs.forEach(input => {
-            const element = document.createElement('input');
-            element.type = 'hidden';
-            element.name = input.name;
-            element.value = input.value;
-            form.appendChild(element);
-          });
-
-          document.body.appendChild(form);
-          form.submit();
-        }
-      };
+      });
     });
   </script>
 </body>
