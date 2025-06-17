@@ -506,17 +506,30 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func vehicleMaintenancePage(w http.ResponseWriter, r *http.Request) {
-	// Extract vehicle number from URL path
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 3 {
-		http.Error(w, "Invalid vehicle ID", http.StatusBadRequest)
-		return
-	}
+	var vehicleNumber int
+	var err error
 
-	vehicleNumber, err := strconv.Atoi(pathParts[2])
-	if err != nil {
-		http.Error(w, "Invalid vehicle number", http.StatusBadRequest)
-		return
+	// First try to get from query parameter
+	vehicleIDStr := r.URL.Query().Get("vehicle_id")
+	if vehicleIDStr != "" {
+		vehicleNumber, err = strconv.Atoi(vehicleIDStr)
+		if err != nil {
+			http.Error(w, "Invalid vehicle number", http.StatusBadRequest)
+			return
+		}
+	} else {
+		// Fall back to path extraction
+		pathParts := strings.Split(r.URL.Path, "/")
+		if len(pathParts) < 3 {
+			http.Error(w, "Invalid vehicle ID", http.StatusBadRequest)
+			return
+		}
+
+		vehicleNumber, err = strconv.Atoi(pathParts[2])
+		if err != nil {
+			http.Error(w, "Invalid vehicle number", http.StatusBadRequest)
+			return
+		}
 	}
 
 	// Get vehicle details from database
