@@ -504,6 +504,91 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, "driver_dashboard.html", data)
 }
 
+func vehicleMaintenancePage(w http.ResponseWriter, r *http.Request) {
+    user := getUserFromSession(r)
+    if user == nil || user.Role != "manager" {
+        http.Redirect(w, r, "/", http.StatusFound)
+        return
+    }
+
+    vehicleID := r.URL.Query().Get("vehicle_id")
+    if vehicleID == "" {
+        http.Error(w, "Vehicle ID is required", http.StatusBadRequest)
+        return
+    }
+
+    // Load vehicles to find the specific one
+    vehicles := loadVehicles()
+    var vehicle *Vehicle
+    for _, v := range vehicles {
+        if v.VehicleID == vehicleID {
+            vehicle = &v
+            break
+        }
+    }
+
+    if vehicle == nil {
+        http.Error(w, "Vehicle not found", http.StatusNotFound)
+        return
+    }
+
+    // Load maintenance logs for this vehicle
+    maintenanceLogs := loadMaintenanceLogs()
+    var vehicleMaintenanceLogs []MaintenanceLog
+    for _, log := range maintenanceLogs {
+        if log.BusID == vehicleID {
+            vehicleMaintenanceLogs = append(vehicleMaintenanceLogs, log)
+        }
+    }
+
+    // Sort maintenance logs by date (newest first)
+    sort.Slice(vehicleMaintenanceLogs, func(i, j int) bool {
+        return vehicleMaintenanceLogs[i].Date > vehicleMaintenanceLogs[j].Date
+    })
+
+    // Calculate service status (you can expand this logic)
+    serviceRecords := []struct {
+        LastMileage     int
+        ServicedMiles   int
+        MilesToService  int
+    }{}
+
+    // Simple service calculation (you can make this more sophisticated)
+    if len(vehicleMaintenanceLogs) > 0 && vehicle.ServiceInterval > 0 {
+        lastLog := vehicleMaintenanceLogs[0]
+        if lastLog.Mileage > 0 {
+            serviceRecord := struct {
+                LastMileage     int
+                ServicedMiles   int
+                MilesToService  int
+            }{
+                LastMileage:    lastLog.Mileage,
+                ServicedMiles:  lastLog.Mileage,
+                MilesToService: vehicle.ServiceInterval - (lastLog.Mileage % vehicle.ServiceInterval),
+            }
+            serviceRecords = append(serviceRecords, serviceRecord)
+        }
+    }
+
+    data := struct {
+        User               *User
+        Vehicle            Vehicle
+        MaintenanceRecords []MaintenanceLog
+        ServiceRecords     []struct {
+            LastMileage     int
+            ServicedMiles   int
+            MilesToService  int
+        }
+    }{
+        User:               user,
+        Vehicle:            *vehicle,
+        MaintenanceRecords: vehicleMaintenanceLogs,
+        ServiceRecords:     serviceRecords,
+    }
+
+    executeTemplate(w, "vehicle_maintenance.html", data)
+}
+
 func loginPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseForm()
