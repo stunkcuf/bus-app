@@ -2351,6 +2351,7 @@ func main() {
 	http.HandleFunc("/fleet", withRecovery(fleetPage))
 	http.HandleFunc("/company-fleet", withRecovery(companyFleetPage))
 	http.HandleFunc("/company-fleet-data", withRecovery(companyFleetDataHandler))
+	http.HandleFunc("/vehicle-maintenance", withRecovery(vehicleMaintenancePage))
 	http.HandleFunc("/import-vehicle-as-bus", withRecovery(importVehicleAsBus))
 	http.HandleFunc("/update-vehicle-status", withRecovery(updateVehicleStatus))
 	http.HandleFunc("/update-bus-status", withRecovery(updateBusStatus))
