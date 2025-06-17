@@ -1529,15 +1529,15 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 	// Auto-create maintenance log if status changed to maintenance or out_of_service
 	if statusChangingToInactive || (status == "maintenance" && originalBus.Status != "maintenance") {
 		maintenanceLogs := loadMaintenanceLogs()
-
-		mileage := 0
-		logEntry := MaintenanceLog{
-		    VehicleNumber: busID,  // Note: This might need conversion if BusID is string
-		    ServiceDate:   time.Now().Format("2006-01-02"),
-		    WorkDone:      fmt.Sprintf("Bus status changed from '%s' to '%s'. %s", originalBus.Status, status, maintenanceNotes),
-		    Mileage:       &mileage,
+	
+		logEntry := BusMaintenanceLog{
+			BusID:    busID,
+			Date:     time.Now().Format("2006-01-02"),
+			Category: "status_change",
+			Notes:    fmt.Sprintf("Bus status changed from '%s' to '%s'. %s", originalBus.Status, status, maintenanceNotes),
+			Mileage:  0,
 		}
-
+	
 		maintenanceLogs = append(maintenanceLogs, logEntry)
 		if err := saveMaintenanceLogs(maintenanceLogs); err != nil {
 			log.Printf("Warning: Failed to save maintenance log: %v", err)
@@ -1545,9 +1545,6 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Maintenance log created for bus %s status change", busID)
 		}
 	}
-
-	http.Redirect(w, r, "/fleet", http.StatusFound)
-}
 
 func removeBus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -2015,7 +2012,7 @@ func addMaintenanceLog(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 	mileage, _ := strconv.Atoi(r.FormValue("mileage"))
-	logEntry := MaintenanceLog{
+	logEntry := BusMaintenanceLog{
 		BusID:    r.FormValue("bus_id"),
 		Date:     r.FormValue("date"),
 		Category: r.FormValue("category"),
