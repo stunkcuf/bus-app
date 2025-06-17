@@ -1,11 +1,11 @@
-// data.go - Data loading and saving functions
+// data.go - PostgreSQL-only data loading and saving functions
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 )
 
 // =============================================================================
@@ -13,21 +13,12 @@ import (
 // =============================================================================
 
 func loadUsers() []User {
-	if db != nil {
-		return loadUsersFromDB()
+	if db == nil {
+		log.Println("Database connection not available")
+		return []User{}
 	}
-	return loadUsersFromJSON()
-}
-
-func saveUsers(users []User) error {
-	if db != nil {
-		return saveUsersToDB(users)
-	}
-	return saveUsersToJSON(users)
-}
-
-func loadUsersFromDB() []User {
-	rows, err := db.Query("SELECT username, password, role FROM users")
+	
+	rows, err := db.Query("SELECT username, password, role FROM users ORDER BY username")
 	if err != nil {
 		log.Printf("Error loading users from DB: %v", err)
 		return []User{}
@@ -46,19 +37,55 @@ func loadUsersFromDB() []User {
 	return users
 }
 
-func saveUsersToDB(users []User) error {
-	// This would typically be handled by individual user creation
-	// For bulk operations, we'd need transaction handling
-	return nil
+func saveUser(user User) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	_, err := db.Exec(`
+		INSERT INTO users (username, password, role) 
+		VALUES ($1, $2, $3)
+		ON CONFLICT (username) 
+		DO UPDATE SET password = $2, role = $3, updated_at = CURRENT_TIMESTAMP
+	`, user.Username, user.Password, user.Role)
+	
+	return err
 }
 
-func loadUsersFromJSON() []User {
-	users, _ := loadJSON[User]("data/users.json")
-	return users
+func saveUsers(users []User) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+	
+	for _, user := range users {
+		_, err := tx.Exec(`
+			INSERT INTO users (username, password, role) 
+			VALUES ($1, $2, $3)
+			ON CONFLICT (username) 
+			DO UPDATE SET password = $2, role = $3, updated_at = CURRENT_TIMESTAMP
+		`, user.Username, user.Password, user.Role)
+		
+		if err != nil {
+			return fmt.Errorf("failed to save user %s: %w", user.Username, err)
+		}
+	}
+	
+	return tx.Commit()
 }
 
-func saveUsersToJSON(users []User) error {
-	return saveJSONFile("data/users.json", users)
+func deleteUser(username string) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	_, err := db.Exec("DELETE FROM users WHERE username = $1", username)
+	return err
 }
 
 // =============================================================================
@@ -66,20 +93,11 @@ func saveUsersToJSON(users []User) error {
 // =============================================================================
 
 func loadBuses() []*Bus {
-	if db != nil {
-		return loadBusesFromDB()
+	if db == nil {
+		log.Println("Database connection not available")
+		return []*Bus{}
 	}
-	return loadBusesFromJSON()
-}
-
-func saveBuses(buses []*Bus) error {
-	if db != nil {
-		return saveBusesToDB(buses)
-	}
-	return saveBusesToJSON(buses)
-}
-
-func loadBusesFromDB() []*Bus {
+	
 	rows, err := db.Query(`
 		SELECT bus_id, status, model, capacity, oil_status, tire_status, maintenance_notes 
 		FROM buses ORDER BY bus_id
@@ -103,15 +121,36 @@ func loadBusesFromDB() []*Bus {
 	return buses
 }
 
-func saveBusesToDB(buses []*Bus) error {
-	// Start a transaction for bulk update
+func saveBus(bus *Bus) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	_, err := db.Exec(`
+		INSERT INTO buses (bus_id, status, model, capacity, oil_status, tire_status, maintenance_notes) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (bus_id) 
+		DO UPDATE SET 
+			status = $2, model = $3, capacity = $4, 
+			oil_status = $5, tire_status = $6, maintenance_notes = $7,
+			updated_at = CURRENT_TIMESTAMP
+	`, bus.BusID, bus.Status, bus.Model, bus.Capacity,
+	   bus.OilStatus, bus.TireStatus, bus.MaintenanceNotes)
+	
+	return err
+}
+
+func saveBuses(buses []*Bus) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	// For each bus, update its fields
 	for _, bus := range buses {
 		_, err := tx.Exec(`
 			UPDATE buses 
@@ -127,21 +166,16 @@ func saveBusesToDB(buses []*Bus) error {
 		}
 	}
 
-	// Commit the transaction
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+	return tx.Commit()
+}
+
+func deleteBus(busID string) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
 	}
-
-	return nil
-}
-
-func loadBusesFromJSON() []*Bus {
-	buses, _ := loadJSON[*Bus]("data/buses.json")
-	return buses
-}
-
-func saveBusesToJSON(buses []*Bus) error {
-	return saveJSONFile("data/buses.json", buses)
+	
+	_, err := db.Exec("DELETE FROM buses WHERE bus_id = $1", busID)
+	return err
 }
 
 // =============================================================================
@@ -149,20 +183,10 @@ func saveBusesToJSON(buses []*Bus) error {
 // =============================================================================
 
 func loadRoutes() ([]Route, error) {
-	if db != nil {
-		return loadRoutesFromDB()
+	if db == nil {
+		return []Route{}, fmt.Errorf("database connection not available")
 	}
-	return loadRoutesFromJSON()
-}
-
-func saveRoutes(routes []Route) error {
-	if db != nil {
-		return saveRoutesToDB(routes)
-	}
-	return saveRoutesToJSON(routes)
-}
-
-func loadRoutesFromDB() ([]Route, error) {
+	
 	rows, err := db.Query(`
 		SELECT route_id, route_name, description, positions 
 		FROM routes ORDER BY route_id
@@ -182,7 +206,6 @@ func loadRoutesFromDB() ([]Route, error) {
 			continue
 		}
 		
-		// Parse positions JSON
 		if len(positionsJSON) > 0 {
 			if err := json.Unmarshal(positionsJSON, &route.Positions); err != nil {
 				log.Printf("Error unmarshaling positions for route %s: %v", route.RouteID, err)
@@ -194,17 +217,67 @@ func loadRoutesFromDB() ([]Route, error) {
 	return routes, nil
 }
 
-func saveRoutesToDB(routes []Route) error {
-	// Individual route operations are handled in handlers
-	return nil
+func saveRoute(route Route) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	positionsJSON, err := json.Marshal(route.Positions)
+	if err != nil {
+		return fmt.Errorf("failed to marshal positions: %w", err)
+	}
+	
+	_, err = db.Exec(`
+		INSERT INTO routes (route_id, route_name, description, positions) 
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (route_id) 
+		DO UPDATE SET 
+			route_name = $2, description = $3, positions = $4,
+			updated_at = CURRENT_TIMESTAMP
+	`, route.RouteID, route.RouteName, route.Description, positionsJSON)
+	
+	return err
 }
 
-func loadRoutesFromJSON() ([]Route, error) {
-	return loadJSON[Route]("data/routes.json")
+func saveRoutes(routes []Route) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+	
+	for _, route := range routes {
+		positionsJSON, err := json.Marshal(route.Positions)
+		if err != nil {
+			return fmt.Errorf("failed to marshal positions: %w", err)
+		}
+		
+		_, err = tx.Exec(`
+			UPDATE routes 
+			SET route_name = $2, description = $3, positions = $4,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE route_id = $1
+		`, route.RouteID, route.RouteName, route.Description, positionsJSON)
+		
+		if err != nil {
+			return fmt.Errorf("failed to update route %s: %w", route.RouteID, err)
+		}
+	}
+	
+	return tx.Commit()
 }
 
-func saveRoutesToJSON(routes []Route) error {
-	return saveJSONFile("data/routes.json", routes)
+func deleteRoute(routeID string) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	_, err := db.Exec("DELETE FROM routes WHERE route_id = $1", routeID)
+	return err
 }
 
 // =============================================================================
@@ -212,20 +285,11 @@ func saveRoutesToJSON(routes []Route) error {
 // =============================================================================
 
 func loadStudents() []Student {
-	if db != nil {
-		return loadStudentsFromDB()
+	if db == nil {
+		log.Println("Database connection not available")
+		return []Student{}
 	}
-	return loadStudentsFromJSON()
-}
-
-func saveStudents(students []Student) error {
-	if db != nil {
-		return saveStudentsToDB(students)
-	}
-	return saveStudentsToJSON(students)
-}
-
-func loadStudentsFromDB() []Student {
+	
 	rows, err := db.Query(`
 		SELECT student_id, name, locations, phone_number, alt_phone_number, 
 			guardian, pickup_time, dropoff_time, position_number, route_id, driver, active
@@ -241,15 +305,23 @@ func loadStudentsFromDB() []Student {
 	for rows.Next() {
 		var student Student
 		var locationsJSON []byte
+		var pickupTime, dropoffTime sql.NullTime
+		
 		if err := rows.Scan(&student.StudentID, &student.Name, &locationsJSON,
 			&student.PhoneNumber, &student.AltPhoneNumber, &student.Guardian,
-			&student.PickupTime, &student.DropoffTime, &student.PositionNumber,
+			&pickupTime, &dropoffTime, &student.PositionNumber,
 			&student.RouteID, &student.Driver, &student.Active); err != nil {
 			log.Printf("Error scanning student: %v", err)
 			continue
 		}
 		
-		// Parse locations JSON
+		if pickupTime.Valid {
+			student.PickupTime = pickupTime.Time.Format("15:04")
+		}
+		if dropoffTime.Valid {
+			student.DropoffTime = dropoffTime.Time.Format("15:04")
+		}
+		
 		if len(locationsJSON) > 0 {
 			if err := json.Unmarshal(locationsJSON, &student.Locations); err != nil {
 				log.Printf("Error unmarshaling locations for student %s: %v", student.StudentID, err)
@@ -261,18 +333,60 @@ func loadStudentsFromDB() []Student {
 	return students
 }
 
-func saveStudentsToDB(students []Student) error {
-	// Individual student operations are handled in handlers
-	return nil
+func saveStudent(student Student) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	locationsJSON, err := json.Marshal(student.Locations)
+	if err != nil {
+		return fmt.Errorf("failed to marshal locations: %w", err)
+	}
+	
+	_, err = db.Exec(`
+		INSERT INTO students (student_id, name, locations, phone_number, alt_phone_number,
+			guardian, pickup_time, dropoff_time, position_number, route_id, driver, active) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		ON CONFLICT (student_id) 
+		DO UPDATE SET 
+			name = $2, locations = $3, phone_number = $4, alt_phone_number = $5,
+			guardian = $6, pickup_time = $7, dropoff_time = $8, position_number = $9,
+			route_id = $10, driver = $11, active = $12,
+			updated_at = CURRENT_TIMESTAMP
+	`, student.StudentID, student.Name, locationsJSON, student.PhoneNumber,
+		student.AltPhoneNumber, student.Guardian, student.PickupTime, student.DropoffTime,
+		student.PositionNumber, student.RouteID, student.Driver, student.Active)
+	
+	return err
 }
 
-func loadStudentsFromJSON() []Student {
-	students, _ := loadJSON[Student]("data/students.json")
-	return students
+func saveStudents(students []Student) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+	
+	for _, student := range students {
+		if err := saveStudent(student); err != nil {
+			return fmt.Errorf("failed to save student %s: %w", student.StudentID, err)
+		}
+	}
+	
+	return tx.Commit()
 }
 
-func saveStudentsToJSON(students []Student) error {
-	return saveJSONFile("data/students.json", students)
+func deleteStudent(studentID string) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	_, err := db.Exec("DELETE FROM students WHERE student_id = $1", studentID)
+	return err
 }
 
 // =============================================================================
@@ -280,20 +394,10 @@ func saveStudentsToJSON(students []Student) error {
 // =============================================================================
 
 func loadRouteAssignments() ([]RouteAssignment, error) {
-	if db != nil {
-		return loadRouteAssignmentsFromDB()
+	if db == nil {
+		return []RouteAssignment{}, fmt.Errorf("database connection not available")
 	}
-	return loadRouteAssignmentsFromJSON()
-}
-
-func saveRouteAssignments(assignments []RouteAssignment) error {
-	if db != nil {
-		return saveRouteAssignmentsToDB(assignments)
-	}
-	return saveRouteAssignmentsToJSON(assignments)
-}
-
-func loadRouteAssignmentsFromDB() ([]RouteAssignment, error) {
+	
 	rows, err := db.Query(`
 		SELECT driver, bus_id, route_id, route_name, assigned_date 
 		FROM route_assignments ORDER BY driver
@@ -307,27 +411,80 @@ func loadRouteAssignmentsFromDB() ([]RouteAssignment, error) {
 	var assignments []RouteAssignment
 	for rows.Next() {
 		var assignment RouteAssignment
+		var assignedDate sql.NullTime
+		
 		if err := rows.Scan(&assignment.Driver, &assignment.BusID, &assignment.RouteID,
-			&assignment.RouteName, &assignment.AssignedDate); err != nil {
+			&assignment.RouteName, &assignedDate); err != nil {
 			log.Printf("Error scanning route assignment: %v", err)
 			continue
 		}
+		
+		if assignedDate.Valid {
+			assignment.AssignedDate = assignedDate.Time.Format("2006-01-02")
+		}
+		
 		assignments = append(assignments, assignment)
 	}
 	return assignments, nil
 }
 
-func saveRouteAssignmentsToDB(assignments []RouteAssignment) error {
-	// Individual assignment operations are handled in handlers
-	return nil
+func saveRouteAssignment(assignment RouteAssignment) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	_, err := db.Exec(`
+		INSERT INTO route_assignments (driver, bus_id, route_id, route_name, assigned_date) 
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (driver) 
+		DO UPDATE SET 
+			bus_id = $2, route_id = $3, route_name = $4, 
+			assigned_date = $5, updated_at = CURRENT_TIMESTAMP
+	`, assignment.Driver, assignment.BusID, assignment.RouteID, 
+		assignment.RouteName, assignment.AssignedDate)
+	
+	return err
 }
 
-func loadRouteAssignmentsFromJSON() ([]RouteAssignment, error) {
-	return loadJSON[RouteAssignment]("data/route_assignments.json")
+func saveRouteAssignments(assignments []RouteAssignment) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+	
+	// Clear existing assignments
+	if _, err := tx.Exec("DELETE FROM route_assignments"); err != nil {
+		return fmt.Errorf("failed to clear assignments: %w", err)
+	}
+	
+	// Insert new assignments
+	for _, assignment := range assignments {
+		_, err := tx.Exec(`
+			INSERT INTO route_assignments (driver, bus_id, route_id, route_name, assigned_date) 
+			VALUES ($1, $2, $3, $4, $5)
+		`, assignment.Driver, assignment.BusID, assignment.RouteID, 
+			assignment.RouteName, assignment.AssignedDate)
+		
+		if err != nil {
+			return fmt.Errorf("failed to save assignment for driver %s: %w", assignment.Driver, err)
+		}
+	}
+	
+	return tx.Commit()
 }
 
-func saveRouteAssignmentsToJSON(assignments []RouteAssignment) error {
-	return saveJSONFile("data/route_assignments.json", assignments)
+func deleteRouteAssignment(driver string) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	_, err := db.Exec("DELETE FROM route_assignments WHERE driver = $1", driver)
+	return err
 }
 
 // =============================================================================
@@ -335,20 +492,10 @@ func saveRouteAssignmentsToJSON(assignments []RouteAssignment) error {
 // =============================================================================
 
 func loadDriverLogs() ([]DriverLog, error) {
-	if db != nil {
-		return loadDriverLogsFromDB()
+	if db == nil {
+		return []DriverLog{}, fmt.Errorf("database connection not available")
 	}
-	return loadDriverLogsFromJSON()
-}
-
-func saveDriverLogs(logs []DriverLog) error {
-	if db != nil {
-		return saveDriverLogsToDB(logs)
-	}
-	return saveDriverLogsToJSON(logs)
-}
-
-func loadDriverLogsFromDB() ([]DriverLog, error) {
+	
 	rows, err := db.Query(`
 		SELECT driver, bus_id, route_id, date, period, departure_time, 
 			arrival_time, mileage, attendance 
@@ -364,17 +511,29 @@ func loadDriverLogsFromDB() ([]DriverLog, error) {
 	for rows.Next() {
 		var driverLog DriverLog
 		var attendanceJSON []byte
+		var date sql.NullTime
+		var departureTime, arrivalTime sql.NullTime
+		
 		if err := rows.Scan(&driverLog.Driver, &driverLog.BusID, &driverLog.RouteID,
-			&driverLog.Date, &driverLog.Period, &driverLog.Departure,
-			&driverLog.Arrival, &driverLog.Mileage, &attendanceJSON); err != nil {
+			&date, &driverLog.Period, &departureTime,
+			&arrivalTime, &driverLog.Mileage, &attendanceJSON); err != nil {
 			log.Printf("Error scanning driver log: %v", err)
 			continue
 		}
 		
-		// Parse attendance JSON
+		if date.Valid {
+			driverLog.Date = date.Time.Format("2006-01-02")
+		}
+		if departureTime.Valid {
+			driverLog.Departure = departureTime.Time.Format("15:04")
+		}
+		if arrivalTime.Valid {
+			driverLog.Arrival = arrivalTime.Time.Format("15:04")
+		}
+		
 		if len(attendanceJSON) > 0 {
 			if err := json.Unmarshal(attendanceJSON, &driverLog.Attendance); err != nil {
-				log.Printf("Error unmarshaling attendance for log %s/%s: %v", driverLog.Driver, driverLog.Date, err)
+				log.Printf("Error unmarshaling attendance: %v", err)
 			}
 		}
 		
@@ -383,17 +542,49 @@ func loadDriverLogsFromDB() ([]DriverLog, error) {
 	return logs, nil
 }
 
-func saveDriverLogsToDB(logs []DriverLog) error {
-	// Individual log operations are handled in handlers
-	return nil
+func saveDriverLog(driverLog DriverLog) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	attendanceJSON, err := json.Marshal(driverLog.Attendance)
+	if err != nil {
+		return fmt.Errorf("failed to marshal attendance: %w", err)
+	}
+	
+	_, err = db.Exec(`
+		INSERT INTO driver_logs (driver, bus_id, route_id, date, period, 
+			departure_time, arrival_time, mileage, attendance) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		ON CONFLICT (driver, date, period) 
+		DO UPDATE SET 
+			bus_id = $2, route_id = $3, departure_time = $6, 
+			arrival_time = $7, mileage = $8, attendance = $9
+	`, driverLog.Driver, driverLog.BusID, driverLog.RouteID, driverLog.Date,
+		driverLog.Period, driverLog.Departure, driverLog.Arrival, 
+		driverLog.Mileage, attendanceJSON)
+	
+	return err
 }
 
-func loadDriverLogsFromJSON() ([]DriverLog, error) {
-	return loadJSON[DriverLog]("data/driver_logs.json")
-}
-
-func saveDriverLogsToJSON(logs []DriverLog) error {
-	return saveJSONFile("data/driver_logs.json", logs)
+func saveDriverLogs(logs []DriverLog) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+	
+	for _, log := range logs {
+		if err := saveDriverLog(log); err != nil {
+			return fmt.Errorf("failed to save log for driver %s: %w", log.Driver, err)
+		}
+	}
+	
+	return tx.Commit()
 }
 
 // =============================================================================
@@ -401,23 +592,14 @@ func saveDriverLogsToJSON(logs []DriverLog) error {
 // =============================================================================
 
 func loadMaintenanceLogs() []BusMaintenanceLog {
-	if db != nil {
-		return loadMaintenanceLogsFromDB()
+	if db == nil {
+		log.Println("Database connection not available")
+		return []BusMaintenanceLog{}
 	}
-	return loadMaintenanceLogsFromJSON()
-}
-
-func saveMaintenanceLogs(logs []BusMaintenanceLog) error {
-	if db != nil {
-		return saveMaintenanceLogsToDB(logs)
-	}
-	return saveMaintenanceLogsToJSON(logs)
-}
-
-func loadMaintenanceLogsFromDB() []BusMaintenanceLog {
+	
 	rows, err := db.Query(`
-		SELECT bus_id, date, category, notes, mileage 
-		FROM maintenance_logs ORDER BY date DESC
+		SELECT bus_id, date, category, notes, mileage, cost 
+		FROM bus_maintenance_logs ORDER BY date DESC
 	`)
 	if err != nil {
 		log.Printf("Error loading maintenance logs from DB: %v", err)
@@ -428,28 +610,57 @@ func loadMaintenanceLogsFromDB() []BusMaintenanceLog {
 	var logs []BusMaintenanceLog
 	for rows.Next() {
 		var maintenanceLog BusMaintenanceLog
-		if err := rows.Scan(&maintenanceLog.BusID, &maintenanceLog.Date,
-			&maintenanceLog.Category, &maintenanceLog.Notes, &maintenanceLog.Mileage); err != nil {
+		var date sql.NullTime
+		var cost sql.NullFloat64
+		
+		if err := rows.Scan(&maintenanceLog.BusID, &date,
+			&maintenanceLog.Category, &maintenanceLog.Notes, 
+			&maintenanceLog.Mileage, &cost); err != nil {
 			log.Printf("Error scanning maintenance log: %v", err)
 			continue
 		}
+		
+		if date.Valid {
+			maintenanceLog.Date = date.Time.Format("2006-01-02")
+		}
+		// Note: BusMaintenanceLog doesn't have a Cost field in your model
+		
 		logs = append(logs, maintenanceLog)
 	}
 	return logs
 }
 
-func saveMaintenanceLogsToDB(logs []BusMaintenanceLog) error {
-	// Individual log operations are handled in handlers
-	return nil
+func saveMaintenanceLog(log BusMaintenanceLog) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	_, err := db.Exec(`
+		INSERT INTO bus_maintenance_logs (bus_id, date, category, notes, mileage) 
+		VALUES ($1, $2, $3, $4, $5)
+	`, log.BusID, log.Date, log.Category, log.Notes, log.Mileage)
+	
+	return err
 }
 
-func loadMaintenanceLogsFromJSON() []BusMaintenanceLog {
-	logs, _ := loadJSON[BusMaintenanceLog]("data/maintenance.json")
-	return logs
-}
-
-func saveMaintenanceLogsToJSON(logs []BusMaintenanceLog) error {
-	return saveJSONFile("data/maintenance.json", logs)
+func saveMaintenanceLogs(logs []BusMaintenanceLog) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+	
+	for _, log := range logs {
+		if err := saveMaintenanceLog(log); err != nil {
+			return fmt.Errorf("failed to save maintenance log: %w", err)
+		}
+	}
+	
+	return tx.Commit()
 }
 
 // =============================================================================
@@ -457,20 +668,11 @@ func saveMaintenanceLogsToJSON(logs []BusMaintenanceLog) error {
 // =============================================================================
 
 func loadVehicles() []Vehicle {
-	if db != nil {
-		return loadVehiclesFromDB()
+	if db == nil {
+		log.Println("Database connection not available")
+		return []Vehicle{}
 	}
-	return loadVehiclesFromJSON()
-}
-
-func saveVehicles(vehicles []Vehicle) error {
-	if db != nil {
-		return saveVehiclesToDB(vehicles)
-	}
-	return saveVehiclesToJSON(vehicles)
-}
-
-func loadVehiclesFromDB() []Vehicle {
+	
 	rows, err := db.Query(`
 		SELECT vehicle_id, model, description, year, tire_size, license,
 			oil_status, tire_status, status, maintenance_notes, serial_number, base, service_interval
@@ -497,15 +699,40 @@ func loadVehiclesFromDB() []Vehicle {
 	return vehicles
 }
 
-func saveVehiclesToDB(vehicles []Vehicle) error {
-	// Start a transaction for bulk update
+func saveVehicle(vehicle Vehicle) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	_, err := db.Exec(`
+		INSERT INTO vehicles (vehicle_id, model, description, year, tire_size, license,
+			oil_status, tire_status, status, maintenance_notes, serial_number, base, service_interval) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		ON CONFLICT (vehicle_id) 
+		DO UPDATE SET 
+			model = $2, description = $3, year = $4, tire_size = $5, 
+			license = $6, oil_status = $7, tire_status = $8, status = $9, 
+			maintenance_notes = $10, serial_number = $11, base = $12, 
+			service_interval = $13, updated_at = CURRENT_TIMESTAMP
+	`, vehicle.VehicleID, vehicle.Model, vehicle.Description, vehicle.Year,
+		vehicle.TireSize, vehicle.License, vehicle.OilStatus, vehicle.TireStatus,
+		vehicle.Status, vehicle.MaintenanceNotes, vehicle.SerialNumber, 
+		vehicle.Base, vehicle.ServiceInterval)
+	
+	return err
+}
+
+func saveVehicles(vehicles []Vehicle) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	// For each vehicle, update its status fields
 	for _, vehicle := range vehicles {
 		_, err := tx.Exec(`
 			UPDATE vehicles 
@@ -524,44 +751,58 @@ func saveVehiclesToDB(vehicles []Vehicle) error {
 		}
 	}
 
-	// Commit the transaction
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
-	return nil
-}
-
-func loadVehiclesFromJSON() []Vehicle {
-	vehicles, _ := loadJSON[Vehicle]("data/vehicle.json")
-	return vehicles
-}
-
-func saveVehiclesToJSON(vehicles []Vehicle) error {
-	return saveJSONFile("data/vehicle.json", vehicles)
+	return tx.Commit()
 }
 
 // =============================================================================
-// HELPER FUNCTIONS
+// ACTIVITY FUNCTIONS
 // =============================================================================
 
-func saveJSONFile(filename string, data interface{}) error {
-	// Ensure data directory exists
-	if err := os.MkdirAll("data", 0755); err != nil {
-		return fmt.Errorf("failed to create data directory: %w", err)
+func loadActivities() ([]Activity, error) {
+	if db == nil {
+		return []Activity{}, fmt.Errorf("database connection not available")
 	}
-
-	f, err := os.Create(filename)
+	
+	rows, err := db.Query(`
+		SELECT date, driver, trip_name, attendance, miles, notes 
+		FROM activities ORDER BY date DESC
+	`)
 	if err != nil {
-		return fmt.Errorf("failed to create file %s: %w", filename, err)
+		log.Printf("Error loading activities from DB: %v", err)
+		return []Activity{}, err
 	}
-	defer f.Close()
+	defer rows.Close()
 
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(data); err != nil {
-		return fmt.Errorf("failed to encode data to %s: %w", filename, err)
+	var activities []Activity
+	for rows.Next() {
+		var activity Activity
+		var date sql.NullTime
+		
+		if err := rows.Scan(&date, &activity.Driver, &activity.TripName,
+			&activity.Attendance, &activity.Miles, &activity.Notes); err != nil {
+			log.Printf("Error scanning activity: %v", err)
+			continue
+		}
+		
+		if date.Valid {
+			activity.Date = date.Time.Format("2006-01-02")
+		}
+		
+		activities = append(activities, activity)
 	}
+	return activities, nil
+}
 
-	return nil
+func saveActivity(activity Activity) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	_, err := db.Exec(`
+		INSERT INTO activities (date, driver, trip_name, attendance, miles, notes) 
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`, activity.Date, activity.Driver, activity.TripName, 
+		activity.Attendance, activity.Miles, activity.Notes)
+	
+	return err
 }
