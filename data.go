@@ -439,7 +439,10 @@ func loadMaintenanceLogsFromDB() []MaintenanceLog {
 }
 
 func saveMaintenanceLogsToDB(logs []MaintenanceLog) error {
+    // This function is for database MaintenanceLog type
     // Individual log operations are handled in handlers
+    // The actual saving would use fields like:
+    // log.VehicleNumber, log.ServiceDate, log.Mileage, log.Cost, log.WorkDone
     return nil
 }
 
