@@ -1527,7 +1527,7 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 	// Auto-create maintenance log if status changed to maintenance or out_of_service
 	if statusChangingToInactive || (status == "maintenance" && originalBus.Status != "maintenance") {
 		maintenanceLogs := loadMaintenanceLogs()
-
+		
 		logEntry := BusMaintenanceLog{
 			BusID:    busID,
 			Date:     time.Now().Format("2006-01-02"),
