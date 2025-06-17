@@ -196,32 +196,6 @@
       background: var(--grad-success);
     }
     
-    .btn-outline-info {
-      border: 2px solid #17a2b8;
-      color: #17a2b8;
-      border-radius: 8px;
-      transition: all 0.3s ease;
-    }
-    
-    .btn-outline-info:hover {
-      background: var(--grad-info);
-      border-color: transparent;
-      transform: translateY(-1px);
-    }
-    
-    .btn-outline-danger {
-      border: 2px solid #dc3545;
-      color: #dc3545;
-      border-radius: 8px;
-      transition: all 0.3s ease;
-    }
-    
-    .btn-outline-danger:hover {
-      background: var(--grad-danger);
-      border-color: transparent;
-      transform: translateY(-1px);
-    }
-    
     .empty-state {
       text-align: center;
       padding: 2rem 1rem;
@@ -232,6 +206,46 @@
       font-size: 3rem;
       margin-bottom: 1rem;
       opacity: 0.3;
+    }
+    
+    .student-table {
+      font-size: 0.9rem;
+    }
+    
+    .student-table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 0.5px;
+    }
+    
+    .route-positions {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .position-item {
+      padding: 0.5rem;
+      margin-bottom: 0.25rem;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .position-number {
+      width: 30px;
+      height: 30px;
+      background: var(--grad-primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.9rem;
     }
   </style>
 </head>
@@ -257,7 +271,135 @@
       </div>
     </header>
 
+    <!-- Route Assignment Status -->
+    <div class="row g-4 mb-4">
+      <div class="col-12">
+        <div class="enhanced-card">
+          <div class="card-header">
+            <h5><i class="bi bi-clipboard-check me-2"></i>Daily Route Log</h5>
+          </div>
+          <div class="card-body">
+            <form action="/save-log" method="POST">
+              <div class="row mb-3">
+                <div class="col-md-3">
+                  <label class="form-label">Date</label>
+                  <input type="date" class="form-control" name="date" value="{{.Date}}" required>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Period</label>
+                  <select class="form-select" name="period">
+                    <option value="morning" {{if eq .Period "morning"}}selected{{end}}>Morning</option>
+                    <option value="afternoon" {{if eq .Period "afternoon"}}selected{{end}}>Afternoon</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Departure Time</label>
+                  <input type="time" class="form-control" name="departure" 
+                         value="{{if .DriverLog}}{{.DriverLog.Departure}}{{end}}" required>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Arrival Time</label>
+                  <input type="time" class="form-control" name="arrival" 
+                         value="{{if .DriverLog}}{{.DriverLog.Arrival}}{{end}}" required>
+                </div>
+              </div>
+
+              {{if .Route}}
+              <input type="hidden" name="route_id" value="{{.Route.RouteID}}">
+              <input type="hidden" name="bus_id" value="{{if .Bus}}{{.Bus.BusID}}{{end}}">
+              
+              <div class="assignment-info mb-3">
+                <div class="row">
+                  <div class="col-md-4">
+                    <strong><i class="bi bi-bus-front me-1"></i>Bus:</strong> 
+                    {{if .Bus}}#{{.Bus.BusID}} - {{.Bus.Model}}{{else}}Not Assigned{{end}}
+                  </div>
+                  <div class="col-md-4">
+                    <strong><i class="bi bi-map me-1"></i>Route:</strong> 
+                    {{.Route.RouteName}} ({{.Route.RouteID}})
+                  </div>
+                  <div class="col-md-4">
+                    <strong><i class="bi bi-speedometer2 me-1"></i>Mileage:</strong>
+                    <input type="number" class="form-control form-control-sm d-inline-block w-auto" 
+                           name="mileage" step="0.1" placeholder="0.0" 
+                           value="{{if .DriverLog}}{{.DriverLog.Mileage}}{{end}}" required>
+                  </div>
+                </div>
+              </div>
+
+              <h6 class="mb-3"><i class="bi bi-people me-2"></i>Student Attendance</h6>
+              <div class="route-positions">
+                {{if .Route.Positions}}
+                <div class="table-responsive">
+                  <table class="table student-table">
+                    <thead>
+                      <tr>
+                        <th width="80">Position</th>
+                        <th>Student Name</th>
+                        <th width="100">Present</th>
+                        <th width="150">Pickup Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {{range .Route.Positions}}
+                      <tr>
+                        <td>
+                          <div class="position-number">{{.Position}}</div>
+                        </td>
+                        <td>{{.Student}}</td>
+                        <td>
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" 
+                                   name="present_{{.Position}}" id="present_{{.Position}}"
+                                   {{if $.DriverLog}}
+                                     {{range $.DriverLog.Attendance}}
+                                       {{if eq .Position $.Position}}{{if .Present}}checked{{end}}{{end}}
+                                     {{end}}
+                                   {{end}}>
+                          </div>
+                        </td>
+                        <td>
+                          <input type="time" class="form-control form-control-sm" 
+                                 name="pickup_{{.Position}}"
+                                 {{if $.DriverLog}}
+                                   {{range $.DriverLog.Attendance}}
+                                     {{if eq .Position $.Position}}value="{{.PickupTime}}"{{end}}
+                                   {{end}}
+                                 {{end}}>
+                        </td>
+                      </tr>
+                      {{end}}
+                    </tbody>
+                  </table>
+                </div>
+                {{else}}
+                <div class="alert alert-info">
+                  <i class="bi bi-info-circle me-2"></i>
+                  No students assigned to this route yet.
+                </div>
+                {{end}}
+              </div>
+
+              <div class="mt-3">
+                <button type="submit" class="btn btn-primary">
+                  <i class="bi bi-check-circle me-2"></i>Save Route Log
+                </button>
+              </div>
+              {{else}}
+              <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>No Route Assignment</strong><br>
+                You have not been assigned to a route yet. Please contact your manager.
+              </div>
+              {{end}}
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Quick Stats Row -->
+    {{if .Route}}
     <div class="row g-4 mb-4">
       <div class="col-lg-3 col-md-6">
         <div class="card metric-card bg-gradient-primary text-white">
@@ -272,17 +414,17 @@
         <div class="card metric-card bg-gradient-success text-white">
           <div class="card-body text-center">
             <i class="bi bi-people-fill metric-icon"></i>
-            <div class="metric-value" id="studentCount">0</div>
-            <div class="metric-label">Students</div>
+            <div class="metric-value">{{if .Route.Positions}}{{len .Route.Positions}}{{else}}0{{end}}</div>
+            <div class="metric-label">Students on Route</div>
           </div>
         </div>
       </div>
       <div class="col-lg-3 col-md-6">
         <div class="card metric-card bg-gradient-info text-white">
           <div class="card-body text-center">
-            <i class="bi bi-journal-text metric-icon"></i>
-            <div class="metric-value" id="tripCount">0</div>
-            <div class="metric-label">Today's Trips</div>
+            <i class="bi bi-bus-front metric-icon"></i>
+            <div class="metric-value">{{if .Bus}}{{.Bus.BusID}}{{else}}--{{end}}</div>
+            <div class="metric-label">Assigned Bus</div>
           </div>
         </div>
       </div>
@@ -290,160 +432,93 @@
         <div class="card metric-card bg-gradient-warning text-white">
           <div class="card-body text-center">
             <i class="bi bi-speedometer2 metric-icon"></i>
-            <div class="metric-value" id="totalMiles">0.0</div>
-            <div class="metric-label">Miles Today</div>
+            <div class="metric-value">{{if .DriverLog}}{{printf "%.1f" .DriverLog.Mileage}}{{else}}0.0{{end}}</div>
+            <div class="metric-label">Today's Miles</div>
           </div>
         </div>
       </div>
     </div>
+    {{end}}
 
-    <!-- Main Content Row -->
+    <!-- Recent Logs -->
     <div class="row g-4">
-      <!-- Route Assignment Info -->
       <div class="col-lg-8">
         <div class="enhanced-card">
           <div class="card-header">
-            <h5><i class="bi bi-geo-alt-fill me-2"></i>Current Assignment</h5>
+            <h5><i class="bi bi-clock-history me-2"></i>Recent Trip Logs</h5>
           </div>
           <div class="card-body">
-            <!-- Assignment Status would be populated by template logic -->
-            <div class="assignment-info">
-              <div class="d-flex justify-content-between align-items-center mb-3">
+            {{if .RecentLogs}}
+            {{range .RecentLogs}}
+            <div class="trip-log-item">
+              <div class="d-flex justify-content-between align-items-center">
                 <div>
-                  <h6 class="mb-1">Route Assignment Status</h6>
-                  <span class="assignment-badge">
-                    <i class="bi bi-check-circle me-1"></i>Active Assignment
-                  </span>
+                  <strong>{{.Date}} - {{.Period}}</strong>
+                  <p class="mb-0 text-muted small">
+                    <i class="bi bi-clock me-1"></i>{{.Departure}} - {{.Arrival}} • 
+                    <i class="bi bi-speedometer2 me-1"></i>{{printf "%.1f" .Mileage}} miles • 
+                    <i class="bi bi-people me-1"></i>{{len .Attendance}} students
+                  </p>
                 </div>
-                <div class="text-end">
-                  <div class="time-display" id="assignmentTime">Ready for Service</div>
-                </div>
-              </div>
-              
-              <div class="row">
-                <div class="col-md-4">
-                  <strong>Bus:</strong> #001<br>
-                  <small class="text-muted">Fleet Vehicle</small>
-                </div>
-                <div class="col-md-4">
-                  <strong>Route:</strong> Main Street Loop<br>
-                  <small class="text-muted">Morning/Afternoon</small>
-                </div>
-                <div class="col-md-4">
-                  <strong>Students:</strong> 24 Assigned<br>
-                  <small class="text-muted">Active Passengers</small>
-                </div>
+                <span class="badge bg-success">Completed</span>
               </div>
             </div>
-
-            <!-- Quick Actions -->
-            <div class="row g-3">
-              <div class="col-md-6">
-                <a href="/start-trip" class="text-decoration-none">
-                  <div class="quick-action-card">
-                    <i class="bi bi-play-circle fs-2 text-success d-block mb-2"></i>
-                    <h6 class="fw-semibold">Start Trip</h6>
-                    <small class="text-muted">Begin route logging</small>
-                  </div>
-                </a>
-              </div>
-              <div class="col-md-6">
-                <a href="/students" class="text-decoration-none">
-                  <div class="quick-action-card">
-                    <i class="bi bi-people fs-2 text-info d-block mb-2"></i>
-                    <h6 class="fw-semibold">Manage Students</h6>
-                    <small class="text-muted">View student roster</small>
-                  </div>
-                </a>
-              </div>
+            {{end}}
+            {{else}}
+            <div class="empty-state">
+              <i class="bi bi-journal-plus"></i>
+              <h6>No Recent Trips</h6>
+              <p class="mb-0">Your trip logs will appear here once you start logging</p>
             </div>
+            {{end}}
           </div>
         </div>
       </div>
 
-      <!-- Alerts & Notifications -->
+      <!-- Alerts & Quick Actions -->
       <div class="col-lg-4">
         <div class="enhanced-card">
           <div class="card-header">
-            <h5><i class="bi bi-bell-fill me-2"></i>Alerts & Reminders</h5>
+            <h5><i class="bi bi-lightning-fill me-2"></i>Quick Actions</h5>
           </div>
           <div class="card-body">
-            <div class="alert-item">
-              <div class="d-flex justify-content-between align-items-start">
-                <div>
-                  <strong>Pre-Trip Inspection</strong>
-                  <p class="mb-0 text-muted small">Complete daily safety check</p>
-                </div>
-                <i class="bi bi-exclamation-triangle text-warning"></i>
+            <div class="row g-3">
+              <div class="col-6">
+                <a href="/students" class="text-decoration-none">
+                  <div class="quick-action-card">
+                    <i class="bi bi-people fs-2 text-success d-block mb-2"></i>
+                    <h6 class="fw-semibold">Students</h6>
+                    <small class="text-muted">Manage roster</small>
+                  </div>
+                </a>
               </div>
-            </div>
-            
-            <div class="alert-item">
-              <div class="d-flex justify-content-between align-items-start">
-                <div>
-                  <strong>Weather Advisory</strong>
-                  <p class="mb-0 text-muted small">Light rain expected this afternoon</p>
-                </div>
-                <i class="bi bi-cloud-rain text-info"></i>
+              <div class="col-6">
+                <a href="/driver-dashboard?date={{.Date}}&period=morning" class="text-decoration-none">
+                  <div class="quick-action-card">
+                    <i class="bi bi-sunrise fs-2 text-warning d-block mb-2"></i>
+                    <h6 class="fw-semibold">Morning</h6>
+                    <small class="text-muted">AM Route</small>
+                  </div>
+                </a>
               </div>
-            </div>
-
-            <div class="alert-item">
-              <div class="d-flex justify-content-between align-items-start">
-                <div>
-                  <strong>Route Update</strong>
-                  <p class="mb-0 text-muted small">Construction on Oak Street - use alternate</p>
-                </div>
-                <i class="bi bi-cone-striped text-warning"></i>
+              <div class="col-6">
+                <a href="/driver-dashboard?date={{.Date}}&period=afternoon" class="text-decoration-none">
+                  <div class="quick-action-card">
+                    <i class="bi bi-sunset fs-2 text-info d-block mb-2"></i>
+                    <h6 class="fw-semibold">Afternoon</h6>
+                    <small class="text-muted">PM Route</small>
+                  </div>
+                </a>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recent Trip Logs -->
-    <div class="row g-4 mt-2">
-      <div class="col-12">
-        <div class="enhanced-card">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <h5><i class="bi bi-journal-text me-2"></i>Recent Trip Logs</h5>
-            <a href="/trip-history" class="btn btn-outline-info btn-sm">View All Trips</a>
-          </div>
-          <div class="card-body">
-            <!-- Trip logs would be populated by template logic -->
-            <div class="trip-log-item">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <strong>Morning Route - Bus #001</strong>
-                  <p class="mb-0 text-muted small">
-                    <i class="bi bi-clock me-1"></i>7:30 AM - 8:45 AM • 
-                    <i class="bi bi-speedometer2 me-1"></i>12.5 miles • 
-                    <i class="bi bi-people me-1"></i>22 students
-                  </p>
-                </div>
-                <span class="badge bg-success">Completed</span>
+              <div class="col-6">
+                <a href="/reports" class="text-decoration-none">
+                  <div class="quick-action-card">
+                    <i class="bi bi-file-text fs-2 text-primary d-block mb-2"></i>
+                    <h6 class="fw-semibold">Reports</h6>
+                    <small class="text-muted">View history</small>
+                  </div>
+                </a>
               </div>
-            </div>
-
-            <div class="trip-log-item">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <strong>Afternoon Route - Bus #001</strong>
-                  <p class="mb-0 text-muted small">
-                    <i class="bi bi-clock me-1"></i>3:15 PM - 4:30 PM • 
-                    <i class="bi bi-speedometer2 me-1"></i>11.8 miles • 
-                    <i class="bi bi-people me-1"></i>20 students
-                  </p>
-                </div>
-                <span class="badge bg-success">Completed</span>
-              </div>
-            </div>
-
-            <div class="empty-state">
-              <i class="bi bi-journal-plus"></i>
-              <h6>Ready for New Trips</h6>
-              <p class="mb-0">Start your first trip of the day to begin logging</p>
             </div>
           </div>
         </div>
@@ -466,11 +541,6 @@
       }
       updateTime();
       setInterval(updateTime, 1000);
-
-      // Simulate some data updates (these would come from actual data in a real app)
-      document.getElementById('studentCount').textContent = '24';
-      document.getElementById('tripCount').textContent = '2';
-      document.getElementById('totalMiles').textContent = '24.3';
 
       // Add animation to metric cards
       const metricCards = document.querySelectorAll('.metric-card');
@@ -498,6 +568,17 @@
             card.style.transform = 'translateY(0)';
           }, 100);
         }, (index + 4) * 200); // Start after metric cards
+      });
+
+      // Auto-check present when pickup time is entered
+      document.querySelectorAll('input[name^="pickup_"]').forEach(function(input) {
+        input.addEventListener('change', function() {
+          const position = this.name.replace('pickup_', '');
+          const checkbox = document.getElementById('present_' + position);
+          if (this.value && checkbox) {
+            checkbox.checked = true;
+          }
+        });
       });
     });
   </script>
