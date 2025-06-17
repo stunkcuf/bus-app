@@ -13,6 +13,24 @@ import (
 
 var db *sqlx.DB
 
+// setupDatabase initializes the database connection
+func setupDatabase() {
+    if err := initDatabase(); err != nil {
+        log.Printf("Failed to initialize database: %v", err)
+        log.Println("Continuing without database support")
+        // Don't exit - allow the app to run with JSON files only
+        db = nil
+    } else {
+        log.Println("Database initialized successfully")
+        
+        // Optionally run migrations or check database health
+        if err := checkDatabaseHealth(); err != nil {
+            log.Printf("Database health check failed: %v", err)
+            db = nil
+        }
+    }
+}
+
 // Initialize database connection to your Railway PostgreSQL
 func initDatabase() error {
     // Use environment variables for Railway connection
