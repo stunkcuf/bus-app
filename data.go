@@ -439,8 +439,8 @@ func loadMaintenanceLogsFromDB() []MaintenanceLog {
 }
 
 func saveMaintenanceLogsToDB(logs []MaintenanceLog) error {
-	// Individual log operations are handled in handlers
-	return nil
+    // Individual log operations are handled in handlers
+    return nil
 }
 
 func loadMaintenanceLogsFromJSON() []MaintenanceLog {
