@@ -4,7 +4,7 @@ package main
 // User represents a system user (driver or manager)
 type User struct {
 	Username string `json:"username"`
-	Password string `json:"password"`
+	Password string `json:"password"` // This will store bcrypt hash
 	Role     string `json:"role"`
 }
 
@@ -131,7 +131,7 @@ type DriverLog struct {
 	BusID      string  `json:"bus_id"`
 	RouteID    string  `json:"route_id"`
 	Date       string  `json:"date"`
-	Period     string  `json:"period"` // morning or evening
+	Period     string  `json:"period"` // morning, afternoon, or evening
 	Departure  string  `json:"departure_time"`
 	Arrival    string  `json:"arrival_time"`
 	Mileage    float64 `json:"mileage"`
@@ -191,6 +191,7 @@ type DashboardData struct {
 	Routes          []Route          `json:"routes"`
 	Users           []User           `json:"users"`
 	Buses           []*Bus           `json:"buses"`
+	CSRFToken       string           `json:"csrf_token"` // Added for CSRF protection
 }
 
 // AssignRouteData is used for the route assignment page
@@ -200,26 +201,30 @@ type AssignRouteData struct {
 	Drivers         []User            `json:"drivers"`
 	AvailableRoutes []Route           `json:"available_routes"`
 	AvailableBuses  []*Bus            `json:"available_buses"`
+	CSRFToken       string            `json:"csrf_token"` // Added for CSRF protection
 }
 
 // FleetData is used for the fleet management page
 type FleetData struct {
-	User  *User  `json:"user"`
-	Buses []*Bus `json:"buses"`
-	Today string `json:"today"`
+	User      *User  `json:"user"`
+	Buses     []*Bus `json:"buses"`
+	Today     string `json:"today"`
+	CSRFToken string `json:"csrf_token"` // Added for CSRF protection
 }
 
 // StudentData is used for the student management page
 type StudentData struct {
-	User     *User     `json:"user"`
-	Students []Student `json:"students"`
-	Routes   []Route   `json:"routes"`
+	User      *User     `json:"user"`
+	Students  []Student `json:"students"`
+	Routes    []Route   `json:"routes"`
+	CSRFToken string    `json:"csrf_token"` // Added for CSRF protection
 }
 
 // CompanyFleetData is used for the company fleet page
 type CompanyFleetData struct {
-	User     *User     `json:"user"`
-	Vehicles []Vehicle `json:"vehicles"`
+	User      *User     `json:"user"`
+	Vehicles  []Vehicle `json:"vehicles"`
+	CSRFToken string    `json:"csrf_token"` // Added for CSRF protection
 }
 
 // DriverDashboardData is used for the driver dashboard template
@@ -231,4 +236,18 @@ type DriverDashboardData struct {
 	DriverLog  *DriverLog  `json:"driver_log"`
 	Bus        *Bus        `json:"bus"`
 	RecentLogs []DriverLog `json:"recent_logs"`
+	CSRFToken  string      `json:"csrf_token"` // Added for CSRF protection
+}
+
+// LoginFormData is used for the login page template
+type LoginFormData struct {
+	Error     string `json:"error,omitempty"`
+	CSRFToken string `json:"csrf_token"`
+}
+
+// UserFormData is used for user creation/edit forms
+type UserFormData struct {
+	User      *User  `json:"user,omitempty"`
+	Error     string `json:"error,omitempty"`
+	CSRFToken string `json:"csrf_token"`
 }
