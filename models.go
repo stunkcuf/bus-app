@@ -1,5 +1,4 @@
-// models.go - All data structures for the bus transportation app
-// This file can be created without breaking anything in main.go
+// models.go - All data structures for the bus transportation app with proper JSON tags
 package main
 
 // User represents a system user (driver or manager)
@@ -37,22 +36,22 @@ type Activity struct {
 
 // DriverSummary contains aggregated driver statistics
 type DriverSummary struct {
-	Name              string
-	TotalMorning      int
-	TotalEvening      int
-	TotalMiles        float64
-	MonthlyAvgMiles   float64
-	MonthlyAttendance int
+	Name              string  `json:"name"`
+	TotalMorning      int     `json:"total_morning"`
+	TotalEvening      int     `json:"total_evening"`
+	TotalMiles        float64 `json:"total_miles"`
+	MonthlyAvgMiles   float64 `json:"monthly_avg_miles"`
+	MonthlyAttendance int     `json:"monthly_attendance"`
 }
 
 // RouteStats contains route statistics
 type RouteStats struct {
-	RouteName       string
-	TotalMiles      float64
-	AvgMiles        float64
-	AttendanceDay   int
-	AttendanceWeek  int
-	AttendanceMonth int
+	RouteName       string  `json:"route_name"`
+	TotalMiles      float64 `json:"total_miles"`
+	AvgMiles        float64 `json:"avg_miles"`
+	AttendanceDay   int     `json:"attendance_day"`
+	AttendanceWeek  int     `json:"attendance_week"`
+	AttendanceMonth int     `json:"attendance_month"`
 }
 
 // Route represents a bus route
@@ -154,41 +153,52 @@ type MaintenanceLog struct {
 
 // DashboardData is used for the manager dashboard template
 type DashboardData struct {
-	User            *User
-	Role            string
-	DriverSummaries []*DriverSummary
-	RouteStats      []*RouteStats
-	Activities      []Activity
-	Routes          []Route
-	Users           []User
-	Buses           []*Bus
+	User            *User            `json:"user"`
+	Role            string           `json:"role"`
+	DriverSummaries []*DriverSummary `json:"driver_summaries"`
+	RouteStats      []*RouteStats    `json:"route_stats"`
+	Activities      []Activity       `json:"activities"`
+	Routes          []Route          `json:"routes"`
+	Users           []User           `json:"users"`
+	Buses           []*Bus           `json:"buses"`
 }
 
 // AssignRouteData is used for the route assignment page
 type AssignRouteData struct {
-	User            *User
-	Assignments     []RouteAssignment
-	Drivers         []User
-	AvailableRoutes []Route
-	AvailableBuses  []*Bus
+	User            *User             `json:"user"`
+	Assignments     []RouteAssignment `json:"assignments"`
+	Drivers         []User            `json:"drivers"`
+	AvailableRoutes []Route           `json:"available_routes"`
+	AvailableBuses  []*Bus            `json:"available_buses"`
 }
 
 // FleetData is used for the fleet management page
 type FleetData struct {
-	User  *User
-	Buses []*Bus
-	Today string
+	User  *User  `json:"user"`
+	Buses []*Bus `json:"buses"`
+	Today string `json:"today"`
 }
 
 // StudentData is used for the student management page
 type StudentData struct {
-	User     *User
-	Students []Student
-	Routes   []Route
+	User     *User     `json:"user"`
+	Students []Student `json:"students"`
+	Routes   []Route   `json:"routes"`
 }
 
 // CompanyFleetData is used for the company fleet page
 type CompanyFleetData struct {
-	User     *User
-	Vehicles []Vehicle
+	User     *User     `json:"user"`
+	Vehicles []Vehicle `json:"vehicles"`
+}
+
+// DriverDashboardData is used for the driver dashboard template
+type DriverDashboardData struct {
+	User       *User       `json:"user"`
+	Date       string      `json:"date"`
+	Period     string      `json:"period"`
+	Route      *Route      `json:"route"`
+	DriverLog  *DriverLog  `json:"driver_log"`
+	Bus        *Bus        `json:"bus"`
+	RecentLogs []DriverLog `json:"recent_logs"`
 }
