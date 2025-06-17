@@ -4,10 +4,11 @@ go 1.23.0
 
 require (
 	github.com/go-git/go-git/v5 v5.16.1
+	github.com/gorilla/mux v1.8.1
+	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.9
 	golang.org/x/crypto v0.38.0
 	golang.org/x/time v0.5.0
-
 )
 
 require (
@@ -29,7 +30,4 @@ require (
 	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	github.com/jmoiron/sqlx@v1.3.5
-	github.com/lib/pq@v1.10.9
-	github.com/gorilla/mux@v1.8.1
 )
