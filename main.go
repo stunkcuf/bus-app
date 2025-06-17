@@ -978,9 +978,3 @@ func main() {
 		}
 	}
 }
-
-// Additional required imports
-import (
-	"crypto/subtle"
-	"sync"
-)
