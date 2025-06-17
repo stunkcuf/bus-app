@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -729,7 +728,7 @@ func handleWebhook(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Updated:\n%s", string(output))
 }
 
-func saveDriverLog(w http.ResponseWriter, r *http.Request) {
+func saveDriverLogHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
@@ -1035,7 +1034,7 @@ func editRoute(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
 }
 
-func deleteRoute(w http.ResponseWriter, r *http.Request) {
+func deleteRouteHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
