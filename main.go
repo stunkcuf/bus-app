@@ -1,13 +1,13 @@
 package main
 
 import (
+	"database/sql"
 	"embed"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
-	"database/sql"
 	"os"
 	"os/exec"
 	"sort"
@@ -505,95 +505,94 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, "driver_dashboard.html", data)
 }
 
-// Fixed handler to work with your actual fleet database
 func vehicleMaintenancePage(w http.ResponseWriter, r *http.Request) {
-    // Extract vehicle number from URL path
-    pathParts := strings.Split(r.URL.Path, "/")
-    if len(pathParts) < 3 {
-        http.Error(w, "Invalid vehicle ID", http.StatusBadRequest)
-        return
-    }
-    
-    vehicleNumber, err := strconv.Atoi(pathParts[2])
-    if err != nil {
-        http.Error(w, "Invalid vehicle number", http.StatusBadRequest)
-        return
-    }
+	// Extract vehicle number from URL path
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 3 {
+		http.Error(w, "Invalid vehicle ID", http.StatusBadRequest)
+		return
+	}
 
-    // Get vehicle details from database
-    var vehicle Vehicle
-    vehicleQuery := `
+	vehicleNumber, err := strconv.Atoi(pathParts[2])
+	if err != nil {
+		http.Error(w, "Invalid vehicle number", http.StatusBadRequest)
+		return
+	}
+
+	// Get vehicle details from database
+	var vehicle Vehicle
+	vehicleQuery := `
         SELECT vehicle_number, make, model, year, vin, description 
         FROM fleet_vehicles 
         WHERE vehicle_number = $1`
-    
-    err = db.Get(&vehicle, vehicleQuery, vehicleNumber)
-    if err != nil {
-        if err == sql.ErrNoRows {
-            http.Error(w, "Vehicle not found", http.StatusNotFound)
-            return
-        }
-        log.Printf("Database error: %v", err)
-        http.Error(w, "Database error", http.StatusInternalServerError)
-        return
-    }
 
-    // Get maintenance records for this vehicle
-    var maintenanceLogs []MaintenanceLog
-    maintenanceQuery := `
+	err = db.Get(&vehicle, vehicleQuery, vehicleNumber)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Vehicle not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("Database error: %v", err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	// Get maintenance records for this vehicle
+	var maintenanceLogs []MaintenanceLog
+	maintenanceQuery := `
         SELECT id, vehicle_number, maintenance_date as service_date, 
                mileage, po_number, cost, work_done, created_at
         FROM maintenance_records 
         WHERE vehicle_number = $1 
         ORDER BY maintenance_date DESC`
-    
-    err = db.Select(&maintenanceLogs, maintenanceQuery, vehicleNumber)
-    if err != nil {
-        log.Printf("Error fetching maintenance records: %v", err)
-        // Continue with empty maintenance logs rather than failing
-        maintenanceLogs = []MaintenanceLog{}
-    }
 
-    // Calculate summary statistics
-    var totalCost float64
-    for _, log := range maintenanceLogs {
-        if log.Cost != nil {
-            totalCost += *log.Cost
-        }
-    }
+	err = db.Select(&maintenanceLogs, maintenanceQuery, vehicleNumber)
+	if err != nil {
+		log.Printf("Error fetching maintenance records: %v", err)
+		// Continue with empty maintenance logs rather than failing
+		maintenanceLogs = []MaintenanceLog{}
+	}
 
-    // Prepare template data
-    data := struct {
-        Vehicle          Vehicle
-        MaintenanceLogs  []MaintenanceLog
-        TotalRecords     int
-        TotalCost        float64
-        AverageCost      float64
-    }{
-        Vehicle:         vehicle,
-        MaintenanceLogs: maintenanceLogs,
-        TotalRecords:    len(maintenanceLogs),
-        TotalCost:       totalCost,
-        AverageCost:     func() float64 {
-            if len(maintenanceLogs) > 0 {
-                return totalCost / float64(len(maintenanceLogs))
-            }
-            return 0
-        }(),
-    }
+	// Calculate summary statistics
+	var totalCost float64
+	for _, log := range maintenanceLogs {
+		if log.Cost != nil {
+			totalCost += *log.Cost
+		}
+	}
 
-    // Execute template
-    tmpl, err := template.ParseFiles("templates/vehicle_maintenance.html")
-    if err != nil {
-        http.Error(w, "Template error", http.StatusInternalServerError)
-        return
-    }
+	// Prepare template data
+	data := struct {
+		Vehicle         Vehicle
+		MaintenanceLogs []MaintenanceLog
+		TotalRecords    int
+		TotalCost       float64
+		AverageCost     float64
+	}{
+		Vehicle:         vehicle,
+		MaintenanceLogs: maintenanceLogs,
+		TotalRecords:    len(maintenanceLogs),
+		TotalCost:       totalCost,
+		AverageCost: func() float64 {
+			if len(maintenanceLogs) > 0 {
+				return totalCost / float64(len(maintenanceLogs))
+			}
+			return 0
+		}(),
+	}
 
-    err = tmpl.Execute(w, data)
-    if err != nil {
-        http.Error(w, "Template execution error", http.StatusInternalServerError)
-        return
-    }
+	// Execute template
+	tmpl, err := template.ParseFiles("templates/vehicle_maintenance.html")
+	if err != nil {
+		http.Error(w, "Template error", http.StatusInternalServerError)
+		return
+	}
+
+	err = tmpl.Execute(w, data)
+	if err != nil {
+		http.Error(w, "Template execution error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func loginPage(w http.ResponseWriter, r *http.Request) {
@@ -814,7 +813,6 @@ func dashboardRouter(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
-
 func assignRoutesPage(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
@@ -1529,7 +1527,7 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 	// Auto-create maintenance log if status changed to maintenance or out_of_service
 	if statusChangingToInactive || (status == "maintenance" && originalBus.Status != "maintenance") {
 		maintenanceLogs := loadMaintenanceLogs()
-	
+
 		logEntry := BusMaintenanceLog{
 			BusID:    busID,
 			Date:     time.Now().Format("2006-01-02"),
@@ -1537,7 +1535,7 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 			Notes:    fmt.Sprintf("Bus status changed from '%s' to '%s'. %s", originalBus.Status, status, maintenanceNotes),
 			Mileage:  0,
 		}
-	
+
 		maintenanceLogs = append(maintenanceLogs, logEntry)
 		if err := saveMaintenanceLogs(maintenanceLogs); err != nil {
 			log.Printf("Warning: Failed to save maintenance log: %v", err)
@@ -1545,6 +1543,9 @@ func editBus(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Maintenance log created for bus %s status change", busID)
 		}
 	}
+
+	http.Redirect(w, r, "/fleet", http.StatusFound)
+}
 
 func removeBus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
