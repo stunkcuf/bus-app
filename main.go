@@ -526,7 +526,15 @@ func vehicleMaintenancePage(w http.ResponseWriter, r *http.Request) {
 	if db != nil {
 		if vehicleNumber, err := strconv.Atoi(vehicleID); err == nil {
 			// Try database approach for fleet vehicles
-			var vehicle Vehicle
+			var vehicle struct {
+				VehicleNumber int    `db:"vehicle_number"`
+				Make          string `db:"make"`
+				Model         string `db:"model"`
+				Year          string `db:"year"`
+				VIN           string `db:"vin"`
+				Description   string `db:"description"`
+			}
+			
 			vehicleQuery := `
 				SELECT vehicle_number, make, model, year, vin, description 
 				FROM fleet_vehicles 
@@ -561,7 +569,7 @@ func vehicleMaintenancePage(w http.ResponseWriter, r *http.Request) {
 
 				// Prepare template data for database vehicle
 				data := struct {
-					Vehicle         Vehicle
+					Vehicle         interface{}
 					MaintenanceLogs []MaintenanceLog
 					TotalRecords    int
 					TotalCost       float64
@@ -633,27 +641,37 @@ func vehicleMaintenancePage(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	// Create a vehicle struct that matches what the template expects
+	vehicleForTemplate := struct {
+		VehicleNumber int
+		Make          string
+		Model         string
+		Year          string
+		VIN           string
+		Description   string
+	}{
+		VehicleNumber: func() int {
+			if num, err := strconv.Atoi(strings.TrimPrefix(vehicleID, "BUS")); err == nil {
+				return num
+			}
+			return 0
+		}(),
+		Make:        "Bus Fleet",
+		Model:       targetBus.Model,
+		Year:        "",
+		VIN:         vehicleID,
+		Description: fmt.Sprintf("Capacity: %d passengers", targetBus.Capacity),
+	}
+
 	// Prepare template data for bus
 	data := struct {
-		Vehicle         Vehicle
+		Vehicle         interface{}
 		MaintenanceLogs []MaintenanceLog
 		TotalRecords    int
 		TotalCost       float64
 		AverageCost     float64
 	}{
-		Vehicle: Vehicle{
-			VehicleNumber: func() int {
-				if num, err := strconv.Atoi(strings.TrimPrefix(vehicleID, "BUS")); err == nil {
-					return num
-				}
-				return 0
-			}(),
-			Make:        "Bus Fleet",
-			Model:       targetBus.Model,
-			Year:        "",
-			VIN:         vehicleID,
-			Description: fmt.Sprintf("Capacity: %d passengers", targetBus.Capacity),
-		},
+		Vehicle:         vehicleForTemplate,
 		MaintenanceLogs: maintenanceLogs,
 		TotalRecords:    len(maintenanceLogs),
 		TotalCost:       0, // BusMaintenanceLog doesn't track cost
@@ -662,6 +680,7 @@ func vehicleMaintenancePage(w http.ResponseWriter, r *http.Request) {
 
 	executeTemplate(w, "vehicle_maintenance.html", data)
 }
+
 func loginPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseForm()
