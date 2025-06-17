@@ -1,3 +1,5 @@
+type main
+
 module bus-app
 
 go 1.23.0
