@@ -1,6 +1,6 @@
-
 # Go module cache
 gopath/
+go.sum
 
 # Add other folders you want to ignore like this:
 # temp/
