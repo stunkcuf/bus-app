@@ -35,27 +35,6 @@ func NewRateLimiter(r rate.Limit, b int) *RateLimiter {
 	}
 }
 
-func (rl *RateLimiter) GetVisitor(ip string) *rate.Limiter {
-	rl.mu.Lock()
-	defer rl.mu.Unlock()
-
-	limiter, exists := rl.visitors[ip]
-	if !exists {
-		limiter = rate.NewLimiter(rl.r, rl.b)
-		rl.visitors[ip] = limiter
-		
-		// Clean up old entries after 1 hour
-		go func(ip string) {
-			time.Sleep(time.Hour)
-			rl.mu.Lock()
-			delete(rl.visitors, ip)
-			rl.mu.Unlock()
-		}(ip)
-	}
-
-	return limiter
-}
-
 // Global rate limiter: 10 requests per second, burst of 20
 var rateLimiter = NewRateLimiter(10, 20)
 
