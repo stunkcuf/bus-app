@@ -4,6 +4,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -23,11 +24,30 @@ func withRecovery(h http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// Note: getUserFromSession is already in utils.go, so we don't need it here
+// RateLimitMiddleware uses the global rate limiter from security.go
+func RateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ip := r.RemoteAddr
+		if forwardedIP := r.Header.Get("X-Forwarded-For"); forwardedIP != "" {
+			// Take the first IP if there are multiple
+			if idx := strings.Index(forwardedIP, ","); idx != -1 {
+				ip = forwardedIP[:idx]
+			} else {
+				ip = forwardedIP
+			}
+		}
 
-// You can add more middleware functions here as you develop them:
+		limiter := rateLimiter.GetVisitor(ip)
+		if !limiter.Allow() {
+			http.Error(w, "Too many requests. Please try again later.", http.StatusTooManyRequests)
+			return
+		}
 
-// Example: requireAuth middleware (when you're ready to use it)
+		next(w, r)
+	}
+}
+
+// requireAuth middleware checks if user is authenticated
 func requireAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := getUserFromSession(r)
@@ -39,7 +59,7 @@ func requireAuth(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// Example: requireRole middleware
+// requireRole middleware checks if user has specific role
 func requireRole(role string) func(http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +73,7 @@ func requireRole(role string) func(http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// Example: logging middleware
+// loggingMiddleware logs all requests
 func loggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
