@@ -600,11 +600,15 @@ func saveDriverLogHandler(w http.ResponseWriter, r *http.Request) {
 		Attendance: attendance,
 	}
 	
-	// Redirect back to dashboard
-	http.Redirect(w, r, fmt.Sprintf("/driver-dashboard?date=%s&period=%s", date, period), http.StatusFound)
-}StatusBadRequest)
+	// Save log
+	if err := saveDriverLog(driverLog); err != nil {
+		http.Error(w, "Failed to save log", http.StatusInternalServerError)
 		return
 	}
+	
+	// Redirect back to dashboard
+	http.Redirect(w, r, fmt.Sprintf("/driver-dashboard?date=%s&period=%s", date, period), http.StatusFound)
+}
 	
 	// Validate CSRF token
 	cookie, _ := r.Cookie("session_id")
