@@ -35,26 +35,29 @@ func NewRateLimiter(r rate.Limit, b int) *RateLimiter {
 	}
 }
 
+func (rl *RateLimiter) GetVisitor(ip string) *rate.Limiter {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	limiter, exists := rl.visitors[ip]
+	if !exists {
+		limiter = rate.NewLimiter(rl.r, rl.b)
+		rl.visitors[ip] = limiter
+		
+		// Clean up old entries after 1 hour
+		go func(ip string) {
+			time.Sleep(time.Hour)
+			rl.mu.Lock()
+			delete(rl.visitors, ip)
+			rl.mu.Unlock()
+		}(ip)
+	}
+
+	return limiter
+}
+
 // Global rate limiter: 10 requests per second, burst of 20
 var rateLimiter = NewRateLimiter(10, 20)
-
-// RateLimitMiddleware - Add to any handler that needs protection
-func RateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ip := r.RemoteAddr
-		if forwardedIP := r.Header.Get("X-Forwarded-For"); forwardedIP != "" {
-			ip = strings.Split(forwardedIP, ",")[0]
-		}
-
-		limiter := rateLimiter.GetVisitor(ip)
-		if !limiter.Allow() {
-			http.Error(w, "Too many requests. Please try again later.", http.StatusTooManyRequests)
-			return
-		}
-
-		next(w, r)
-	}
-}
 
 // ==============================================================
 // INPUT VALIDATION - Prevents SQL injection and XSS
@@ -320,7 +323,7 @@ func ClearUserSessions(username string) {
 	}
 }
 
-// SecurityHeaders middleware that works with http.Handler
+// SecurityHeaders adds security headers to responses
 func SecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Security headers
