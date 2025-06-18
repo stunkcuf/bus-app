@@ -568,77 +568,7 @@ func saveDriverLogHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Process attendance checkboxes
-	for key, values := range r.Form {
-		if len(key) > 8 && key[:8] == "present_" {
-			var position int
-			fmt.Sscanf(key[8:], "%d", &position)
-			
-			pickupTime := r.FormValue(fmt.Sprintf("pickup_%d", position))
-			
-			attendance = append(attendance, struct {
-				Position   int    `json:"position"`
-				Present    bool   `json:"present"`
-				PickupTime string `json:"pickup_time,omitempty"`
-			}{
-				Position:   position,
-				Present:    true,
-				PickupTime: pickupTime,
-			})
-		}
-	}
-	
-	// Create driver log
-	driverLog := DriverLog{
-		Driver:     user.Username,
-		BusID:      busID,
-		RouteID:    routeID,
-		Date:       date,
-		Period:     period,
-		Departure:  departure,
-		Arrival:    arrival,
-		Mileage:    mileage,
-		Attendance: attendance,
-	}
-	
-	// Save log
-	if err := saveDriverLog(driverLog); err != nil {
-		http.Error(w, "Failed to save log", http.StatusInternalServerError)
-		return
-	}
-	
-	// Redirect back to dashboard
-	http.Redirect(w, r, fmt.Sprintf("/driver-dashboard?date=%s&period=%s", date, period), http.StatusFound)
-}
-	
-	// Validate CSRF token
-	cookie, _ := r.Cookie("session_id")
-	if !ValidateCSRFToken(cookie.Value, r.FormValue("csrf_token")) {
-		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-		return
-	}
-	
-	// Get form values
-	date := r.FormValue("date")
-	period := r.FormValue("period")
-	departure := r.FormValue("departure")
-	arrival := r.FormValue("arrival")
-	mileageStr := r.FormValue("mileage")
-	routeID := r.FormValue("route_id")
-	busID := r.FormValue("bus_id")
-	
-	// Convert mileage
-	var mileage float64
-	fmt.Sscanf(mileageStr, "%f", &mileage)
-	
-	// Build attendance records
-	var attendance []struct {
-		Position   int    `json:"position"`
-		Present    bool   `json:"present"`
-		PickupTime string `json:"pickup_time,omitempty"`
-	}
-	
-	// Process attendance checkboxes
-	for key, values := range r.Form {
+	for key, _ := range r.Form {
 		if len(key) > 8 && key[:8] == "present_" {
 			var position int
 			fmt.Sscanf(key[8:], "%d", &position)
