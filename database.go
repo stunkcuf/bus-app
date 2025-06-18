@@ -9,6 +9,7 @@ import (
     
     "github.com/jmoiron/sqlx"
     _ "github.com/lib/pq"
+    "golang.org/x/crypto/bcrypt"
 )
 
 var db *sqlx.DB
@@ -247,17 +248,125 @@ func runMigrations() error {
         }
     }
     
-    // Insert default admin user if it doesn't exist
-    _, err := db.Exec(`
-        INSERT INTO users (username, password, role) 
-        VALUES ('admin', 'adminpass', 'manager')
-        ON CONFLICT (username) DO NOTHING
-    `)
-    if err != nil {
+    // Create default admin user with HASHED password
+    if err := createDefaultAdminUser(); err != nil {
         log.Printf("Warning: Failed to create default admin user: %v", err)
     }
     
+    // Auto-migrate any plain text passwords
+    if err := autoMigratePasswords(); err != nil {
+        log.Printf("Warning: Failed to auto-migrate passwords: %v", err)
+    }
+    
     log.Println("Database migrations completed successfully")
+    return nil
+}
+
+// createDefaultAdminUser creates a default admin with hashed password
+func createDefaultAdminUser() error {
+    // Check if admin already exists
+    var count int
+    err := db.Get(&count, "SELECT COUNT(*) FROM users WHERE username = 'admin'")
+    if err != nil {
+        return fmt.Errorf("failed to check for admin user: %v", err)
+    }
+    
+    if count > 0 {
+        log.Println("Admin user already exists")
+        return nil
+    }
+    
+    // Hash the default password
+    hashedPassword, err := bcrypt.GenerateFromPassword([]byte("adminpass"), 12)
+    if err != nil {
+        return fmt.Errorf("failed to hash default password: %v", err)
+    }
+    
+    // Insert the admin user
+    _, err = db.Exec(`
+        INSERT INTO users (username, password, role) 
+        VALUES ('admin', $1, 'manager')
+    `, string(hashedPassword))
+    
+    if err != nil {
+        return fmt.Errorf("failed to insert admin user: %v", err)
+    }
+    
+    log.Println("Created default admin user with username: admin, password: adminpass")
+    return nil
+}
+
+// autoMigratePasswords automatically migrates any plain text passwords to bcrypt
+func autoMigratePasswords() error {
+    log.Println("Checking for plain text passwords to migrate...")
+    
+    // Get all users
+    rows, err := db.Query("SELECT username, password FROM users")
+    if err != nil {
+        return fmt.Errorf("failed to query users: %v", err)
+    }
+    defer rows.Close()
+    
+    type UserToCheck struct {
+        Username string
+        Password string
+    }
+    
+    var users []UserToCheck
+    for rows.Next() {
+        var user UserToCheck
+        if err := rows.Scan(&user.Username, &user.Password); err != nil {
+            log.Printf("Error scanning user: %v", err)
+            continue
+        }
+        users = append(users, user)
+    }
+    
+    migratedCount := 0
+    
+    // Begin transaction
+    tx, err := db.Begin()
+    if err != nil {
+        return fmt.Errorf("failed to begin transaction: %v", err)
+    }
+    defer tx.Rollback()
+    
+    for _, user := range users {
+        // Check if password is already hashed (bcrypt hashes start with $2a$, $2b$, or $2y$)
+        if len(user.Password) > 4 && user.Password[0] == '$' && user.Password[1] == '2' {
+            continue // Already hashed
+        }
+        
+        // Hash the plain text password
+        hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
+        if err != nil {
+            log.Printf("Failed to hash password for user %s: %v", user.Username, err)
+            continue
+        }
+        
+        // Update the user's password
+        _, err = tx.Exec("UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE username = $2",
+            string(hashedPassword), user.Username)
+        if err != nil {
+            log.Printf("Failed to update password for user %s: %v", user.Username, err)
+            continue
+        }
+        
+        log.Printf("Migrated password for user: %s", user.Username)
+        migratedCount++
+    }
+    
+    // Commit transaction
+    if err := tx.Commit(); err != nil {
+        return fmt.Errorf("failed to commit transaction: %v", err)
+    }
+    
+    if migratedCount > 0 {
+        log.Printf("Successfully migrated %d passwords to bcrypt", migratedCount)
+    } else {
+        log.Println("No plain text passwords found to migrate")
+    }
+    
     return nil
 }
 
