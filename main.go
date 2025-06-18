@@ -67,7 +67,7 @@ func main() {
 	mux.HandleFunc("/dashboard", withRecovery(requireAuth(dashboardRouter)))
 	mux.HandleFunc("/manager-dashboard", withRecovery(requireAuth(requireRole("manager")(managerDashboard))))
 	mux.HandleFunc("/driver-dashboard", withRecovery(requireAuth(requireRole("driver")(driverDashboard))))
-	mux.HandleFunc("/save-log", withRecovery(requireAuth(requireRole("driver")(saveDriverLog))))
+	mux.HandleFunc("/save-log", withRecovery(requireAuth(requireRole("driver")(saveDriverLogHandler))))
 	mux.HandleFunc("/remove-user", withRecovery(requireAuth(requireRole("manager")(removeUserHandler))))
 	
 	// Student routes
