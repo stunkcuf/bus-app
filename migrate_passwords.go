@@ -1,3 +1,6 @@
+//go:build migrate
+// +build migrate
+
 // migrate_passwords.go - Script to migrate plain text passwords to bcrypt hashes
 package main
 
