@@ -92,19 +92,28 @@ func validateRouteAssignment(assignment RouteAssignment) error {
 	return nil
 }
 
-// getUserFromSession retrieves the user from the session cookie
+// getUserFromSession retrieves the user from the secure session
 func getUserFromSession(r *http.Request) *User {
-	cookie, err := r.Cookie("session_user")
+	// Get session cookie
+	cookie, err := r.Cookie("session_id")
 	if err != nil {
 		return nil
 	}
 	
-	uname := cookie.Value
-	for _, u := range loadUsers() {
-		if u.Username == uname {
+	// Get session data
+	session, exists := GetSecureSession(cookie.Value)
+	if !exists {
+		return nil
+	}
+	
+	// Load user from database
+	users := loadUsers()
+	for _, u := range users {
+		if u.Username == session.Username {
 			return &u
 		}
 	}
+	
 	return nil
 }
 
