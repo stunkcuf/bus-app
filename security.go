@@ -341,9 +341,9 @@ func ClearUserSessions(username string) {
 	}
 }
 
-// SecurityHeaders adds security headers to responses
-func SecurityHeaders(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+// SecurityHeaders middleware that works with http.Handler
+func SecurityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Security headers
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
@@ -354,10 +354,10 @@ func SecurityHeaders(next http.HandlerFunc) http.HandlerFunc {
 		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		
 		// Basic CSP
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net;")
 		
-		next(w, r)
-	}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // ==============================================================
