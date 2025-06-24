@@ -18,20 +18,71 @@ func loadUsers() []User {
 		return []User{}
 	}
 	
-	rows, err := db.Query("SELECT username, password, role FROM users ORDER BY username")
+	// Try to load with status and registration_date first
+	rows, err := db.Query(`
+		SELECT username, password, role, 
+		       COALESCE(status, 'active') as status,
+		       COALESCE(registration_date::text, created_at::text, '') as registration_date
+		FROM users 
+		ORDER BY username
+	`)
+	
 	if err != nil {
-		log.Printf("Error loading users from DB: %v", err)
-		return []User{}
+		// Fallback to original query if new columns don't exist
+		log.Printf("Loading users without new columns, trying basic query: %v", err)
+		rows, err = db.Query("SELECT username, password, role FROM users ORDER BY username")
+		if err != nil {
+			log.Printf("Error loading users from DB: %v", err)
+			return []User{}
+		}
+		defer rows.Close()
+
+		var users []User
+		for rows.Next() {
+			var user User
+			if err := rows.Scan(&user.Username, &user.Password, &user.Role); err != nil {
+				log.Printf("Error scanning user: %v", err)
+				continue
+			}
+			// Set defaults for missing fields
+			user.Status = "active"
+			user.RegistrationDate = ""
+			users = append(users, user)
+		}
+		return users
 	}
 	defer rows.Close()
 
 	var users []User
 	for rows.Next() {
 		var user User
-		if err := rows.Scan(&user.Username, &user.Password, &user.Role); err != nil {
-			log.Printf("Error scanning user: %v", err)
-			continue
+		var status, regDate sql.NullString
+		
+		if err := rows.Scan(&user.Username, &user.Password, &user.Role, 
+			&status, &regDate); err != nil {
+			log.Printf("Error scanning user with full fields: %v", err)
+			// Try simpler scan
+			if err := rows.Scan(&user.Username, &user.Password, &user.Role); err != nil {
+				log.Printf("Error scanning basic user fields: %v", err)
+				continue
+			}
+			user.Status = "active"
+			user.RegistrationDate = ""
+		} else {
+			// Use the scanned values
+			if status.Valid {
+				user.Status = status.String
+			} else {
+				user.Status = "active"
+			}
+			
+			if regDate.Valid {
+				user.RegistrationDate = regDate.String
+			} else {
+				user.RegistrationDate = ""
+			}
 		}
+		
 		users = append(users, user)
 	}
 	return users
@@ -42,12 +93,21 @@ func saveUser(user User) error {
 		return fmt.Errorf("database connection not available")
 	}
 	
+	// Set default status if not provided
+	if user.Status == "" {
+		user.Status = "active"
+	}
+	
 	_, err := db.Exec(`
-		INSERT INTO users (username, password, role) 
-		VALUES ($1, $2, $3)
+		INSERT INTO users (username, password, role, status) 
+		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (username) 
-		DO UPDATE SET password = $2, role = $3, updated_at = CURRENT_TIMESTAMP
-	`, user.Username, user.Password, user.Role)
+		DO UPDATE SET 
+			password = $2, 
+			role = $3, 
+			status = $4,
+			updated_at = CURRENT_TIMESTAMP
+	`, user.Username, user.Password, user.Role, user.Status)
 	
 	return err
 }
@@ -64,12 +124,21 @@ func saveUsers(users []User) error {
 	defer tx.Rollback()
 	
 	for _, user := range users {
+		// Set default status if not provided
+		if user.Status == "" {
+			user.Status = "active"
+		}
+		
 		_, err := tx.Exec(`
-			INSERT INTO users (username, password, role) 
-			VALUES ($1, $2, $3)
+			INSERT INTO users (username, password, role, status) 
+			VALUES ($1, $2, $3, $4)
 			ON CONFLICT (username) 
-			DO UPDATE SET password = $2, role = $3, updated_at = CURRENT_TIMESTAMP
-		`, user.Username, user.Password, user.Role)
+			DO UPDATE SET 
+				password = $2, 
+				role = $3, 
+				status = $4,
+				updated_at = CURRENT_TIMESTAMP
+		`, user.Username, user.Password, user.Role, user.Status)
 		
 		if err != nil {
 			return fmt.Errorf("failed to save user %s: %w", user.Username, err)
