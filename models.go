@@ -3,11 +3,11 @@ package main
 
 // User represents a system user (driver or manager)
 type User struct {
-    Username         string `json:"username"`
-    Password         string `json:"password"` 
-    Role             string `json:"role"`
-    Status           string `json:"status"`           // New field
-    RegistrationDate string `json:"registration_date"` // New field
+	Username         string `json:"username"`
+	Password         string `json:"password"` // This will store bcrypt hash
+	Role             string `json:"role"`     // driver, manager, or driver_pending
+	Status           string `json:"status"`           // active, pending, or suspended
+	RegistrationDate string `json:"registration_date"` // When the user registered
 }
 
 // Attendance tracks student attendance
