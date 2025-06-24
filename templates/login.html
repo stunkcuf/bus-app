@@ -148,6 +148,16 @@
       color: #5a6fd8;
     }
     
+    .alert-info {
+      background: var(--grad-info);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    
     @keyframes fadeInUp {
       from {
         opacity: 0;
@@ -175,7 +185,13 @@
         <p class="login-subtitle">Sign in to your Fleet Management account</p>
       </div>
       <div class="login-body">
-        <form method="POST" action="/login" id="loginForm">
+        {{if .Error}}
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle me-2"></i>{{.Error}}
+        </div>
+        {{end}}
+        
+        <form method="POST" action="/" id="loginForm">
           <div class="mb-3">
             <label for="username" class="form-label">
               <i class="bi bi-person me-2"></i>Username
@@ -205,6 +221,11 @@
         
         <div class="login-footer">
           <small class="text-muted">Fleet Management System v2.0</small>
+          <div class="mt-3">
+            <a href="/register">
+              <i class="bi bi-person-plus me-1"></i>New Driver? Register Here
+            </a>
+          </div>
         </div>
       </div>
     </div>
