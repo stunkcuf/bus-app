@@ -61,9 +61,6 @@ func main() {
 	mux.HandleFunc("/approve-users", withRecovery(requireAuth(requireRole("manager")(approveUsersHandler))))
 	mux.HandleFunc("/approve-user", withRecovery(requireAuth(requireRole("manager")(approveUserHandler))))
 	
-	// Replace the existing login handler with the new one that checks for pending status
-	mux.HandleFunc("/", withRecovery(RateLimitMiddleware(loginHandlerWithApproval)))
-	
 	// Public routes
 	mux.HandleFunc("/", withRecovery(RateLimitMiddleware(loginHandlerWithApproval)))
 	mux.HandleFunc("/logout", withRecovery(logout))
@@ -119,6 +116,7 @@ func main() {
 		log.Fatalf("Server error: %v", err)
 	}
 }
+
 // Add these handlers to your main.go file
 
 // ============= REGISTRATION HANDLERS =============
@@ -390,85 +388,12 @@ func loginHandlerWithApproval(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, "login.html", data)
 }
 
-
-
 // ============= HANDLERS =============
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status":"ok","service":"bus-fleet-management","timestamp":"` + time.Now().Format(time.RFC3339) + `"}`))
-}
-
-func loginHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		// Check if already logged in
-		cookie, err := r.Cookie("session_id")
-		if err == nil {
-			if session, exists := GetSecureSession(cookie.Value); exists {
-				if session.Role == "manager" {
-					http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
-				} else {
-					http.Redirect(w, r, "/driver-dashboard", http.StatusFound)
-				}
-				return
-			}
-		}
-		
-		csrfToken, _ := GenerateSecureToken()
-		data := LoginFormData{
-			CSRFToken: csrfToken,
-		}
-		executeTemplate(w, "login.html", data)
-		return
-	}
-
-	// Handle POST
-	username := SanitizeFormValue(r, "username")
-	password := r.FormValue("password")
-
-	// Validate username format
-	if !ValidateUsername(username) {
-		csrfToken, _ := GenerateSecureToken()
-		data := LoginFormData{
-			Error:     "Invalid username format",
-			CSRFToken: csrfToken,
-		}
-		executeTemplate(w, "login.html", data)
-		return
-	}
-
-	// Check credentials
-	users := loadUsers()
-	for _, user := range users {
-		if user.Username == username && CheckPasswordHash(password, user.Password) {
-			// Create session
-			sessionID, _, err := CreateSecureSession(username, user.Role)
-			if err != nil {
-				http.Error(w, "Session creation failed", http.StatusInternalServerError)
-				return
-			}
-			
-			// Set session cookie
-			SetSecureCookie(w, "session_id", sessionID)
-			
-			// Redirect based on role
-			if user.Role == "manager" {
-				http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
-			} else {
-				http.Redirect(w, r, "/driver-dashboard", http.StatusFound)
-			}
-			return
-		}
-	}
-
-	// Invalid credentials
-	csrfToken, _ := GenerateSecureToken()
-	data := LoginFormData{
-		Error:     "Invalid username or password",
-		CSRFToken: csrfToken,
-	}
-	executeTemplate(w, "login.html", data)
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
@@ -941,6 +866,13 @@ func addStudentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Validate CSRF token
+	cookie, _ := r.Cookie("session_id")
+	if !ValidateCSRFToken(cookie.Value, r.FormValue("csrf_token")) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+	
 	// Generate student ID
 	students := loadStudents()
 	studentID := fmt.Sprintf("STU%03d", len(students)+1)
@@ -1037,6 +969,13 @@ func editStudentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Validate CSRF token
+	cookie, _ := r.Cookie("session_id")
+	if !ValidateCSRFToken(cookie.Value, r.FormValue("csrf_token")) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+	
 	studentID := r.FormValue("student_id")
 	
 	// Find existing student
@@ -1119,6 +1058,13 @@ func removeStudentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate CSRF token
+	cookie, _ := r.Cookie("session_id")
+	if !ValidateCSRFToken(cookie.Value, r.FormValue("csrf_token")) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+	
 	studentID := r.FormValue("student_id")
 	if studentID == "" {
 		http.Error(w, "Student ID required", http.StatusBadRequest)
@@ -1208,6 +1154,17 @@ func updateVehicleStatus(w http.ResponseWriter, r *http.Request) {
 	// Parse form
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+	
+	// Validate CSRF token (if provided - this might be called via AJAX)
+	cookie, _ := r.Cookie("session_id")
+	csrfToken := r.FormValue("csrf_token")
+	if csrfToken == "" {
+		csrfToken = r.Header.Get("X-CSRF-Token")
+	}
+	if csrfToken != "" && !ValidateCSRFToken(cookie.Value, csrfToken) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
 		return
 	}
 	
@@ -1317,6 +1274,13 @@ func assignRouteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Validate CSRF token
+	cookie, _ := r.Cookie("session_id")
+	if !ValidateCSRFToken(cookie.Value, r.FormValue("csrf_token")) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+	
 	driver := r.FormValue("driver")
 	busID := r.FormValue("bus_id")
 	routeID := r.FormValue("route_id")
@@ -1366,6 +1330,13 @@ func unassignRouteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Validate CSRF token
+	cookie, _ := r.Cookie("session_id")
+	if !ValidateCSRFToken(cookie.Value, r.FormValue("csrf_token")) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+	
 	driver := r.FormValue("driver")
 	if driver == "" {
 		http.Error(w, "Driver required", http.StatusBadRequest)
@@ -1389,6 +1360,13 @@ func addRouteHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	// Validate CSRF token
+	cookie, _ := r.Cookie("session_id")
+	if !ValidateCSRFToken(cookie.Value, r.FormValue("csrf_token")) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
 		return
 	}
 	
@@ -1431,6 +1409,13 @@ func editRouteHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	// Validate CSRF token
+	cookie, _ := r.Cookie("session_id")
+	if !ValidateCSRFToken(cookie.Value, r.FormValue("csrf_token")) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
 		return
 	}
 	
@@ -1477,6 +1462,13 @@ func deleteRouteHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	// Validate CSRF token
+	cookie, _ := r.Cookie("session_id")
+	if !ValidateCSRFToken(cookie.Value, r.FormValue("csrf_token")) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
 		return
 	}
 	
