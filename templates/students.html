@@ -401,6 +401,7 @@
                 <i class="bi bi-pencil me-1"></i>Edit
               </button>
               <form method="POST" action="/remove-student" class="remove-student-form">
+                <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                 <input type="hidden" name="student_id" value="{{.StudentID}}">
                 <button type="submit" class="btn btn-sm btn-outline-danger">
                   <i class="bi bi-trash"></i>
@@ -441,6 +442,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <form method="POST" action="/add-student" id="addStudentForm">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
           <div class="modal-body">
             <div class="row">
               <div class="col-md-6">
@@ -581,6 +583,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <form method="POST" action="/edit-student" id="editStudentForm">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
           <input type="hidden" name="student_id" id="edit_student_id">
           <div class="modal-body">
             <!-- Edit form fields would be similar to add form -->
