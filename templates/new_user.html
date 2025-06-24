@@ -198,6 +198,7 @@
           </div>
           <div class="card-body p-4">
             <form method="POST" id="newUserForm">
+              <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
               <div class="mb-4">
                 <label for="username" class="form-label">
                   <i class="bi bi-person me-2"></i>Username
