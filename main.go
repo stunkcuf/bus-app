@@ -53,7 +53,17 @@ func main() {
 	defer closeDatabase()
 
 	mux := http.NewServeMux()
-
+	
+	// Public registration routes
+	mux.HandleFunc("/register", withRecovery(RateLimitMiddleware(registerHandler)))
+	
+	// Manager routes for approving users
+	mux.HandleFunc("/approve-users", withRecovery(requireAuth(requireRole("manager")(approveUsersHandler))))
+	mux.HandleFunc("/approve-user", withRecovery(requireAuth(requireRole("manager")(approveUserHandler))))
+	
+	// Replace the existing login handler with the new one that checks for pending status
+	mux.HandleFunc("/", withRecovery(RateLimitMiddleware(loginHandlerWithApproval)))
+	
 	// Public routes
 	mux.HandleFunc("/", withRecovery(RateLimitMiddleware(loginHandler)))
 	mux.HandleFunc("/logout", withRecovery(logout))
@@ -109,6 +119,278 @@ func main() {
 		log.Fatalf("Server error: %v", err)
 	}
 }
+// Add these handlers to your main.go file
+
+// ============= REGISTRATION HANDLERS =============
+
+func registerHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		data := struct {
+			Error string
+		}{}
+		executeTemplate(w, "register.html", data)
+		return
+	}
+
+	// Handle POST - new registration
+	username := SanitizeFormValue(r, "username")
+	password := r.FormValue("password")
+
+	// Validate username format
+	if !ValidateUsername(username) {
+		data := struct {
+			Error string
+		}{
+			Error: "Invalid username format. Use 3-20 characters, letters and numbers only.",
+		}
+		executeTemplate(w, "register.html", data)
+		return
+	}
+
+	// Validate password length
+	if len(password) < 6 {
+		data := struct {
+			Error string
+		}{
+			Error: "Password must be at least 6 characters long.",
+		}
+		executeTemplate(w, "register.html", data)
+		return
+	}
+
+	// Check if username already exists
+	users := loadUsers()
+	for _, user := range users {
+		if user.Username == username {
+			data := struct {
+				Error string
+			}{
+				Error: "Username already exists. Please choose another.",
+			}
+			executeTemplate(w, "register.html", data)
+			return
+		}
+	}
+
+	// Hash password
+	hashedPassword, err := HashPassword(password)
+	if err != nil {
+		http.Error(w, "Failed to process registration", http.StatusInternalServerError)
+		return
+	}
+
+	// Create pending user (driver by default, pending approval)
+	newUser := User{
+		Username: username,
+		Password: hashedPassword,
+		Role:     "driver_pending", // Special role for pending approval
+	}
+
+	if err := saveUser(newUser); err != nil {
+		data := struct {
+			Error string
+		}{
+			Error: "Failed to create account. Please try again.",
+		}
+		executeTemplate(w, "register.html", data)
+		return
+	}
+
+	// Show success page
+	executeTemplate(w, "registration_success.html", nil)
+}
+
+func approveUsersHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	// Get all pending users
+	allUsers := loadUsers()
+	var pendingUsers []struct {
+		Username  string
+		CreatedAt string
+	}
+
+	for _, u := range allUsers {
+		if u.Role == "driver_pending" {
+			pendingUsers = append(pendingUsers, struct {
+				Username  string
+				CreatedAt string
+			}{
+				Username:  u.Username,
+				CreatedAt: "Recently", // You could add timestamp to User struct
+			})
+		}
+	}
+
+	// Get CSRF token from session
+	cookie, _ := r.Cookie("session_id")
+	session, _ := GetSecureSession(cookie.Value)
+
+	data := struct {
+		PendingUsers []struct {
+			Username  string
+			CreatedAt string
+		}
+		CSRFToken string
+	}{
+		PendingUsers: pendingUsers,
+		CSRFToken:    session.CSRFToken,
+	}
+
+	executeTemplate(w, "approve_users.html", data)
+}
+
+func approveUserHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusForbidden)
+		return
+	}
+
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Validate CSRF token
+	cookie, _ := r.Cookie("session_id")
+	if !ValidateCSRFToken(cookie.Value, r.FormValue("csrf_token")) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+
+	username := r.FormValue("username")
+	action := r.FormValue("action")
+
+	if username == "" || (action != "approve" && action != "reject") {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	// Load all users
+	users := loadUsers()
+	updated := false
+
+	for i, u := range users {
+		if u.Username == username && u.Role == "driver_pending" {
+			if action == "approve" {
+				users[i].Role = "driver" // Change to active driver
+			} else {
+				// For reject, we'll delete the user
+				if err := deleteUser(username); err != nil {
+					http.Error(w, "Failed to process request", http.StatusInternalServerError)
+					return
+				}
+				http.Redirect(w, r, "/approve-users", http.StatusFound)
+				return
+			}
+			updated = true
+			break
+		}
+	}
+
+	if !updated {
+		http.Error(w, "User not found or already processed", http.StatusNotFound)
+		return
+	}
+
+	// Save the updated users
+	if err := saveUsers(users); err != nil {
+		http.Error(w, "Failed to update user", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/approve-users", http.StatusFound)
+}
+
+// Update your loginHandler to check for pending users
+func loginHandlerWithApproval(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		// Check if already logged in
+		cookie, err := r.Cookie("session_id")
+		if err == nil {
+			if session, exists := GetSecureSession(cookie.Value); exists {
+				if session.Role == "manager" {
+					http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
+				} else {
+					http.Redirect(w, r, "/driver-dashboard", http.StatusFound)
+				}
+				return
+			}
+		}
+		
+		csrfToken, _ := GenerateSecureToken()
+		data := LoginFormData{
+			CSRFToken: csrfToken,
+		}
+		executeTemplate(w, "login.html", data)
+		return
+	}
+
+	// Handle POST
+	username := SanitizeFormValue(r, "username")
+	password := r.FormValue("password")
+
+	// Validate username format
+	if !ValidateUsername(username) {
+		csrfToken, _ := GenerateSecureToken()
+		data := LoginFormData{
+			Error:     "Invalid username format",
+			CSRFToken: csrfToken,
+		}
+		executeTemplate(w, "login.html", data)
+		return
+	}
+
+	// Check credentials
+	users := loadUsers()
+	for _, user := range users {
+		if user.Username == username && CheckPasswordHash(password, user.Password) {
+			// Check if user is pending approval
+			if user.Role == "driver_pending" {
+				csrfToken, _ := GenerateSecureToken()
+				data := LoginFormData{
+					Error:     "Your account is pending approval. Please wait for a manager to approve your registration.",
+					CSRFToken: csrfToken,
+				}
+				executeTemplate(w, "login.html", data)
+				return
+			}
+
+			// Create session for approved users only
+			sessionID, _, err := CreateSecureSession(username, user.Role)
+			if err != nil {
+				http.Error(w, "Session creation failed", http.StatusInternalServerError)
+				return
+			}
+			
+			// Set session cookie
+			SetSecureCookie(w, "session_id", sessionID)
+			
+			// Redirect based on role
+			if user.Role == "manager" {
+				http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
+			} else {
+				http.Redirect(w, r, "/driver-dashboard", http.StatusFound)
+			}
+			return
+		}
+	}
+
+	// Invalid credentials
+	csrfToken, _ := GenerateSecureToken()
+	data := LoginFormData{
+		Error:     "Invalid username or password",
+		CSRFToken: csrfToken,
+	}
+	executeTemplate(w, "login.html", data)
+}
+
+
 
 // ============= HANDLERS =============
 
