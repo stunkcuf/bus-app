@@ -1,4 +1,4 @@
-// database.go - Complete PostgreSQL Database Operations
+// database.go - Complete PostgreSQL Database Operations with Registration System
 package main
 
 import (
@@ -76,12 +76,14 @@ func initDatabase() error {
 func runMigrations() error {
     // Read and execute the schema
     schema := `
-    -- Users table
+    -- Users table with registration support
     CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         username VARCHAR(50) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        role VARCHAR(20) NOT NULL CHECK (role IN ('driver', 'manager')),
+        role VARCHAR(20) NOT NULL CHECK (role IN ('driver', 'manager', 'driver_pending')),
+        status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'pending', 'suspended')),
+        registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -240,12 +242,19 @@ func runMigrations() error {
         "CREATE INDEX IF NOT EXISTS idx_driver_logs_driver_date ON driver_logs(driver, date)",
         "CREATE INDEX IF NOT EXISTS idx_maintenance_bus_date ON bus_maintenance_logs(bus_id, date)",
         "CREATE INDEX IF NOT EXISTS idx_route_assignments_driver ON route_assignments(driver)",
+        "CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)",
+        "CREATE INDEX IF NOT EXISTS idx_users_status ON users(status)",
     }
     
     for _, idx := range indexes {
         if _, err := db.Exec(idx); err != nil {
             log.Printf("Warning: Failed to create index: %v", err)
         }
+    }
+    
+    // Update existing tables for registration system
+    if err := updateUsersTableForRegistration(); err != nil {
+        log.Printf("Warning: Failed to update users table for registration: %v", err)
     }
     
     // Create default admin user with HASHED password
@@ -259,6 +268,107 @@ func runMigrations() error {
     }
     
     log.Println("Database migrations completed successfully")
+    return nil
+}
+
+// updateUsersTableForRegistration adds registration support to existing users table
+func updateUsersTableForRegistration() error {
+    // First, check if we need to add the driver_pending role
+    var constraintExists bool
+    err := db.Get(&constraintExists, `
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.check_constraints 
+            WHERE constraint_name LIKE 'users_role_check%'
+            AND check_clause LIKE '%driver_pending%'
+        )
+    `)
+    
+    if err != nil {
+        log.Printf("Warning: Could not check role constraint: %v", err)
+    }
+    
+    if !constraintExists {
+        // We need to drop and recreate the constraint to include driver_pending
+        _, err = db.Exec(`
+            ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+            ALTER TABLE users ADD CONSTRAINT users_role_check 
+            CHECK (role IN ('driver', 'manager', 'driver_pending'));
+        `)
+        
+        if err != nil {
+            log.Printf("Warning: Failed to update role constraint: %v", err)
+        } else {
+            log.Println("Updated users role constraint to include driver_pending")
+        }
+    }
+    
+    // Check if status column exists
+    var statusExists bool
+    err = db.Get(&statusExists, `
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'users' 
+            AND column_name = 'status'
+        )
+    `)
+    
+    if err != nil {
+        return fmt.Errorf("failed to check status column existence: %v", err)
+    }
+    
+    if !statusExists {
+        // Add status column to existing users table
+        _, err = db.Exec(`
+            ALTER TABLE users 
+            ADD COLUMN status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'pending', 'suspended'))
+        `)
+        
+        if err != nil {
+            return fmt.Errorf("failed to add status column: %v", err)
+        }
+        
+        log.Println("Added status column to users table")
+        
+        // Update existing users to be active
+        _, err = db.Exec(`UPDATE users SET status = 'active' WHERE status IS NULL`)
+        if err != nil {
+            return fmt.Errorf("failed to update existing users status: %v", err)
+        }
+    }
+    
+    // Check if registration_date column exists
+    var regDateExists bool
+    err = db.Get(&regDateExists, `
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'users' 
+            AND column_name = 'registration_date'
+        )
+    `)
+    
+    if err != nil {
+        return fmt.Errorf("failed to check registration_date existence: %v", err)
+    }
+    
+    if !regDateExists {
+        _, err = db.Exec(`
+            ALTER TABLE users 
+            ADD COLUMN registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        `)
+        
+        if err != nil {
+            return fmt.Errorf("failed to add registration_date column: %v", err)
+        }
+        
+        log.Println("Added registration_date column to users table")
+        
+        // Update existing users with current timestamp
+        _, err = db.Exec(`UPDATE users SET registration_date = CURRENT_TIMESTAMP WHERE registration_date IS NULL`)
+        if err != nil {
+            log.Printf("Warning: Failed to update registration_date for existing users: %v", err)
+        }
+    }
+    
     return nil
 }
 
@@ -284,8 +394,8 @@ func createDefaultAdminUser() error {
     
     // Insert the admin user
     _, err = db.Exec(`
-        INSERT INTO users (username, password, role) 
-        VALUES ('admin', $1, 'manager')
+        INSERT INTO users (username, password, role, status) 
+        VALUES ('admin', $1, 'manager', 'active')
     `, string(hashedPassword))
     
     if err != nil {
@@ -301,7 +411,7 @@ func autoMigratePasswords() error {
     log.Println("Checking for plain text passwords to migrate...")
     
     // Get all users
-    rows, err := db.Query("SELECT username, password FROM users")
+    rows, err := db.Query("SELECT username, password FROM users WHERE role != 'driver_pending'")
     if err != nil {
         return fmt.Errorf("failed to query users: %v", err)
     }
