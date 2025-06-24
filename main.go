@@ -65,7 +65,7 @@ func main() {
 	mux.HandleFunc("/", withRecovery(RateLimitMiddleware(loginHandlerWithApproval)))
 	
 	// Public routes
-	mux.HandleFunc("/", withRecovery(RateLimitMiddleware(loginHandler)))
+	mux.HandleFunc("/", withRecovery(RateLimitMiddleware(loginHandlerWithApproval)))
 	mux.HandleFunc("/logout", withRecovery(logout))
 	mux.HandleFunc("/health", withRecovery(healthCheck))
 
