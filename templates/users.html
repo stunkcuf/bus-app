@@ -218,6 +218,7 @@
             </div>
 
             <form method="POST" action="/edit-user" id="editUserForm">
+              <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
               <input type="hidden" name="username" value="{{.Username}}">
 
               <div class="mb-4">
