@@ -243,43 +243,6 @@ func approveUsersHandler(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, "approve_users.html", data)
 }
 
-// createDefaultAdminUser creates a default admin with hashed password
-// NOTE: The admin account is a system account and is hidden from the UI
-// It should only be used for initial system setup and emergency access
-func createDefaultAdminUser() error {
-    // Check if admin already exists
-    var count int
-    err := db.Get(&count, "SELECT COUNT(*) FROM users WHERE username = 'admin'")
-    if err != nil {
-        return fmt.Errorf("failed to check for admin user: %v", err)
-    }
-    
-    if count > 0 {
-        log.Println("Admin user already exists")
-        return nil
-    }
-    
-    // Hash the default password
-    hashedPassword, err := bcrypt.GenerateFromPassword([]byte("adminpass"), 12)
-    if err != nil {
-        return fmt.Errorf("failed to hash default password: %v", err)
-    }
-    
-    // Insert the admin user
-    _, err = db.Exec(`
-        INSERT INTO users (username, password, role, status) 
-        VALUES ('admin', $1, 'manager', 'active')
-    `, string(hashedPassword))
-    
-    if err != nil {
-        return fmt.Errorf("failed to insert admin user: %v", err)
-    }
-    
-    log.Println("Created default admin user with username: admin, password: adminpass")
-    log.Println("NOTE: This account is hidden from the UI and should only be used for system administration")
-    return nil
-}
-
 func approveUserHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
