@@ -684,8 +684,9 @@ func editUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	username := r.FormValue("username")
-	password := r.FormValue("password")
+	action := r.FormValue("action")
 	role := r.FormValue("role")
+	password := r.FormValue("password")
 	
 	// Validate inputs
 	if username == "" {
@@ -693,30 +694,12 @@ func editUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	if len(password) < 6 {
-		http.Error(w, "Password must be at least 6 characters", http.StatusBadRequest)
-		return
-	}
-	
-	if role != "driver" && role != "manager" {
-		http.Error(w, "Invalid role", http.StatusBadRequest)
-		return
-	}
-	
-	// Hash password
-	hashedPassword, err := HashPassword(password)
-	if err != nil {
-		log.Printf("Failed to hash password: %v", err)
-		http.Error(w, "Failed to hash password", http.StatusInternalServerError)
-		return
-	}
-	
 	// Load the existing user to preserve other fields
 	users := loadUsers()
 	var existingUser *User
-	for _, u := range users {
-		if u.Username == username {
-			existingUser = &u
+	for i := range users {
+		if users[i].Username == username {
+			existingUser = &users[i]
 			break
 		}
 	}
@@ -726,17 +709,67 @@ func editUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Update only the changed fields
-	existingUser.Password = hashedPassword
-	existingUser.Role = role
+	// Handle different actions
+	switch action {
+	case "update_role":
+		// Only update role, no password required
+		if role != "driver" && role != "manager" {
+			http.Error(w, "Invalid role", http.StatusBadRequest)
+			return
+		}
+		existingUser.Role = role
+		
+	case "reset_password":
+		// Only update password, keep existing role
+		if len(password) < 6 {
+			http.Error(w, "Password must be at least 6 characters", http.StatusBadRequest)
+			return
+		}
+		
+		// Hash the new password
+		hashedPassword, err := HashPassword(password)
+		if err != nil {
+			log.Printf("Failed to hash password: %v", err)
+			http.Error(w, "Failed to hash password", http.StatusInternalServerError)
+			return
+		}
+		existingUser.Password = hashedPassword
+		
+	default:
+		// Legacy behavior - update both role and password if provided
+		if role != "" && role != "driver" && role != "manager" {
+			http.Error(w, "Invalid role", http.StatusBadRequest)
+			return
+		}
+		
+		if role != "" {
+			existingUser.Role = role
+		}
+		
+		if password != "" {
+			if len(password) < 6 {
+				http.Error(w, "Password must be at least 6 characters", http.StatusBadRequest)
+				return
+			}
+			
+			hashedPassword, err := HashPassword(password)
+			if err != nil {
+				log.Printf("Failed to hash password: %v", err)
+				http.Error(w, "Failed to hash password", http.StatusInternalServerError)
+				return
+			}
+			existingUser.Password = hashedPassword
+		}
+	}
 	
-	// Save only this user (not all users) - using the function from data.go
+	// Save the updated user
 	if err := updateUser(*existingUser); err != nil {
 		log.Printf("Failed to update user %s: %v", username, err)
 		http.Error(w, "Failed to update user", http.StatusInternalServerError)
 		return
 	}
 	
+	// Redirect back to dashboard with success
 	http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
 }
 
