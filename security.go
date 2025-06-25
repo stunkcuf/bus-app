@@ -335,8 +335,8 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		// HSTS for HTTPS (Railway provides HTTPS)
 		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		
-		// Basic CSP
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net;")
+		// Basic CSP with img-src to allow data URIs for Bootstrap icons
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: https:;")
 		
 		next.ServeHTTP(w, r)
 	})
