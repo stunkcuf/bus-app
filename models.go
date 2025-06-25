@@ -194,6 +194,7 @@ type DashboardData struct {
 	Users           []User           `json:"users"`
 	Buses           []*Bus           `json:"buses"`
 	CSRFToken       string           `json:"csrf_token"` // Added for CSRF protection
+	PendingUsers    int              `json:"pending_users"` // Added for pending user count
 }
 
 // AssignRouteData is used for the route assignment page
