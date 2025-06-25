@@ -88,6 +88,33 @@ func loadUsers() []User {
 	return users
 }
 
+func updateUser(user User) error {
+	if db == nil {
+		return fmt.Errorf("database connection not available")
+	}
+	
+	// Ensure status is set
+	if user.Status == "" {
+		user.Status = "active"
+	}
+	
+	// Update only the specific user
+	_, err := db.Exec(`
+		UPDATE users 
+		SET password = $2, 
+		    role = $3, 
+		    status = $4,
+		    updated_at = CURRENT_TIMESTAMP
+		WHERE username = $1
+	`, user.Username, user.Password, user.Role, user.Status)
+	
+	if err != nil {
+		return fmt.Errorf("failed to update user %s: %w", user.Username, err)
+	}
+	
+	return nil
+}
+
 func saveUser(user User) error {
 	if db == nil {
 		return fmt.Errorf("database connection not available")
