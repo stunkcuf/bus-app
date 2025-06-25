@@ -419,6 +419,8 @@ func ensureUpdatedAtColumn() error {
 	return nil
 }
 // createDefaultAdminUser creates a default admin with hashed password
+// NOTE: The admin account is a system account and is hidden from the UI
+// It should only be used for initial system setup and emergency access
 func createDefaultAdminUser() error {
     // Check if admin already exists
     var count int
@@ -449,6 +451,7 @@ func createDefaultAdminUser() error {
     }
     
     log.Println("Created default admin user with username: admin, password: adminpass")
+    log.Println("NOTE: This account is hidden from the UI and should only be used for system administration")
     return nil
 }
 
