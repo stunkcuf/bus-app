@@ -121,6 +121,20 @@
       border-radius: 10px;
       color: #6c757d;
     }
+    
+    .system-notice {
+      background: #f8f9fa;
+      border-left: 3px solid #6c757d;
+      padding: 0.5rem 1rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+      color: #6c757d;
+      border-radius: 0 5px 5px 0;
+    }
+    
+    .system-notice i {
+      margin-right: 0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -159,7 +173,7 @@
         <div class="card-body text-center">
           <i class="bi bi-people-fill metric-icon"></i>
           <div class="metric-value" id="totalUsers">{{if .Users}}{{len .Users}}{{else}}0{{end}}</div>
-          <div class="metric-label">Total Users</div>
+          <div class="metric-label">Active Users</div>
         </div>
       </div>
     </div>
@@ -272,6 +286,12 @@
           <a href="/users" class="btn btn-outline-primary btn-sm">Manage All Users</a>
         </div>
         <div class="card-body">
+          <!-- System Notice -->
+          <div class="system-notice">
+            <i class="bi bi-info-circle"></i>
+            System accounts are hidden from this view. Showing {{len .Users}} active user accounts.
+          </div>
+          
           <div class="table-responsive">
             <table class="table table-hover">
               <thead>
@@ -376,7 +396,7 @@
     const modal = new bootstrap.Modal(document.getElementById('removeUserModal'));
     const confirmBtn = document.getElementById('confirmRemoveBtn');
 
-    // Calculate real metrics from template data
+    // Calculate real metrics from template data (system accounts already filtered)
     {{if .Users}}
     const users = [
       {{range .Users}}
@@ -387,7 +407,7 @@
     const driverCount = users.filter(user => user.role === 'driver').length;
     const managerCount = users.filter(user => user.role === 'manager').length;
     
-    // Update the counts
+    // Update the counts (excluding system accounts)
     document.getElementById('activeDrivers').textContent = driverCount;
     document.getElementById('managerCount').textContent = managerCount;
     {{else}}
