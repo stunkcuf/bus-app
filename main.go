@@ -182,6 +182,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		Username: username,
 		Password: hashedPassword,
 		Role:     "driver_pending", // Special role for pending approval
+		Status:   "pending",
 	}
 
 	if err := saveUser(newUser); err != nil {
@@ -277,6 +278,7 @@ func approveUserHandler(w http.ResponseWriter, r *http.Request) {
 		if u.Username == username && u.Role == "driver_pending" {
 			if action == "approve" {
 				users[i].Role = "driver" // Change to active driver
+				users[i].Status = "active"
 			} else {
 				// For reject, we'll delete the user
 				if err := deleteUser(username); err != nil {
@@ -605,6 +607,7 @@ func newUserHandler(w http.ResponseWriter, r *http.Request) {
 		Username: username,
 		Password: hashedPassword,
 		Role:     role,
+		Status:   "active",
 	}
 	
 	if err := saveUser(newUser); err != nil {
