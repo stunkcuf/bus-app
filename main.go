@@ -618,8 +618,6 @@ func newUserHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
 }
 
-// Replace the editUserHandler function in main.go with this corrected version:
-
 func editUserHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
@@ -722,7 +720,7 @@ func editUserHandler(w http.ResponseWriter, r *http.Request) {
 	existingUser.Password = hashedPassword
 	existingUser.Role = role
 	
-	// Save only this user (not all users)
+	// Save only this user (not all users) - using the function from data.go
 	if err := updateUser(*existingUser); err != nil {
 		log.Printf("Failed to update user %s: %v", username, err)
 		http.Error(w, "Failed to update user", http.StatusInternalServerError)
@@ -730,35 +728,6 @@ func editUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
-}
-
-// Add this new function to data.go for updating a single user:
-
-func updateUser(user User) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	// Ensure status is set
-	if user.Status == "" {
-		user.Status = "active"
-	}
-	
-	// Update only the specific user
-	_, err := db.Exec(`
-		UPDATE users 
-		SET password = $2, 
-		    role = $3, 
-		    status = $4,
-		    updated_at = CURRENT_TIMESTAMP
-		WHERE username = $1
-	`, user.Username, user.Password, user.Role, user.Status)
-	
-	if err != nil {
-		return fmt.Errorf("failed to update user %s: %w", user.Username, err)
-	}
-	
-	return nil
 }
 
 func removeUserHandler(w http.ResponseWriter, r *http.Request) {
