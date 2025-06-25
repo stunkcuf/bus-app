@@ -251,7 +251,12 @@
             <h5><i class="bi bi-person-gear me-2"></i>Update User Role</h5>
           </div>
           <div class="card-body p-4">
-            <form method="POST" action="/edit-user" id="updateRoleForm">
+            <div class="alert alert-success mb-4">
+              <i class="bi bi-check-circle me-2"></i>
+              <strong>No Password Required:</strong> Changing roles does not require entering a password.
+            </div>
+
+            <form method="POST" action="/edit-user" id="updateRoleForm" autocomplete="off">
               <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
               <input type="hidden" name="username" value="{{.Username}}">
               <input type="hidden" name="action" value="update_role">
@@ -260,12 +265,12 @@
                 <label for="role" class="form-label">
                   <i class="bi bi-person-gear me-2"></i>User Role
                 </label>
-                <select id="role" name="role" class="form-select">
+                <select id="role" name="role" class="form-select" required>
                   <option value="driver" {{if eq .Role "driver"}}selected{{end}}>
-                    <i class="bi bi-person-badge"></i> Driver - Route and student management
+                    Driver - Route and student management
                   </option>
                   <option value="manager" {{if eq .Role "manager"}}selected{{end}}>
-                    <i class="bi bi-person-gear"></i> Manager - Full system access
+                    Manager - Full system access
                   </option>
                 </select>
                 <small class="text-muted mt-2 d-block">
@@ -279,7 +284,7 @@
 
               <div class="d-grid">
                 <button type="submit" class="btn btn-primary">
-                  <i class="bi bi-check-circle me-2"></i>Update Role
+                  <i class="bi bi-check-circle me-2"></i>Update Role Only
                 </button>
               </div>
             </form>
@@ -297,7 +302,7 @@
               <strong>Password Reset:</strong> Use this section only if the user has forgotten their password or needs a security reset.
             </div>
 
-            <form method="POST" action="/edit-user" id="resetPasswordForm">
+            <form method="POST" action="/edit-user" id="resetPasswordForm" autocomplete="off">
               <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
               <input type="hidden" name="username" value="{{.Username}}">
               <input type="hidden" name="action" value="reset_password">
@@ -307,7 +312,7 @@
                   <i class="bi bi-lock me-2"></i>New Password
                 </label>
                 <input type="password" id="password" name="password" class="form-control" 
-                       placeholder="Enter new password">
+                       placeholder="Enter new password" autocomplete="new-password">
                 <small class="text-muted">Minimum 6 characters. Only enter if resetting password.</small>
               </div>
 
