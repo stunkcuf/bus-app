@@ -158,8 +158,7 @@ func saveUser(user User) error {
 		DO UPDATE SET 
 			password = $2, 
 			role = $3, 
-			status = $4,
-			updated_at = CURRENT_TIMESTAMP
+			status = $4
 	`, user.Username, user.Password, user.Role, user.Status)
 	
 	return err
@@ -189,8 +188,7 @@ func saveUsers(users []User) error {
 			DO UPDATE SET 
 				password = $2, 
 				role = $3, 
-				status = $4,
-				updated_at = CURRENT_TIMESTAMP
+				status = $4
 		`, user.Username, user.Password, user.Role, user.Status)
 		
 		if err != nil {
