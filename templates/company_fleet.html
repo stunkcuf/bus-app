@@ -240,6 +240,9 @@
 </head>
 <body>
   <div class="container-fluid py-4">
+    <!-- Store CSRF Token for AJAX requests -->
+    <input type="hidden" id="csrfToken" value="{{.CSRFToken}}">
+    
     <!-- Header -->
     <header class="page-header">
       <div class="d-flex justify-content-between align-items-center flex-wrap">
@@ -466,6 +469,7 @@
     document.addEventListener("DOMContentLoaded", function () {
       const searchInput = document.getElementById('searchInput');
       const tableRows = Array.from(document.querySelectorAll('#fleetTable tbody tr'));
+      const csrfToken = document.getElementById('csrfToken').value;
 
       // Calculate and display statistics
       calculateStatistics();
@@ -604,17 +608,20 @@
         params.append('vehicle_id', vehicleId);
         params.append('status_type', backendStatusType);
         params.append('new_status', status);
+        params.append('csrf_token', csrfToken);
 
         console.log('📤 Sending request with parameters:', {
           vehicle_id: vehicleId,
           status_type: backendStatusType,
-          new_status: status
+          new_status: status,
+          csrf_token: csrfToken
         });
 
         fetch('/update-vehicle-status', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRF-Token': csrfToken
           },
           body: params.toString()
         })
