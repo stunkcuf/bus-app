@@ -257,6 +257,16 @@ func runMigrations() error {
         log.Printf("Warning: Failed to update users table for registration: %v", err)
     }
     
+    // Ensure route names are populated in route assignments
+    if err := fixRouteAssignmentNames(); err != nil {
+        log.Printf("Warning: Failed to fix route assignment names: %v", err)
+    }
+    
+    // Ensure routes table has proper structure
+    if err := ensureRoutesTableStructure(); err != nil {
+        log.Printf("Warning: Failed to ensure routes table structure: %v", err)
+    }
+    
     // Create default admin user with HASHED password
     if err := createDefaultAdminUser(); err != nil {
         log.Printf("Warning: Failed to create default admin user: %v", err)
@@ -371,6 +381,7 @@ func updateUsersTableForRegistration() error {
     
     return nil
 }
+
 // ensureUpdatedAtColumn adds updated_at column to tables that need it
 func ensureUpdatedAtColumn() error {
 	tables := []string{"users", "buses", "routes", "students", "route_assignments", "vehicles"}
@@ -418,6 +429,7 @@ func ensureUpdatedAtColumn() error {
 	
 	return nil
 }
+
 // createDefaultAdminUser creates a default admin with hashed password
 // NOTE: The admin account is a system account and is hidden from the UI
 // It should only be used for initial system setup and emergency access
@@ -527,6 +539,79 @@ func autoMigratePasswords() error {
     }
     
     return nil
+}
+
+// fixRouteAssignmentNames ensures all route assignments have proper route names
+func fixRouteAssignmentNames() error {
+	log.Println("Checking and fixing route assignment names...")
+	
+	// First check if there are any assignments with NULL or empty route names
+	var count int
+	err := db.Get(&count, `
+		SELECT COUNT(*) FROM route_assignments 
+		WHERE route_name IS NULL OR route_name = ''
+	`)
+	
+	if err != nil {
+		return fmt.Errorf("failed to check route assignments: %v", err)
+	}
+	
+	if count == 0 {
+		log.Println("All route assignments have proper route names")
+		return nil
+	}
+	
+	log.Printf("Found %d route assignments with missing route names, fixing...", count)
+	
+	// Update route names based on route_id
+	_, err = db.Exec(`
+		UPDATE route_assignments ra
+		SET route_name = r.route_name
+		FROM routes r
+		WHERE ra.route_id = r.route_id
+		AND (ra.route_name IS NULL OR ra.route_name = '')
+	`)
+	
+	if err != nil {
+		return fmt.Errorf("failed to update route names: %v", err)
+	}
+	
+	log.Println("Successfully fixed route assignment names")
+	return nil
+}
+
+// ensureRoutesTableStructure ensures the routes table has all necessary columns
+func ensureRoutesTableStructure() error {
+	// Check if positions column exists
+	var columnExists bool
+	err := db.Get(&columnExists, `
+		SELECT EXISTS (
+			SELECT 1 FROM information_schema.columns 
+			WHERE table_name = 'routes' 
+			AND column_name = 'positions'
+		)
+	`)
+	
+	if err != nil {
+		log.Printf("Warning: Could not check routes table structure: %v", err)
+		return nil // Don't fail the whole migration
+	}
+	
+	if !columnExists {
+		log.Println("Adding positions column to routes table...")
+		_, err = db.Exec(`
+			ALTER TABLE routes 
+			ADD COLUMN positions JSONB DEFAULT '[]'::jsonb
+		`)
+		
+		if err != nil {
+			return fmt.Errorf("failed to add positions column: %v", err)
+		}
+		
+		log.Println("Successfully added positions column to routes table")
+	}
+	
+	return nil
 }
 
 // Get vehicle list for the fleet overview page (legacy function for compatibility)
