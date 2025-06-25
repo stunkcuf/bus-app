@@ -53,7 +53,7 @@ func validateRouteAssignment(assignment RouteAssignment) error {
 		}
 	}
 	if !driverExists {
-		return fmt.Errorf("driver %s does not exist", assignment.Driver)
+		return fmt.Errorf("driver %s does not exist or is not a driver", assignment.Driver)
 	}
 
 	// Check if bus exists and is active
@@ -62,7 +62,7 @@ func validateRouteAssignment(assignment RouteAssignment) error {
 	for _, b := range buses {
 		if b.BusID == assignment.BusID {
 			if b.Status != "active" {
-				return fmt.Errorf("bus %s is not active", assignment.BusID)
+				return fmt.Errorf("bus %s is not active (status: %s)", assignment.BusID, b.Status)
 			}
 			busExists = true
 			break
@@ -75,18 +75,37 @@ func validateRouteAssignment(assignment RouteAssignment) error {
 	// Check if route exists
 	routes, err := loadRoutes()
 	if err != nil {
-		return fmt.Errorf("failed to load routes: %w", err)
+		return fmt.Errorf("failed to load routes for validation: %w", err)
 	}
+	
 	routeExists := false
 	for _, r := range routes {
-		// Check both RouteID and RouteName for flexibility
-		if r.RouteID == assignment.RouteID || r.RouteName == assignment.RouteName {
+		if r.RouteID == assignment.RouteID {
 			routeExists = true
+			// Also ensure the route name matches if provided
+			if assignment.RouteName != "" && r.RouteName != assignment.RouteName {
+				log.Printf("Warning: Route name mismatch for route %s: expected '%s', got '%s'", 
+					assignment.RouteID, r.RouteName, assignment.RouteName)
+			}
 			break
 		}
 	}
 	if !routeExists {
 		return fmt.Errorf("route %s does not exist", assignment.RouteID)
+	}
+
+	// Check if driver is already assigned to another route
+	existingAssignments, err := loadRouteAssignments()
+	if err != nil {
+		log.Printf("Warning: Could not check existing assignments: %v", err)
+		// Continue anyway - the database constraint will catch duplicates
+	} else {
+		for _, existing := range existingAssignments {
+			if existing.Driver == assignment.Driver && existing.RouteID != assignment.RouteID {
+				return fmt.Errorf("driver %s is already assigned to route %s", 
+					assignment.Driver, existing.RouteID)
+			}
+		}
 	}
 
 	return nil
