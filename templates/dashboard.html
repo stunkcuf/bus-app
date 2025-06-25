@@ -135,7 +135,15 @@
         <p class="mb-0 opacity-75">Welcome back{{if .User.Username}}, {{.User.Username}}{{end}}! Here's your fleet overview.</p>
       </div>
       <nav class="btn-group btn-group-sm" role="group" aria-label="Main actions">
-        <a href="/new-user" class="btn"><i class="bi bi-person-plus-fill me-1"></i>New User</a>
+        <a href="/approve-users" class="btn position-relative">
+          <i class="bi bi-person-check-fill me-1"></i>Approve Users
+          {{if .PendingUsers}}
+          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+            {{.PendingUsers}}
+            <span class="visually-hidden">pending approvals</span>
+          </span>
+          {{end}}
+        </a>
         <a href="/assign-routes" class="btn"><i class="bi bi-map-fill me-1"></i>Assign Routes</a>
         <a href="/fleet" class="btn"><i class="bi bi-bus-front-fill me-1"></i>Bus Fleet</a>
         <a href="/company-fleet" class="btn"><i class="bi bi-truck me-1"></i>Company Fleet</a>
@@ -195,10 +203,15 @@
         <div class="card-body">
           <div class="row g-3">
             <div class="col-6">
-              <a href="/new-user" class="text-decoration-none">
-                <div class="quick-action-card p-3 text-center">
-                  <i class="bi bi-person-plus fs-2 text-primary d-block mb-2"></i>
-                  <small class="fw-semibold">Add User</small>
+              <a href="/approve-users" class="text-decoration-none">
+                <div class="quick-action-card p-3 text-center position-relative">
+                  <i class="bi bi-person-check fs-2 text-warning d-block mb-2"></i>
+                  <small class="fw-semibold">Approve Users</small>
+                  {{if .PendingUsers}}
+                  <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    {{.PendingUsers}}
+                  </span>
+                  {{end}}
                 </div>
               </a>
             </div>
@@ -213,7 +226,7 @@
             <div class="col-6">
               <a href="/fleet" class="text-decoration-none">
                 <div class="quick-action-card p-3 text-center">
-                  <i class="bi bi-tools fs-2 text-warning d-block mb-2"></i>
+                  <i class="bi bi-tools fs-2 text-info d-block mb-2"></i>
                   <small class="fw-semibold">Maintenance</small>
                 </div>
               </a>
@@ -221,7 +234,7 @@
             <div class="col-6">
               <a href="/reports" class="text-decoration-none">
                 <div class="quick-action-card p-3 text-center">
-                  <i class="bi bi-bar-chart fs-2 text-info d-block mb-2"></i>
+                  <i class="bi bi-bar-chart fs-2 text-primary d-block mb-2"></i>
                   <small class="fw-semibold">Reports</small>
                 </div>
               </a>
@@ -272,6 +285,7 @@
               <tbody>
                 {{if .Users}}
                 {{range $index, $user := .Users}}
+                {{if ne .Role "driver_pending"}}
                 <tr>
                   <td>
                     {{if eq .Role "driver"}}
@@ -314,11 +328,12 @@
                   </td>
                 </tr>
                 {{end}}
+                {{end}}
                 {{else}}
                 <tr>
                   <td colspan="4" class="text-center text-muted py-4">
-                    <i class="bi bi-person-plus fs-2 d-block mb-2"></i>
-                    No users found. <a href="/new-user" class="text-decoration-none">Add your first user</a>
+                    <i class="bi bi-person-x fs-2 d-block mb-2"></i>
+                    No active users found. <a href="/approve-users" class="text-decoration-none">Check pending approvals</a>
                   </td>
                 </tr>
                 {{end}}
