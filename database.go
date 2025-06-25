@@ -312,9 +312,9 @@ func updateUsersTableForRegistration() error {
         )
     `)
     
-    if err != nil {
-        return fmt.Errorf("failed to check status column existence: %v", err)
-    }
+    if err := ensureUpdatedAtColumn(); err != nil {
+    log.Printf("Warning: Failed to ensure updated_at columns: %v", err)
+}
     
     if !statusExists {
         // Add status column to existing users table
@@ -371,7 +371,53 @@ func updateUsersTableForRegistration() error {
     
     return nil
 }
-
+// ensureUpdatedAtColumn adds updated_at column to tables that need it
+func ensureUpdatedAtColumn() error {
+	tables := []string{"users", "buses", "routes", "students", "route_assignments", "vehicles"}
+	
+	for _, table := range tables {
+		// Check if updated_at column exists
+		var columnExists bool
+		err := db.QueryRow(`
+			SELECT EXISTS (
+				SELECT 1 FROM information_schema.columns 
+				WHERE table_name = $1 
+				AND column_name = 'updated_at'
+			)
+		`, table).Scan(&columnExists)
+		
+		if err != nil {
+			log.Printf("Warning: Failed to check updated_at column for %s: %v", table, err)
+			continue
+		}
+		
+		if !columnExists {
+			// Add updated_at column
+			_, err = db.Exec(fmt.Sprintf(`
+				ALTER TABLE %s 
+				ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			`, table))
+			
+			if err != nil {
+				log.Printf("Warning: Failed to add updated_at column to %s: %v", table, err)
+				continue
+			}
+			
+			log.Printf("Added updated_at column to %s table", table)
+			
+			// Update existing rows
+			_, err = db.Exec(fmt.Sprintf(`
+				UPDATE %s SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL
+			`, table))
+			
+			if err != nil {
+				log.Printf("Warning: Failed to update updated_at for existing rows in %s: %v", table, err)
+			}
+		}
+	}
+	
+	return nil
+}
 // createDefaultAdminUser creates a default admin with hashed password
 func createDefaultAdminUser() error {
     // Check if admin already exists
