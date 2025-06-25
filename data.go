@@ -98,15 +98,41 @@ func updateUser(user User) error {
 		user.Status = "active"
 	}
 	
-	// Update only the specific user
-	_, err := db.Exec(`
-		UPDATE users 
-		SET password = $2, 
-		    role = $3, 
-		    status = $4,
-		    updated_at = CURRENT_TIMESTAMP
-		WHERE username = $1
-	`, user.Username, user.Password, user.Role, user.Status)
+	// First, check if updated_at column exists
+	var columnExists bool
+	err := db.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1 FROM information_schema.columns 
+			WHERE table_name = 'users' 
+			AND column_name = 'updated_at'
+		)
+	`).Scan(&columnExists)
+	
+	if err != nil {
+		// If we can't check, just try without updated_at
+		columnExists = false
+	}
+	
+	// Update based on whether updated_at exists
+	if columnExists {
+		_, err = db.Exec(`
+			UPDATE users 
+			SET password = $2, 
+			    role = $3, 
+			    status = $4,
+			    updated_at = CURRENT_TIMESTAMP
+			WHERE username = $1
+		`, user.Username, user.Password, user.Role, user.Status)
+	} else {
+		// Update without updated_at column
+		_, err = db.Exec(`
+			UPDATE users 
+			SET password = $2, 
+			    role = $3, 
+			    status = $4
+			WHERE username = $1
+		`, user.Username, user.Password, user.Role, user.Status)
+	}
 	
 	if err != nil {
 		return fmt.Errorf("failed to update user %s: %w", user.Username, err)
