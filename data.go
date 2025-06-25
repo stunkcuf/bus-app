@@ -532,19 +532,34 @@ func loadRouteAssignments() ([]RouteAssignment, error) {
 	for rows.Next() {
 		var assignment RouteAssignment
 		var assignedDate sql.NullTime
+		var routeName sql.NullString
 		
 		if err := rows.Scan(&assignment.Driver, &assignment.BusID, &assignment.RouteID,
-			&assignment.RouteName, &assignedDate); err != nil {
+			&routeName, &assignedDate); err != nil {
 			log.Printf("Error scanning route assignment: %v", err)
 			continue
+		}
+		
+		// Handle nullable route name
+		if routeName.Valid {
+			assignment.RouteName = routeName.String
+		} else {
+			assignment.RouteName = ""
+			log.Printf("Warning: Route name is NULL for assignment: driver=%s, route_id=%s", 
+				assignment.Driver, assignment.RouteID)
 		}
 		
 		if assignedDate.Valid {
 			assignment.AssignedDate = assignedDate.Time.Format("2006-01-02")
 		}
 		
+		log.Printf("Loaded assignment: driver=%s, bus=%s, route=%s, route_name=%s", 
+			assignment.Driver, assignment.BusID, assignment.RouteID, assignment.RouteName)
+		
 		assignments = append(assignments, assignment)
 	}
+	
+	log.Printf("Total route assignments loaded: %d", len(assignments))
 	return assignments, nil
 }
 
