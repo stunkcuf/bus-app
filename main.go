@@ -438,16 +438,26 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 	cookie, _ := r.Cookie("session_id")
 	session, _ := GetSecureSession(cookie.Value)
 	
+	// Count pending users
+	allUsers := loadUsers()
+	pendingCount := 0
+	for _, u := range allUsers {
+		if u.Role == "driver_pending" {
+			pendingCount++
+		}
+	}
+	
 	data := DashboardData{
 		User:            user,
 		Role:            user.Role,
-		Users:           loadUsers(),
+		Users:           allUsers,
 		Buses:           loadBuses(),
 		Routes:          []Route{}, // We'll load these separately
 		DriverSummaries: []*DriverSummary{},
 		RouteStats:      []*RouteStats{},
 		Activities:      []Activity{},
 		CSRFToken:       session.CSRFToken,
+		PendingUsers:    pendingCount, // Add this field
 	}
 	
 	// Load routes
