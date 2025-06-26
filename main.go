@@ -76,6 +76,11 @@ func main() {
 	mux.HandleFunc("/save-log", withRecovery(requireAuth(requireRole("driver")(saveDriverLogHandler))))
 	mux.HandleFunc("/remove-user", withRecovery(requireAuth(requireRole("manager")(removeUserHandler))))
 	
+	// Maintenance routes
+	mux.HandleFunc("/bus-maintenance/", withRecovery(requireAuth(requireRole("manager")(busMaintenanceHandler))))
+	mux.HandleFunc("/vehicle-maintenance/", withRecovery(requireAuth(requireRole("manager")(vehicleMaintenanceHandler))))
+	mux.HandleFunc("/save-maintenance-record", withRecovery(requireAuth(requireRole("manager")(saveMaintenanceRecordHandler))))
+	
 	// Student routes
 	mux.HandleFunc("/students", withRecovery(requireAuth(requireRole("driver")(studentsPage))))
 	mux.HandleFunc("/add-student", withRecovery(requireAuth(requireRole("driver")(addStudentHandler))))
