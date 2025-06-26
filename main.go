@@ -1125,7 +1125,11 @@ func editStudentHandler(w http.ResponseWriter, r *http.Request) {
 	student.RouteID = r.FormValue("route_id")
 	student.Active = r.FormValue("active") == "on"
 	
-	fmt.Sscanf(r.FormValue("position_number"), "%d", &student.PositionNumber)
+	// Position number is optional, default to 0 if not provided
+	positionStr := r.FormValue("position_number")
+	if positionStr != "" {
+		fmt.Sscanf(positionStr, "%d", &student.PositionNumber)
+	}
 	
 	// Rebuild locations
 	student.Locations = []Location{}
@@ -1133,36 +1137,48 @@ func editStudentHandler(w http.ResponseWriter, r *http.Request) {
 	// Process pickup locations
 	pickupAddresses := r.Form["pickup_address"]
 	pickupDescriptions := r.Form["pickup_description"]
+	
+	log.Printf("DEBUG: Processing %d pickup addresses for student %s", len(pickupAddresses), studentID)
+	
 	for i := range pickupAddresses {
 		if pickupAddresses[i] != "" {
 			desc := ""
 			if i < len(pickupDescriptions) {
 				desc = pickupDescriptions[i]
 			}
-			student.Locations = append(student.Locations, Location{
+			location := Location{
 				Type:        "pickup",
 				Address:     pickupAddresses[i],
 				Description: desc,
-			})
+			}
+			student.Locations = append(student.Locations, location)
+			log.Printf("DEBUG: Added pickup location: %+v", location)
 		}
 	}
 	
 	// Process dropoff locations
 	dropoffAddresses := r.Form["dropoff_address"]
 	dropoffDescriptions := r.Form["dropoff_description"]
+	
+	log.Printf("DEBUG: Processing %d dropoff addresses for student %s", len(dropoffAddresses), studentID)
+	
 	for i := range dropoffAddresses {
 		if dropoffAddresses[i] != "" {
 			desc := ""
 			if i < len(dropoffDescriptions) {
 				desc = dropoffDescriptions[i]
 			}
-			student.Locations = append(student.Locations, Location{
+			location := Location{
 				Type:        "dropoff",
 				Address:     dropoffAddresses[i],
 				Description: desc,
-			})
+			}
+			student.Locations = append(student.Locations, location)
+			log.Printf("DEBUG: Added dropoff location: %+v", location)
 		}
 	}
+	
+	log.Printf("DEBUG: Total locations for student %s: %d", studentID, len(student.Locations))
 	
 	// Save updated student
 	if err := saveStudent(*student); err != nil {
