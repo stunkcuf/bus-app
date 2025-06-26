@@ -417,10 +417,8 @@
                       data-guardian="{{.Guardian}}" 
                       data-pickup-time="{{.PickupTime}}" 
                       data-dropoff-time="{{.DropoffTime}}" 
-                      data-position="{{.PositionNumber}}" 
                       data-route-id="{{.RouteID}}" 
-                      data-active="{{.Active}}"
-                      data-locations='{{.Locations | json}}'>
+                      data-active="{{.Active}}">
                 <i class="bi bi-pencil me-1"></i>Edit
               </button>
               <form method="POST" action="/remove-student" class="remove-student-form">
@@ -467,24 +465,11 @@
         <form method="POST" action="/add-student" id="addStudentForm">
           <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
           <div class="modal-body">
-            <div class="row">
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">
-                    <i class="bi bi-person me-2"></i>Student Name
-                  </label>
-                  <input type="text" class="form-control" name="name" placeholder="Enter student's full name" required>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">
-                    <i class="bi bi-123 me-2"></i>Position Number (Optional)
-                  </label>
-                  <input type="number" class="form-control" name="position_number" placeholder="For reference only" min="0">
-                  <small class="text-muted">Students are automatically ordered by pickup/dropoff times</small>
-                </div>
-              </div>
+            <div class="mb-3">
+              <label class="form-label">
+                <i class="bi bi-person me-2"></i>Student Name
+              </label>
+              <input type="text" class="form-control" name="name" placeholder="Enter student's full name" required>
             </div>
 
             <div class="row">
@@ -548,6 +533,9 @@
                 </div>
               </div>
             </div>
+            <small class="text-muted d-block mb-3">
+              <i class="bi bi-info-circle me-1"></i>Students are automatically ordered by pickup/dropoff times for efficient route planning
+            </small>
 
             <h6 class="mb-3">
               <i class="bi bi-geo-alt me-2"></i>Pickup Locations
@@ -611,24 +599,11 @@
           <input type="hidden" name="student_id" id="edit_student_id">
           <div class="modal-body">
             <!-- Edit form fields would be similar to add form -->
-            <div class="row">
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">
-                    <i class="bi bi-person me-2"></i>Student Name
-                  </label>
-                  <input type="text" class="form-control" name="name" id="edit_name" required>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">
-                    <i class="bi bi-123 me-2"></i>Position Number (Optional)
-                  </label>
-                  <input type="number" class="form-control" name="position_number" id="edit_position_number">
-                  <small class="text-muted">Students are automatically ordered by pickup/dropoff times</small>
-                </div>
-              </div>
+            <div class="mb-3">
+              <label class="form-label">
+                <i class="bi bi-person me-2"></i>Student Name
+              </label>
+              <input type="text" class="form-control" name="name" id="edit_name" required>
             </div>
 
             <div class="row">
@@ -703,6 +678,9 @@
                 </div>
               </div>
             </div>
+            <small class="text-muted d-block mb-3">
+              <i class="bi bi-info-circle me-1"></i>Students are automatically ordered by pickup/dropoff times for efficient route planning
+            </small>
 
             <h6 class="mb-3">
               <i class="bi bi-geo-alt me-2"></i>Pickup Locations
@@ -735,6 +713,13 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // Store student locations data
+    const studentLocations = {
+      {{range .Students}}
+      '{{.StudentID}}': {{.Locations | json}},
+      {{end}}
+    };
+
     document.addEventListener('DOMContentLoaded', function() {
       // Calculate statistics
       {{if .Students}}
@@ -862,7 +847,6 @@
         document.getElementById('edit_guardian').value = data.guardian;
         document.getElementById('edit_pickup_time').value = data.pickupTime;
         document.getElementById('edit_dropoff_time').value = data.dropoffTime;
-        document.getElementById('edit_position_number').value = data.position;
         document.getElementById('edit_route_id').value = data.routeId;
         document.getElementById('edit_active').checked = data.active === 'true';
 
@@ -871,7 +855,7 @@
         document.getElementById('editDropoffLocations').innerHTML = '';
 
         try {
-          const locations = JSON.parse(data.locations || '[]');
+          const locations = studentLocations[data.studentId] || [];
           locations.forEach(function(location) {
             if (location.Type === 'pickup') {
               const container = document.getElementById('editPickupLocations');
@@ -902,7 +886,7 @@
             }
           });
         } catch (e) {
-          console.error('Error parsing locations:', e);
+          console.error('Error processing locations:', e);
         }
 
         // Ensure at least one location input for each type
