@@ -280,6 +280,7 @@
           </div>
           <div class="card-body">
             <form action="/save-log" method="POST">
+              <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
               <div class="row mb-3">
                 <div class="col-md-3">
                   <label class="form-label">Date</label>
@@ -329,7 +330,7 @@
 
               <h6 class="mb-3"><i class="bi bi-people me-2"></i>Student Attendance</h6>
               <div class="route-positions">
-                {{if .Route.Positions}}
+                {{if .Students}}
                 <div class="table-responsive">
                   <table class="table student-table">
                     <thead>
@@ -341,29 +342,29 @@
                       </tr>
                     </thead>
                     <tbody>
-                      {{range .Route.Positions}}
+                      {{range .Students}}
                       <tr>
                         <td>
-                          <div class="position-number">{{.Position}}</div>
+                          <div class="position-number">{{.PositionNumber}}</div>
                         </td>
-                        <td>{{.Student}}</td>
+                        <td>{{.Name}}</td>
                         <td>
                           <div class="form-check">
                             <input class="form-check-input" type="checkbox" 
-                                   name="present_{{.Position}}" id="present_{{.Position}}"
+                                   name="present_{{.PositionNumber}}" id="present_{{.PositionNumber}}"
                                    {{if $.DriverLog}}
                                      {{range $.DriverLog.Attendance}}
-                                       {{if eq .Position $.Position}}{{if .Present}}checked{{end}}{{end}}
+                                       {{if eq .Position $.PositionNumber}}{{if .Present}}checked{{end}}{{end}}
                                      {{end}}
                                    {{end}}>
                           </div>
                         </td>
                         <td>
                           <input type="time" class="form-control form-control-sm" 
-                                 name="pickup_{{.Position}}"
+                                 name="pickup_{{.PositionNumber}}"
                                  {{if $.DriverLog}}
                                    {{range $.DriverLog.Attendance}}
-                                     {{if eq .Position $.Position}}value="{{.PickupTime}}"{{end}}
+                                     {{if eq .Position $.PositionNumber}}value="{{.PickupTime}}"{{end}}
                                    {{end}}
                                  {{end}}>
                         </td>
@@ -375,7 +376,8 @@
                 {{else}}
                 <div class="alert alert-info">
                   <i class="bi bi-info-circle me-2"></i>
-                  No students assigned to this route yet.
+                  No students assigned to this route yet. 
+                  <a href="/students" class="alert-link">Add students to your route</a>
                 </div>
                 {{end}}
               </div>
@@ -414,7 +416,7 @@
         <div class="card metric-card bg-gradient-success text-white">
           <div class="card-body text-center">
             <i class="bi bi-people-fill metric-icon"></i>
-            <div class="metric-value">{{if .Route.Positions}}{{len .Route.Positions}}{{else}}0{{end}}</div>
+            <div class="metric-value">{{if .Students}}{{len .Students}}{{else}}0{{end}}</div>
             <div class="metric-label">Students on Route</div>
           </div>
         </div>
