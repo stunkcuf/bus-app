@@ -543,17 +543,31 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 			
 			log.Printf("DEBUG: Found %d students for driver %s on route %s", 
 				len(routeStudents), user.Username, route.RouteID)
-			
-			// Sort students by position number
+
+			// Sort students by pickup time for morning routes, dropoff time for afternoon routes
 			sort.Slice(routeStudents, func(i, j int) bool {
-				return routeStudents[i].PositionNumber < routeStudents[j].PositionNumber
+				if period == "morning" {
+					// Sort by pickup time for morning routes
+					// Handle empty times by putting them at the end
+					if routeStudents[i].PickupTime == "" {
+						return false
+					}
+					if routeStudents[j].PickupTime == "" {
+						return true
+					}
+					return routeStudents[i].PickupTime < routeStudents[j].PickupTime
+				} else {
+					// Sort by dropoff time for afternoon routes
+					// Handle empty times by putting them at the end
+					if routeStudents[i].DropoffTime == "" {
+						return false
+					}
+					if routeStudents[j].DropoffTime == "" {
+						return true
+					}
+					return routeStudents[i].DropoffTime < routeStudents[j].DropoffTime
+				}
 			})
-		} else {
-			log.Printf("DEBUG: Route is nil for assignment")
-		}
-	} else {
-		log.Printf("DEBUG: No route assignment found for driver %s: %v", user.Username, err)
-	}
 	
 	// Get existing log for this date/period
 	logs, _ := loadDriverLogs()
