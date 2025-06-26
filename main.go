@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"sort"  // ADD THIS LINE
+	"sort"
 	"time"
 )
 
@@ -472,10 +472,6 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, "dashboard.html", data)
 }
 
-// Add this import to your imports section at the top of main.go:
-// "sort"
-
-// Replace the entire driverDashboard function in main.go with this:
 func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "driver" {
@@ -568,6 +564,8 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 					return routeStudents[i].DropoffTime < routeStudents[j].DropoffTime
 				}
 			})
+		}
+	}
 	
 	// Get existing log for this date/period
 	logs, _ := loadDriverLogs()
