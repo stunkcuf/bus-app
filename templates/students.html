@@ -281,6 +281,21 @@
       transform: translateY(-2px);
       box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
     }
+    
+    .badge {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+    }
+    
+    .bg-info {
+      background: var(--grad-info) !important;
+      color: white !important;
+    }
+    
+    .bg-warning {
+      background: var(--grad-warning) !important;
+      color: white !important;
+    }
   </style>
 </head>
 <body>
@@ -351,7 +366,10 @@
               </div>
               <div>
                 <h6 class="mb-1">{{.Name}}</h6>
-                <div class="position-badge">{{.PositionNumber}}</div>
+                <small class="text-muted">
+                  <i class="bi bi-clock me-1"></i>
+                  {{.PickupTime}} / {{.DropoffTime}}
+                </small>
               </div>
             </div>
             <div>
@@ -371,9 +389,14 @@
             
             <div class="mb-3">
               <strong><i class="bi bi-clock me-1"></i>Schedule:</strong><br>
-              <small class="text-muted">
-                Pickup: {{.PickupTime}} | Dropoff: {{.DropoffTime}}
-              </small>
+              <div class="d-flex justify-content-between">
+                <span class="badge bg-info">
+                  <i class="bi bi-sunrise me-1"></i>Pickup: {{.PickupTime}}
+                </span>
+                <span class="badge bg-warning">
+                  <i class="bi bi-sunset me-1"></i>Dropoff: {{.DropoffTime}}
+                </span>
+              </div>
             </div>
 
             <div class="mb-3">
@@ -456,9 +479,10 @@
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">
-                    <i class="bi bi-123 me-2"></i>Position Number
+                    <i class="bi bi-123 me-2"></i>Position Number (Optional)
                   </label>
-                  <input type="number" class="form-control" name="position_number" placeholder="Seat position" required>
+                  <input type="number" class="form-control" name="position_number" placeholder="For reference only" min="0">
+                  <small class="text-muted">Students are automatically ordered by pickup/dropoff times</small>
                 </div>
               </div>
             </div>
@@ -599,9 +623,10 @@
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">
-                    <i class="bi bi-123 me-2"></i>Position Number
+                    <i class="bi bi-123 me-2"></i>Position Number (Optional)
                   </label>
-                  <input type="number" class="form-control" name="position_number" id="edit_position_number" required>
+                  <input type="number" class="form-control" name="position_number" id="edit_position_number">
+                  <small class="text-muted">Students are automatically ordered by pickup/dropoff times</small>
                 </div>
               </div>
             </div>
