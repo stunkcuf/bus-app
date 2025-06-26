@@ -1011,7 +1011,10 @@ func addStudentHandler(w http.ResponseWriter, r *http.Request) {
 	routeID := r.FormValue("route_id")
 	
 	var positionNumber int
-	fmt.Sscanf(r.FormValue("position_number"), "%d", &positionNumber)
+	positionStr := r.FormValue("position_number")
+	if positionStr != "" {
+		fmt.Sscanf(positionStr, "%d", &positionNumber)
+	}
 	
 	// Build locations
 	var locations []Location
