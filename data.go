@@ -463,6 +463,9 @@ func saveStudent(student Student) error {
 		return fmt.Errorf("failed to marshal locations: %w", err)
 	}
 	
+	log.Printf("DEBUG: Saving student %s with %d locations: %s", 
+		student.StudentID, len(student.Locations), string(locationsJSON))
+	
 	_, err = db.Exec(`
 		INSERT INTO students (student_id, name, locations, phone_number, alt_phone_number,
 			guardian, pickup_time, dropoff_time, position_number, route_id, driver, active) 
@@ -476,6 +479,10 @@ func saveStudent(student Student) error {
 	`, student.StudentID, student.Name, locationsJSON, student.PhoneNumber,
 		student.AltPhoneNumber, student.Guardian, student.PickupTime, student.DropoffTime,
 		student.PositionNumber, student.RouteID, student.Driver, student.Active)
+	
+	if err != nil {
+		log.Printf("ERROR: Failed to save student %s: %v", student.StudentID, err)
+	}
 	
 	return err
 }
