@@ -597,6 +597,7 @@
         <form method="POST" action="/edit-student" id="editStudentForm">
           <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
           <input type="hidden" name="student_id" id="edit_student_id">
+          <input type="hidden" name="position_number" id="edit_position_number" value="0">
           <div class="modal-body">
             <!-- Edit form fields would be similar to add form -->
             <div class="mb-3">
@@ -839,7 +840,22 @@
         container.appendChild(div);
       }
 
+      // Helper function to escape HTML
+      function escapeHtml(unsafe) {
+        return unsafe
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
       function editStudent(data) {
+        // Clear previous locations first
+        document.getElementById('editPickupLocations').innerHTML = '';
+        document.getElementById('editDropoffLocations').innerHTML = '';
+        
+        // Populate form fields
         document.getElementById('edit_student_id').value = data.studentId;
         document.getElementById('edit_name').value = data.name;
         document.getElementById('edit_phone_number').value = data.phone;
@@ -850,23 +866,24 @@
         document.getElementById('edit_route_id').value = data.routeId;
         document.getElementById('edit_active').checked = data.active === 'true';
 
-        // Clear and populate locations
-        document.getElementById('editPickupLocations').innerHTML = '';
-        document.getElementById('editDropoffLocations').innerHTML = '';
-
+        // Populate locations
         try {
           const locations = studentLocations[data.studentId] || [];
+          console.log('Loading locations for student:', data.studentId, locations);
+          
           locations.forEach(function(location) {
             if (location.Type === 'pickup') {
               const container = document.getElementById('editPickupLocations');
               const div = document.createElement('div');
               div.className = 'row mb-2';
+              const address = escapeHtml(location.Address || '');
+              const description = escapeHtml(location.Description || '');
               div.innerHTML = `
                 <div class="col-md-6">
-                  <input type="text" class="form-control" name="pickup_address" value="${location.Address || ''}" placeholder="Pickup address">
+                  <input type="text" class="form-control" name="pickup_address" value="${address}" placeholder="Pickup address">
                 </div>
                 <div class="col-md-6">
-                  <input type="text" class="form-control" name="pickup_description" value="${location.Description || ''}" placeholder="Description (optional)">
+                  <input type="text" class="form-control" name="pickup_description" value="${description}" placeholder="Description (optional)">
                 </div>
               `;
               container.appendChild(div);
@@ -874,12 +891,14 @@
               const container = document.getElementById('editDropoffLocations');
               const div = document.createElement('div');
               div.className = 'row mb-2';
+              const address = escapeHtml(location.Address || '');
+              const description = escapeHtml(location.Description || '');
               div.innerHTML = `
                 <div class="col-md-6">
-                  <input type="text" class="form-control" name="dropoff_address" value="${location.Address || ''}" placeholder="Dropoff address">
+                  <input type="text" class="form-control" name="dropoff_address" value="${address}" placeholder="Dropoff address">
                 </div>
                 <div class="col-md-6">
-                  <input type="text" class="form-control" name="dropoff_description" value="${location.Description || ''}" placeholder="Description (optional)">
+                  <input type="text" class="form-control" name="dropoff_description" value="${description}" placeholder="Description (optional)">
                 </div>
               `;
               container.appendChild(div);
