@@ -941,6 +941,239 @@ func saveDriverLogHandler(w http.ResponseWriter, r *http.Request) {
 	// Redirect back to dashboard
 	http.Redirect(w, r, fmt.Sprintf("/driver-dashboard?date=%s&period=%s", date, period), http.StatusFound)
 }
+// ============= MAINTENANCE HANDLERS =============
+
+func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	// Extract bus ID from URL path
+	path := r.URL.Path
+	busID := path[len("/bus-maintenance/"):]
+	
+	if busID == "" {
+		http.Error(w, "Bus ID required", http.StatusBadRequest)
+		return
+	}
+	
+	// Get bus information
+	buses := loadBuses()
+	var busInfo *Bus
+	for _, bus := range buses {
+		if bus.BusID == busID {
+			busInfo = bus
+			break
+		}
+	}
+	
+	if busInfo == nil {
+		http.Error(w, "Bus not found", http.StatusNotFound)
+		return
+	}
+	
+	// Get maintenance records for this bus
+	records, err := getBusMaintenanceRecords(busID)
+	if err != nil {
+		log.Printf("Error loading maintenance records: %v", err)
+		records = []BusMaintenanceLog{}
+	}
+	
+	// Calculate statistics
+	totalRecords := len(records)
+	totalCost := 0.0
+	recentCount := 0
+	
+	// Note: BusMaintenanceLog doesn't have a Cost field in your model
+	// So we'll skip cost calculations for now
+	
+	// Count recent records (last 30 days)
+	thirtyDaysAgo := time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+	for _, record := range records {
+		if record.Date >= thirtyDaysAgo {
+			recentCount++
+		}
+	}
+	
+	averageCost := 0.0
+	if totalRecords > 0 && totalCost > 0 {
+		averageCost = totalCost / float64(totalRecords)
+	}
+	
+	// Get CSRF token
+	cookie, _ := r.Cookie("session_id")
+	session, _ := GetSecureSession(cookie.Value)
+	
+	data := struct {
+		VehicleID          string
+		IsBus              bool
+		VehicleInfo        interface{}
+		MaintenanceRecords []BusMaintenanceLog
+		TotalRecords       int
+		TotalCost          float64
+		AverageCost        float64
+		RecentCount        int
+		Today              string
+		CSRFToken          string
+	}{
+		VehicleID:          busID,
+		IsBus:              true,
+		VehicleInfo:        busInfo,
+		MaintenanceRecords: records,
+		TotalRecords:       totalRecords,
+		TotalCost:          totalCost,
+		AverageCost:        averageCost,
+		RecentCount:        recentCount,
+		Today:              time.Now().Format("2006-01-02"),
+		CSRFToken:          session.CSRFToken,
+	}
+	
+	executeTemplate(w, "vehicle_maintenance.html", data)
+}
+
+func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	// Extract vehicle ID from URL path
+	path := r.URL.Path
+	vehicleID := path[len("/vehicle-maintenance/"):]
+	
+	if vehicleID == "" {
+		http.Error(w, "Vehicle ID required", http.StatusBadRequest)
+		return
+	}
+	
+	// Get vehicle information
+	vehicles := loadVehicles()
+	var vehicleInfo *Vehicle
+	for i := range vehicles {
+		if vehicles[i].VehicleID == vehicleID {
+			vehicleInfo = &vehicles[i]
+			break
+		}
+	}
+	
+	if vehicleInfo == nil {
+		http.Error(w, "Vehicle not found", http.StatusNotFound)
+		return
+	}
+	
+	// For now, we'll use empty records for non-bus vehicles
+	// since the system seems focused on bus maintenance
+	records := []BusMaintenanceLog{}
+	
+	// Calculate statistics
+	totalRecords := len(records)
+	totalCost := 0.0
+	recentCount := 0
+	averageCost := 0.0
+	
+	// Get CSRF token
+	cookie, _ := r.Cookie("session_id")
+	session, _ := GetSecureSession(cookie.Value)
+	
+	data := struct {
+		VehicleID          string
+		IsBus              bool
+		VehicleInfo        interface{}
+		MaintenanceRecords []BusMaintenanceLog
+		TotalRecords       int
+		TotalCost          float64
+		AverageCost        float64
+		RecentCount        int
+		Today              string
+		CSRFToken          string
+	}{
+		VehicleID:          vehicleID,
+		IsBus:              false,
+		VehicleInfo:        vehicleInfo,
+		MaintenanceRecords: records,
+		TotalRecords:       totalRecords,
+		TotalCost:          totalCost,
+		AverageCost:        averageCost,
+		RecentCount:        recentCount,
+		Today:              time.Now().Format("2006-01-02"),
+		CSRFToken:          session.CSRFToken,
+	}
+	
+	executeTemplate(w, "vehicle_maintenance.html", data)
+}
+
+func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	// Parse form or JSON data
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+	
+	// Validate CSRF token
+	cookie, _ := r.Cookie("session_id")
+	csrfToken := r.FormValue("csrf_token")
+	if csrfToken == "" {
+		csrfToken = r.Header.Get("X-CSRF-Token")
+	}
+	if !ValidateCSRFToken(cookie.Value, csrfToken) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+	
+	// Get form values
+	busID := r.FormValue("bus_id")
+	date := r.FormValue("date")
+	category := r.FormValue("category")
+	notes := r.FormValue("notes")
+	mileageStr := r.FormValue("mileage")
+	
+	// Validate required fields
+	if busID == "" || date == "" || category == "" || notes == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+	
+	// Parse mileage
+	var mileage int
+	if mileageStr != "" {
+		fmt.Sscanf(mileageStr, "%d", &mileage)
+	}
+	
+	// Create maintenance log
+	log := BusMaintenanceLog{
+		BusID:    busID,
+		Date:     date,
+		Category: category,
+		Notes:    notes,
+		Mileage:  mileage,
+	}
+	
+	// Save the log
+	if err := saveMaintenanceLog(log); err != nil {
+		log.Printf("Failed to save maintenance log: %v", err)
+		http.Error(w, "Failed to save maintenance record", http.StatusInternalServerError)
+		return
+	}
+	
+	// Return success response (for AJAX calls)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status":"success","message":"Maintenance record saved successfully"}`))
+}
 
 func studentsPage(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
