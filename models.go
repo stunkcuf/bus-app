@@ -197,14 +197,27 @@ type DashboardData struct {
 	PendingUsers    int              `json:"pending_users"` // Added for pending user count
 }
 
-// AssignRouteData is used for the route assignment page
+// ============= ENHANCED ROUTE ASSIGNMENT DATA MODEL =============
+// AssignRouteData is used for the route assignment page with enhanced status tracking
 type AssignRouteData struct {
 	User            *User             `json:"user"`
 	Assignments     []RouteAssignment `json:"assignments"`
-	Drivers         []User            `json:"drivers"`
+	Drivers         []User            `json:"drivers"`          // Available drivers only
 	AvailableRoutes []Route           `json:"available_routes"`
-	AvailableBuses  []*Bus            `json:"available_buses"`
-	CSRFToken       string            `json:"csrf_token"` // Added for CSRF protection
+	AvailableBuses  []*Bus            `json:"available_buses"`  // Available buses only
+	CSRFToken       string            `json:"csrf_token"`
+	
+	// ===== ENHANCED FIELDS FOR STATUS TRACKING =====
+	RoutesWithStatus []struct {
+		Route
+		IsAssigned bool `json:"is_assigned"`
+	} `json:"routes_with_status"`
+	
+	// ===== PRE-CALCULATED STATISTICS =====
+	TotalAssignments      int `json:"total_assignments"`       // Total driver assignments
+	TotalRoutes           int `json:"total_routes"`            // Total route definitions
+	AvailableDriversCount int `json:"available_drivers_count"` // Unassigned drivers only
+	AvailableBusesCount   int `json:"available_buses_count"`   // Unassigned buses only
 }
 
 // FleetData is used for the fleet management page
