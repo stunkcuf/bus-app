@@ -297,11 +297,13 @@
                   <input type="date" class="form-control" name="date" value="{{.Date}}" required>
                 </div>
                 <div class="col-md-3">
-                  <label class="form-label">Period</label>
-                  <select class="form-select" name="period">
-                    <option value="morning" {{if eq .Period "morning"}}selected{{end}}>Morning Route (AM)</option>
-                    <option value="afternoon" {{if eq .Period "afternoon"}}selected{{end}}>Afternoon Route (PM)</option>
-                  </select>
+                  <div class="mb-3">
+                    <label class="form-label">Period</label>
+                    <select class="form-select" name="period" id="periodSelect">
+                      <option value="morning" {{if eq .Period "morning"}}selected{{end}}>Morning Route (AM)</option>
+                      <option value="afternoon" {{if eq .Period "afternoon"}}selected{{end}}>Afternoon Route (PM)</option>
+                    </select>
+                  </div>
                 </div>
                 <div class="col-md-3">
                   <label class="form-label">Departure Time</label>
@@ -629,6 +631,17 @@
           }
         });
       });
+
+      // Handle period change
+      const periodSelect = document.getElementById('periodSelect');
+      if (periodSelect) {
+        periodSelect.addEventListener('change', function() {
+          const currentDate = document.querySelector('input[name="date"]').value;
+          const newPeriod = this.value;
+          // Reload page with new period
+          window.location.href = `/driver-dashboard?date=${currentDate}&period=${newPeriod}`;
+        });
+      }
     });
   </script>
 </body>
