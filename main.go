@@ -1010,7 +1010,6 @@ func addStudentHandler(w http.ResponseWriter, r *http.Request) {
 	
 	// Position number is no longer used - students are ordered by pickup/dropoff times
 	var positionNumber int = 0
-	}
 	
 	// Build locations
 	var locations []Location
