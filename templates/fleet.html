@@ -81,6 +81,11 @@
       box-shadow: 0 15px 35px rgba(0,0,0,0.1);
     }
     
+    .bus-card:focus-within {
+      outline: 3px solid #667eea;
+      outline-offset: 2px;
+    }
+    
     .bus-avatar {
       width: 60px;
       height: 60px;
@@ -92,6 +97,12 @@
       font-size: 1.5rem;
       color: white;
       margin-right: 1rem;
+    }
+    
+    .bus-link:focus {
+      outline: 2px solid #667eea;
+      outline-offset: 2px;
+      border-radius: 4px;
     }
     
     .status-badge {
@@ -181,6 +192,10 @@
       box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
     }
     
+    .form-control.is-invalid {
+      border-color: #dc3545;
+    }
+    
     .btn-primary {
       background: var(--grad-primary);
       border: none;
@@ -190,10 +205,27 @@
       transition: all 0.3s ease;
     }
     
-    .btn-primary:hover {
+    .btn-primary:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
       background: var(--grad-primary);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .btn-outline-info {
+      border: 2px solid #17a2b8;
+      color: #17a2b8;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-outline-info:hover {
+      background: var(--grad-info);
+      border-color: transparent;
+      color: white;
     }
     
     .stats-row {
@@ -236,17 +268,58 @@
       transform: translateX(5px);
     }
     
-    .log-oil { border-left-color: #17a2b8; }
-    .log-tire { border-left-color: #ffc107; }
+    .log-oil-change { border-left-color: #17a2b8; }
+    .log-tire-service { border-left-color: #ffc107; }
     .log-inspection { border-left-color: #28a745; }
     .log-repair { border-left-color: #dc3545; }
     .log-other { border-left-color: #6c757d; }
+    
+    .spinner-border-sm {
+      width: 1rem;
+      height: 1rem;
+    }
+    
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    
+    .loading-overlay.show {
+      display: flex;
+    }
+    
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border-width: 0;
+    }
   </style>
 </head>
 <body>
   <div class="container-fluid py-4">
     <!-- Store CSRF Token -->
     <input type="hidden" id="csrfToken" value="{{.CSRFToken}}">
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite">
+      <div class="spinner-border text-light" role="status">
+        <span class="sr-only">Loading...</span>
+      </div>
+    </div>
     
     <!-- Header -->
     <header class="page-header">
@@ -257,22 +330,22 @@
           </h1>
           <p class="mb-0 opacity-75">Manage bus fleet status and maintenance records</p>
         </div>
-        <nav class="btn-group btn-group-sm" role="group">
-          <a href="/manager-dashboard" class="btn">
-            <i class="bi bi-arrow-left me-1"></i>Dashboard
+        <nav class="btn-group btn-group-sm" role="group" aria-label="Navigation">
+          <a href="/manager-dashboard" class="btn" aria-label="Back to Dashboard">
+            <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Dashboard
           </a>
-          <a href="/company-fleet" class="btn">
-            <i class="bi bi-truck me-1"></i>Company Fleet
+          <a href="/company-fleet" class="btn" aria-label="View Company Fleet">
+            <i class="bi bi-truck me-1" aria-hidden="true"></i>Company Fleet
           </a>
-          <a href="/logout" class="btn">
-            <i class="bi bi-box-arrow-right me-1"></i>Logout
+          <a href="/logout" class="btn" aria-label="Logout">
+            <i class="bi bi-box-arrow-right me-1" aria-hidden="true"></i>Logout
           </a>
         </nav>
       </div>
     </header>
 
     <!-- Fleet Statistics -->
-    <div class="stats-row">
+    <div class="stats-row" role="region" aria-label="Fleet Statistics">
       <div class="row g-4">
         <div class="col-md-3">
           <div class="stat-item">
@@ -282,19 +355,19 @@
         </div>
         <div class="col-md-3">
           <div class="stat-item">
-            <span class="stat-number" id="activeBuses">0</span>
+            <span class="stat-number" id="activeBuses" aria-live="polite">0</span>
             <div class="stat-label">Active</div>
           </div>
         </div>
         <div class="col-md-3">
           <div class="stat-item">
-            <span class="stat-number" id="maintenanceBuses">0</span>
+            <span class="stat-number" id="maintenanceBuses" aria-live="polite">0</span>
             <div class="stat-label">In Maintenance</div>
           </div>
         </div>
         <div class="col-md-3">
           <div class="stat-item">
-            <span class="stat-number" id="outOfServiceBuses">0</span>
+            <span class="stat-number" id="outOfServiceBuses" aria-live="polite">0</span>
             <div class="stat-label">Out of Service</div>
           </div>
         </div>
@@ -306,52 +379,57 @@
       {{if .Buses}}
       {{range .Buses}}
       <div class="col-lg-6 col-xl-4">
-        <div class="bus-card">
+        <div class="bus-card" role="article" aria-label="Bus {{.BusID}} information">
           <div class="card-header d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center">
-              <div class="bus-avatar">
+              <div class="bus-avatar" aria-hidden="true">
                 <i class="bi bi-bus-front"></i>
               </div>
               <div>
-                <h6 class="mb-1">Bus #{{.BusID}}</h6>
+                <h6 class="mb-1">
+                  <a href="/bus-maintenance/{{.BusID}}" class="text-decoration-none text-dark bus-link" 
+                     aria-label="View maintenance records for Bus {{.BusID}}">
+                    Bus #{{.BusID}}
+                  </a>
+                </h6>
                 <p class="mb-0 text-muted">{{if .Model}}{{.Model}}{{else}}Fleet Vehicle{{end}}</p>
               </div>
             </div>
             <div>
               {{if eq .Status "active"}}
-                <span class="status-badge status-active">Active</span>
+                <span class="status-badge status-active" role="status">Active</span>
               {{else if eq .Status "maintenance"}}
-                <span class="status-badge status-maintenance">Maintenance</span>
+                <span class="status-badge status-maintenance" role="status">Maintenance</span>
               {{else}}
-                <span class="status-badge status-out_of_service">Out of Service</span>
+                <span class="status-badge status-out_of_service" role="status">Out of Service</span>
               {{end}}
             </div>
           </div>
           <div class="card-body">
             <div class="row mb-3">
               <div class="col-6">
-                <strong><i class="bi bi-people me-1"></i>Capacity:</strong> {{.Capacity}} passengers
+                <strong><i class="bi bi-people me-1" aria-hidden="true"></i>Capacity:</strong> {{.Capacity}} passengers
               </div>
               <div class="col-6">
-                <strong><i class="bi bi-speedometer2 me-1"></i>Status:</strong> {{.Status}}
+                <strong><i class="bi bi-speedometer2 me-1" aria-hidden="true"></i>Status:</strong> {{.Status}}
               </div>
             </div>
             
             <div class="mb-3">
-              <strong><i class="bi bi-droplet me-1"></i>Oil Status:</strong>
-              <span class="status-indicator status-{{.OilStatus}}"></span>
+              <strong><i class="bi bi-droplet me-1" aria-hidden="true"></i>Oil Status:</strong>
+              <span class="status-indicator status-{{.OilStatus}}" aria-label="Oil status: {{.OilStatus}}"></span>
               {{if eq .OilStatus "good"}}Good{{else if eq .OilStatus "due"}}Due Soon{{else}}Overdue{{end}}
             </div>
             
             <div class="mb-3">
-              <strong><i class="bi bi-circle me-1"></i>Tire Status:</strong>
-              <span class="status-indicator status-{{.TireStatus}}"></span>
+              <strong><i class="bi bi-circle me-1" aria-hidden="true"></i>Tire Status:</strong>
+              <span class="status-indicator status-{{.TireStatus}}" aria-label="Tire status: {{.TireStatus}}"></span>
               {{if eq .TireStatus "good"}}Good{{else if eq .TireStatus "worn"}}Worn{{else}}Replace{{end}}
             </div>
 
             {{if .MaintenanceNotes}}
-            <div class="alert alert-info mb-3">
-              <i class="bi bi-info-circle me-1"></i>
+            <div class="alert alert-info mb-3" role="alert">
+              <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
               <small>{{.MaintenanceNotes}}</small>
             </div>
             {{end}}
@@ -359,24 +437,31 @@
             <button class="btn btn-sm btn-outline-primary w-100" 
                     data-bs-toggle="collapse" 
                     data-bs-target="#maintenance-{{.BusID}}" 
-                    aria-expanded="false">
-              <i class="bi bi-wrench me-1"></i>Log Maintenance
+                    aria-expanded="false"
+                    aria-controls="maintenance-{{.BusID}}">
+              <i class="bi bi-wrench me-1" aria-hidden="true"></i>Log Maintenance
             </button>
+            
+            <a href="/bus-maintenance/{{.BusID}}" class="btn btn-sm btn-outline-info w-100 mt-2"
+               aria-label="View all maintenance records for Bus {{.BusID}}">
+              <i class="bi bi-journal-text me-1" aria-hidden="true"></i>View Maintenance Records
+            </a>
 
             <div class="collapse mt-3" id="maintenance-{{.BusID}}">
-              <form class="maintenance-form" onsubmit="logMaintenance(event, '{{.BusID}}')">
+              <form class="maintenance-form needs-validation" novalidate onsubmit="logMaintenance(event, '{{.BusID}}')">
                 <input type="hidden" name="bus_id" value="{{.BusID}}">
                 <div class="mb-3">
-                  <label class="form-label">
-                    <i class="bi bi-calendar me-1"></i>Date
+                  <label class="form-label" for="date-{{.BusID}}">
+                    <i class="bi bi-calendar me-1" aria-hidden="true"></i>Date
                   </label>
-                  <input type="date" class="form-control" name="date" value="{{$.Today}}" required>
+                  <input type="date" class="form-control" id="date-{{.BusID}}" name="date" value="{{$.Today}}" required>
+                  <div class="invalid-feedback">Please select a date.</div>
                 </div>
                 <div class="mb-3">
-                  <label class="form-label">
-                    <i class="bi bi-tag me-1"></i>Category
+                  <label class="form-label" for="category-{{.BusID}}">
+                    <i class="bi bi-tag me-1" aria-hidden="true"></i>Category
                   </label>
-                  <select class="form-select" name="category" required>
+                  <select class="form-select" id="category-{{.BusID}}" name="category" required>
                     <option value="">Select category...</option>
                     <option value="oil_change">Oil Change</option>
                     <option value="tire_service">Tire Service</option>
@@ -384,21 +469,25 @@
                     <option value="repair">Repair</option>
                     <option value="other">Other</option>
                   </select>
+                  <div class="invalid-feedback">Please select a category.</div>
                 </div>
                 <div class="mb-3">
-                  <label class="form-label">
-                    <i class="bi bi-speedometer2 me-1"></i>Mileage
+                  <label class="form-label" for="mileage-{{.BusID}}">
+                    <i class="bi bi-speedometer2 me-1" aria-hidden="true"></i>Mileage
                   </label>
-                  <input type="number" class="form-control" name="mileage" placeholder="Current mileage" required>
+                  <input type="number" class="form-control" id="mileage-{{.BusID}}" name="mileage" 
+                         placeholder="Current mileage" min="0" required>
+                  <div class="invalid-feedback">Please enter current mileage.</div>
                 </div>
                 <div class="mb-3">
-                  <label class="form-label">
-                    <i class="bi bi-journal-text me-1"></i>Notes
+                  <label class="form-label" for="notes-{{.BusID}}">
+                    <i class="bi bi-journal-text me-1" aria-hidden="true"></i>Notes
                   </label>
-                  <textarea class="form-control" name="notes" rows="2" required></textarea>
+                  <textarea class="form-control" id="notes-{{.BusID}}" name="notes" rows="2" required></textarea>
+                  <div class="invalid-feedback">Please provide maintenance notes.</div>
                 </div>
                 <button type="submit" class="btn btn-primary btn-sm w-100">
-                  <i class="bi bi-check-circle me-1"></i>Save Log
+                  <i class="bi bi-check-circle me-1" aria-hidden="true"></i>Save Log
                 </button>
               </form>
             </div>
@@ -411,9 +500,10 @@
       <div class="col-lg-6 col-xl-4">
         <div class="bus-card">
           <div class="card-body">
-            <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#addBusModal">
+            <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#addBusModal"
+               aria-label="Add new bus to fleet">
               <div class="quick-action-card">
-                <i class="bi bi-plus-circle fs-2 text-primary d-block mb-2"></i>
+                <i class="bi bi-plus-circle fs-2 text-primary d-block mb-2" aria-hidden="true"></i>
                 <h6 class="fw-semibold text-primary">Add New Bus</h6>
                 <small class="text-muted">Add a new bus to the fleet</small>
               </div>
@@ -426,11 +516,11 @@
         <div class="enhanced-card">
           <div class="card-body">
             <div class="empty-state">
-              <i class="bi bi-bus-front"></i>
+              <i class="bi bi-bus-front" aria-hidden="true"></i>
               <h5>No Buses in Fleet</h5>
               <p class="mb-3">Get started by adding your first bus to the fleet</p>
               <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBusModal">
-                <i class="bi bi-plus-circle me-2"></i>Add First Bus
+                <i class="bi bi-plus-circle me-2" aria-hidden="true"></i>Add First Bus
               </button>
             </div>
           </div>
@@ -445,12 +535,12 @@
       <div class="col-12">
         <div class="enhanced-card">
           <div class="card-header">
-            <h5><i class="bi bi-clock-history me-2"></i>Recent Maintenance Activity</h5>
+            <h5><i class="bi bi-clock-history me-2" aria-hidden="true"></i>Recent Maintenance Activity</h5>
           </div>
           <div class="card-body">
-            <div id="recentMaintenanceLogs">
+            <div id="recentMaintenanceLogs" role="region" aria-live="polite" aria-label="Recent maintenance logs">
               <div class="empty-state">
-                <i class="bi bi-journal-text"></i>
+                <i class="bi bi-journal-text" aria-hidden="true"></i>
                 <p class="mb-0">No maintenance logs recorded yet</p>
               </div>
             </div>
@@ -462,46 +552,48 @@
   </div>
 
   <!-- Add Bus Modal -->
-  <div class="modal fade" id="addBusModal" tabindex="-1">
+  <div class="modal fade" id="addBusModal" tabindex="-1" aria-labelledby="addBusModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">
-            <i class="bi bi-plus-circle me-2"></i>Add New Bus
+          <h5 class="modal-title" id="addBusModalLabel">
+            <i class="bi bi-plus-circle me-2" aria-hidden="true"></i>Add New Bus
           </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <form id="addBusForm" onsubmit="addNewBus(event)">
+        <form id="addBusForm" class="needs-validation" novalidate onsubmit="addNewBus(event)">
           <div class="modal-body">
             <div class="mb-3">
-              <label class="form-label">
-                <i class="bi bi-hash me-2"></i>Bus Number
+              <label class="form-label" for="new-bus-id">
+                <i class="bi bi-hash me-2" aria-hidden="true"></i>Bus Number
               </label>
-              <input type="text" class="form-control" name="bus_id" 
+              <input type="text" class="form-control" id="new-bus-id" name="bus_id" 
                      placeholder="e.g., 101, 102" pattern="[0-9]{3}" maxlength="3" required>
               <small class="text-muted">3-digit bus number</small>
+              <div class="invalid-feedback">Please enter a valid 3-digit bus number.</div>
             </div>
             <div class="mb-3">
-              <label class="form-label">
-                <i class="bi bi-bus-front me-2"></i>Model
+              <label class="form-label" for="new-bus-model">
+                <i class="bi bi-bus-front me-2" aria-hidden="true"></i>Model
               </label>
-              <input type="text" class="form-control" name="model" 
+              <input type="text" class="form-control" id="new-bus-model" name="model" 
                      placeholder="e.g., Blue Bird Vision">
             </div>
             <div class="mb-3">
-              <label class="form-label">
-                <i class="bi bi-people me-2"></i>Capacity
+              <label class="form-label" for="new-bus-capacity">
+                <i class="bi bi-people me-2" aria-hidden="true"></i>Capacity
               </label>
-              <input type="number" class="form-control" name="capacity" 
+              <input type="number" class="form-control" id="new-bus-capacity" name="capacity" 
                      placeholder="Number of passengers" min="1" max="100" required>
+              <div class="invalid-feedback">Please enter capacity between 1-100 passengers.</div>
             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-              <i class="bi bi-x-circle me-2"></i>Cancel
+              <i class="bi bi-x-circle me-2" aria-hidden="true"></i>Cancel
             </button>
             <button type="submit" class="btn btn-primary">
-              <i class="bi bi-check-circle me-2"></i>Add Bus
+              <i class="bi bi-check-circle me-2" aria-hidden="true"></i>Add Bus
             </button>
           </div>
         </form>
@@ -511,133 +603,347 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Calculate statistics
-      {{if .Buses}}
-      const buses = [
-        {{range .Buses}}
-        {status: "{{.Status}}"},
-        {{end}}
-      ];
-      
-      let activeCount = 0;
-      let maintenanceCount = 0;
-      let outOfServiceCount = 0;
-      
-      buses.forEach(bus => {
-        switch(bus.status) {
-          case 'active':
-            activeCount++;
-            break;
-          case 'maintenance':
-            maintenanceCount++;
-            break;
-          case 'out_of_service':
-            outOfServiceCount++;
-            break;
-        }
-      });
-      
-      document.getElementById('activeBuses').textContent = activeCount;
-      document.getElementById('maintenanceBuses').textContent = maintenanceCount;
-      document.getElementById('outOfServiceBuses').textContent = outOfServiceCount;
-      {{end}}
-
-      // Add animation to cards
-      const cards = document.querySelectorAll('.bus-card, .enhanced-card');
-      cards.forEach((card, index) => {
-        setTimeout(() => {
-          card.style.opacity = '0';
-          card.style.transform = 'translateY(20px)';
-          card.style.transition = 'all 0.5s ease';
-          setTimeout(() => {
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-          }, 100);
-        }, index * 100);
-      });
-    });
-
-    function logMaintenance(event, busId) {
-      event.preventDefault();
-      const form = event.target;
-      const formData = new FormData(form);
-      const csrfToken = document.getElementById('csrfToken').value;
-      
-      // Prepare data
-      const data = {
-        bus_id: busId,
-        date: formData.get('date'),
-        category: formData.get('category'),
-        mileage: parseInt(formData.get('mileage')),
-        notes: formData.get('notes')
-      };
-      
-      // In a real implementation, this would make an AJAX call to save the log
-      console.log('Logging maintenance:', data);
-      
-      // Show success message
-      alert('Maintenance log saved successfully!');
-      
-      // Reset form and collapse
-      form.reset();
-      const collapse = bootstrap.Collapse.getInstance(document.getElementById('maintenance-' + busId));
-      collapse.hide();
-      
-      // Update recent logs display
-      updateRecentLogs(data);
+    // Animation cleanup tracker
+    const animationTimeouts = [];
+    
+    // Utility function to escape HTML
+    function escapeHtml(unsafe) {
+      const div = document.createElement('div');
+      div.textContent = unsafe;
+      return div.innerHTML;
     }
-
-    function addNewBus(event) {
-      event.preventDefault();
-      const form = event.target;
-      const formData = new FormData(form);
-      
-      // Prepare data
-      const data = {
-        bus_id: 'BUS' + formData.get('bus_id'),
-        model: formData.get('model'),
-        capacity: parseInt(formData.get('capacity')),
-        status: 'active',
-        oil_status: 'good',
-        tire_status: 'good'
-      };
-      
-      // In a real implementation, this would make an AJAX call
-      console.log('Adding new bus:', data);
-      
-      // Show success and reload
-      alert('Bus added successfully!');
-      window.location.reload();
+    
+    // Show loading overlay
+    function showLoading() {
+      const overlay = document.getElementById('loadingOverlay');
+      if (overlay) overlay.classList.add('show');
     }
-
-    function updateRecentLogs(logData) {
-      const container = document.getElementById('recentMaintenanceLogs');
-      
-      // Create log item
-      const logClass = 'log-' + logData.category.replace('_', '-');
-      const logItem = document.createElement('div');
-      logItem.className = 'maintenance-log-item ' + logClass;
-      logItem.innerHTML = `
-        <div class="d-flex justify-content-between">
-          <div>
-            <strong>Bus #${logData.bus_id}</strong> - ${logData.category.replace('_', ' ').toUpperCase()}
-            <br>
-            <small class="text-muted">
-              <i class="bi bi-calendar me-1"></i>${logData.date} • 
-              <i class="bi bi-speedometer2 me-1"></i>${logData.mileage} miles
-            </small>
-            <br>
-            <small>${logData.notes}</small>
-          </div>
+    
+    // Hide loading overlay
+    function hideLoading() {
+      const overlay = document.getElementById('loadingOverlay');
+      if (overlay) overlay.classList.remove('show');
+    }
+    
+    // Show alert message
+    function showAlert(message, type = 'success') {
+      const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+          ${escapeHtml(message)}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
       `;
       
-      // Replace empty state or prepend to existing logs
-      if (container.querySelector('.empty-state')) {
-        container.innerHTML = '';
+      const alertContainer = document.createElement('div');
+      alertContainer.innerHTML = alertHtml;
+      alertContainer.style.position = 'fixed';
+      alertContainer.style.top = '20px';
+      alertContainer.style.right = '20px';
+      alertContainer.style.zIndex = '9998';
+      document.body.appendChild(alertContainer);
+      
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        alertContainer.remove();
+      }, 5000);
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      // Enable Bootstrap form validation
+      const forms = document.querySelectorAll('.needs-validation');
+      Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+          if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          form.classList.add('was-validated');
+        }, false);
+      });
+      
+      // Calculate statistics with error handling
+      try {
+        {{if .Buses}}
+        const buses = [
+          {{range .Buses}}
+          {status: "{{.Status}}"},
+          {{end}}
+        ];
+        
+        let activeCount = 0;
+        let maintenanceCount = 0;
+        let outOfServiceCount = 0;
+        
+        buses.forEach(bus => {
+          switch(bus.status) {
+            case 'active':
+              activeCount++;
+              break;
+            case 'maintenance':
+              maintenanceCount++;
+              break;
+            case 'out_of_service':
+              outOfServiceCount++;
+              break;
+          }
+        });
+        
+        document.getElementById('activeBuses').textContent = activeCount;
+        document.getElementById('maintenanceBuses').textContent = maintenanceCount;
+        document.getElementById('outOfServiceBuses').textContent = outOfServiceCount;
+        {{end}}
+      } catch (error) {
+        console.error('Error calculating statistics:', error);
       }
-      container.prepend(logItem);
+
+      // Add animation to cards with cleanup
+      const cards = document.querySelectorAll('.bus-card, .enhanced-card');
+      cards.forEach((card, index) => {
+        const timeout = setTimeout(() => {
+          requestAnimationFrame(() => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'all 0.5s ease';
+            
+            requestAnimationFrame(() => {
+              card.style.opacity = '1';
+              card.style.transform = 'translateY(0)';
+            });
+          });
+        }, index * 100);
+        
+        animationTimeouts.push(timeout);
+      });
+    });
+    
+    // Clean up timeouts on page unload
+    window.addEventListener('beforeunload', () => {
+      animationTimeouts.forEach(timeout => clearTimeout(timeout));
+    });
+
+    async function logMaintenance(event, busId) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      const form = event.target;
+      
+      // Check form validity
+      if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+      }
+      
+      // Disable submit button
+      const submitButton = form.querySelector('button[type="submit"]');
+      const originalButtonText = submitButton.innerHTML;
+      submitButton.disabled = true;
+      submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...';
+      
+      try {
+        const formData = new FormData(form);
+        const csrfToken = document.getElementById('csrfToken')?.value;
+        
+        if (!csrfToken) {
+          throw new Error('Security token not found');
+        }
+        
+        // Prepare data
+        const data = {
+          bus_id: busId,
+          date: formData.get('date'),
+          category: formData.get('category'),
+          mileage: parseInt(formData.get('mileage')),
+          notes: formData.get('notes')
+        };
+        
+        // Validate data
+        if (!data.date || !data.category || !data.mileage || !data.notes) {
+          throw new Error('Please fill in all required fields');
+        }
+        
+        // TODO: Replace with actual AJAX call
+        console.log('Logging maintenance:', data);
+        // const response = await fetch('/save-maintenance-log', {
+        //   method: 'POST',
+        //   headers: {
+        //     'Content-Type': 'application/json',
+        //     'X-CSRF-Token': csrfToken
+        //   },
+        //   body: JSON.stringify(data)
+        // });
+        
+        // if (!response.ok) {
+        //   throw new Error('Failed to save maintenance log');
+        // }
+        
+        // Show success message
+        showAlert('Maintenance log saved successfully!');
+        
+        // Reset form and collapse
+        form.reset();
+        form.classList.remove('was-validated');
+        
+        const collapseEl = document.getElementById('maintenance-' + busId);
+        const collapse = bootstrap.Collapse.getInstance(collapseEl);
+        if (collapse) {
+          collapse.hide();
+        }
+        
+        // Update recent logs display
+        updateRecentLogs(data);
+        
+      } catch (error) {
+        console.error('Error logging maintenance:', error);
+        showAlert(error.message || 'Failed to save maintenance log. Please try again.', 'danger');
+      } finally {
+        // Re-enable submit button
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalButtonText;
+      }
+    }
+
+    async function addNewBus(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      const form = event.target;
+      
+      // Check form validity
+      if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+      }
+      
+      // Show confirmation dialog
+      if (!confirm('Are you sure you want to add this bus to the fleet?')) {
+        return;
+      }
+      
+      // Disable submit button
+      const submitButton = form.querySelector('button[type="submit"]');
+      const originalButtonText = submitButton.innerHTML;
+      submitButton.disabled = true;
+      submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Adding...';
+      
+      showLoading();
+      
+      try {
+        const formData = new FormData(form);
+        const csrfToken = document.getElementById('csrfToken')?.value;
+        
+        if (!csrfToken) {
+          throw new Error('Security token not found');
+        }
+        
+        // Check if bus ID already exists
+        const busId = 'BUS' + formData.get('bus_id');
+        const existingBuses = document.querySelectorAll('[data-bus-id]');
+        const busExists = Array.from(existingBuses).some(el => el.dataset.busId === busId);
+        
+        if (busExists) {
+          throw new Error('A bus with this number already exists');
+        }
+        
+        // Prepare data
+        const data = {
+          bus_id: busId,
+          model: formData.get('model') || 'Fleet Vehicle',
+          capacity: parseInt(formData.get('capacity')),
+          status: 'active',
+          oil_status: 'good',
+          tire_status: 'good'
+        };
+        
+        // TODO: Replace with actual AJAX call
+        console.log('Adding new bus:', data);
+        // const response = await fetch('/add-bus', {
+        //   method: 'POST',
+        //   headers: {
+        //     'Content-Type': 'application/json',
+        //     'X-CSRF-Token': csrfToken
+        //   },
+        //   body: JSON.stringify(data)
+        // });
+        
+        // if (!response.ok) {
+        //   throw new Error('Failed to add bus');
+        // }
+        
+        // Show success and reload
+        showAlert('Bus added successfully!');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+        
+      } catch (error) {
+        console.error('Error adding bus:', error);
+        showAlert(error.message || 'Failed to add bus. Please try again.', 'danger');
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalButtonText;
+      } finally {
+        hideLoading();
+      }
+    }
+
+    function updateRecentLogs(logData) {
+      try {
+        const container = document.getElementById('recentMaintenanceLogs');
+        if (!container) return;
+        
+        // Create log item with proper escaping
+        const logClass = 'log-' + logData.category.replace(/_/g, '-');
+        const logItem = document.createElement('div');
+        logItem.className = 'maintenance-log-item ' + logClass;
+        
+        // Create elements safely
+        const logContent = document.createElement('div');
+        logContent.className = 'd-flex justify-content-between';
+        
+        const logInfo = document.createElement('div');
+        
+        const busInfo = document.createElement('strong');
+        busInfo.textContent = `Bus #${logData.bus_id}`;
+        
+        const categoryText = document.createTextNode(` - ${logData.category.replace(/_/g, ' ').toUpperCase()}`);
+        
+        const details = document.createElement('small');
+        details.className = 'text-muted d-block';
+        details.innerHTML = `
+          <i class="bi bi-calendar me-1" aria-hidden="true"></i>${escapeHtml(logData.date)} • 
+          <i class="bi bi-speedometer2 me-1" aria-hidden="true"></i>${escapeHtml(logData.mileage.toString())} miles
+        `;
+        
+        const notes = document.createElement('small');
+        notes.className = 'd-block';
+        notes.textContent = logData.notes;
+        
+        // Assemble elements
+        logInfo.appendChild(busInfo);
+        logInfo.appendChild(categoryText);
+        logInfo.appendChild(document.createElement('br'));
+        logInfo.appendChild(details);
+        logInfo.appendChild(notes);
+        
+        logContent.appendChild(logInfo);
+        logItem.appendChild(logContent);
+        
+        // Replace empty state or prepend to existing logs
+        const emptyState = container.querySelector('.empty-state');
+        if (emptyState) {
+          container.innerHTML = '';
+        }
+        
+        container.prepend(logItem);
+        
+        // Limit to 5 recent logs
+        const logs = container.querySelectorAll('.maintenance-log-item');
+        if (logs.length > 5) {
+          logs[logs.length - 1].remove();
+        }
+        
+      } catch (error) {
+        console.error('Error updating recent logs:', error);
+      }
     }
   </script>
 </body>
