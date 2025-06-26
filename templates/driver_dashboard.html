@@ -247,6 +247,16 @@
       font-weight: 600;
       font-size: 0.9rem;
     }
+    
+    .alert-sm {
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+    }
+    
+    .text-primary {
+      color: #11998e !important;
+      font-size: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -289,8 +299,8 @@
                 <div class="col-md-3">
                   <label class="form-label">Period</label>
                   <select class="form-select" name="period">
-                    <option value="morning" {{if eq .Period "morning"}}selected{{end}}>Morning</option>
-                    <option value="afternoon" {{if eq .Period "afternoon"}}selected{{end}}>Afternoon</option>
+                    <option value="morning" {{if eq .Period "morning"}}selected{{end}}>Morning Route (AM)</option>
+                    <option value="afternoon" {{if eq .Period "afternoon"}}selected{{end}}>Afternoon Route (PM)</option>
                   </select>
                 </div>
                 <div class="col-md-3">
@@ -329,26 +339,32 @@
               </div>
 
               <h6 class="mb-3"><i class="bi bi-people me-2"></i>Student Attendance</h6>
+              <div class="alert alert-info alert-sm">
+                <i class="bi bi-info-circle me-2"></i>
+                Students are automatically ordered by their 
+                {{if eq .Period "morning"}}pickup{{else}}dropoff{{end}} times for efficient route planning.
+              </div>
               <div class="route-positions">
                 {{if .Students}}
                 <div class="table-responsive">
                   <table class="table student-table">
                     <thead>
                       <tr>
-                        <th width="80">Position</th>
+                        <th width="80">Order</th>
                         <th>Student Name</th>
                         <th>Guardian</th>
                         <th>Phone</th>
+                        <th width="120">{{if eq .Period "morning"}}Pickup{{else}}Dropoff{{end}} Time</th>
                         <th width="100">Present</th>
-                        <th width="150">Pickup Time</th>
+                        <th width="150">Actual Time</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {{range .Students}}
-                      {{$position := .PositionNumber}}
+                      {{range $index, $student := .Students}}
+                      {{$position := $student.PositionNumber}}
                       <tr>
                         <td>
-                          <div class="position-number">{{if .PositionNumber}}{{.PositionNumber}}{{else}}--{{end}}</div>
+                          <div class="position-number">{{add $index 1}}</div>
                         </td>
                         <td>
                           <strong>{{.Name}}</strong>
@@ -360,6 +376,15 @@
                         </td>
                         <td>
                           <small>{{.PhoneNumber}}</small>
+                        </td>
+                        <td>
+                          <strong class="text-primary">
+                            {{if eq $.Period "morning"}}
+                              {{.PickupTime}}
+                            {{else}}
+                              {{.DropoffTime}}
+                            {{end}}
+                          </strong>
                         </td>
                         <td>
                           <div class="form-check">
@@ -392,6 +417,8 @@
                 </div>
                 <div class="mt-2 text-muted">
                   <small><i class="bi bi-info-circle me-1"></i>Total students on route: {{len .Students}}</small>
+                  <br>
+                  <small><i class="bi bi-clock me-1"></i>Order shows the sequence for {{if eq .Period "morning"}}pickups{{else}}dropoffs{{end}}</small>
                 </div>
                 {{else}}
                 <div class="alert alert-info">
@@ -592,11 +619,11 @@
         }, (index + 4) * 200); // Start after metric cards
       });
 
-      // Auto-check present when pickup time is entered
+      // Auto-check present when actual time is entered
       document.querySelectorAll('input[name^="pickup_"]').forEach(function(input) {
         input.addEventListener('change', function() {
-          const position = this.name.replace('pickup_', '');
-          const checkbox = document.getElementById('present_' + position);
+          const row = this.closest('tr');
+          const checkbox = row.querySelector('input[type="checkbox"]');
           if (this.value && checkbox) {
             checkbox.checked = true;
           }
