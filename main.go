@@ -1008,10 +1008,8 @@ func addStudentHandler(w http.ResponseWriter, r *http.Request) {
 	dropoffTime := r.FormValue("dropoff_time")
 	routeID := r.FormValue("route_id")
 	
-	var positionNumber int
-	positionStr := r.FormValue("position_number")
-	if positionStr != "" {
-		fmt.Sscanf(positionStr, "%d", &positionNumber)
+	// Position number is no longer used - students are ordered by pickup/dropoff times
+	var positionNumber int = 0
 	}
 	
 	// Build locations
