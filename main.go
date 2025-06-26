@@ -1357,6 +1357,8 @@ func updateVehicleStatus(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
+// ============= ROUTE ASSIGNMENT PAGE HANDLER =============
+// This handler manages the display of route assignments with proper status tracking
 func assignRoutesPage(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
@@ -1364,31 +1366,78 @@ func assignRoutesPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load data
+	// ===== LOAD ALL DATA FROM DATABASE =====
 	assignments, _ := loadRouteAssignments()
 	routes, _ := loadRoutes()
 	buses := loadBuses()
 	users := loadUsers()
 	
-	// Filter drivers
-	var drivers []User
+	// ===== CREATE TRACKING MAPS FOR ASSIGNED RESOURCES =====
+	// These maps track which resources are already assigned
+	assignedDrivers := make(map[string]bool)
+	assignedBuses := make(map[string]bool)
+	assignedRoutes := make(map[string]bool)
+	
+	// Populate the maps with currently assigned resources
+	for _, assignment := range assignments {
+		assignedDrivers[assignment.Driver] = true
+		assignedBuses[assignment.BusID] = true
+		assignedRoutes[assignment.RouteID] = true
+	}
+	
+	// ===== FILTER AVAILABLE DRIVERS =====
+	// Only show drivers who are NOT already assigned to a route
+	var availableDrivers []User
 	for _, u := range users {
-		if u.Role == "driver" {
-			drivers = append(drivers, u)
+		if u.Role == "driver" && !assignedDrivers[u.Username] {
+			availableDrivers = append(availableDrivers, u)
 		}
 	}
 	
-	// Get CSRF token
+	// ===== FILTER AVAILABLE BUSES =====
+	// Only show buses that are active AND not assigned
+	var availableBuses []*Bus
+	for _, bus := range buses {
+		if bus.Status == "active" && !assignedBuses[bus.BusID] {
+			availableBuses = append(availableBuses, bus)
+		}
+	}
+	
+	// ===== CREATE ROUTES WITH STATUS INFORMATION =====
+	// Each route will have an IsAssigned flag
+	var routesWithStatus []struct {
+		Route
+		IsAssigned bool `json:"is_assigned"`
+	}
+	
+	for _, route := range routes {
+		routesWithStatus = append(routesWithStatus, struct {
+			Route
+			IsAssigned bool `json:"is_assigned"`
+		}{
+			Route:      route,
+			IsAssigned: assignedRoutes[route.RouteID],
+		})
+	}
+	
+	// ===== GET CSRF TOKEN =====
 	cookie, _ := r.Cookie("session_id")
 	session, _ := GetSecureSession(cookie.Value)
 	
+	// ===== PREPARE TEMPLATE DATA WITH CALCULATED STATISTICS =====
 	data := AssignRouteData{
-		User:            user,
-		Assignments:     assignments,
-		Drivers:         drivers,
-		AvailableRoutes: routes,
-		AvailableBuses:  buses,
-		CSRFToken:       session.CSRFToken,
+		User:                  user,
+		Assignments:           assignments,
+		Drivers:               availableDrivers, // Only unassigned drivers for dropdown
+		AvailableRoutes:       routes,
+		AvailableBuses:        availableBuses,  // Only unassigned buses
+		CSRFToken:             session.CSRFToken,
+		RoutesWithStatus:      routesWithStatus, // Routes with assignment status
+		// Statistics - pre-calculated for the template
+		TotalAssignments:      len(assignments),
+		TotalRoutes:           len(routes),
+		AvailableDriversCount: len(availableDrivers),
+		AvailableBusesCount:   len(availableBuses),
 	}
 	
 	executeTemplate(w, "assign_routes.html", data)
@@ -1591,6 +1640,7 @@ func editRouteHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/assign-routes", http.StatusFound)
 }
 
+// ============= DELETE ROUTE HANDLER WITH VALIDATION =============
 func deleteRouteHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
@@ -1616,11 +1666,20 @@ func deleteRouteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Check if route is assigned
+	// ===== CHECK IF ROUTE IS ASSIGNED TO A DRIVER =====
 	assignments, _ := loadRouteAssignments()
 	for _, a := range assignments {
 		if a.RouteID == routeID {
 			http.Error(w, "Cannot delete route that is currently assigned", http.StatusBadRequest)
+			return
+		}
+	}
+	
+	// ===== CHECK IF ANY STUDENTS ARE ON THIS ROUTE =====
+	students := loadStudents()
+	for _, s := range students {
+		if s.RouteID == routeID && s.Active {
+			http.Error(w, "Cannot delete route that has active students assigned", http.StatusBadRequest)
 			return
 		}
 	}
