@@ -91,6 +91,11 @@
       color: white;
     }
     
+    .btn[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
     .assignment-row {
       transition: all 0.2s ease;
       border-left: 4px solid transparent;
@@ -272,30 +277,31 @@
       </div>
     </header>
 
-    <!-- Stats Overview -->
+    <!-- ============= STATISTICS OVERVIEW WITH CALCULATED VALUES ============= -->
+    <!-- Uses pre-calculated values from the backend instead of template array lengths -->
     <div class="stats-row">
       <div class="row g-4">
         <div class="col-md-3">
           <div class="stat-item">
-            <span class="stat-number" id="totalAssignments">{{len .Assignments}}</span>
+            <span class="stat-number" id="totalAssignments">{{.TotalAssignments}}</span>
             <div class="stat-label">Driver Assignments</div>
           </div>
         </div>
         <div class="col-md-3">
           <div class="stat-item">
-            <span class="stat-number" id="totalRoutes">{{len .AvailableRoutes}}</span>
+            <span class="stat-number" id="totalRoutes">{{.TotalRoutes}}</span>
             <div class="stat-label">Route Definitions</div>
           </div>
         </div>
         <div class="col-md-3">
           <div class="stat-item">
-            <span class="stat-number" id="availableDrivers">{{len .Drivers}}</span>
+            <span class="stat-number" id="availableDrivers">{{.AvailableDriversCount}}</span>
             <div class="stat-label">Available Drivers</div>
           </div>
         </div>
         <div class="col-md-3">
           <div class="stat-item">
-            <span class="stat-number" id="availableBuses">{{len .AvailableBuses}}</span>
+            <span class="stat-number" id="availableBuses">{{.AvailableBusesCount}}</span>
             <div class="stat-label">Available Buses</div>
           </div>
         </div>
@@ -346,9 +352,9 @@
             </div>
           </div>
 
-          <!-- Routes List -->
+          <!-- ============= ROUTES LIST WITH ASSIGNMENT STATUS ============= -->
           <div class="card-body p-0">
-            {{if .AvailableRoutes}}
+            {{if .RoutesWithStatus}}
             <div class="table-responsive">
               <table class="table table-hover mb-0">
                 <thead class="table-light">
@@ -359,7 +365,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {{range .AvailableRoutes}}
+                  {{range .RoutesWithStatus}}
                   <tr class="assignment-row">
                     <td class="px-4 py-3">
                       <div class="d-flex align-items-center">
@@ -373,7 +379,12 @@
                       </div>
                     </td>
                     <td class="px-4 py-3">
+                      <!-- DYNAMIC STATUS BADGE BASED ON ASSIGNMENT -->
+                      {{if .IsAssigned}}
+                      <span class="status-badge status-assigned">Assigned</span>
+                      {{else}}
                       <span class="status-badge status-available">Available</span>
+                      {{end}}
                     </td>
                     <td class="px-4 py-3 text-center">
                       <div class="btn-group btn-group-sm">
@@ -384,9 +395,11 @@
                                 aria-label="Edit {{.RouteName}}">
                           <i class="bi bi-pencil"></i>
                         </button>
+                        <!-- DELETE BUTTON DISABLED FOR ASSIGNED ROUTES -->
                         <button class="btn btn-outline-danger js-delete-route" 
                                 data-route-id="{{.RouteID}}" 
                                 data-route-name="{{.RouteName}}"
+                                {{if .IsAssigned}}disabled title="Cannot delete assigned route"{{end}}
                                 aria-label="Delete {{.RouteName}}">
                           <i class="bi bi-trash"></i>
                         </button>
@@ -526,7 +539,8 @@
           </div>
         </div>
 
-        <!-- Available Buses Section -->
+        <!-- ============= AVAILABLE BUSES SECTION ============= -->
+        <!-- Only shows buses that are active AND not assigned -->
         <div class="enhanced-card mt-4">
           <div class="card-header">
             <h5><i class="bi bi-bus-front me-2"></i>Fleet Status</h5>
@@ -535,7 +549,7 @@
             {{if .AvailableBuses}}
             <div class="bus-list">
               {{range .AvailableBuses}}
-              <div class="bus-item {{if eq .Status "maintenance"}}maintenance{{else if eq .Status "assigned"}}assigned{{end}}">
+              <div class="bus-item">
                 <div class="d-flex justify-content-between align-items-center">
                   <div class="d-flex align-items-center">
                     <div class="assignment-icon bus-icon">
@@ -543,11 +557,12 @@
                     </div>
                     <div>
                       <div class="fw-semibold">Bus #{{.BusID}}</div>
-                      <small class="text-muted">Fleet Vehicle</small>
+                      <small class="text-muted">{{if .Model}}{{.Model}}{{else}}Fleet Vehicle{{end}}</small>
                     </div>
                   </div>
-                  <span class="status-badge {{if eq .Status "available"}}status-available{{else if eq .Status "maintenance"}}status-maintenance{{else}}status-assigned{{end}}">
-                    {{.Status}}
+                  <!-- ALL AVAILABLE BUSES SHOW AS AVAILABLE -->
+                  <span class="status-badge status-available">
+                    Available
                   </span>
                 </div>
               </div>
@@ -625,17 +640,24 @@
       });
 
       // Auto-expand route form if no routes available
-      {{if not .AvailableRoutes}}
+      {{if not .RoutesWithStatus}}
       const addRouteCollapse = new bootstrap.Collapse(document.getElementById('addRouteForm'), {
         show: true
       });
       {{end}}
 
-      // Add confirmation to delete buttons
+      // ============= ENHANCED DELETE CONFIRMATION WITH VALIDATION =============
       const deleteButtons = document.querySelectorAll('.js-delete-route');
       deleteButtons.forEach(button => {
         button.addEventListener('click', function(e) {
           e.preventDefault();
+          
+          // Check if button is disabled (route is assigned)
+          if (this.disabled) {
+            alert('Cannot delete a route that is currently assigned to a driver.');
+            return;
+          }
+          
           const routeId = this.dataset.routeId;
           const routeName = this.dataset.routeName;
           
