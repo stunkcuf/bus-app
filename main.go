@@ -471,6 +471,10 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, "dashboard.html", data)
 }
 
+// Add this import to your imports section at the top of main.go:
+// "sort"
+
+// Replace the entire driverDashboard function in main.go with this:
 func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "driver" {
@@ -498,6 +502,7 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	
 	var route *Route
 	var bus *Bus
+	var routeStudents []Student  // Add this to hold students
 	
 	if err == nil && assignment != nil {
 		// Get route details
@@ -517,6 +522,36 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 		}
+		
+		// Get students for this route from the database
+		if route != nil {
+			allStudents := loadStudents()
+			log.Printf("DEBUG: Total students loaded: %d", len(allStudents))
+			
+			for _, s := range allStudents {
+				// Log each student check
+				log.Printf("DEBUG: Checking student %s: RouteID=%s (need %s), Driver=%s (need %s), Active=%v",
+					s.Name, s.RouteID, route.RouteID, s.Driver, user.Username, s.Active)
+				
+				// Get students assigned to this route AND driver
+				if s.RouteID == route.RouteID && s.Driver == user.Username && s.Active {
+					routeStudents = append(routeStudents, s)
+					log.Printf("DEBUG: Added student %s to route", s.Name)
+				}
+			}
+			
+			log.Printf("DEBUG: Found %d students for driver %s on route %s", 
+				len(routeStudents), user.Username, route.RouteID)
+			
+			// Sort students by position number
+			sort.Slice(routeStudents, func(i, j int) bool {
+				return routeStudents[i].PositionNumber < routeStudents[j].PositionNumber
+			})
+		} else {
+			log.Printf("DEBUG: Route is nil for assignment")
+		}
+	} else {
+		log.Printf("DEBUG: No route assignment found for driver %s: %v", user.Username, err)
 	}
 	
 	// Get existing log for this date/period
@@ -544,12 +579,24 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	cookie, _ := r.Cookie("session_id")
 	session, _ := GetSecureSession(cookie.Value)
 	
-	data := DriverDashboardData{
+	// Modified data structure to include students
+	data := struct {
+		User          *User
+		Date          string
+		Period        string
+		Route         *Route
+		Bus           *Bus
+		Students      []Student  // Add this field
+		DriverLog     *DriverLog
+		RecentLogs    []DriverLog
+		CSRFToken     string
+	}{
 		User:       user,
 		Date:       date,
 		Period:     period,
 		Route:      route,
 		Bus:        bus,
+		Students:   routeStudents,  // Pass the students
 		DriverLog:  driverLog,
 		RecentLogs: recentLogs,
 		CSRFToken:  session.CSRFToken,
