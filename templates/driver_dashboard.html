@@ -337,34 +337,51 @@
                       <tr>
                         <th width="80">Position</th>
                         <th>Student Name</th>
+                        <th>Guardian</th>
+                        <th>Phone</th>
                         <th width="100">Present</th>
                         <th width="150">Pickup Time</th>
                       </tr>
                     </thead>
                     <tbody>
                       {{range .Students}}
+                      {{$position := .PositionNumber}}
                       <tr>
                         <td>
-                          <div class="position-number">{{.PositionNumber}}</div>
+                          <div class="position-number">{{if .PositionNumber}}{{.PositionNumber}}{{else}}--{{end}}</div>
                         </td>
-                        <td>{{.Name}}</td>
+                        <td>
+                          <strong>{{.Name}}</strong>
+                          <br>
+                          <small class="text-muted">ID: {{.StudentID}}</small>
+                        </td>
+                        <td>
+                          <small>{{.Guardian}}</small>
+                        </td>
+                        <td>
+                          <small>{{.PhoneNumber}}</small>
+                        </td>
                         <td>
                           <div class="form-check">
                             <input class="form-check-input" type="checkbox" 
                                    name="present_{{.PositionNumber}}" id="present_{{.PositionNumber}}"
                                    {{if $.DriverLog}}
                                      {{range $.DriverLog.Attendance}}
-                                       {{if eq .Position $.PositionNumber}}{{if .Present}}checked{{end}}{{end}}
+                                       {{if eq .Position $position}}{{if .Present}}checked{{end}}{{end}}
                                      {{end}}
                                    {{end}}>
+                            <label class="form-check-label" for="present_{{.PositionNumber}}">
+                              Present
+                            </label>
                           </div>
                         </td>
                         <td>
                           <input type="time" class="form-control form-control-sm" 
                                  name="pickup_{{.PositionNumber}}"
+                                 placeholder="HH:MM"
                                  {{if $.DriverLog}}
                                    {{range $.DriverLog.Attendance}}
-                                     {{if eq .Position $.PositionNumber}}value="{{.PickupTime}}"{{end}}
+                                     {{if eq .Position $position}}value="{{.PickupTime}}"{{end}}
                                    {{end}}
                                  {{end}}>
                         </td>
@@ -372,6 +389,9 @@
                       {{end}}
                     </tbody>
                   </table>
+                </div>
+                <div class="mt-2 text-muted">
+                  <small><i class="bi bi-info-circle me-1"></i>Total students on route: {{len .Students}}</small>
                 </div>
                 {{else}}
                 <div class="alert alert-info">
