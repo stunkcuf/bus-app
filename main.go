@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -9,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"sort"
-	"strconv"
 	"time"
 )
 
