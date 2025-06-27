@@ -307,6 +307,14 @@
       white-space: nowrap;
       border-width: 0;
     }
+    
+    .alert-toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9998;
+      min-width: 300px;
+    }
   </style>
 </head>
 <body>
@@ -627,8 +635,11 @@
     
     // Show alert message
     function showAlert(message, type = 'success') {
+      // Remove existing alerts
+      document.querySelectorAll('.alert-toast').forEach(alert => alert.remove());
+      
       const alertHtml = `
-        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+        <div class="alert alert-${type} alert-dismissible fade show alert-toast" role="alert">
           ${escapeHtml(message)}
           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -636,15 +647,14 @@
       
       const alertContainer = document.createElement('div');
       alertContainer.innerHTML = alertHtml;
-      alertContainer.style.position = 'fixed';
-      alertContainer.style.top = '20px';
-      alertContainer.style.right = '20px';
-      alertContainer.style.zIndex = '9998';
-      document.body.appendChild(alertContainer);
+      document.body.appendChild(alertContainer.firstElementChild);
       
       // Auto-dismiss after 5 seconds
       setTimeout(() => {
-        alertContainer.remove();
+        const alert = document.querySelector('.alert-toast');
+        if (alert) {
+          alert.remove();
+        }
       }, 5000);
     }
     
@@ -747,37 +757,36 @@
           throw new Error('Security token not found');
         }
         
-        // Prepare data
-        const data = {
-          bus_id: busId,
-          date: formData.get('date'),
-          category: formData.get('category'),
-          mileage: parseInt(formData.get('mileage')),
-          notes: formData.get('notes')
-        };
+        // Create URL-encoded form data
+        const params = new URLSearchParams();
+        params.append('csrf_token', csrfToken);
+        params.append('bus_id', busId);
+        params.append('vehicle_id', busId);
+        params.append('date', formData.get('date'));
+        params.append('category', formData.get('category'));
+        params.append('mileage', formData.get('mileage'));
+        params.append('notes', formData.get('notes'));
         
-        // Validate data
-        if (!data.date || !data.category || !data.mileage || !data.notes) {
-          throw new Error('Please fill in all required fields');
+        showLoading();
+        
+        const response = await fetch('/save-maintenance-record', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRF-Token': csrfToken
+          },
+          body: params.toString()
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || 'Failed to save maintenance log');
         }
         
-        // TODO: Replace with actual AJAX call
-        console.log('Logging maintenance:', data);
-        // const response = await fetch('/save-maintenance-log', {
-        //   method: 'POST',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //     'X-CSRF-Token': csrfToken
-        //   },
-        //   body: JSON.stringify(data)
-        // });
-        
-        // if (!response.ok) {
-        //   throw new Error('Failed to save maintenance log');
-        // }
+        const result = await response.json();
         
         // Show success message
-        showAlert('Maintenance log saved successfully!');
+        showAlert(result.message || 'Maintenance log saved successfully!');
         
         // Reset form and collapse
         form.reset();
@@ -790,7 +799,18 @@
         }
         
         // Update recent logs display
-        updateRecentLogs(data);
+        updateRecentLogs({
+          bus_id: busId,
+          date: formData.get('date'),
+          category: formData.get('category'),
+          mileage: parseInt(formData.get('mileage')),
+          notes: formData.get('notes')
+        });
+        
+        // Update status indicators if needed
+        if (formData.get('category') === 'oil_change') {
+          // You could update the oil status indicator here
+        }
         
       } catch (error) {
         console.error('Error logging maintenance:', error);
@@ -799,6 +819,7 @@
         // Re-enable submit button
         submitButton.disabled = false;
         submitButton.innerHTML = originalButtonText;
+        hideLoading();
       }
     }
 
@@ -845,35 +866,24 @@
         }
         
         // Prepare data
-        const data = {
-          bus_id: busId,
-          model: formData.get('model') || 'Fleet Vehicle',
-          capacity: parseInt(formData.get('capacity')),
-          status: 'active',
-          oil_status: 'good',
-          tire_status: 'good'
-        };
+        const params = new URLSearchParams();
+        params.append('csrf_token', csrfToken);
+        params.append('bus_id', busId);
+        params.append('model', formData.get('model') || 'Fleet Vehicle');
+        params.append('capacity', formData.get('capacity'));
+        params.append('status', 'active');
+        params.append('oil_status', 'good');
+        params.append('tire_status', 'good');
         
-        // TODO: Replace with actual AJAX call
-        console.log('Adding new bus:', data);
-        // const response = await fetch('/add-bus', {
-        //   method: 'POST',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //     'X-CSRF-Token': csrfToken
-        //   },
-        //   body: JSON.stringify(data)
-        // });
+        // TODO: Implement the actual endpoint
+        console.log('Adding new bus:', Object.fromEntries(params));
         
-        // if (!response.ok) {
-        //   throw new Error('Failed to add bus');
-        // }
+        // For now, just show success and reload
+        showAlert('Bus added successfully! (Note: Backend endpoint needs to be implemented)');
         
-        // Show success and reload
-        showAlert('Bus added successfully!');
         setTimeout(() => {
           window.location.reload();
-        }, 1000);
+        }, 1500);
         
       } catch (error) {
         console.error('Error adding bus:', error);
