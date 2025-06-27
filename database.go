@@ -8,7 +8,6 @@ import (
     "os"
     "sort"
     "strconv"
-    "time"
     
     "github.com/jmoiron/sqlx"
     _ "github.com/lib/pq"
