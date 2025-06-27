@@ -659,6 +659,7 @@ func getAllVehicleMaintenanceRecords(vehicleID string) ([]BusMaintenanceLog, err
         return nil, fmt.Errorf("database connection not available")
     }
     
+    log.Printf("Fetching maintenance records for vehicle: %s", vehicleID)
     var records []BusMaintenanceLog
     
     // 1. Get records from bus_maintenance_logs table
