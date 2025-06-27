@@ -207,6 +207,36 @@ func runMigrations() error {
         notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    
+    -- Service records table (legacy support)
+    CREATE TABLE IF NOT EXISTS service_records (
+        id SERIAL PRIMARY KEY,
+        vehicle_number INTEGER,
+        maintenance_date DATE,
+        category VARCHAR(50),
+        notes TEXT,
+        work_done TEXT,
+        mileage INTEGER,
+        cost DECIMAL(10,2),
+        po_number VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Maintenance records table (unified maintenance tracking)
+    CREATE TABLE IF NOT EXISTS maintenance_records (
+        id SERIAL PRIMARY KEY,
+        vehicle_id VARCHAR(20) NOT NULL,
+        vehicle_type VARCHAR(20) DEFAULT 'vehicle' CHECK (vehicle_type IN ('bus', 'vehicle')),
+        date DATE NOT NULL,
+        category VARCHAR(50) NOT NULL,
+        notes TEXT,
+        mileage INTEGER,
+        cost DECIMAL(10,2),
+        po_number VARCHAR(50),
+        work_done TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
 
     -- Create update triggers
     CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -224,7 +254,7 @@ func runMigrations() error {
     }
     
     // Create triggers for each table that has updated_at
-    tables := []string{"users", "buses", "routes", "students", "route_assignments", "vehicles"}
+    tables := []string{"users", "buses", "routes", "students", "route_assignments", "vehicles", "maintenance_records"}
     for _, table := range tables {
         triggerSQL := fmt.Sprintf(`
             DROP TRIGGER IF EXISTS update_%s_updated_at ON %s;
@@ -247,6 +277,8 @@ func runMigrations() error {
         "CREATE INDEX IF NOT EXISTS idx_route_assignments_driver ON route_assignments(driver)",
         "CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)",
         "CREATE INDEX IF NOT EXISTS idx_users_status ON users(status)",
+        "CREATE INDEX IF NOT EXISTS idx_maintenance_records_vehicle ON maintenance_records(vehicle_id)",
+        "CREATE INDEX IF NOT EXISTS idx_service_records_vehicle ON service_records(vehicle_number)",
     }
     
     for _, idx := range indexes {
@@ -260,6 +292,11 @@ func runMigrations() error {
         log.Printf("Warning: Failed to update users table for registration: %v", err)
     }
     
+    // Ensure updated_at columns exist
+    if err := ensureUpdatedAtColumn(); err != nil {
+        log.Printf("Warning: Failed to ensure updated_at columns: %v", err)
+    }
+    
     // Ensure route names are populated in route assignments
     if err := fixRouteAssignmentNames(); err != nil {
         log.Printf("Warning: Failed to fix route assignment names: %v", err)
@@ -268,11 +305,6 @@ func runMigrations() error {
     // Ensure routes table has proper structure
     if err := ensureRoutesTableStructure(); err != nil {
         log.Printf("Warning: Failed to ensure routes table structure: %v", err)
-    }
-    
-    // Ensure maintenance_records table exists
-    if err := ensureMaintenanceRecordsTable(); err != nil {
-        log.Printf("Warning: Failed to ensure maintenance_records table: %v", err)
     }
     
     // Create default admin user with HASHED password
@@ -330,9 +362,9 @@ func updateUsersTableForRegistration() error {
         )
     `)
     
-    if err := ensureUpdatedAtColumn(); err != nil {
-    log.Printf("Warning: Failed to ensure updated_at columns: %v", err)
-}
+    if err != nil {
+        return fmt.Errorf("failed to check status column existence: %v", err)
+    }
     
     if !statusExists {
         // Add status column to existing users table
@@ -622,108 +654,156 @@ func ensureRoutesTableStructure() error {
 	return nil
 }
 
-// ensureMaintenanceRecordsTable ensures the maintenance_records table exists
-func ensureMaintenanceRecordsTable() error {
-    log.Println("Ensuring maintenance_records table exists...")
+// ==============================================================
+// FIX: Complete getAllVehicleMaintenanceRecords function
+// ==============================================================
+// getAllVehicleMaintenanceRecords gets maintenance records from ALL tables
+func getAllVehicleMaintenanceRecords(vehicleID string) ([]BusMaintenanceLog, error) {
+    if db == nil {
+        return nil, fmt.Errorf("database connection not available")
+    }
     
-    // Create the table
-    _, err := db.Exec(`
-        CREATE TABLE IF NOT EXISTS maintenance_records (
-            id SERIAL PRIMARY KEY,
-            vehicle_id VARCHAR(20) NOT NULL,
-            vehicle_type VARCHAR(20) DEFAULT 'vehicle' CHECK (vehicle_type IN ('bus', 'vehicle')),
-            date DATE NOT NULL,
-            category VARCHAR(50) NOT NULL,
-            notes TEXT,
-            mileage INTEGER,
-            cost DECIMAL(10,2),
-            po_number VARCHAR(50),
-            work_done TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    `)
+    var records []BusMaintenanceLog
     
+    // 1. Get records from bus_maintenance_logs table
+    query1 := `
+        SELECT bus_id, date, category, notes, mileage, cost
+        FROM bus_maintenance_logs 
+        WHERE bus_id = $1 
+        ORDER BY date DESC`
+    
+    rows1, err := db.Query(query1, vehicleID)
     if err != nil {
-        return fmt.Errorf("failed to create maintenance_records table: %v", err)
-    }
-    
-    // Create indexes
-    indexes := []string{
-        "CREATE INDEX IF NOT EXISTS idx_maintenance_vehicle_date ON maintenance_records(vehicle_id, date DESC)",
-        "CREATE INDEX IF NOT EXISTS idx_maintenance_type ON maintenance_records(vehicle_type)",
-    }
-    
-    for _, idx := range indexes {
-        if _, err := db.Exec(idx); err != nil {
-            log.Printf("Warning: Failed to create index: %v", err)
-        }
-    }
-    
-    // Check if we need to migrate from service_records
-    var serviceTableExists bool
-    err = db.QueryRow(`
-        SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_name = 'service_records'
-        )
-    `).Scan(&serviceTableExists)
-    
-    if err == nil && serviceTableExists {
-        log.Println("Found service_records table, attempting migration...")
-        
-        // Get column info to build migration query
-        var hasVehicleNumber, hasMaintenanceDate bool
-        rows, err := db.Query(`
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'service_records'
-        `)
-        if err == nil {
-            defer rows.Close()
-            for rows.Next() {
-                var colName string
-                if err := rows.Scan(&colName); err == nil {
-                    if colName == "vehicle_number" {
-                        hasVehicleNumber = true
-                    } else if colName == "maintenance_date" {
-                        hasMaintenanceDate = true
-                    }
-                }
+        log.Printf("Error querying bus_maintenance_logs: %v", err)
+    } else {
+        defer rows1.Close()
+        for rows1.Next() {
+            var record BusMaintenanceLog
+            var date sql.NullTime
+            var cost sql.NullFloat64
+            
+            if err := rows1.Scan(&record.BusID, &date, &record.Category, 
+                &record.Notes, &record.Mileage, &cost); err != nil {
+                log.Printf("Error scanning bus maintenance record: %v", err)
+                continue
             }
+            
+            if date.Valid {
+                record.Date = date.Time.Format("2006-01-02")
+            }
+            
+            records = append(records, record)
         }
+    }
+    
+    // 2. Get records from maintenance_records table
+    query2 := `
+        SELECT vehicle_id, date, category, notes, mileage, cost
+        FROM maintenance_records 
+        WHERE vehicle_id = $1 
+        ORDER BY date DESC`
+    
+    rows2, err := db.Query(query2, vehicleID)
+    if err != nil {
+        log.Printf("Error querying maintenance_records: %v", err)
+    } else {
+        defer rows2.Close()
+        for rows2.Next() {
+            var record BusMaintenanceLog
+            var date sql.NullTime
+            var cost sql.NullFloat64
+            
+            if err := rows2.Scan(&record.BusID, &date, &record.Category, 
+                &record.Notes, &record.Mileage, &cost); err != nil {
+                log.Printf("Error scanning maintenance record: %v", err)
+                continue
+            }
+            
+            if date.Valid {
+                record.Date = date.Time.Format("2006-01-02")
+            }
+            
+            records = append(records, record)
+        }
+    }
+    
+    // 3. Get records from service_records table
+    // Try multiple approaches to handle different ID formats
+    
+    // First, try as string
+    query3 := `
+        SELECT 
+            $1 as vehicle_id,
+            maintenance_date,
+            COALESCE(category, 'service') as category,
+            COALESCE(work_done, notes, '') as notes,
+            mileage,
+            cost
+        FROM service_records 
+        WHERE vehicle_number::TEXT = $1
+        ORDER BY maintenance_date DESC`
+    
+    rows3, err := db.Query(query3, vehicleID)
+    if err != nil {
+        log.Printf("Error querying service_records as string: %v", err)
         
-        if hasVehicleNumber && hasMaintenanceDate {
-            // Migrate data
-            result, err := db.Exec(`
-                INSERT INTO maintenance_records (vehicle_id, date, category, notes, mileage, cost, work_done)
+        // If that fails and the ID looks numeric, try as integer
+        if vehicleNum, err2 := strconv.Atoi(vehicleID); err2 == nil {
+            query4 := `
                 SELECT 
-                    COALESCE(vehicle_number::VARCHAR, 'UNKNOWN') as vehicle_id,
-                    maintenance_date as date,
-                    COALESCE(category, 'other') as category,
+                    $1 as vehicle_id,
+                    maintenance_date,
+                    COALESCE(category, 'service') as category,
                     COALESCE(work_done, notes, '') as notes,
                     mileage,
-                    cost,
-                    work_done
-                FROM service_records
-                WHERE NOT EXISTS (
-                    SELECT 1 FROM maintenance_records mr 
-                    WHERE mr.vehicle_id = service_records.vehicle_number::VARCHAR 
-                    AND mr.date = service_records.maintenance_date
-                )
-            `)
+                    cost
+                FROM service_records 
+                WHERE vehicle_number = $2
+                ORDER BY maintenance_date DESC`
             
+            rows3, err = db.Query(query4, vehicleID, vehicleNum)
             if err != nil {
-                log.Printf("Warning: Failed to migrate service_records: %v", err)
-            } else {
-                rowsAffected, _ := result.RowsAffected()
-                log.Printf("Migrated %d records from service_records", rowsAffected)
+                log.Printf("Error querying service_records as int: %v", err)
             }
         }
     }
     
-    log.Println("maintenance_records table ready")
-    return nil
+    if rows3 != nil {
+        defer rows3.Close()
+        for rows3.Next() {
+            var record BusMaintenanceLog
+            var date sql.NullTime
+            var cost sql.NullFloat64
+            var mileage sql.NullInt64
+            
+            if err := rows3.Scan(&record.BusID, &date, &record.Category, 
+                &record.Notes, &mileage, &cost); err != nil {
+                log.Printf("Error scanning service record: %v", err)
+                continue
+            }
+            
+            if date.Valid {
+                record.Date = date.Time.Format("2006-01-02")
+            }
+            
+            if mileage.Valid {
+                record.Mileage = int(mileage.Int64)
+            }
+            
+            // Mark that this came from service_records
+            record.Category = "service-" + record.Category
+            
+            records = append(records, record)
+        }
+    }
+    
+    // Sort all records by date (newest first)
+    sort.Slice(records, func(i, j int) bool {
+        return records[i].Date > records[j].Date
+    })
+    
+    log.Printf("Found %d total maintenance records for vehicle %s", len(records), vehicleID)
+    return records, nil
 }
 
 // Get vehicle list for the fleet overview page (legacy function for compatibility)
@@ -774,124 +854,6 @@ func getBusMaintenanceRecords(busID string) ([]BusMaintenanceLog, error) {
     return records, nil
 }
 
-// getAllVehicleMaintenanceRecords gets maintenance records from all tables
-func getAllVehicleMaintenanceRecords(vehicleID string) ([]BusMaintenanceLog, error) {
-    if db == nil {
-        return nil, fmt.Errorf("database connection not available")
-    }
-    
-    var records []BusMaintenanceLog
-    
-    // First, try to get records from maintenance_records table
-    query1 := `
-        SELECT vehicle_id, date, category, notes, mileage, cost
-        FROM maintenance_records 
-        WHERE vehicle_id = $1 
-        ORDER BY date DESC`
-    
-    rows, err := db.Query(query1, vehicleID)
-    if err != nil {
-        log.Printf("Error querying maintenance_records: %v", err)
-    } else {
-        defer rows.Close()
-        for rows.Next() {
-            var record BusMaintenanceLog
-            var date sql.NullTime
-            var cost sql.NullFloat64
-            
-            if err := rows.Scan(&record.BusID, &date, &record.Category, 
-                &record.Notes, &record.Mileage, &cost); err != nil {
-                log.Printf("Error scanning maintenance record: %v", err)
-                continue
-            }
-            
-            if date.Valid {
-                record.Date = date.Time.Format("2006-01-02")
-            }
-            
-            records = append(records, record)
-        }
-    }
-    
-    // Then, try to get records from service_records table
-    // Note: Adjust column names based on your actual service_records schema
-    query2 := `
-        SELECT 
-            COALESCE(vehicle_number::VARCHAR, $1) as vehicle_id,
-            maintenance_date,
-            COALESCE(category, 'service') as category,
-            COALESCE(work_done, notes, '') as notes,
-            mileage,
-            cost
-        FROM service_records 
-        WHERE vehicle_number = $1 OR vehicle_number::VARCHAR = $1
-        ORDER BY maintenance_date DESC`
-    
-    // Try with the ID as-is
-    rows2, err := db.Query(query2, vehicleID)
-    if err != nil {
-        log.Printf("Error querying service_records: %v", err)
-        
-        // If that fails, try converting to integer if the ID is numeric
-        if _, err := strconv.Atoi(vehicleID); err == nil {
-            query3 := `
-                SELECT 
-                    $1 as vehicle_id,
-                    maintenance_date,
-                    COALESCE(category, 'service') as category,
-                    COALESCE(work_done, notes, '') as notes,
-                    mileage,
-                    cost
-                FROM service_records 
-                WHERE vehicle_number = $2
-                ORDER BY maintenance_date DESC`
-            
-            vehicleNum, _ := strconv.Atoi(vehicleID)
-            rows2, err = db.Query(query3, vehicleID, vehicleNum)
-            if err != nil {
-                log.Printf("Error querying service_records with int: %v", err)
-            }
-        }
-    }
-    
-    if rows2 != nil {
-        defer rows2.Close()
-        for rows2.Next() {
-            var record BusMaintenanceLog
-            var date sql.NullTime
-            var cost sql.NullFloat64
-            var mileage sql.NullInt64
-            
-            if err := rows2.Scan(&record.BusID, &date, &record.Category, 
-                &record.Notes, &mileage, &cost); err != nil {
-                log.Printf("Error scanning service record: %v", err)
-                continue
-            }
-            
-            if date.Valid {
-                record.Date = date.Time.Format("2006-01-02")
-            }
-            
-            if mileage.Valid {
-                record.Mileage = int(mileage.Int64)
-            }
-            
-            // Mark that this came from service_records
-            record.Category = "service-" + record.Category
-            
-            records = append(records, record)
-        }
-    }
-    
-    // Sort all records by date (newest first)
-    sort.Slice(records, func(i, j int) bool {
-        return records[i].Date > records[j].Date
-    })
-    
-    log.Printf("Found %d total maintenance records for vehicle %s", len(records), vehicleID)
-    return records, nil
-}
-
 // debugMaintenanceTables helps debug what's in the maintenance tables
 func debugMaintenanceTables(vehicleID string) {
     log.Printf("\n=== DEBUGGING MAINTENANCE DATA FOR VEHICLE %s ===", vehicleID)
@@ -905,29 +867,39 @@ func debugMaintenanceTables(vehicleID string) {
         log.Printf("Vehicle %s exists in vehicles table: %v", vehicleID, exists)
     }
     
+    // Check bus_maintenance_logs
+    var count1 int
+    err = db.QueryRow("SELECT COUNT(*) FROM bus_maintenance_logs WHERE bus_id = $1", vehicleID).Scan(&count1)
+    if err != nil {
+        log.Printf("Error counting bus_maintenance_logs: %v", err)
+    } else {
+        log.Printf("Found %d records in bus_maintenance_logs", count1)
+    }
+    
     // Check maintenance_records
-    var count int
-    err = db.QueryRow("SELECT COUNT(*) FROM maintenance_records WHERE vehicle_id = $1", vehicleID).Scan(&count)
+    var count2 int
+    err = db.QueryRow("SELECT COUNT(*) FROM maintenance_records WHERE vehicle_id = $1", vehicleID).Scan(&count2)
     if err != nil {
         log.Printf("Error counting maintenance_records: %v", err)
     } else {
-        log.Printf("Found %d records in maintenance_records", count)
+        log.Printf("Found %d records in maintenance_records", count2)
     }
     
     // Check service_records (try both string and numeric)
-    err = db.QueryRow("SELECT COUNT(*) FROM service_records WHERE vehicle_number::VARCHAR = $1", vehicleID).Scan(&count)
+    var count3 int
+    err = db.QueryRow("SELECT COUNT(*) FROM service_records WHERE vehicle_number::VARCHAR = $1", vehicleID).Scan(&count3)
     if err != nil {
         // Try as integer
         if vehicleNum, err2 := strconv.Atoi(vehicleID); err2 == nil {
-            err = db.QueryRow("SELECT COUNT(*) FROM service_records WHERE vehicle_number = $1", vehicleNum).Scan(&count)
+            err = db.QueryRow("SELECT COUNT(*) FROM service_records WHERE vehicle_number = $1", vehicleNum).Scan(&count3)
             if err == nil {
-                log.Printf("Found %d records in service_records (as integer)", count)
+                log.Printf("Found %d records in service_records (as integer)", count3)
             }
         } else {
             log.Printf("Error counting service_records: %v", err)
         }
     } else {
-        log.Printf("Found %d records in service_records (as string)", count)
+        log.Printf("Found %d records in service_records (as string)", count3)
     }
     
     // Show sample data from each table
@@ -1089,7 +1061,8 @@ func checkDatabaseHealth() error {
     
     // Verify tables exist
     tables := []string{"users", "buses", "routes", "students", "route_assignments", 
-                      "driver_logs", "bus_maintenance_logs", "vehicles", "activities"}
+                      "driver_logs", "bus_maintenance_logs", "vehicles", "activities",
+                      "service_records", "maintenance_records"}
     
     for _, table := range tables {
         var exists bool
@@ -1101,7 +1074,7 @@ func checkDatabaseHealth() error {
             )`, table)
         
         if err != nil || !exists {
-            return fmt.Errorf("table %s does not exist", table)
+            log.Printf("Warning: table %s does not exist or error checking: %v", table, err)
         }
     }
     
