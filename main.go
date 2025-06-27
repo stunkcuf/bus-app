@@ -941,6 +941,7 @@ func saveDriverLogHandler(w http.ResponseWriter, r *http.Request) {
 	// Redirect back to dashboard
 	http.Redirect(w, r, fmt.Sprintf("/driver-dashboard?date=%s&period=%s", date, period), http.StatusFound)
 }
+
 // ============= MAINTENANCE HANDLERS =============
 
 func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
@@ -1154,7 +1155,7 @@ func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Create maintenance log
-	log := BusMaintenanceLog{
+	maintenanceLog := BusMaintenanceLog{
 		BusID:    busID,
 		Date:     date,
 		Category: category,
@@ -1163,7 +1164,7 @@ func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Save the log
-	if err := saveMaintenanceLog(log); err != nil {
+	if err := saveMaintenanceLog(maintenanceLog); err != nil {
 		log.Printf("Failed to save maintenance log: %v", err)
 		http.Error(w, "Failed to save maintenance record", http.StatusInternalServerError)
 		return
