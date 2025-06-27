@@ -653,9 +653,6 @@ func ensureRoutesTableStructure() error {
 	return nil
 }
 
-// ==============================================================
-// FIX: Complete getAllVehicleMaintenanceRecords function
-// ==============================================================
 // getAllVehicleMaintenanceRecords gets maintenance records from ALL tables
 func getAllVehicleMaintenanceRecords(vehicleID string) ([]BusMaintenanceLog, error) {
     if db == nil {
@@ -1016,82 +1013,6 @@ func getBusMaintenanceRecords(busID string) ([]BusMaintenanceLog, error) {
     }
     
     return records, nil
-}
-
-// debugMaintenanceTables helps debug what's in the maintenance tables
-func debugMaintenanceTables(vehicleID string) {
-    log.Printf("\n=== DEBUGGING MAINTENANCE DATA FOR VEHICLE %s ===", vehicleID)
-    
-    // Check vehicles table
-    var exists bool
-    err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM vehicles WHERE vehicle_id = $1)", vehicleID).Scan(&exists)
-    if err != nil {
-        log.Printf("Error checking vehicles table: %v", err)
-    } else {
-        log.Printf("Vehicle %s exists in vehicles table: %v", vehicleID, exists)
-    }
-    
-    // Check bus_maintenance_logs
-    var count1 int
-    err = db.QueryRow("SELECT COUNT(*) FROM bus_maintenance_logs WHERE bus_id = $1", vehicleID).Scan(&count1)
-    if err != nil {
-        log.Printf("Error counting bus_maintenance_logs: %v", err)
-    } else {
-        log.Printf("Found %d records in bus_maintenance_logs", count1)
-    }
-    
-    // Check maintenance_records
-    var count2 int
-    err = db.QueryRow("SELECT COUNT(*) FROM maintenance_records WHERE vehicle_id = $1", vehicleID).Scan(&count2)
-    if err != nil {
-        log.Printf("Error counting maintenance_records: %v", err)
-    } else {
-        log.Printf("Found %d records in maintenance_records", count2)
-    }
-    
-    // Check service_records (try both string and numeric)
-    var count3 int
-    err = db.QueryRow("SELECT COUNT(*) FROM service_records WHERE vehicle_number::VARCHAR = $1", vehicleID).Scan(&count3)
-    if err != nil {
-        // Try as integer
-        if vehicleNum, err2 := strconv.Atoi(vehicleID); err2 == nil {
-            err = db.QueryRow("SELECT COUNT(*) FROM service_records WHERE vehicle_number = $1", vehicleNum).Scan(&count3)
-            if err == nil {
-                log.Printf("Found %d records in service_records (as integer)", count3)
-            }
-        } else {
-            log.Printf("Error counting service_records: %v", err)
-        }
-    } else {
-        log.Printf("Found %d records in service_records (as string)", count3)
-    }
-    
-    // Show sample data from each table
-    log.Println("\nSample maintenance_records:")
-    rows, _ := db.Query("SELECT vehicle_id, date, category FROM maintenance_records WHERE vehicle_id = $1 LIMIT 3", vehicleID)
-    if rows != nil {
-        defer rows.Close()
-        for rows.Next() {
-            var vid, date, cat string
-            rows.Scan(&vid, &date, &cat)
-            log.Printf("  - %s | %s | %s", vid, date, cat)
-        }
-    }
-    
-    log.Println("\nSample service_records:")
-    rows2, _ := db.Query("SELECT vehicle_number, maintenance_date, work_done FROM service_records WHERE vehicle_number::VARCHAR = $1 OR vehicle_number = $1::INTEGER LIMIT 3", vehicleID)
-    if rows2 != nil {
-        defer rows2.Close()
-        for rows2.Next() {
-            var vnum sql.NullInt64
-            var date sql.NullTime
-            var work sql.NullString
-            rows2.Scan(&vnum, &date, &work)
-            log.Printf("  - %v | %v | %v", vnum.Int64, date.Time, work.String)
-        }
-    }
-    
-    log.Println("=== END DEBUG ===\n")
 }
 
 // Get maintenance records for a specific vehicle (legacy compatibility)
