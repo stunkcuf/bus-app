@@ -77,6 +77,7 @@ func main() {
 	mux.HandleFunc("/remove-user", withRecovery(requireAuth(requireRole("manager")(removeUserHandler))))
 	
 	// Maintenance routes
+	mux.HandleFunc("/debug-vehicle/", withRecovery(requireAuth(requireRole("manager")(debugVehicleHandler))))
 	mux.HandleFunc("/bus-maintenance/", withRecovery(requireAuth(requireRole("manager")(busMaintenanceHandler))))
 	mux.HandleFunc("/vehicle-maintenance/", withRecovery(requireAuth(requireRole("manager")(vehicleMaintenanceHandler))))
 	mux.HandleFunc("/save-maintenance-record", withRecovery(requireAuth(requireRole("manager")(saveMaintenanceRecordHandler))))
@@ -1032,6 +1033,106 @@ func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	executeTemplate(w, "vehicle_maintenance.html", data)
+}
+
+func debugVehicleHandler(w http.ResponseWriter, r *http.Request) {
+    // Extract vehicle ID from URL
+    path := r.URL.Path
+    vehicleID := path[len("/debug-vehicle/"):]
+    
+    if vehicleID == "" {
+        w.Write([]byte("Please provide a vehicle ID in the URL"))
+        return
+    }
+    
+    w.Header().Set("Content-Type", "text/plain")
+    fmt.Fprintf(w, "Debugging Vehicle ID: %s\n\n", vehicleID)
+    
+    // Check vehicles table
+    fmt.Fprintf(w, "=== VEHICLES TABLE ===\n")
+    var vehicleCount int
+    err := db.QueryRow("SELECT COUNT(*) FROM vehicles WHERE vehicle_id = $1", vehicleID).Scan(&vehicleCount)
+    fmt.Fprintf(w, "Exact match count: %d (error: %v)\n", vehicleCount, err)
+    
+    // Show similar vehicle IDs
+    rows, err := db.Query("SELECT vehicle_id, model FROM vehicles WHERE vehicle_id LIKE $1 LIMIT 10", "%"+vehicleID+"%")
+    if err != nil {
+        fmt.Fprintf(w, "Error searching vehicles: %v\n", err)
+    } else {
+        defer rows.Close()
+        fmt.Fprintf(w, "\nSimilar vehicle IDs:\n")
+        for rows.Next() {
+            var vid, model string
+            rows.Scan(&vid, &model)
+            fmt.Fprintf(w, "  - %s (%s)\n", vid, model)
+        }
+    }
+    
+    // Check maintenance_records
+    fmt.Fprintf(w, "\n=== MAINTENANCE_RECORDS TABLE ===\n")
+    var maintCount int
+    err = db.QueryRow("SELECT COUNT(*) FROM maintenance_records WHERE vehicle_id = $1", vehicleID).Scan(&maintCount)
+    fmt.Fprintf(w, "Records found: %d (error: %v)\n", maintCount, err)
+    
+    // Check service_records
+    fmt.Fprintf(w, "\n=== SERVICE_RECORDS TABLE ===\n")
+    
+    // Show column info
+    fmt.Fprintf(w, "Table columns:\n")
+    cols, err := db.Query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'service_records' 
+        ORDER BY ordinal_position
+    `)
+    if err != nil {
+        fmt.Fprintf(w, "Error getting columns: %v\n", err)
+    } else {
+        defer cols.Close()
+        for cols.Next() {
+            var colName, dataType string
+            cols.Scan(&colName, &dataType)
+            fmt.Fprintf(w, "  - %s (%s)\n", colName, dataType)
+        }
+    }
+    
+    // Try different queries
+    fmt.Fprintf(w, "\nQuery attempts:\n")
+    
+    // As string
+    var count1 int
+    err1 := db.QueryRow("SELECT COUNT(*) FROM service_records WHERE vehicle_number::text = $1", vehicleID).Scan(&count1)
+    fmt.Fprintf(w, "  - As string: %d records (error: %v)\n", count1, err1)
+    
+    // As integer (if numeric)
+    if num, err := strconv.Atoi(vehicleID); err == nil {
+        var count2 int
+        err2 := db.QueryRow("SELECT COUNT(*) FROM service_records WHERE vehicle_number = $1", num).Scan(&count2)
+        fmt.Fprintf(w, "  - As integer %d: %d records (error: %v)\n", num, count2, err2)
+    }
+    
+    // Show sample data
+    fmt.Fprintf(w, "\n=== SAMPLE DATA ===\n")
+    
+    // Get actual maintenance records using the combined function
+    records, err := getAllVehicleMaintenanceRecords(vehicleID)
+    fmt.Fprintf(w, "\ngetAllVehicleMaintenanceRecords returned %d records (error: %v)\n", len(records), err)
+    
+    for i, record := range records {
+        if i >= 5 {
+            fmt.Fprintf(w, "\n... and %d more records\n", len(records)-5)
+            break
+        }
+        fmt.Fprintf(w, "\nRecord %d:\n", i+1)
+        fmt.Fprintf(w, "  Date: %s\n", record.Date)
+        fmt.Fprintf(w, "  Category: %s\n", record.Category)
+        fmt.Fprintf(w, "  Notes: %s\n", record.Notes)
+        fmt.Fprintf(w, "  Mileage: %d\n", record.Mileage)
+    }
+    
+    // Call the debug function in the logs too
+    debugMaintenanceTables(vehicleID)
+    fmt.Fprintf(w, "\n\nCheck server logs for additional debug output.")
 }
 
 func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
