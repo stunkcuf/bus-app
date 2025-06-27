@@ -135,53 +135,49 @@ func setupRoutes() *http.ServeMux {
 
 // setupManagerRoutes configures manager-specific routes
 func setupManagerRoutes(mux *http.ServeMux) {
-	managerAuth := requireAuth(requireRole(RoleManager))
-	
 	// User management
-	mux.HandleFunc("/approve-users", withRecovery(managerAuth(approveUsersHandler)))
-	mux.HandleFunc("/approve-user", withRecovery(managerAuth(approveUserHandler)))
-	mux.HandleFunc("/new-user", withRecovery(managerAuth(newUserHandler)))
-	mux.HandleFunc("/edit-user", withRecovery(managerAuth(editUserHandler)))
-	mux.HandleFunc("/remove-user", withRecovery(managerAuth(removeUserHandler)))
+	mux.HandleFunc("/approve-users", withRecovery(requireAuth(requireRole("manager")(approveUsersHandler))))
+	mux.HandleFunc("/approve-user", withRecovery(requireAuth(requireRole("manager")(approveUserHandler))))
+	mux.HandleFunc("/new-user", withRecovery(requireAuth(requireRole("manager")(newUserHandler))))
+	mux.HandleFunc("/edit-user", withRecovery(requireAuth(requireRole("manager")(editUserHandler))))
+	mux.HandleFunc("/remove-user", withRecovery(requireAuth(requireRole("manager")(removeUserHandler))))
 	
 	// Dashboard
-	mux.HandleFunc("/manager-dashboard", withRecovery(managerAuth(managerDashboard)))
+	mux.HandleFunc("/manager-dashboard", withRecovery(requireAuth(requireRole("manager")(managerDashboard))))
 	
 	// Fleet management
-	mux.HandleFunc("/fleet", withRecovery(managerAuth(fleetPage)))
-	mux.HandleFunc("/company-fleet", withRecovery(managerAuth(companyFleetPage)))
-	mux.HandleFunc("/update-vehicle-status", withRecovery(managerAuth(updateVehicleStatus)))
+	mux.HandleFunc("/fleet", withRecovery(requireAuth(requireRole("manager")(fleetPage))))
+	mux.HandleFunc("/company-fleet", withRecovery(requireAuth(requireRole("manager")(companyFleetPage))))
+	mux.HandleFunc("/update-vehicle-status", withRecovery(requireAuth(requireRole("manager")(updateVehicleStatus))))
 	
 	// Maintenance
-	mux.HandleFunc("/debug-vehicle/", withRecovery(managerAuth(debugVehicleHandler)))
-	mux.HandleFunc("/bus-maintenance/", withRecovery(managerAuth(busMaintenanceHandler)))
-	mux.HandleFunc("/vehicle-maintenance/", withRecovery(managerAuth(vehicleMaintenanceHandler)))
-	mux.HandleFunc("/save-maintenance-record", withRecovery(managerAuth(saveMaintenanceRecordHandler)))
+	mux.HandleFunc("/debug-vehicle/", withRecovery(requireAuth(requireRole("manager")(debugVehicleHandler))))
+	mux.HandleFunc("/bus-maintenance/", withRecovery(requireAuth(requireRole("manager")(busMaintenanceHandler))))
+	mux.HandleFunc("/vehicle-maintenance/", withRecovery(requireAuth(requireRole("manager")(vehicleMaintenanceHandler))))
+	mux.HandleFunc("/save-maintenance-record", withRecovery(requireAuth(requireRole("manager")(saveMaintenanceRecordHandler))))
 	
 	// Route management
-	mux.HandleFunc("/assign-routes", withRecovery(managerAuth(assignRoutesPage)))
-	mux.HandleFunc("/assign-route", withRecovery(managerAuth(assignRouteHandler)))
-	mux.HandleFunc("/unassign-route", withRecovery(managerAuth(unassignRouteHandler)))
-	mux.HandleFunc("/assign-routes/add", withRecovery(managerAuth(addRouteHandler)))
-	mux.HandleFunc("/assign-routes/edit", withRecovery(managerAuth(editRouteHandler)))
-	mux.HandleFunc("/assign-routes/delete", withRecovery(managerAuth(deleteRouteHandler)))
+	mux.HandleFunc("/assign-routes", withRecovery(requireAuth(requireRole("manager")(assignRoutesPage))))
+	mux.HandleFunc("/assign-route", withRecovery(requireAuth(requireRole("manager")(assignRouteHandler))))
+	mux.HandleFunc("/unassign-route", withRecovery(requireAuth(requireRole("manager")(unassignRouteHandler))))
+	mux.HandleFunc("/assign-routes/add", withRecovery(requireAuth(requireRole("manager")(addRouteHandler))))
+	mux.HandleFunc("/assign-routes/edit", withRecovery(requireAuth(requireRole("manager")(editRouteHandler))))
+	mux.HandleFunc("/assign-routes/delete", withRecovery(requireAuth(requireRole("manager")(deleteRouteHandler))))
 	
 	// Driver profile
-	mux.HandleFunc("/driver/", withRecovery(managerAuth(driverProfileHandler)))
+	mux.HandleFunc("/driver/", withRecovery(requireAuth(requireRole("manager")(driverProfileHandler))))
 }
 
 // setupDriverRoutes configures driver-specific routes
 func setupDriverRoutes(mux *http.ServeMux) {
-	driverAuth := requireAuth(requireRole(RoleDriver))
-	
-	mux.HandleFunc("/driver-dashboard", withRecovery(driverAuth(driverDashboard)))
-	mux.HandleFunc("/save-log", withRecovery(driverAuth(saveDriverLogHandler)))
+	mux.HandleFunc("/driver-dashboard", withRecovery(requireAuth(requireRole("driver")(driverDashboard))))
+	mux.HandleFunc("/save-log", withRecovery(requireAuth(requireRole("driver")(saveDriverLogHandler))))
 	
 	// Student management
-	mux.HandleFunc("/students", withRecovery(driverAuth(studentsPage)))
-	mux.HandleFunc("/add-student", withRecovery(driverAuth(addStudentHandler)))
-	mux.HandleFunc("/edit-student", withRecovery(driverAuth(editStudentHandler)))
-	mux.HandleFunc("/remove-student", withRecovery(driverAuth(removeStudentHandler)))
+	mux.HandleFunc("/students", withRecovery(requireAuth(requireRole("driver")(studentsPage))))
+	mux.HandleFunc("/add-student", withRecovery(requireAuth(requireRole("driver")(addStudentHandler))))
+	mux.HandleFunc("/edit-student", withRecovery(requireAuth(requireRole("driver")(editStudentHandler))))
+	mux.HandleFunc("/remove-student", withRecovery(requireAuth(requireRole("driver")(removeStudentHandler))))
 }
 
 // ============= AUTHENTICATION & REGISTRATION HANDLERS =============
