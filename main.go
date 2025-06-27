@@ -977,8 +977,8 @@ func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Get maintenance records for this bus
-	records, err := getBusMaintenanceRecords(busID)
+	// CHANGE: Use getAllVehicleMaintenanceRecords instead of getBusMaintenanceRecords
+	records, err := getAllVehicleMaintenanceRecords(busID)
 	if err != nil {
 		log.Printf("Error loading maintenance records: %v", err)
 		records = []BusMaintenanceLog{}
@@ -1167,15 +1167,30 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// For now, we'll use empty records for non-bus vehicles
-	// since the system seems focused on bus maintenance
-	records := []BusMaintenanceLog{}
+	// CHANGE: Use getAllVehicleMaintenanceRecords to get records from all tables
+	records, err := getAllVehicleMaintenanceRecords(vehicleID)
+	if err != nil {
+		log.Printf("Error loading maintenance records: %v", err)
+		records = []BusMaintenanceLog{}
+	}
 	
 	// Calculate statistics
 	totalRecords := len(records)
 	totalCost := 0.0
 	recentCount := 0
+	
+	// Count recent records (last 30 days)
+	thirtyDaysAgo := time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+	for _, record := range records {
+		if record.Date >= thirtyDaysAgo {
+			recentCount++
+		}
+	}
+	
 	averageCost := 0.0
+	if totalRecords > 0 && totalCost > 0 {
+		averageCost = totalCost / float64(totalRecords)
+	}
 	
 	// Get CSRF token
 	cookie, _ := r.Cookie("session_id")
@@ -1237,15 +1252,19 @@ func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Get form values
-	busID := r.FormValue("bus_id")
+	// ENHANCED: Get form values - check both bus_id and vehicle_id
+	vehicleID := r.FormValue("bus_id")
+	if vehicleID == "" {
+		vehicleID = r.FormValue("vehicle_id")
+	}
+	
 	date := r.FormValue("date")
 	category := r.FormValue("category")
 	notes := r.FormValue("notes")
 	mileageStr := r.FormValue("mileage")
 	
 	// Validate required fields
-	if busID == "" || date == "" || category == "" || notes == "" {
+	if vehicleID == "" || date == "" || category == "" || notes == "" {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
@@ -1258,16 +1277,44 @@ func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
 	
 	// Create maintenance log
 	maintenanceLog := BusMaintenanceLog{
-		BusID:    busID,
+		BusID:    vehicleID,
 		Date:     date,
 		Category: category,
 		Notes:    notes,
 		Mileage:  mileage,
 	}
 	
-	// Save the log
-	if err := saveMaintenanceLog(maintenanceLog); err != nil {
-		log.Printf("Failed to save maintenance log: %v", err)
+	// ENHANCED: Determine vehicle type (bus or vehicle)
+	vehicleType := "vehicle"
+	buses := loadBuses()
+	for _, bus := range buses {
+		if bus.BusID == vehicleID {
+			vehicleType = "bus"
+			break
+		}
+	}
+	
+	// ENHANCED: Save to multiple tables
+	savedAny := false
+	
+	// 1. Always save to maintenance_records (unified table)
+	if err := saveMaintenanceRecord(maintenanceLog, vehicleType); err != nil {
+		log.Printf("Failed to save to maintenance_records: %v", err)
+	} else {
+		savedAny = true
+	}
+	
+	// 2. If it's a bus, also save to bus_maintenance_logs
+	if vehicleType == "bus" {
+		if err := saveMaintenanceLog(maintenanceLog); err != nil {
+			log.Printf("Failed to save to bus_maintenance_logs: %v", err)
+		} else {
+			savedAny = true
+		}
+	}
+	
+	// Check if at least one save was successful
+	if !savedAny {
 		http.Error(w, "Failed to save maintenance record", http.StatusInternalServerError)
 		return
 	}
