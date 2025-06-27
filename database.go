@@ -727,10 +727,27 @@ func getAllVehicleMaintenanceRecords(vehicleID string) ([]BusMaintenanceLog, err
     }
     
     // 3. Get records from service_records table
-    // Try multiple approaches to handle different ID formats
+    // Try multiple approaches to handle different ID formats and column names
     
-    // First, try as string
-    query3 := `
+    // First, check which column exists (vehicle_number, vehicle_id, or unnamed_1)
+    var columnName string
+    err = db.QueryRow(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'service_records' 
+        AND column_name IN ('vehicle_number', 'vehicle_id', 'unnamed_1')
+        LIMIT 1
+    `).Scan(&columnName)
+    
+    if err != nil {
+        log.Printf("Warning: Could not determine vehicle ID column name in service_records: %v", err)
+        columnName = "vehicle_number" // Default fallback
+    }
+    
+    log.Printf("Using column '%s' for vehicle ID in service_records table", columnName)
+    
+    // Build dynamic query based on column name
+    query3 := fmt.Sprintf(`
         SELECT 
             $1 as vehicle_id,
             maintenance_date,
@@ -739,16 +756,16 @@ func getAllVehicleMaintenanceRecords(vehicleID string) ([]BusMaintenanceLog, err
             mileage,
             cost
         FROM service_records 
-        WHERE vehicle_number::TEXT = $1
-        ORDER BY maintenance_date DESC`
+        WHERE %s::TEXT = $1
+        ORDER BY maintenance_date DESC`, columnName)
     
     rows3, err := db.Query(query3, vehicleID)
     if err != nil {
-        log.Printf("Error querying service_records as string: %v", err)
+        log.Printf("Error querying service_records as string with column %s: %v", columnName, err)
         
         // If that fails and the ID looks numeric, try as integer
         if vehicleNum, err2 := strconv.Atoi(vehicleID); err2 == nil {
-            query4 := `
+            query4 := fmt.Sprintf(`
                 SELECT 
                     $1 as vehicle_id,
                     maintenance_date,
@@ -757,12 +774,30 @@ func getAllVehicleMaintenanceRecords(vehicleID string) ([]BusMaintenanceLog, err
                     mileage,
                     cost
                 FROM service_records 
-                WHERE vehicle_number = $2
-                ORDER BY maintenance_date DESC`
+                WHERE %s = $2
+                ORDER BY maintenance_date DESC`, columnName)
             
             rows3, err = db.Query(query4, vehicleID, vehicleNum)
             if err != nil {
-                log.Printf("Error querying service_records as int: %v", err)
+                log.Printf("Error querying service_records as int with column %s: %v", columnName, err)
+                
+                // Last attempt: try with COALESCE for all possible column names
+                query5 := `
+                    SELECT 
+                        $1 as vehicle_id,
+                        maintenance_date,
+                        COALESCE(category, 'service') as category,
+                        COALESCE(work_done, notes, '') as notes,
+                        mileage,
+                        cost
+                    FROM service_records 
+                    WHERE COALESCE(vehicle_number::TEXT, vehicle_id::TEXT, unnamed_1::TEXT) = $1
+                    ORDER BY maintenance_date DESC`
+                
+                rows3, err = db.Query(query5, vehicleID)
+                if err != nil {
+                    log.Printf("Error querying service_records with COALESCE: %v", err)
+                }
             }
         }
     }
@@ -803,6 +838,136 @@ func getAllVehicleMaintenanceRecords(vehicleID string) ([]BusMaintenanceLog, err
     
     log.Printf("Found %d total maintenance records for vehicle %s", len(records), vehicleID)
     return records, nil
+}
+
+// debugMaintenanceTables helps debug what's in the maintenance tables
+func debugMaintenanceTables(vehicleID string) {
+    log.Printf("\n=== DEBUGGING MAINTENANCE DATA FOR VEHICLE %s ===", vehicleID)
+    
+    // Check vehicles table
+    var exists bool
+    err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM vehicles WHERE vehicle_id = $1)", vehicleID).Scan(&exists)
+    if err != nil {
+        log.Printf("Error checking vehicles table: %v", err)
+    } else {
+        log.Printf("Vehicle %s exists in vehicles table: %v", vehicleID, exists)
+    }
+    
+    // Check bus_maintenance_logs
+    var count1 int
+    err = db.QueryRow("SELECT COUNT(*) FROM bus_maintenance_logs WHERE bus_id = $1", vehicleID).Scan(&count1)
+    if err != nil {
+        log.Printf("Error counting bus_maintenance_logs: %v", err)
+    } else {
+        log.Printf("Found %d records in bus_maintenance_logs", count1)
+    }
+    
+    // Check maintenance_records
+    var count2 int
+    err = db.QueryRow("SELECT COUNT(*) FROM maintenance_records WHERE vehicle_id = $1", vehicleID).Scan(&count2)
+    if err != nil {
+        log.Printf("Error counting maintenance_records: %v", err)
+    } else {
+        log.Printf("Found %d records in maintenance_records", count2)
+    }
+    
+    // Check service_records with all possible column names
+    log.Println("\nChecking service_records with different column names:")
+    
+    // Check vehicle_number
+    var count3a int
+    err = db.QueryRow("SELECT COUNT(*) FROM service_records WHERE vehicle_number::VARCHAR = $1", vehicleID).Scan(&count3a)
+    if err == nil {
+        log.Printf("Found %d records using vehicle_number column (as string)", count3a)
+    }
+    
+    // Check vehicle_id
+    var count3b int
+    err = db.QueryRow("SELECT COUNT(*) FROM service_records WHERE vehicle_id::VARCHAR = $1", vehicleID).Scan(&count3b)
+    if err == nil {
+        log.Printf("Found %d records using vehicle_id column", count3b)
+    }
+    
+    // Check unnamed_1
+    var count3c int
+    err = db.QueryRow("SELECT COUNT(*) FROM service_records WHERE unnamed_1::VARCHAR = $1", vehicleID).Scan(&count3c)
+    if err == nil {
+        log.Printf("Found %d records using unnamed_1 column", count3c)
+    }
+    
+    // Try COALESCE for all columns
+    var count3d int
+    err = db.QueryRow(`
+        SELECT COUNT(*) FROM service_records 
+        WHERE COALESCE(vehicle_number::VARCHAR, vehicle_id::VARCHAR, unnamed_1::VARCHAR) = $1
+    `, vehicleID).Scan(&count3d)
+    if err != nil {
+        log.Printf("Error with COALESCE query: %v", err)
+    } else {
+        log.Printf("Found %d records using COALESCE of all columns", count3d)
+    }
+    
+    // Try as integer if applicable
+    if vehicleNum, err2 := strconv.Atoi(vehicleID); err2 == nil {
+        var count3e int
+        err = db.QueryRow("SELECT COUNT(*) FROM service_records WHERE vehicle_number = $1", vehicleNum).Scan(&count3e)
+        if err == nil {
+            log.Printf("Found %d records using vehicle_number as integer", count3e)
+        }
+    }
+    
+    // Show sample data from each table
+    log.Println("\nSample maintenance_records:")
+    rows, _ := db.Query("SELECT vehicle_id, date, category FROM maintenance_records WHERE vehicle_id = $1 LIMIT 3", vehicleID)
+    if rows != nil {
+        defer rows.Close()
+        for rows.Next() {
+            var vid, date, cat string
+            rows.Scan(&vid, &date, &cat)
+            log.Printf("  - %s | %s | %s", vid, date, cat)
+        }
+    }
+    
+    log.Println("\nSample service_records (trying different column names):")
+    
+    // First, find which column exists
+    var columnName string
+    err = db.QueryRow(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'service_records' 
+        AND column_name IN ('vehicle_number', 'vehicle_id', 'unnamed_1')
+        LIMIT 1
+    `).Scan(&columnName)
+    
+    if err == nil && columnName != "" {
+        log.Printf("Using column: %s", columnName)
+        query := fmt.Sprintf(`
+            SELECT %s, maintenance_date, COALESCE(work_done, notes, category, '') 
+            FROM service_records 
+            WHERE %s::VARCHAR = $1 OR (%s IS NOT NULL AND %s::INTEGER = $2)
+            LIMIT 3
+        `, columnName, columnName, columnName, columnName)
+        
+        vehicleNum, _ := strconv.Atoi(vehicleID)
+        rows2, err := db.Query(query, vehicleID, vehicleNum)
+        if err != nil {
+            log.Printf("Error querying service_records: %v", err)
+        } else if rows2 != nil {
+            defer rows2.Close()
+            for rows2.Next() {
+                var vnum sql.NullString
+                var date sql.NullTime
+                var work string
+                rows2.Scan(&vnum, &date, &work)
+                log.Printf("  - %v | %v | %s", vnum.String, date.Time, work)
+            }
+        }
+    } else {
+        log.Printf("Could not determine vehicle ID column in service_records")
+    }
+    
+    log.Println("=== END DEBUG ===\n")
 }
 
 // Get vehicle list for the fleet overview page (legacy function for compatibility)
