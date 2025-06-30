@@ -80,19 +80,21 @@ type Bus struct {
 
 // Vehicle represents a company vehicle (ONLY ONE DECLARATION)
 type Vehicle struct {
-	VehicleID        string `json:"vehicle_id"`
-	Model            string `json:"model"`
-	Description      string `json:"description"`
-	Year             string `json:"year"`
-	TireSize         string `json:"tire_size"`
-	License          string `json:"license"`
-	OilStatus        string `json:"oil_status"`
-	TireStatus       string `json:"tire_status"`
-	Status           string `json:"status"`
-	MaintenanceNotes string `json:"maintenance_notes"`
-	SerialNumber     string `json:"serial_number"`
-	Base             string `json:"base"`
-	ServiceInterval  int    `json:"service_interval"`
+    VehicleID        string `json:"vehicle_id" db:"vehicle_id"`           // Maps to vehicle_id column
+    VehicleNumber    string `json:"vehicle_number" db:"vehicle_number"`   // Maps to vehicle_number column
+    Unnamed1         string `json:"unnamed_1" db:"unnamed_1"`             // Maps to unnamed_1 column
+    Model            string `json:"model"`
+    Description      string `json:"description"`
+    Year             string `json:"year"`
+    TireSize         string `json:"tire_size"`
+    License          string `json:"license"`
+    OilStatus        string `json:"oil_status"`
+    TireStatus       string `json:"tire_status"`
+    Status           string `json:"status"`
+    MaintenanceNotes string `json:"maintenance_notes"`
+    SerialNumber     string `json:"serial_number"`
+    Base             string `json:"base"`
+    ServiceInterval  int    `json:"service_interval"`
 }
 
 // Student represents a student rider
