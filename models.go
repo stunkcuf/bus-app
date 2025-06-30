@@ -224,10 +224,11 @@ type AssignRouteData struct {
 
 // FleetData is used for the fleet management page
 type FleetData struct {
-	User      *User  `json:"user"`
-	Buses     []*Bus `json:"buses"`
-	Today     string `json:"today"`
-	CSRFToken string `json:"csrf_token"` // Added for CSRF protection
+    User            *User                `json:"user"`
+    Buses           []*Bus               `json:"buses"`
+    Today           string               `json:"today"`
+    CSRFToken       string               `json:"csrf_token"`
+    MaintenanceLogs []BusMaintenanceLog  `json:"maintenance_logs"` // Add this field
 }
 
 // StudentData is used for the student management page
