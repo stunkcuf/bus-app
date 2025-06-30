@@ -78,23 +78,23 @@ type Bus struct {
 	MaintenanceNotes string `json:"maintenance_notes"`
 }
 
-// Vehicle represents a company vehicle (ONLY ONE DECLARATION)
+// Vehicle represents a company vehicle (UPDATED WITH POSTGRESQL COLUMNS)
 type Vehicle struct {
-    VehicleID        string `json:"vehicle_id" db:"vehicle_id"`           // Maps to vehicle_id column
-    VehicleNumber    string `json:"vehicle_number" db:"vehicle_number"`   // Maps to vehicle_number column
-    Unnamed1         string `json:"unnamed_1" db:"unnamed_1"`             // Maps to unnamed_1 column
-    Model            string `json:"model"`
-    Description      string `json:"description"`
-    Year             string `json:"year"`
-    TireSize         string `json:"tire_size"`
-    License          string `json:"license"`
-    OilStatus        string `json:"oil_status"`
-    TireStatus       string `json:"tire_status"`
-    Status           string `json:"status"`
-    MaintenanceNotes string `json:"maintenance_notes"`
-    SerialNumber     string `json:"serial_number"`
-    Base             string `json:"base"`
-    ServiceInterval  int    `json:"service_interval"`
+	VehicleID        string `json:"vehicle_id" db:"vehicle_id"`           // Maps to vehicle_id column
+	VehicleNumber    string `json:"vehicle_number" db:"vehicle_number"`   // Maps to vehicle_number column
+	Unnamed1         string `json:"unnamed_1" db:"unnamed_1"`             // Maps to unnamed_1 column
+	Model            string `json:"model"`
+	Description      string `json:"description"`
+	Year             string `json:"year"`
+	TireSize         string `json:"tire_size"`
+	License          string `json:"license"`
+	OilStatus        string `json:"oil_status"`
+	TireStatus       string `json:"tire_status"`
+	Status           string `json:"status"`
+	MaintenanceNotes string `json:"maintenance_notes"`
+	SerialNumber     string `json:"serial_number"`
+	Base             string `json:"base"`
+	ServiceInterval  int    `json:"service_interval"`
 }
 
 // Student represents a student rider
@@ -238,11 +238,13 @@ type StudentData struct {
 	CSRFToken string    `json:"csrf_token"` // Added for CSRF protection
 }
 
-// CompanyFleetData is used for the company fleet page
+// CompanyFleetData is used for the company fleet page (UPDATED FOR POSTGRESQL COLUMNS)
 type CompanyFleetData struct {
-	User      *User     `json:"user"`
-	Vehicles  []Vehicle `json:"vehicles"`
-	CSRFToken string    `json:"csrf_token"` // Added for CSRF protection
+	User                  *User     `json:"user"`
+	Vehicles              []Vehicle `json:"vehicles"`
+	CSRFToken             string    `json:"csrf_token"` // Added for CSRF protection
+	AvailableDriversCount int       `json:"available_drivers_count"`
+	AvailableBusesCount   int       `json:"available_buses_count"`
 }
 
 // DriverDashboardData is used for the driver dashboard template
@@ -254,6 +256,7 @@ type DriverDashboardData struct {
 	DriverLog  *DriverLog  `json:"driver_log"`
 	Bus        *Bus        `json:"bus"`
 	RecentLogs []DriverLog `json:"recent_logs"`
+	Students   []Student   `json:"students"`  // Added for student list
 	CSRFToken  string      `json:"csrf_token"` // Added for CSRF protection
 }
 
@@ -268,4 +271,46 @@ type UserFormData struct {
 	User      *User  `json:"user,omitempty"`
 	Error     string `json:"error,omitempty"`
 	CSRFToken string `json:"csrf_token"`
+}
+
+// VehicleMaintenanceData is used for the vehicle maintenance page (NEW)
+type VehicleMaintenanceData struct {
+	User               *User               `json:"user"`
+	Vehicle            Vehicle             `json:"vehicle"`
+	VehicleID          string              `json:"vehicle_id"`       // For backward compatibility
+	VehicleNumber      string              `json:"vehicle_number"`   // For backward compatibility
+	Unnamed1           string              `json:"unnamed_1"`        // For backward compatibility
+	IsBus              bool                `json:"is_bus"`
+	MaintenanceRecords []BusMaintenanceLog `json:"maintenance_records"`
+	TotalRecords       int                 `json:"total_records"`
+	TotalCost          float64             `json:"total_cost"`
+	AverageCost        float64             `json:"average_cost"`
+	RecentCount        int                 `json:"recent_count"`
+	Today              string              `json:"today"`
+	CSRFToken          string              `json:"csrf_token"`
+	
+	// Vehicle info fields for display
+	VehicleInfo *Vehicle `json:"vehicle_info,omitempty"`
+}
+
+// Helper method for Vehicle to get display ID
+func (v *Vehicle) GetDisplayID() string {
+	if v.VehicleNumber != "" {
+		return v.VehicleNumber
+	}
+	if v.VehicleID != "" {
+		return v.VehicleID
+	}
+	return v.Unnamed1
+}
+
+// Helper method for Vehicle to get any identifier
+func (v *Vehicle) GetIdentifier() string {
+	if v.VehicleID != "" {
+		return v.VehicleID
+	}
+	if v.VehicleNumber != "" {
+		return v.VehicleNumber
+	}
+	return v.Unnamed1
 }
