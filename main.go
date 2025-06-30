@@ -499,7 +499,8 @@ func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 
 // REPLACE YOUR vehicleMaintenanceHandler WITH THIS CORRECTED VERSION:
 func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r) vehicleID := vars["id"] // This comes as string like "12" or "60"
+	vars := mux.Vars(r)
+	vehicleID := vars["id"]
     
     log.Printf("Fetching maintenance records for vehicle: %s", vehicleID)
     
