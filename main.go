@@ -497,6 +497,7 @@ func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	handleVehicleMaintenance(w, r, vehicleID, true)
 }
 
+// REPLACE YOUR vehicleMaintenanceHandler WITH THIS CORRECTED VERSION:
 func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
     vehicleID := chi.URLParam(r, "id") // This comes as string like "12" or "60"
     
@@ -578,7 +579,8 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
         SELECT COALESCE(unnamed_1, ''), 
                COALESCE(unnamed_2, ''),
                COALESCE(unnamed_3, ''),
-               COALESCE(unnamed_4, '')
+               COALESCE(unnamed_4, '0'),
+               COALESCE(created_at::text, '')
         FROM service_records 
         WHERE unnamed_1 = $1
         ORDER BY created_at DESC
@@ -591,17 +593,28 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
         defer rows2.Close()
         serviceCount := 0
         for rows2.Next() {
-            var col1, col2, col3, col4 string
-            err := rows2.Scan(&col1, &col2, &col3, &col4)
+            var vehicleID, vendor, serviceNum, mileageStr, createdAt string
+            err := rows2.Scan(&vehicleID, &vendor, &serviceNum, &mileageStr, &createdAt)
             if err == nil {
-                // Add service record - you'll need to map unnamed columns to your structure
-                // This depends on what data is in those columns
+                // Parse mileage
+                mileage := 0
+                if m, err := strconv.Atoi(mileageStr); err == nil {
+                    mileage = m
+                }
+                
+                // Extract date from created_at
+                dateStr := createdAt
+                if len(createdAt) >= 10 {
+                    dateStr = createdAt[:10] // Get YYYY-MM-DD part
+                }
+                
+                // Create maintenance record from service_records data
                 record := BusMaintenanceLog{
-                    BusID:    col1,
-                    Date:     col2, // Adjust based on your data
+                    BusID:    vehicleID,
+                    Date:     dateStr,
                     Category: "service",
-                    Notes:    col3 + " " + col4,
-                    Mileage:  0,
+                    Notes:    fmt.Sprintf("Service by %s - Invoice #%s", vendor, serviceNum),
+                    Mileage:  mileage,
                 }
                 allRecords = append(allRecords, record)
                 serviceCount++
