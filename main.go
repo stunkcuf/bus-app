@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strconv"
 	"time"
 )
 
@@ -496,14 +497,159 @@ func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	handleVehicleMaintenance(w, r, vehicleID, true)
 }
 
+// REPLACE THE ENTIRE FUNCTION WITH THIS:
 func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
-	vehicleID := extractIDFromPath(r.URL.Path, "/vehicle-maintenance/")
-	if vehicleID == "" {
-		http.Error(w, "Vehicle ID required", http.StatusBadRequest)
-		return
-	}
-	
-	handleVehicleMaintenance(w, r, vehicleID, false)
+    vehicleID := chi.URLParam(r, "id") // This comes as string like "12" or "60"
+    
+    log.Printf("Fetching maintenance records for vehicle: %s", vehicleID)
+    
+    // Get vehicle info from vehicles table
+    var vehicle Vehicle
+    err := db.QueryRow(`
+        SELECT vehicle_id, model, description, year, tire_size, 
+               license, oil_status, tire_status, status, maintenance_notes,
+               serial_number, base, COALESCE(service_interval, 0)
+        FROM vehicles 
+        WHERE vehicle_id = $1
+        LIMIT 1
+    `, vehicleID).Scan(
+        &vehicle.VehicleID,
+        &vehicle.Model,
+        &vehicle.Description,
+        &vehicle.Year,
+        &vehicle.TireSize,
+        &vehicle.License,
+        &vehicle.OilStatus,
+        &vehicle.TireStatus,
+        &vehicle.Status,
+        &vehicle.MaintenanceNotes,
+        &vehicle.SerialNumber,
+        &vehicle.Base,
+        &vehicle.ServiceInterval,
+    )
+    
+    if err != nil {
+        log.Printf("Error fetching vehicle info: %v", err)
+        // Vehicle might not exist, but continue to show the page
+    }
+    
+    var allRecords []BusMaintenanceLog
+    totalCost := 0.0
+    
+    // Try to get maintenance records from maintenance_records table
+    // This table uses vehicle_number as INTEGER
+    vehicleNum, err := strconv.Atoi(vehicleID)
+    if err == nil {
+        // Only query if vehicleID is a valid number
+        rows, err := db.Query(`
+            SELECT vehicle_number, 
+                   COALESCE(maintenance_date::text, created_at::text, ''), 
+                   COALESCE(mileage, 0),
+                   COALESCE(work_done, ''),
+                   COALESCE(cost, 0)
+            FROM maintenance_records 
+            WHERE vehicle_number = $1
+            ORDER BY COALESCE(maintenance_date, created_at) DESC
+        `, vehicleNum)
+        
+        if err != nil {
+            log.Printf("Error querying maintenance_records: %v", err)
+        } else {
+            defer rows.Close()
+            for rows.Next() {
+                var record BusMaintenanceLog
+                var vehicleNum int
+                var cost float64
+                err := rows.Scan(&vehicleNum, &record.Date, &record.Mileage, &record.Notes, &cost)
+                if err == nil {
+                    record.Category = "service"
+                    record.BusID = strconv.Itoa(vehicleNum)
+                    allRecords = append(allRecords, record)
+                    totalCost += cost
+                }
+            }
+        }
+    }
+    
+    // Also check service_records table (uses unnamed_1 as TEXT)
+    rows2, err := db.Query(`
+        SELECT COALESCE(unnamed_1, ''), 
+               COALESCE(unnamed_2, ''),
+               COALESCE(unnamed_3, ''),
+               COALESCE(unnamed_4, '')
+        FROM service_records 
+        WHERE unnamed_1 = $1
+        ORDER BY created_at DESC
+        LIMIT 20
+    `, vehicleID)
+    
+    if err != nil {
+        log.Printf("Error querying service_records: %v", err)
+    } else {
+        defer rows2.Close()
+        for rows2.Next() {
+            var col1, col2, col3, col4 string
+            err := rows2.Scan(&col1, &col2, &col3, &col4)
+            if err == nil {
+                // Add service record - you'll need to map unnamed columns to your structure
+                // This depends on what data is in those columns
+                record := BusMaintenanceLog{
+                    BusID:    col1,
+                    Date:     col2, // Adjust based on your data
+                    Category: "service",
+                    Notes:    col3 + " " + col4,
+                    Mileage:  0,
+                }
+                allRecords = append(allRecords, record)
+            }
+        }
+    }
+    
+    log.Printf("Found %d total maintenance records for vehicle %s", len(allRecords), vehicleID)
+    
+    // Calculate average cost
+    avgCost := 0.0
+    if len(allRecords) > 0 {
+        avgCost = totalCost / float64(len(allRecords))
+    }
+    
+    // Count recent records (last 30 days)
+    recentCount := 0
+    thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
+    for _, record := range allRecords {
+        if recordDate, err := time.Parse("2006-01-02", record.Date); err == nil {
+            if recordDate.After(thirtyDaysAgo) {
+                recentCount++
+            }
+        }
+    }
+    
+    // Create the data structure that matches your template
+    data := struct {
+        VehicleID          string
+        IsBus              bool
+        VehicleInfo        interface{}
+        MaintenanceRecords []BusMaintenanceLog
+        TotalRecords       int
+        TotalCost          float64
+        AverageCost        float64
+        RecentCount        int
+        Today              string
+        CSRFToken          string
+    }{
+        VehicleID:          vehicleID,
+        IsBus:              false,
+        VehicleInfo:        vehicle,
+        MaintenanceRecords: allRecords,
+        TotalRecords:       len(allRecords),
+        TotalCost:          totalCost,
+        AverageCost:        avgCost,
+        RecentCount:        recentCount,
+        Today:              time.Now().Format("2006-01-02"),
+        CSRFToken:          getCSRFToken(r),
+    }
+    
+    executeTemplate(w, "vehicle_maintenance.html", data)
 }
 
 func debugVehicleHandler(w http.ResponseWriter, r *http.Request) {
