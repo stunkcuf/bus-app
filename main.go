@@ -497,7 +497,6 @@ func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	handleVehicleMaintenance(w, r, vehicleID, true)
 }
 
-// REPLACE THE ENTIRE FUNCTION WITH THIS:
 func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
     vehicleID := chi.URLParam(r, "id") // This comes as string like "12" or "60"
     
@@ -543,13 +542,13 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
         // Only query if vehicleID is a valid number
         rows, err := db.Query(`
             SELECT vehicle_number, 
-                   COALESCE(maintenance_date::text, created_at::text, ''), 
+                   COALESCE(service_date::text, created_at::text, ''), 
                    COALESCE(mileage, 0),
-                   COALESCE(work_done, ''),
+                   COALESCE(work_description, ''),
                    COALESCE(cost, 0)
             FROM maintenance_records 
             WHERE vehicle_number = $1
-            ORDER BY COALESCE(maintenance_date, created_at) DESC
+            ORDER BY COALESCE(service_date, created_at) DESC
         `, vehicleNum)
         
         if err != nil {
@@ -566,8 +565,11 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
                     record.BusID = strconv.Itoa(vehicleNum)
                     allRecords = append(allRecords, record)
                     totalCost += cost
+                } else {
+                    log.Printf("Error scanning maintenance record: %v", err)
                 }
             }
+            log.Printf("Found %d records in maintenance_records table", len(allRecords))
         }
     }
     
@@ -587,6 +589,7 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
         log.Printf("Error querying service_records: %v", err)
     } else {
         defer rows2.Close()
+        serviceCount := 0
         for rows2.Next() {
             var col1, col2, col3, col4 string
             err := rows2.Scan(&col1, &col2, &col3, &col4)
@@ -601,15 +604,17 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
                     Mileage:  0,
                 }
                 allRecords = append(allRecords, record)
+                serviceCount++
             }
         }
+        log.Printf("Found %d records in service_records table", serviceCount)
     }
     
     log.Printf("Found %d total maintenance records for vehicle %s", len(allRecords), vehicleID)
     
     // Calculate average cost
     avgCost := 0.0
-    if len(allRecords) > 0 {
+    if len(allRecords) > 0 && totalCost > 0 {
         avgCost = totalCost / float64(len(allRecords))
     }
     
