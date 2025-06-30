@@ -677,6 +677,90 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
     executeTemplate(w, "vehicle_maintenance.html", data)
 }
 
+func fleetHandler(w http.ResponseWriter, r *http.Request) {
+    user := getUserFromSession(r)
+    if user == nil || user.Role != "manager" {
+        http.Redirect(w, r, "/", http.StatusSeeOther)
+        return
+    }
+
+    // Load buses
+    buses := loadBuses()
+    
+    // Load recent maintenance logs for ALL buses
+    var recentMaintenanceLogs []BusMaintenanceLog
+    
+    // Query bus_maintenance_logs from JSON files
+    logsDir := filepath.Join("data", "maintenance_logs")
+    if _, err := os.Stat(logsDir); err == nil {
+        files, _ := os.ReadDir(logsDir)
+        for _, file := range files {
+            if strings.HasSuffix(file.Name(), ".json") {
+                data, err := os.ReadFile(filepath.Join(logsDir, file.Name()))
+                if err == nil {
+                    var logs []BusMaintenanceLog
+                    if err := json.Unmarshal(data, &logs); err == nil {
+                        recentMaintenanceLogs = append(recentMaintenanceLogs, logs...)
+                    }
+                }
+            }
+        }
+    }
+    
+    // Also get maintenance records from PostgreSQL for buses
+    rows, err := db.Query(`
+        SELECT 
+            'BUS' || vehicle_number as bus_id,
+            COALESCE(service_date::text, created_at::text, '') as date,
+            COALESCE(work_description, '') as notes,
+            COALESCE(mileage, 0) as mileage
+        FROM maintenance_records 
+        WHERE vehicle_number IN (
+            SELECT CAST(SUBSTRING(bus_id FROM 4) AS INTEGER) 
+            FROM buses 
+            WHERE bus_id LIKE 'BUS%'
+        )
+        ORDER BY COALESCE(service_date, created_at) DESC
+        LIMIT 10
+    `)
+    
+    if err != nil {
+        log.Printf("Error querying maintenance records for buses: %v", err)
+    } else {
+        defer rows.Close()
+        for rows.Next() {
+            var record BusMaintenanceLog
+            err := rows.Scan(&record.BusID, &record.Date, &record.Notes, &record.Mileage)
+            if err == nil {
+                record.Category = "maintenance"
+                recentMaintenanceLogs = append(recentMaintenanceLogs, record)
+            }
+        }
+    }
+    
+    // Sort by date (most recent first)
+    sort.Slice(recentMaintenanceLogs, func(i, j int) bool {
+        return recentMaintenanceLogs[i].Date > recentMaintenanceLogs[j].Date
+    })
+    
+    // Limit to 5 most recent
+    if len(recentMaintenanceLogs) > 5 {
+        recentMaintenanceLogs = recentMaintenanceLogs[:5]
+    }
+    
+    log.Printf("Fleet handler: Found %d buses and %d recent maintenance logs", len(buses), len(recentMaintenanceLogs))
+    
+    data := FleetData{
+        User:               user,
+        Buses:              buses,
+        Today:              time.Now().Format("2006-01-02"),
+        CSRFToken:          getCSRFToken(r),
+        MaintenanceLogs:    recentMaintenanceLogs, // Add this field
+    }
+    
+    executeTemplate(w, "fleet.html", data)
+}
+
 func debugVehicleHandler(w http.ResponseWriter, r *http.Request) {
 	vehicleID := extractIDFromPath(r.URL.Path, "/debug-vehicle/")
 	if vehicleID == "" {
