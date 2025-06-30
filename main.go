@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"database/sql"
 	"fmt"
 	"html/template"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -497,12 +499,24 @@ func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	handleVehicleMaintenance(w, r, vehicleID, true)
 }
 
-// REPLACE YOUR vehicleMaintenanceHandler WITH THIS CORRECTED VERSION:
 func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	vehicleID := vars["id"]
+    // Extract vehicle ID from URL path
+    // When URL is /vehicle-maintenance/11, we need to get "11"
+    path := r.URL.Path
     
-    log.Printf("Fetching maintenance records for vehicle: %s", vehicleID)
+    // Remove the prefix and any trailing slashes
+    vehicleID := strings.TrimPrefix(path, "/vehicle-maintenance/")
+    vehicleID = strings.TrimSuffix(vehicleID, "/")
+    
+    log.Printf("=== Vehicle Maintenance Handler ===")
+    log.Printf("Full Path: %s", path)
+    log.Printf("Extracted Vehicle ID: '%s'", vehicleID)
+    
+    if vehicleID == "" {
+        log.Printf("ERROR: No vehicle ID in path")
+        http.Error(w, "Vehicle ID required", http.StatusBadRequest)
+        return
+    }
     
     // Get vehicle info from vehicles table
     var vehicle Vehicle
@@ -530,28 +544,27 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
     )
     
     if err != nil {
-        log.Printf("Error fetching vehicle info: %v", err)
-        // Vehicle might not exist, but continue to show the page
+        log.Printf("Error fetching vehicle info for ID %s: %v", vehicleID, err)
     }
     
     var allRecords []BusMaintenanceLog
     totalCost := 0.0
     
-    // Try to get maintenance records from maintenance_records table
-    // This table uses vehicle_number as INTEGER
+    // Try to get maintenance records
     vehicleNum, err := strconv.Atoi(vehicleID)
     if err == nil {
-        // Only query if vehicleID is a valid number
-	 rows, err := db.Query(`
-	        SELECT vehicle_number, 
-	               COALESCE(service_date::text, created_at::text, ''), 
-	               COALESCE(mileage, 0),
-	               COALESCE(work_description, ''),  -- NOT work_done
-	               COALESCE(cost, 0)
-	        FROM maintenance_records 
-	        WHERE vehicle_number = $1
-	        ORDER BY COALESCE(service_date, created_at) DESC
-	    `, vehicleNum)
+        log.Printf("Querying maintenance_records for vehicle_number: %d", vehicleNum)
+        
+        rows, err := db.Query(`
+            SELECT vehicle_number, 
+                   COALESCE(service_date::text, created_at::text, ''), 
+                   COALESCE(mileage, 0),
+                   COALESCE(work_description, ''),
+                   COALESCE(cost, 0)
+            FROM maintenance_records 
+            WHERE vehicle_number = $1
+            ORDER BY COALESCE(service_date, created_at) DESC
+        `, vehicleNum)
         
         if err != nil {
             log.Printf("Error querying maintenance_records: %v", err)
@@ -567,20 +580,18 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
                     record.BusID = strconv.Itoa(vehicleNum)
                     allRecords = append(allRecords, record)
                     totalCost += cost
-                } else {
-                    log.Printf("Error scanning maintenance record: %v", err)
                 }
             }
-            log.Printf("Found %d records in maintenance_records table", len(allRecords))
+            log.Printf("Found %d records in maintenance_records", len(allRecords))
         }
     }
     
-    // Also check service_records table (uses unnamed_1 as TEXT)
+    // Also check service_records
     rows2, err := db.Query(`
         SELECT COALESCE(unnamed_1, ''), 
                COALESCE(unnamed_2, ''),
                COALESCE(unnamed_3, ''),
-               COALESCE(unnamed_4, '0'),
+               COALESCE(unnamed_4, ''),
                COALESCE(created_at::text, '')
         FROM service_records 
         WHERE unnamed_1 = $1
@@ -597,19 +608,16 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
             var vehicleID, vendor, serviceNum, mileageStr, createdAt string
             err := rows2.Scan(&vehicleID, &vendor, &serviceNum, &mileageStr, &createdAt)
             if err == nil {
-                // Parse mileage
                 mileage := 0
                 if m, err := strconv.Atoi(mileageStr); err == nil {
                     mileage = m
                 }
                 
-                // Extract date from created_at
                 dateStr := createdAt
                 if len(createdAt) >= 10 {
-                    dateStr = createdAt[:10] // Get YYYY-MM-DD part
+                    dateStr = createdAt[:10]
                 }
                 
-                // Create maintenance record from service_records data
                 record := BusMaintenanceLog{
                     BusID:    vehicleID,
                     Date:     dateStr,
@@ -621,18 +629,17 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
                 serviceCount++
             }
         }
-        log.Printf("Found %d records in service_records table", serviceCount)
+        log.Printf("Found %d records in service_records", serviceCount)
     }
     
-    log.Printf("Found %d total maintenance records for vehicle %s", len(allRecords), vehicleID)
+    log.Printf("Total maintenance records for vehicle %s: %d", vehicleID, len(allRecords))
     
-    // Calculate average cost
+    // Calculate statistics
     avgCost := 0.0
     if len(allRecords) > 0 && totalCost > 0 {
         avgCost = totalCost / float64(len(allRecords))
     }
     
-    // Count recent records (last 30 days)
     recentCount := 0
     thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
     for _, record := range allRecords {
@@ -643,7 +650,7 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
         }
     }
     
-    // Create the data structure that matches your template
+    // Create the template data
     data := struct {
         VehicleID          string
         IsBus              bool
