@@ -541,16 +541,16 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
     vehicleNum, err := strconv.Atoi(vehicleID)
     if err == nil {
         // Only query if vehicleID is a valid number
-        rows, err := db.Query(`
-            SELECT vehicle_number, 
-                   COALESCE(service_date::text, created_at::text, ''), 
-                   COALESCE(mileage, 0),
-                   COALESCE(work_description, ''),
-                   COALESCE(cost, 0)
-            FROM maintenance_records 
-            WHERE vehicle_number = $1
-            ORDER BY COALESCE(service_date, created_at) DESC
-        `, vehicleNum)
+	 rows, err := db.Query(`
+	        SELECT vehicle_number, 
+	               COALESCE(service_date::text, created_at::text, ''), 
+	               COALESCE(mileage, 0),
+	               COALESCE(work_description, ''),  -- NOT work_done
+	               COALESCE(cost, 0)
+	        FROM maintenance_records 
+	        WHERE vehicle_number = $1
+	        ORDER BY COALESCE(service_date, created_at) DESC
+	    `, vehicleNum)
         
         if err != nil {
             log.Printf("Error querying maintenance_records: %v", err)
