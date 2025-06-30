@@ -395,7 +395,8 @@
               </div>
               <div>
                 <h6 class="mb-1">
-                  <a href="/bus-maintenance/{{.BusID}}" class="text-decoration-none text-dark bus-link" 
+                  <a href="/bus-maintenance/{{.BusID}}" 
+                     class="text-decoration-none text-dark bus-link" 
                      aria-label="View maintenance records for Bus {{.BusID}}">
                     Bus #{{.BusID}}
                   </a>
@@ -543,14 +544,32 @@
       <div class="col-12">
         <div class="enhanced-card">
           <div class="card-header">
-            <h5><i class="bi bi-clock-history me-2" aria-hidden="true"></i>Recent Maintenance Activity</h5>
+            <h5><i class="bi bi-clock-history me-2"></i>Recent Maintenance Activity</h5>
           </div>
           <div class="card-body">
             <div id="recentMaintenanceLogs" role="region" aria-live="polite" aria-label="Recent maintenance logs">
-              <div class="empty-state">
-                <i class="bi bi-journal-text" aria-hidden="true"></i>
-                <p class="mb-0">No maintenance logs recorded yet</p>
-              </div>
+              {{if .MaintenanceLogs}}
+                {{range .MaintenanceLogs}}
+                <div class="maintenance-log-item log-{{.Category}}">
+                  <div class="d-flex justify-content-between">
+                    <div>
+                      <strong>Bus #{{.BusID}}</strong> - {{.Category}}
+                      <br>
+                      <small class="text-muted d-block">
+                        <i class="bi bi-calendar me-1"></i>{{.Date}} • 
+                        <i class="bi bi-speedometer2 me-1"></i>{{.Mileage}} miles
+                      </small>
+                      <small class="d-block">{{.Notes}}</small>
+                    </div>
+                  </div>
+                </div>
+                {{end}}
+              {{else}}
+                <div class="empty-state">
+                  <i class="bi bi-journal-text"></i>
+                  <p class="mb-0">No maintenance logs recorded yet</p>
+                </div>
+              {{end}}
             </div>
           </div>
         </div>
