@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"database/sql"
 	"fmt"
 	"html/template"
 	"log"
