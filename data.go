@@ -563,23 +563,7 @@ func loadRouteAssignments() ([]RouteAssignment, error) {
 	return assignments, nil
 }
 
-func saveRouteAssignment(assignment RouteAssignment) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	_, err := db.Exec(`
-		INSERT INTO route_assignments (driver, bus_id, route_id, route_name, assigned_date) 
-		VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (driver) 
-		DO UPDATE SET 
-			bus_id = $2, route_id = $3, route_name = $4, 
-			assigned_date = $5, updated_at = CURRENT_TIMESTAMP
-	`, assignment.Driver, assignment.BusID, assignment.RouteID, 
-		assignment.RouteName, assignment.AssignedDate)
-	
-	return err
-}
+
 
 func saveRouteAssignments(assignments []RouteAssignment) error {
 	if db == nil {
