@@ -592,16 +592,18 @@ func saveRouteAssignments(assignments []RouteAssignment) error {
 	}
 	defer tx.Rollback()
 	
-	// Clear existing assignments
-	if _, err := tx.Exec("DELETE FROM route_assignments"); err != nil {
-		return fmt.Errorf("failed to clear assignments: %w", err)
-	}
+	// Don't clear all assignments - just insert/update the ones provided
+	// This allows drivers to have multiple routes
 	
 	// Insert new assignments
 	for _, assignment := range assignments {
 		_, err := tx.Exec(`
 			INSERT INTO route_assignments (driver, bus_id, route_id, route_name, assigned_date) 
 			VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT (driver, route_id) 
+			DO UPDATE SET 
+				bus_id = $2, route_name = $4, 
+				assigned_date = $5, updated_at = CURRENT_TIMESTAMP
 		`, assignment.Driver, assignment.BusID, assignment.RouteID, 
 			assignment.RouteName, assignment.AssignedDate)
 		
