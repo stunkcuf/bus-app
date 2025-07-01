@@ -1946,20 +1946,24 @@ func updateVehicleStatusInDB(status struct {
 
 func calculateAssignmentData(assignments []RouteAssignment, routes []Route, buses []*Bus, users []User) AssignRouteData {
 	// Track assigned resources
-	assignedDrivers := make(map[string]bool)
 	assignedBuses := make(map[string]bool)
 	assignedRoutes := make(map[string]bool)
 	
+	// Create a map to track which routes are assigned to each driver
+	driverRoutes := make(map[string][]string)
+	
 	for _, assignment := range assignments {
-		assignedDrivers[assignment.Driver] = true
 		assignedBuses[assignment.BusID] = true
 		assignedRoutes[assignment.RouteID] = true
+		driverRoutes[assignment.Driver] = append(driverRoutes[assignment.Driver], assignment.RouteID)
 	}
 	
 	// Filter available resources
+	// NOTE: For drivers, we show ALL drivers since they can have multiple routes
 	var availableDrivers []User
 	for _, u := range users {
-		if u.Role == RoleDriver && !assignedDrivers[u.Username] {
+		if u.Role == RoleDriver {
+			// Include ALL drivers, not just unassigned ones
 			availableDrivers = append(availableDrivers, u)
 		}
 	}
