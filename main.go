@@ -1796,7 +1796,7 @@ func verifyStudentOwnership(studentID, driverUsername string) bool {
 	return false
 }
 
-func parseStudentForm(r *http.Request, driverUsername, studentID string) (Student, error) {
+ffunc parseStudentForm(r *http.Request, driverUsername, studentID string) (Student, error) {
 	// Get form values
 	name := SanitizeFormValue(r, "name")
 	guardian := SanitizeFormValue(r, "guardian")
@@ -1855,11 +1855,15 @@ func parseStudentForm(r *http.Request, driverUsername, studentID string) (Studen
 		fmt.Sscanf(posStr, "%d", &positionNumber)
 	}
 	
-	// Active status
+	// Active status - default to true for new students
 	active := true
-	if r.FormValue("active") != "" {
-		active = r.FormValue("active") == "on"
+	if studentID != "" {
+		// For existing students, check the form value
+		activeValue := r.FormValue("active")
+		active = activeValue == "on" || activeValue == "true"
 	}
+	
+	log.Printf("DEBUG: Parsed student %s with %d locations", studentID, len(locations))
 	
 	return Student{
 		StudentID:      studentID,
