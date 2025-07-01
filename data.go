@@ -466,6 +466,19 @@ func saveStudent(student Student) error {
 	log.Printf("DEBUG: Saving student %s with %d locations: %s", 
 		student.StudentID, len(student.Locations), string(locationsJSON))
 	
+	// Handle NULL times
+	var pickupTime, dropoffTime interface{}
+	if student.PickupTime != "" {
+		pickupTime = student.PickupTime
+	} else {
+		pickupTime = nil
+	}
+	if student.DropoffTime != "" {
+		dropoffTime = student.DropoffTime
+	} else {
+		dropoffTime = nil
+	}
+	
 	_, err = db.Exec(`
 		INSERT INTO students (student_id, name, locations, phone_number, alt_phone_number,
 			guardian, pickup_time, dropoff_time, position_number, route_id, driver, active) 
@@ -477,7 +490,7 @@ func saveStudent(student Student) error {
 			route_id = $10, driver = $11, active = $12,
 			updated_at = CURRENT_TIMESTAMP
 	`, student.StudentID, student.Name, locationsJSON, student.PhoneNumber,
-		student.AltPhoneNumber, student.Guardian, student.PickupTime, student.DropoffTime,
+		student.AltPhoneNumber, student.Guardian, pickupTime, dropoffTime,
 		student.PositionNumber, student.RouteID, student.Driver, student.Active)
 	
 	if err != nil {
@@ -485,26 +498,6 @@ func saveStudent(student Student) error {
 	}
 	
 	return err
-}
-
-func saveStudents(students []Student) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-	
-	for _, student := range students {
-		if err := saveStudent(student); err != nil {
-			return fmt.Errorf("failed to save student %s: %w", student.StudentID, err)
-		}
-	}
-	
-	return tx.Commit()
 }
 
 func deleteStudent(studentID string) error {
