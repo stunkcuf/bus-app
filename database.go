@@ -144,7 +144,7 @@ func runMigrations() error {
         assigned_date DATE DEFAULT CURRENT_DATE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(driver)
+        UNIQUE(driver, route_id)  -- Allow multiple routes per driver, but not duplicate assignments
     );
 
     -- Driver logs table
