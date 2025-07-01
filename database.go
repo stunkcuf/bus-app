@@ -686,6 +686,106 @@ func ensureRoutesTableStructure() error {
 	return nil
 }
 
+// NEW FUNCTION: Check if driver already has a bus assigned
+func getDriverAssignedBus(driver string) (string, error) {
+    var busID string
+    err := db.Get(&busID, `
+        SELECT DISTINCT bus_id 
+        FROM route_assignments 
+        WHERE driver = $1 
+        ORDER BY created_at DESC 
+        LIMIT 1
+    `, driver)
+    
+    if err == sql.ErrNoRows {
+        return "", nil // No bus assigned yet
+    }
+    
+    if err != nil {
+        return "", fmt.Errorf("failed to get driver's bus: %v", err)
+    }
+    
+    return busID, nil
+}
+
+// UPDATED FUNCTION: Modified saveRouteAssignment to handle optional bus
+func saveRouteAssignment(assignment RouteAssignment) error {
+    if db == nil {
+        return fmt.Errorf("database connection not available")
+    }
+    
+    // Check if driver already has a bus assigned
+    if assignment.BusID == "" {
+        existingBusID, err := getDriverAssignedBus(assignment.Driver)
+        if err != nil {
+            return fmt.Errorf("failed to check existing bus assignment: %v", err)
+        }
+        
+        if existingBusID != "" {
+            assignment.BusID = existingBusID
+            log.Printf("Using driver's existing bus assignment: %s", existingBusID)
+        } else {
+            return fmt.Errorf("no bus specified and driver has no existing bus assignment")
+        }
+    }
+    
+    // Get route name
+    var routeName string
+    err := db.Get(&routeName, "SELECT route_name FROM routes WHERE route_id = $1", assignment.RouteID)
+    if err != nil {
+        log.Printf("Warning: Could not get route name for %s: %v", assignment.RouteID, err)
+        routeName = assignment.RouteID // Fallback to route ID
+    }
+    
+    // Check if assignment already exists
+    var existingID int
+    err = db.Get(&existingID, `
+        SELECT id FROM route_assignments 
+        WHERE driver = $1 AND route_id = $2
+    `, assignment.Driver, assignment.RouteID)
+    
+    if err == nil {
+        // Update existing assignment
+        _, err = db.Exec(`
+            UPDATE route_assignments 
+            SET bus_id = $1, route_name = $2, assigned_date = CURRENT_DATE, updated_at = CURRENT_TIMESTAMP
+            WHERE driver = $3 AND route_id = $4
+        `, assignment.BusID, routeName, assignment.Driver, assignment.RouteID)
+        
+        if err != nil {
+            return fmt.Errorf("failed to update route assignment: %v", err)
+        }
+        
+        log.Printf("Updated route assignment for driver %s on route %s", assignment.Driver, assignment.RouteID)
+    } else {
+        // Insert new assignment
+        _, err = db.Exec(`
+            INSERT INTO route_assignments (driver, bus_id, route_id, route_name, assigned_date)
+            VALUES ($1, $2, $3, $4, CURRENT_DATE)
+        `, assignment.Driver, assignment.BusID, assignment.RouteID, routeName)
+        
+        if err != nil {
+            return fmt.Errorf("failed to save route assignment: %v", err)
+        }
+        
+        log.Printf("Created new route assignment for driver %s on route %s with bus %s", 
+            assignment.Driver, assignment.RouteID, assignment.BusID)
+    }
+    
+    // Update students on this route to have this driver
+    _, err = db.Exec(`
+        UPDATE students 
+        SET driver = $1, updated_at = CURRENT_TIMESTAMP
+        WHERE route_id = $2
+    `, assignment.Driver, assignment.RouteID)
+    
+    if err != nil {
+        log.Printf("Warning: Failed to update students with new driver: %v", err)
+    }
+    
+    return nil
+}
+
 // getAllVehicleMaintenanceRecords gets maintenance records from ALL tables
 func getAllVehicleMaintenanceRecords(vehicleID string) ([]BusMaintenanceLog, error) {
     if db == nil {
