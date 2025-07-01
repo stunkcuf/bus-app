@@ -1796,7 +1796,7 @@ func verifyStudentOwnership(studentID, driverUsername string) bool {
 	return false
 }
 
-ffunc parseStudentForm(r *http.Request, driverUsername, studentID string) (Student, error) {
+func parseStudentForm(r *http.Request, driverUsername, studentID string) (Student, error) {
 	// Get form values
 	name := SanitizeFormValue(r, "name")
 	guardian := SanitizeFormValue(r, "guardian")
