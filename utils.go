@@ -16,6 +16,7 @@ func executeTemplate(w http.ResponseWriter, name string, data interface{}) {
 }
 
 // getDriverRouteAssignment returns the current route assignment for a driver
+// NOTE: This returns the FIRST assignment found - drivers can have multiple routes
 func getDriverRouteAssignment(driverUsername string) (*RouteAssignment, error) {
 	assignments, err := loadRouteAssignments()
 	if err != nil {
@@ -29,6 +30,23 @@ func getDriverRouteAssignment(driverUsername string) (*RouteAssignment, error) {
 	}
 
 	return nil, fmt.Errorf("no assignment found for driver %s", driverUsername)
+}
+
+// getDriverRouteAssignments returns ALL route assignments for a driver
+func getDriverRouteAssignments(driverUsername string) ([]RouteAssignment, error) {
+	assignments, err := loadRouteAssignments()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load assignments: %w", err)
+	}
+
+	var driverAssignments []RouteAssignment
+	for _, assignment := range assignments {
+		if assignment.Driver == driverUsername {
+			driverAssignments = append(driverAssignments, assignment)
+		}
+	}
+
+	return driverAssignments, nil
 }
 
 // validateRouteAssignment checks if a route assignment is valid
@@ -94,19 +112,22 @@ func validateRouteAssignment(assignment RouteAssignment) error {
 		return fmt.Errorf("route %s does not exist", assignment.RouteID)
 	}
 
-	// Check if driver is already assigned to another route
+	// Check if this exact assignment already exists (driver + route combination)
 	existingAssignments, err := loadRouteAssignments()
 	if err != nil {
 		log.Printf("Warning: Could not check existing assignments: %v", err)
 		// Continue anyway - the database constraint will catch duplicates
 	} else {
 		for _, existing := range existingAssignments {
-			if existing.Driver == assignment.Driver && existing.RouteID != assignment.RouteID {
+			if existing.Driver == assignment.Driver && existing.RouteID == assignment.RouteID {
 				return fmt.Errorf("driver %s is already assigned to route %s", 
 					assignment.Driver, existing.RouteID)
 			}
 		}
 	}
+
+	// NOTE: We NO LONGER check if driver is assigned to other routes
+	// Drivers can now have multiple route assignments
 
 	return nil
 }
