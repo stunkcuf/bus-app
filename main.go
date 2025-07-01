@@ -164,6 +164,10 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/assign-routes/edit", withRecovery(requireAuth(requireRole("manager")(editRouteHandler))))
 	mux.HandleFunc("/assign-routes/delete", withRecovery(requireAuth(requireRole("manager")(deleteRouteHandler))))
 	
+	// API endpoints for route assignment
+	mux.HandleFunc("/api/route-assignment", withRecovery(requireAuth(requireRole("manager")(handleSaveRouteAssignment))))
+	mux.HandleFunc("/api/check-driver-bus", withRecovery(requireAuth(requireRole("manager")(handleCheckDriverBus))))
+	
 	// Driver profile
 	mux.HandleFunc("/driver/", withRecovery(requireAuth(requireRole("manager")(driverProfileHandler))))
 }
