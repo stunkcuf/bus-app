@@ -289,7 +289,7 @@ func runMigrations() error {
     
     // Try to create maintenance_records indexes only if columns exist
     var hasVehicleID bool
-    err = db.QueryRow(`
+    err := db.QueryRow(`
         SELECT EXISTS (
             SELECT 1 FROM information_schema.columns 
             WHERE table_name = 'maintenance_records' 
@@ -371,7 +371,7 @@ func updateUsersTableForRegistration() error {
     
     if !constraintExists {
         // We need to drop and recreate the constraint to include driver_pending
-        _, err := db.Exec(`
+        _, err = db.Exec(`
             ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
             ALTER TABLE users ADD CONSTRAINT users_role_check 
             CHECK (role IN ('driver', 'manager', 'driver_pending'));
@@ -400,7 +400,7 @@ func updateUsersTableForRegistration() error {
     
     if !statusExists {
         // Add status column to existing users table
-        _, err := db.Exec(`
+        _, err = db.Exec(`
             ALTER TABLE users 
             ADD COLUMN status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'pending', 'suspended'))
         `)
@@ -433,7 +433,7 @@ func updateUsersTableForRegistration() error {
     }
     
     if !regDateExists {
-        _, err := db.Exec(`
+        _, err = db.Exec(`
             ALTER TABLE users 
             ADD COLUMN registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         `)
