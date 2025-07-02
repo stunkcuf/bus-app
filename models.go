@@ -145,6 +145,69 @@ type DriverLog struct {
 		PickupTime string `json:"pickup_time,omitempty"`
 	} `json:"attendance"`
 }
+// MonthlyMileageReport represents monthly bus mileage data
+type MonthlyMileageReport struct {
+	ID             int     `json:"id" db:"id"`
+	ReportMonth    string  `json:"report_month" db:"report_month"`
+	ReportYear     int     `json:"report_year" db:"report_year"`
+	BusYear        int     `json:"bus_year" db:"bus_year"`
+	BusMake        string  `json:"bus_make" db:"bus_make"`
+	LicensePlate   string  `json:"license_plate" db:"license_plate"`
+	BusID          string  `json:"bus_id" db:"bus_id"`
+	LocatedAt      string  `json:"located_at" db:"located_at"`
+	BeginningMiles int     `json:"beginning_miles" db:"beginning_miles"`
+	EndingMiles    int     `json:"ending_miles" db:"ending_miles"`
+	TotalMiles     int     `json:"total_miles" db:"total_miles"`
+	CreatedAt      string  `json:"created_at" db:"created_at"`
+	UpdatedAt      string  `json:"updated_at" db:"updated_at"`
+}
+
+// ECSETransportationReport represents ECSE transportation cost data
+type ECSETransportationReport struct {
+	ID                           int     `json:"id" db:"id"`
+	ReportMonth                  string  `json:"report_month" db:"report_month"`
+	ReportYear                   int     `json:"report_year" db:"report_year"`
+	SchoolDistrict               string  `json:"school_district" db:"school_district"`
+	Center                       string  `json:"center" db:"center"`
+	RouteType                    string  `json:"route_type" db:"route_type"`
+	DriverName                   string  `json:"driver_name" db:"driver_name"`
+	TotalStudents                int     `json:"total_students" db:"total_students"`
+	ECSEStudents                 int     `json:"ecse_students" db:"ecse_students"`
+	CostPerMile                  float64 `json:"cost_per_mile" db:"cost_per_mile"`
+	MilesPerRoute                float64 `json:"miles_per_route" db:"miles_per_route"`
+	CostPerRoute                 float64 `json:"cost_per_route" db:"cost_per_route"`
+	DistrictResponsibilityPercent float64 `json:"district_responsibility_percent" db:"district_responsibility_percent"`
+	DistrictCostPerRoute         float64 `json:"district_cost_per_route" db:"district_cost_per_route"`
+	CreatedAt                    string  `json:"created_at" db:"created_at"`
+	UpdatedAt                    string  `json:"updated_at" db:"updated_at"`
+}
+
+// ReportSummaryData for manager dashboard
+type ReportSummaryData struct {
+	User                      *User                       `json:"user"`
+	MileageSummary            MileageSummary              `json:"mileage_summary"`
+	ECSESummary               ECSESummary                 `json:"ecse_summary"`
+	RecentMileageReports      []MonthlyMileageReport      `json:"recent_mileage_reports"`
+	RecentECSEReports         []ECSETransportationReport  `json:"recent_ecse_reports"`
+	CSRFToken                 string                      `json:"csrf_token"`
+}
+
+// MileageSummary contains aggregated mileage data
+type MileageSummary struct {
+	TotalBuses        int     `json:"total_buses"`
+	TotalMiles        int     `json:"total_miles"`
+	AverageMilesPerBus float64 `json:"average_miles_per_bus"`
+	CurrentMonthMiles int     `json:"current_month_miles"`
+}
+
+// ECSESummary contains aggregated ECSE data
+type ECSESummary struct {
+	TotalDistricts    int     `json:"total_districts"`
+	TotalRoutes       int     `json:"total_routes"`
+	TotalECSEStudents int     `json:"total_ecse_students"`
+	TotalCost         float64 `json:"total_cost"`
+	AverageCostPerRoute float64 `json:"average_cost_per_route"`
+}
 
 // MaintenanceLog for database - matches your fleet database schema
 type MaintenanceLog struct {
