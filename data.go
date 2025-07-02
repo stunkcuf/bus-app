@@ -563,42 +563,6 @@ func loadRouteAssignments() ([]RouteAssignment, error) {
 	return assignments, nil
 }
 
-
-
-func saveRouteAssignments(assignments []RouteAssignment) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-	
-	// Don't clear all assignments - just insert/update the ones provided
-	// This allows drivers to have multiple routes
-	
-	// Insert new assignments
-	for _, assignment := range assignments {
-		_, err := tx.Exec(`
-			INSERT INTO route_assignments (driver, bus_id, route_id, route_name, assigned_date) 
-			VALUES ($1, $2, $3, $4, $5)
-			ON CONFLICT (driver, route_id) 
-			DO UPDATE SET 
-				bus_id = $2, route_name = $4, 
-				assigned_date = $5, updated_at = CURRENT_TIMESTAMP
-		`, assignment.Driver, assignment.BusID, assignment.RouteID, 
-			assignment.RouteName, assignment.AssignedDate)
-		
-		if err != nil {
-			return fmt.Errorf("failed to save assignment for driver %s: %w", assignment.Driver, err)
-		}
-	}
-	
-	return tx.Commit()
-}
-
 func deleteRouteAssignment(driver string) error {
 	if db == nil {
 		return fmt.Errorf("database connection not available")
