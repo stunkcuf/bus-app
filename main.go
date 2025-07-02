@@ -411,6 +411,94 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "driver_dashboard.html", data)
 }
 
+// ============= IMPORT MILEAGE HANDLER =============
+func importMileageHandler(w http.ResponseWriter, r *http.Request) {
+    user := getUserFromSession(r)
+    if user == nil || user.Role != "manager" {
+        http.Redirect(w, r, "/", http.StatusFound)
+        return
+    }
+    
+    if r.Method == "GET" {
+        // Display the import form
+        data := struct {
+            User      *User
+            CSRFToken string
+            Error     string
+            Success   string
+        }{
+            User:      user,
+            CSRFToken: getCSRFToken(r),
+        }
+        
+        renderTemplate(w, "import_mileage.html", data)
+        return
+    }
+    
+    // Handle POST - file upload
+    if r.Method == "POST" {
+        // Validate CSRF
+        if !validateCSRF(r) {
+            http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+            return
+        }
+        
+        // Parse multipart form
+        err := r.ParseMultipartForm(10 << 20) // 10 MB max
+        if err != nil {
+            data := struct {
+                User      *User
+                CSRFToken string
+                Error     string
+                Success   string
+            }{
+                User:      user,
+                CSRFToken: getCSRFToken(r),
+                Error:     "Failed to parse form data",
+            }
+            renderTemplate(w, "import_mileage.html", data)
+            return
+        }
+        
+        // Get the file
+        file, header, err := r.FormFile("excel_file")
+        if err != nil {
+            data := struct {
+                User      *User
+                CSRFToken string
+                Error     string
+                Success   string
+            }{
+                User:      user,
+                CSRFToken: getCSRFToken(r),
+                Error:     "Failed to get uploaded file",
+            }
+            renderTemplate(w, "import_mileage.html", data)
+            return
+        }
+        defer file.Close()
+        
+        // Log file info
+        log.Printf("Uploaded File: %+v", header.Filename)
+        log.Printf("File Size: %+v", header.Size)
+        log.Printf("MIME Header: %+v", header.Header)
+        
+        // For now, just show success
+        data := struct {
+            User      *User
+            CSRFToken string
+            Error     string
+            Success   string
+        }{
+            User:      user,
+            CSRFToken: getCSRFToken(r),
+            Success:   fmt.Sprintf("File '%s' uploaded successfully! Import functionality coming soon.", header.Filename),
+        }
+        
+        renderTemplate(w, "import_mileage.html", data)
+    }
+}
+
 // ============= USER MANAGEMENT HANDLERS =============
 
 func newUserHandler(w http.ResponseWriter, r *http.Request) {
