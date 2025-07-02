@@ -133,6 +133,44 @@ func runMigrations() error {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+	    -- Monthly Mileage Report table
+	CREATE TABLE IF NOT EXISTS monthly_mileage_reports (
+	    id SERIAL PRIMARY KEY,
+	    report_month VARCHAR(20) NOT NULL,
+	    report_year INTEGER NOT NULL,
+	    bus_year INTEGER,
+	    bus_make VARCHAR(50),
+	    license_plate VARCHAR(20),
+	    bus_id VARCHAR(10),
+	    located_at VARCHAR(100),
+	    beginning_miles INTEGER DEFAULT 0,
+	    ending_miles INTEGER DEFAULT 0,
+	    total_miles INTEGER DEFAULT 0,
+	    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	    UNIQUE(report_month, report_year, bus_id)
+	);
+	
+	-- ECSE Transportation Report table
+	CREATE TABLE IF NOT EXISTS ecse_transportation_reports (
+	    id SERIAL PRIMARY KEY,
+	    report_month VARCHAR(20) NOT NULL,
+	    report_year INTEGER NOT NULL,
+	    school_district VARCHAR(100) NOT NULL,
+	    center VARCHAR(50),
+	    route_type VARCHAR(20), -- 'Pick-up' or 'Take Home'
+	    driver_name VARCHAR(100),
+	    total_students INTEGER DEFAULT 0,
+	    ecse_students INTEGER DEFAULT 0,
+	    cost_per_mile DECIMAL(10,2),
+	    miles_per_route DECIMAL(10,2),
+	    cost_per_route DECIMAL(10,2),
+	    district_responsibility_percent DECIMAL(5,2),
+	    district_cost_per_route DECIMAL(10,2),
+	    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	    UNIQUE(report_month, report_year, school_district, center, route_type)
+	);
 
     -- Route assignments table
     CREATE TABLE IF NOT EXISTS route_assignments (
@@ -279,6 +317,11 @@ func runMigrations() error {
         {"idx_route_assignments_driver", "CREATE INDEX IF NOT EXISTS idx_route_assignments_driver ON route_assignments(driver)"},
         {"idx_users_role", "CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)"},
         {"idx_users_status", "CREATE INDEX IF NOT EXISTS idx_users_status ON users(status)"},
+	{"idx_mileage_report_date ON monthly_mileage_reports(report_year, report_month)"};
+	{"idx_mileage_bus_id ON monthly_mileage_reports(bus_id)"};
+	{"idx_ecse_report_date ON ecse_transportation_reports(report_year, report_month)"};
+	{"idx_ecse_district ON ecse_transportation_reports(school_district)"};
+	{"idx_ecse_driver ON ecse_transportation_reports(driver_name)"};    
     }
     
     for _, idx := range indexes {
