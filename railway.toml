@@ -2,7 +2,6 @@
 builder = "nixpacks"
 buildCommand = """
 mv import_mileage.go import_mileage.go.bak 2>/dev/null || true && \
-sed -i '2i import "fmt"' handlers.go && \
 sed -i '/func importMileageHandler/,/^}$/d' handlers.go && \
 sed -i '/func doMileageImport/,/^}$/d' handlers.go && \
 sed -i '/func insertMileageRecord/,/^}$/d' handlers.go && \
