@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Manager Dashboard - Fleet Management System</title>
+  <title>{{if eq .Role "manager"}}Manager{{else}}Driver{{end}} Dashboard - Fleet Management System</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <style>
@@ -13,638 +13,1102 @@
       --grad-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
       --grad-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
       --grad-danger: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
+      --grad-dark: linear-gradient(135deg, #434343 0%, #000000 100%);
+    }
+    
+    * {
+      box-sizing: border-box;
     }
     
     body {
-      background-color: #f8f9fa;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      min-height: 100vh;
     }
     
+    /* Animated Background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23667eea' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      z-index: -1;
+      animation: float 20s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+    
+    /* Header Styles */
     .dashboard-header {
-      background: var(--grad-primary);
+      background: {{if eq .Role "manager"}}var(--grad-primary){{else}}var(--grad-success){{end}};
       color: white;
-      padding: 1.5rem;
-      border-radius: 15px;
+      padding: 2rem;
+      border-radius: 20px;
       margin-bottom: 2rem;
-      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-    }
-    
-    .dashboard-header .btn {
-      background: rgba(255,255,255,0.2);
-      color: white;
-      margin: 0 5px;
-      border: 1px solid rgba(255,255,255,0.3);
-      transition: all 0.3s ease;
-    }
-    
-    .dashboard-header .btn:hover {
-      background: rgba(255,255,255,0.3);
-      transform: translateY(-2px);
-    }
-    
-    .metric-card {
-      border: none;
-      border-radius: 15px;
-      transition: all 0.3s ease;
-      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
       position: relative;
+      overflow: hidden;
     }
     
-    .metric-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    .dashboard-header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 50%;
+      height: 200%;
+      background: rgba(255,255,255,0.1);
+      transform: rotate(45deg);
+      animation: shimmer 3s ease-in-out infinite;
     }
     
-    .metric-card .card-body {
-      padding: 1.5rem;
+    @keyframes shimmer {
+      0%, 100% { transform: translateX(-100%) rotate(45deg); }
+      50% { transform: translateX(200%) rotate(45deg); }
     }
     
-    .metric-icon {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      opacity: 0.9;
-    }
-    
-    .metric-value {
-      font-size: 2.5rem;
+    .dashboard-header h1 {
       font-weight: 700;
       margin-bottom: 0.5rem;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
     }
     
-    .metric-label {
-      font-size: 0.9rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      opacity: 0.8;
+    .welcome-message {
+      font-size: 1.1rem;
+      opacity: 0.95;
+      margin-bottom: 0;
     }
     
-    .bg-gradient-primary { background: var(--grad-primary); }
-    .bg-gradient-success { background: var(--grad-success); }
-    .bg-gradient-info { background: var(--grad-info); }
-    .bg-gradient-warning { background: var(--grad-warning); }
-    .bg-gradient-danger { background: var(--grad-danger); }
-    
-    .activity-item {
-      padding: 0.75rem;
-      border-left: 3px solid #dee2e6;
-      margin-bottom: 0.5rem;
-      background: white;
-      border-radius: 0 8px 8px 0;
-      transition: all 0.2s ease;
-    }
-    
-    .activity-item:hover {
-      border-left-color: #667eea;
-      transform: translateX(5px);
-    }
-    
-    .activity-time {
-      font-size: 0.8rem;
-      color: #6c757d;
-    }
-    
-    .status-indicator {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      display: inline-block;
-      margin-right: 8px;
-    }
-    
-    .status-online { background-color: #28a745; }
-    .status-offline { background-color: #dc3545; }
-    .status-maintenance { background-color: #ffc107; }
-    
-    .quick-action-card {
-      border: 2px dashed #dee2e6;
-      border-radius: 15px;
+    .header-nav .btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 2px solid rgba(255,255,255,0.3);
+      padding: 0.5rem 1.5rem;
+      border-radius: 30px;
+      font-weight: 500;
       transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+    
+    .header-nav .btn:hover {
+      background: rgba(255,255,255,0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      color: white;
+      border-color: rgba(255,255,255,0.5);
+    }
+    
+    /* Notification Badge */
+    .notification-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: var(--grad-danger);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.5rem;
+      border-radius: 20px;
+      min-width: 24px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(255,0,0,0.3);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    
+    /* Stats Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+      background: white;
+      border-radius: 20px;
+      padding: 1.5rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       cursor: pointer;
     }
     
-    .quick-action-card:hover {
-      border-color: #667eea;
-      background-color: rgba(102, 126, 234, 0.05);
+    .stat-card:hover {
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.12);
     }
     
-    .chart-container {
-      height: 300px;
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--gradient);
+    }
+    
+    .stat-card.primary::before { background: var(--grad-primary); }
+    .stat-card.success::before { background: var(--grad-success); }
+    .stat-card.info::before { background: var(--grad-info); }
+    .stat-card.warning::before { background: var(--grad-warning); }
+    .stat-card.danger::before { background: var(--grad-danger); }
+    
+    .stat-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(45deg, #f8f9fa, #e9ecef);
-      border-radius: 10px;
-      color: #6c757d;
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      color: white;
+      position: relative;
     }
     
-    .driver-summary-card {
-      background: white;
-      border-radius: 10px;
-      padding: 1rem;
+    .stat-icon.primary { background: var(--grad-primary); }
+    .stat-icon.success { background: var(--grad-success); }
+    .stat-icon.info { background: var(--grad-info); }
+    .stat-icon.warning { background: var(--grad-warning); }
+    .stat-icon.danger { background: var(--grad-danger); }
+    
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1;
       margin-bottom: 0.5rem;
-      border-left: 4px solid #28a745;
-      transition: all 0.2s ease;
+      color: #2d3748;
     }
     
-    .driver-summary-card:hover {
-      transform: translateX(5px);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    .stat-label {
+      color: #718096;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     
-    .route-stat-item {
-      padding: 1rem;
-      background: linear-gradient(45deg, rgba(79, 172, 254, 0.1), rgba(0, 242, 254, 0.1));
-      border-radius: 10px;
-      margin-bottom: 0.5rem;
-    }
-    
-    .system-notice {
-      background: #f8f9fa;
-      border-left: 3px solid #6c757d;
-      padding: 0.5rem 1rem;
-      margin-bottom: 0.5rem;
+    .stat-change {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
       font-size: 0.85rem;
-      color: #6c757d;
-      border-radius: 0 5px 5px 0;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
     }
     
-    .system-notice i {
-      margin-right: 0.5rem;
+    .stat-change.positive { color: #48bb78; }
+    .stat-change.negative { color: #f56565; }
+    
+    /* Enhanced Cards */
+    .enhanced-card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      overflow: hidden;
+      margin-bottom: 2rem;
+      transition: all 0.3s ease;
+    }
+    
+    .enhanced-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+    }
+    
+    .enhanced-card .card-header {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      padding: 1.5rem;
+      border-bottom: 2px solid #e9ecef;
+      display: flex;
+      justify-content: between;
+      align-items: center;
+    }
+    
+    .enhanced-card .card-header h5 {
+      margin: 0;
+      font-weight: 700;
+      color: #2d3748;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .enhanced-card .card-header .icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--grad-primary);
+      color: white;
+    }
+    
+    /* Action Cards */
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .action-card {
+      background: white;
+      border-radius: 20px;
+      padding: 2rem;
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 3px solid transparent;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .action-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: var(--gradient);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      transform: rotate(45deg);
+    }
+    
+    .action-card:hover {
+      transform: translateY(-8px) scale(1.05);
+      border-color: var(--color);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    }
+    
+    .action-card:hover::before {
+      opacity: 0.1;
+    }
+    
+    .action-card.primary { --gradient: var(--grad-primary); --color: #667eea; }
+    .action-card.success { --gradient: var(--grad-success); --color: #11998e; }
+    .action-card.info { --gradient: var(--grad-info); --color: #4facfe; }
+    .action-card.warning { --gradient: var(--grad-warning); --color: #fa709a; }
+    
+    .action-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 1.5rem;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      background: var(--gradient);
+      color: white;
+      transition: all 0.3s ease;
+    }
+    
+    .action-card:hover .action-icon {
+      transform: rotate(10deg) scale(1.1);
+    }
+    
+    .action-title {
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+      color: #2d3748;
+    }
+    
+    .action-description {
+      color: #718096;
+      font-size: 0.9rem;
+    }
+    
+    /* Activity Feed */
+    .activity-feed {
+      max-height: 400px;
+      overflow-y: auto;
+      padding-right: 0.5rem;
+    }
+    
+    .activity-feed::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .activity-feed::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+    
+    .activity-feed::-webkit-scrollbar-thumb {
+      background: #cbd5e0;
+      border-radius: 10px;
+    }
+    
+    .activity-item {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+      border-radius: 12px;
+      transition: all 0.2s ease;
+      margin-bottom: 0.5rem;
+    }
+    
+    .activity-item:hover {
+      background: #f7fafc;
+      transform: translateX(5px);
+    }
+    
+    .activity-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 1.2rem;
+    }
+    
+    .activity-icon.trip { background: var(--grad-success); color: white; }
+    .activity-icon.maintenance { background: var(--grad-warning); color: white; }
+    .activity-icon.assignment { background: var(--grad-info); color: white; }
+    .activity-icon.user { background: var(--grad-primary); color: white; }
+    
+    .activity-content {
+      flex: 1;
+    }
+    
+    .activity-title {
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 0.25rem;
+    }
+    
+    .activity-description {
+      font-size: 0.85rem;
+      color: #718096;
+    }
+    
+    .activity-time {
+      font-size: 0.75rem;
+      color: #a0aec0;
+      margin-top: 0.25rem;
+    }
+    
+    /* Alert Banner */
+    .alert-banner {
+      background: var(--grad-warning);
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 5px 15px rgba(250, 112, 154, 0.3);
+    }
+    
+    .alert-banner i {
+      font-size: 1.5rem;
+    }
+    
+    .alert-banner a {
+      color: white;
+      font-weight: 600;
+      text-decoration: underline;
+    }
+    
+    /* Driver Cards */
+    .driver-card {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+    
+    .driver-card:hover {
+      border-color: #e2e8f0;
+      transform: translateX(5px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .driver-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--grad-success);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+    
+    .driver-info {
+      flex: 1;
+    }
+    
+    .driver-name {
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 0.25rem;
+    }
+    
+    .driver-route {
+      font-size: 0.85rem;
+      color: #718096;
+    }
+    
+    .driver-stats {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+    }
+    
+    .driver-stat {
+      text-align: center;
+    }
+    
+    .driver-stat-value {
+      font-weight: 700;
+      color: #2d3748;
+      font-size: 1.1rem;
+    }
+    
+    .driver-stat-label {
+      font-size: 0.75rem;
+      color: #a0aec0;
+      text-transform: uppercase;
+    }
+    
+    /* Progress Bars */
+    .progress-item {
+      margin-bottom: 1.5rem;
+    }
+    
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+    
+    .progress-label {
+      font-weight: 600;
+      color: #2d3748;
+    }
+    
+    .progress-value {
+      font-weight: 600;
+      color: #4a5568;
     }
     
     .progress {
       height: 10px;
-      border-radius: 5px;
-      background-color: #e9ecef;
+      border-radius: 10px;
+      background-color: #e2e8f0;
+      overflow: visible;
     }
     
     .progress-bar {
-      border-radius: 5px;
-      transition: width 0.6s ease;
+      border-radius: 10px;
+      position: relative;
+      transition: width 1s ease-in-out;
+    }
+    
+    .progress-bar::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: 0;
+      transform: translate(50%, -50%);
+      width: 20px;
+      height: 20px;
+      background: white;
+      border: 4px solid currentColor;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    
+    /* Live Clock */
+    .live-clock {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: white;
+      opacity: 0.9;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: #718096;
+    }
+    
+    .empty-state i {
+      font-size: 4rem;
+      opacity: 0.3;
+      margin-bottom: 1rem;
+    }
+    
+    /* Animations */
+    @keyframes slideInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .animate-in {
+      animation: slideInUp 0.6s ease-out forwards;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .action-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      
+      .driver-stats {
+        display: none;
+      }
     }
   </style>
 </head>
 <body>
-<div class="container-fluid py-4">
-  <!-- Header -->
-  <header class="dashboard-header mb-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap">
-      <div>
-        <h1 class="fs-3 mb-1">
-          <i class="bi bi-speedometer2 me-2"></i>Fleet Management Dashboard
-        </h1>
-        <p class="mb-0 opacity-75">Welcome back{{if .User.Username}}, {{.User.Username}}{{end}}! Here's your fleet overview.</p>
-      </div>
-      <nav class="btn-group btn-group-sm" role="group" aria-label="Main actions">
-        <a href="/approve-users" class="btn position-relative">
-          <i class="bi bi-person-check-fill me-1"></i>Approve Users
-          {{if .PendingUsers}}
-          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-            {{.PendingUsers}}
-            <span class="visually-hidden">pending approvals</span>
-          </span>
-          {{end}}
-        </a>
-        <a href="/assign-routes" class="btn"><i class="bi bi-map-fill me-1"></i>Assign Routes</a>
-        <a href="/fleet" class="btn"><i class="bi bi-bus-front-fill me-1"></i>Bus Fleet</a>
-        <a href="/company-fleet" class="btn"><i class="bi bi-truck me-1"></i>Company Fleet</a>
-        <a href="/logout" class="btn"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
-      </nav>
-    </div>
-  </header>
-
-  <!-- Key Metrics Row -->
-  <div class="row g-4 mb-4">
-    <div class="col-lg-3 col-md-6">
-      <div class="card metric-card bg-gradient-primary text-white">
-        <div class="card-body text-center">
-          <i class="bi bi-people-fill metric-icon"></i>
-          <div class="metric-value" id="totalUsers">{{if .Users}}{{len .Users}}{{else}}0{{end}}</div>
-          <div class="metric-label">Active Users</div>
+  <div class="container-fluid py-4">
+    <!-- Store CSRF Token -->
+    <input type="hidden" id="csrfToken" value="{{.CSRFToken}}">
+    
+    <!-- Dashboard Header -->
+    <header class="dashboard-header animate-in">
+      <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+          <h1 class="display-5">
+            <i class="bi bi-{{if eq .Role "manager"}}speedometer2{{else}}bus-front{{end}} me-3"></i>
+            {{if eq .Role "manager"}}Manager Dashboard{{else}}Driver Dashboard{{end}}
+          </h1>
+          <p class="welcome-message mb-0">
+            Welcome back, <strong>{{.User.Username}}</strong>! 
+            {{if eq .Role "manager"}}
+              Managing {{len .Users}} users and {{len .Buses}} buses across {{len .Routes}} routes.
+            {{else}}
+              Ready for today's route? Let's make it a great day!
+            {{end}}
+          </p>
         </div>
-      </div>
-    </div>
-    <div class="col-lg-3 col-md-6">
-      <div class="card metric-card bg-gradient-success text-white">
-        <div class="card-body text-center">
-          <i class="bi bi-person-badge-fill metric-icon"></i>
-          <div class="metric-value" id="activeDrivers">0</div>
-          <div class="metric-label">Drivers</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-3 col-md-6">
-      <div class="card metric-card bg-gradient-info text-white">
-        <div class="card-body text-center">
-          <i class="bi bi-bus-front-fill metric-icon"></i>
-          <div class="metric-value" id="activeBuses">{{if .Buses}}{{len .Buses}}{{else}}0{{end}}</div>
-          <div class="metric-label">Fleet Size</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-3 col-md-6">
-      <div class="card metric-card bg-gradient-warning text-white">
-        <div class="card-body text-center">
-          <i class="bi bi-speedometer2 metric-icon"></i>
-          <div class="metric-value" id="totalMileage">0</div>
-          <div class="metric-label">Total Miles (30d)</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Driver Performance Summary -->
-  <div class="row g-4 mb-4">
-    <div class="col-lg-8">
-      <div class="card">
-        <div class="card-header bg-white border-0">
-          <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>Driver Performance Summary</h5>
-        </div>
-        <div class="card-body">
-          <div id="driverSummaries">
-            <!-- Will be populated by JavaScript -->
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+          <div class="live-clock">
+            <i class="bi bi-clock"></i>
+            <span id="liveTime">--:--:--</span>
           </div>
+          <nav class="header-nav">
+            {{if eq .Role "manager"}}
+              {{if gt .PendingUsers 0}}
+              <a href="/approve-users" class="btn position-relative">
+                <i class="bi bi-person-check me-2"></i>Approve Users
+                <span class="notification-badge">{{.PendingUsers}}</span>
+              </a>
+              {{end}}
+              <a href="/logout" class="btn">
+                <i class="bi bi-box-arrow-right me-2"></i>Logout
+              </a>
+            {{else}}
+              <a href="/students" class="btn">
+                <i class="bi bi-people me-2"></i>My Students
+              </a>
+              <a href="/logout" class="btn">
+                <i class="bi bi-box-arrow-right me-2"></i>Logout
+              </a>
+            {{end}}
+          </nav>
         </div>
+      </div>
+    </header>
+
+    {{if eq .Role "manager"}}
+    <!-- Manager Dashboard -->
+    
+    <!-- Alert for Pending Users -->
+    {{if gt .PendingUsers 0}}
+    <div class="alert-banner animate-in" style="animation-delay: 0.1s;">
+      <i class="bi bi-exclamation-circle-fill"></i>
+      <div class="flex-grow-1">
+        <strong>Action Required:</strong> You have {{.PendingUsers}} pending driver registration{{if gt .PendingUsers 1}}s{{end}} waiting for approval.
+        <a href="/approve-users">Review now →</a>
+      </div>
+    </div>
+    {{end}}
+    
+    <!-- Manager Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card primary animate-in" style="animation-delay: 0.2s;">
+        <div class="stat-icon primary">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="stat-value">{{len .Users}}</div>
+        <div class="stat-label">Total Users</div>
+        <div class="stat-change positive">
+          <i class="bi bi-arrow-up"></i>
+          {{.PendingUsers}} pending
+        </div>
+      </div>
+      
+      <div class="stat-card success animate-in" style="animation-delay: 0.3s;">
+        <div class="stat-icon success">
+          <i class="bi bi-bus-front-fill"></i>
+        </div>
+        <div class="stat-value">{{len .Buses}}</div>
+        <div class="stat-label">Fleet Size</div>
+        <div class="stat-change positive">
+          <i class="bi bi-check-circle"></i>
+          Active
+        </div>
+      </div>
+      
+      <div class="stat-card info animate-in" style="animation-delay: 0.4s;">
+        <div class="stat-icon info">
+          <i class="bi bi-map-fill"></i>
+        </div>
+        <div class="stat-value">{{len .Routes}}</div>
+        <div class="stat-label">Active Routes</div>
+      </div>
+      
+      <div class="stat-card warning animate-in" style="animation-delay: 0.5s;">
+        <div class="stat-icon warning">
+          <i class="bi bi-person-badge-fill"></i>
+        </div>
+        <div class="stat-value" id="activeDriversCount">0</div>
+        <div class="stat-label">Active Drivers</div>
       </div>
     </div>
     
-    <!-- Route Statistics -->
-    <div class="col-lg-4">
-      <div class="card">
-        <div class="card-header bg-white border-0">
-          <h5 class="mb-0"><i class="bi bi-map me-2"></i>Route Statistics</h5>
-        </div>
-        <div class="card-body">
-          <div id="routeStats">
-            <!-- Will be populated by JavaScript -->
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Quick Actions & Users -->
-  <div class="row g-4 mt-2">
     <!-- Quick Actions -->
-    <div class="col-lg-4">
-      <div class="card">
-        <div class="card-header bg-white border-0">
-          <h5 class="mb-0"><i class="bi bi-lightning-fill me-2"></i>Quick Actions</h5>
-        </div>
-        <div class="card-body">
-          <div class="row g-3">
-            <div class="col-6">
-              <a href="/approve-users" class="text-decoration-none">
-                <div class="quick-action-card p-3 text-center position-relative">
-                  <i class="bi bi-person-check fs-2 text-warning d-block mb-2"></i>
-                  <small class="fw-semibold">Approve Users</small>
-                  {{if .PendingUsers}}
-                  <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                    {{.PendingUsers}}
-                  </span>
-                  {{end}}
-                </div>
-              </a>
-            </div>
-            <div class="col-6">
-              <a href="/assign-routes" class="text-decoration-none">
-                <div class="quick-action-card p-3 text-center">
-                  <i class="bi bi-map fs-2 text-success d-block mb-2"></i>
-                  <small class="fw-semibold">Assign Route</small>
-                </div>
-              </a>
-            </div>
-            <div class="col-6">
-              <a href="/fleet" class="text-decoration-none">
-                <div class="quick-action-card p-3 text-center">
-                  <i class="bi bi-tools fs-2 text-info d-block mb-2"></i>
-                  <small class="fw-semibold">Maintenance</small>
-                </div>
-              </a>
-            </div>
-            <div class="col-6">
-              <a href="/reports" class="text-decoration-none">
-                <div class="quick-action-card p-3 text-center">
-                  <i class="bi bi-bar-chart fs-2 text-primary d-block mb-2"></i>
-                  <small class="fw-semibold">Reports</small>
-                </div>
-              </a>
-            </div>
-          </div>
-        </div>
+    <div class="enhanced-card animate-in" style="animation-delay: 0.6s;">
+      <div class="card-header">
+        <h5>
+          <span class="icon"><i class="bi bi-lightning-fill"></i></span>
+          Quick Actions
+        </h5>
       </div>
-      
-      <!-- Fleet Health Overview -->
-      <div class="card mt-4">
-        <div class="card-header bg-white border-0">
-          <h5 class="mb-0"><i class="bi bi-activity me-2"></i>Fleet Health</h5>
-        </div>
-        <div class="card-body">
-          <div class="mb-3">
-            <div class="d-flex justify-content-between mb-1">
-              <small>Buses in Good Condition</small>
-              <small id="busHealthPercent">0%</small>
+      <div class="card-body">
+        <div class="action-grid">
+          <a href="/new-user" class="action-card primary">
+            <div class="action-icon">
+              <i class="bi bi-person-plus-fill"></i>
             </div>
-            <div class="progress">
-              <div class="progress-bar bg-success" id="busHealthBar" style="width: 0%"></div>
-            </div>
-          </div>
-          <div class="mb-3">
-            <div class="d-flex justify-content-between mb-1">
-              <small>Oil Service Status</small>
-              <small id="oilServicePercent">0%</small>
-            </div>
-            <div class="progress">
-              <div class="progress-bar bg-info" id="oilServiceBar" style="width: 0%"></div>
-            </div>
-          </div>
-          <div>
-            <div class="d-flex justify-content-between mb-1">
-              <small>Tire Condition</small>
-              <small id="tireConditionPercent">0%</small>
-            </div>
-            <div class="progress">
-              <div class="progress-bar bg-warning" id="tireConditionBar" style="width: 0%"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recent Activity & System Users -->
-    <div class="col-lg-8">
-      <!-- Recent Driver Activity -->
-      <div class="card mb-4">
-        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
-          <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Driver Activity</h5>
-          <a href="/activity" class="btn btn-outline-primary btn-sm">View All</a>
-        </div>
-        <div class="card-body">
-          <div id="recentActivity">
-            <!-- Will be populated by JavaScript -->
-          </div>
-        </div>
-      </div>
-      
-      <!-- Users Table -->
-      <div class="card">
-        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
-          <h5 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>System Users</h5>
-          <a href="/users" class="btn btn-outline-primary btn-sm">Manage All Users</a>
-        </div>
-        <div class="card-body">
-          <!-- System Notice -->
-          <div class="system-notice">
-            <i class="bi bi-info-circle"></i>
-            System accounts are hidden from this view. Showing {{len .Users}} active user accounts.
-          </div>
+            <div class="action-title">Add User</div>
+            <div class="action-description">Create new driver or manager</div>
+          </a>
           
-          <div class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>Username</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {{if .Users}}
-                {{range $index, $user := .Users}}
-                {{if ne .Role "driver_pending"}}
-                <tr>
-                  <td>
-                    {{if eq .Role "driver"}}
-                    <a href="/driver/{{.Username}}" class="text-decoration-none">
-                      <i class="bi bi-person-badge me-1"></i>{{.Username}}
-                    </a>
-                    {{else}}
-                    <i class="bi bi-person-gear me-1"></i>{{.Username}}
-                    {{end}}
-                  </td>
-                  <td>
-                    <span class="badge {{if eq .Role "manager"}}bg-primary{{else}}bg-success{{end}}">
-                      {{.Role}}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="status-indicator status-online"></span>
-                    <small class="text-muted">Active</small>
-                  </td>
-                  <td>
-                    <div class="btn-group btn-group-sm">
-                      <button class="btn btn-outline-primary js-edit-user" 
-                              data-username="{{.Username}}" 
-                              aria-label="Edit {{.Username}}"
-                              onclick="window.location='/edit-user?username={{.Username}}'">
-                        <i class="bi bi-pencil"></i>
-                      </button>
-                      {{if and $.User $.User.Username (ne .Username $.User.Username)}}
-                      <button class="btn btn-outline-danger js-remove-user" 
-                              data-username="{{.Username}}" 
-                              data-role="{{.Role}}" 
-                              aria-label="Remove {{.Username}}"
-                              onclick="if(confirm('Remove user {{.Username}}?')) window.location='/remove-user?username={{.Username}}'">
-                        <i class="bi bi-trash"></i>
-                      </button>
-                      {{else}}
-                      <button class="btn btn-outline-secondary" disabled aria-label="Current user">
-                        <i class="bi bi-shield-lock"></i>
-                      </button>
-                      {{end}}
-                    </div>
-                  </td>
-                </tr>
-                {{end}}
-                {{end}}
-                {{else}}
-                <tr>
-                  <td colspan="4" class="text-center text-muted py-4">
-                    <i class="bi bi-person-x fs-2 d-block mb-2"></i>
-                    No active users found. <a href="/approve-users" class="text-decoration-none">Check pending approvals</a>
-                  </td>
-                </tr>
-                {{end}}
-              </tbody>
-            </table>
-          </div>
+          <a href="/fleet" class="action-card success">
+            <div class="action-icon">
+              <i class="bi bi-bus-front-fill"></i>
+            </div>
+            <div class="action-title">Manage Fleet</div>
+            <div class="action-description">View buses & maintenance</div>
+          </a>
+          
+          <a href="/assign-routes" class="action-card info">
+            <div class="action-icon">
+              <i class="bi bi-diagram-3-fill"></i>
+            </div>
+            <div class="action-title">Assign Routes</div>
+            <div class="action-description">Manage driver assignments</div>
+          </a>
+          
+          <a href="/company-fleet" class="action-card warning">
+            <div class="action-icon">
+              <i class="bi bi-truck"></i>
+            </div>
+            <div class="action-title">Company Fleet</div>
+            <div class="action-description">All company vehicles</div>
+          </a>
         </div>
       </div>
     </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Store data from template
-    const users = {{.Users | json}};
-    const buses = {{.Buses | json}};
-    const routes = {{.Routes | json}};
-    const routeAssignments = {{.RouteAssignments | json}} || [];
-    const driverLogs = {{.DriverLogs | json}} || [];
     
-    // Calculate real metrics from template data
-    const driverCount = users.filter(user => user.role === 'driver').length;
-    const managerCount = users.filter(user => user.role === 'manager').length;
-    
-    // Update the counts (excluding system accounts)
-    document.getElementById('activeDrivers').textContent = driverCount;
-    
-    // Calculate total mileage from last 30 days
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    let totalMileage = 0;
-    const driverMileage = {};
-    const routeMileage = {};
-    
-    driverLogs.forEach(log => {
-      const logDate = new Date(log.date);
-      if (logDate >= thirtyDaysAgo) {
-        totalMileage += (log.mileage || 0);
-        
-        // Track by driver
-        if (!driverMileage[log.driver]) {
-          driverMileage[log.driver] = {
-            miles: 0,
-            trips: 0,
-            morningTrips: 0,
-            afternoonTrips: 0
-          };
-        }
-        driverMileage[log.driver].miles += (log.mileage || 0);
-        driverMileage[log.driver].trips++;
-        if (log.period === 'morning') {
-          driverMileage[log.driver].morningTrips++;
-        } else {
-          driverMileage[log.driver].afternoonTrips++;
-        }
-        
-        // Track by route
-        if (!routeMileage[log.route_id]) {
-          routeMileage[log.route_id] = {
-            miles: 0,
-            trips: 0
-          };
-        }
-        routeMileage[log.route_id].miles += (log.mileage || 0);
-        routeMileage[log.route_id].trips++;
-      }
-    });
-    
-    document.getElementById('totalMileage').textContent = Math.round(totalMileage);
-    
-    // Populate driver summaries
-    const driverSummariesEl = document.getElementById('driverSummaries');
-    const driverSummariesHTML = Object.entries(driverMileage)
-      .sort((a, b) => b[1].miles - a[1].miles)
-      .slice(0, 5)
-      .map(([driver, stats]) => `
-        <div class="driver-summary-card">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <strong><i class="bi bi-person-badge me-2"></i>${driver}</strong>
-              <div class="text-muted small">
-                ${stats.trips} trips • ${stats.morningTrips} AM / ${stats.afternoonTrips} PM
+    <div class="row">
+      <!-- Active Drivers -->
+      <div class="col-lg-6">
+        <div class="enhanced-card animate-in" style="animation-delay: 0.7s;">
+          <div class="card-header">
+            <h5>
+              <span class="icon"><i class="bi bi-people-fill"></i></span>
+              Active Drivers
+            </h5>
+          </div>
+          <div class="card-body">
+            <div id="driversList">
+              <!-- Populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Fleet Status -->
+      <div class="col-lg-6">
+        <div class="enhanced-card animate-in" style="animation-delay: 0.8s;">
+          <div class="card-header">
+            <h5>
+              <span class="icon"><i class="bi bi-activity"></i></span>
+              Fleet Status Overview
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="progress-item">
+              <div class="progress-header">
+                <span class="progress-label">Active Buses</span>
+                <span class="progress-value" id="activeBusesPercent">0%</span>
+              </div>
+              <div class="progress">
+                <div class="progress-bar bg-success" id="activeBusesBar" style="width: 0%"></div>
               </div>
             </div>
-            <div class="text-end">
-              <div class="fw-bold">${Math.round(stats.miles)} miles</div>
-              <div class="text-muted small">Avg: ${Math.round(stats.miles / stats.trips)} mi/trip</div>
+            
+            <div class="progress-item">
+              <div class="progress-header">
+                <span class="progress-label">Routes Assigned</span>
+                <span class="progress-value" id="routesAssignedPercent">0%</span>
+              </div>
+              <div class="progress">
+                <div class="progress-bar bg-info" id="routesAssignedBar" style="width: 0%"></div>
+              </div>
             </div>
+            
+            <div class="progress-item">
+              <div class="progress-header">
+                <span class="progress-label">Oil Service Status</span>
+                <span class="progress-value" id="oilStatusPercent">0%</span>
+              </div>
+              <div class="progress">
+                <div class="progress-bar bg-primary" id="oilStatusBar" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Recent Activity Feed -->
+    <div class="enhanced-card animate-in" style="animation-delay: 0.9s;">
+      <div class="card-header">
+        <h5>
+          <span class="icon"><i class="bi bi-clock-history"></i></span>
+          Recent Activity
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="activity-feed" id="activityFeed">
+          <!-- Activity items will be populated here -->
+        </div>
+      </div>
+    </div>
+    
+    {{else}}
+    <!-- Driver Dashboard -->
+    
+    <!-- Driver Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card primary animate-in" style="animation-delay: 0.2s;">
+        <div class="stat-icon primary">
+          <i class="bi bi-calendar-check"></i>
+        </div>
+        <div class="stat-value" id="todayDate">--</div>
+        <div class="stat-label">Today's Date</div>
+      </div>
+      
+      <div class="stat-card success animate-in" style="animation-delay: 0.3s;">
+        <div class="stat-icon success">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">My Students</div>
+      </div>
+      
+      <div class="stat-card info animate-in" style="animation-delay: 0.4s;">
+        <div class="stat-icon info">
+          <i class="bi bi-map"></i>
+        </div>
+        <div class="stat-value">--</div>
+        <div class="stat-label">My Route</div>
+      </div>
+      
+      <div class="stat-card warning animate-in" style="animation-delay: 0.5s;">
+        <div class="stat-icon warning">
+          <i class="bi bi-bus-front"></i>
+        </div>
+        <div class="stat-value">--</div>
+        <div class="stat-label">My Bus</div>
+      </div>
+    </div>
+    
+    <!-- Driver Quick Actions -->
+    <div class="enhanced-card animate-in" style="animation-delay: 0.6s;">
+      <div class="card-header">
+        <h5>
+          <span class="icon"><i class="bi bi-lightning-fill"></i></span>
+          Quick Actions
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="action-grid">
+          <a href="/driver-dashboard" class="action-card primary">
+            <div class="action-icon">
+              <i class="bi bi-journal-check"></i>
+            </div>
+            <div class="action-title">Log Route</div>
+            <div class="action-description">Record today's trip</div>
+          </a>
+          
+          <a href="/students" class="action-card success">
+            <div class="action-icon">
+              <i class="bi bi-people-fill"></i>
+            </div>
+            <div class="action-title">My Students</div>
+            <div class="action-description">Manage student roster</div>
+          </a>
+          
+          <a href="/driver-dashboard?period=morning" class="action-card info">
+            <div class="action-icon">
+              <i class="bi bi-sunrise-fill"></i>
+            </div>
+            <div class="action-title">Morning Route</div>
+            <div class="action-description">AM pickup log</div>
+          </a>
+          
+          <a href="/driver-dashboard?period=afternoon" class="action-card warning">
+            <div class="action-icon">
+              <i class="bi bi-sunset-fill"></i>
+            </div>
+            <div class="action-title">Afternoon Route</div>
+            <div class="action-description">PM dropoff log</div>
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <div class="row">
+      <!-- Today's Schedule -->
+      <div class="col-lg-6">
+        <div class="enhanced-card animate-in" style="animation-delay: 0.7s;">
+          <div class="card-header">
+            <h5>
+              <span class="icon"><i class="bi bi-calendar3"></i></span>
+              Today's Schedule
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="empty-state">
+              <i class="bi bi-calendar-x"></i>
+              <h6>No Schedule Loaded</h6>
+              <p>Check your route assignment</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Recent Trips -->
+      <div class="col-lg-6">
+        <div class="enhanced-card animate-in" style="animation-delay: 0.8s;">
+          <div class="card-header">
+            <h5>
+              <span class="icon"><i class="bi bi-clock-history"></i></span>
+              Recent Trips
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="empty-state">
+              <i class="bi bi-journal-x"></i>
+              <h6>No Recent Trips</h6>
+              <p>Start logging your routes</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {{end}}
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Live Clock
+    function updateClock() {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('en-US', { 
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      document.getElementById('liveTime').textContent = timeString;
+      
+      // Update date for drivers
+      const dateElement = document.getElementById('todayDate');
+      if (dateElement) {
+        const dateString = now.toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric'
+        });
+        dateElement.textContent = dateString;
+      }
+    }
+    
+    setInterval(updateClock, 1000);
+    updateClock();
+    
+    {{if eq .Role "manager"}}
+    // Manager-specific JavaScript
+    document.addEventListener('DOMContentLoaded', function() {
+      // Calculate active drivers
+      const users = {{.Users | json}};
+      const buses = {{.Buses | json}};
+      const routes = {{.Routes | json}};
+      
+      // Count active drivers
+      const activeDrivers = users.filter(u => u.role === 'driver' && u.status === 'active');
+      document.getElementById('activeDriversCount').textContent = activeDrivers.length;
+      
+      // Populate drivers list
+      const driversListEl = document.getElementById('driversList');
+      if (activeDrivers.length > 0) {
+        const driversHTML = activeDrivers.slice(0, 5).map(driver => {
+          const initial = driver.username.charAt(0).toUpperCase();
+          return `
+            <div class="driver-card">
+              <div class="driver-avatar">${initial}</div>
+              <div class="driver-info">
+                <div class="driver-name">${driver.username}</div>
+                <div class="driver-route">Active Driver</div>
+              </div>
+              <div class="driver-stats">
+                <div class="driver-stat">
+                  <div class="driver-stat-value">
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                  </div>
+                  <div class="driver-stat-label">Active</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        driversListEl.innerHTML = driversHTML;
+      } else {
+        driversListEl.innerHTML = `
+          <div class="empty-state">
+            <i class="bi bi-person-x"></i>
+            <h6>No Active Drivers</h6>
+            <p>Add drivers to get started</p>
+          </div>
+        `;
+      }
+      
+      // Calculate fleet statistics
+      const totalBuses = buses.length || 1;
+      const activeBuses = buses.filter(b => b.status === 'active').length;
+      const goodOilStatus = buses.filter(b => b.oil_status === 'good').length;
+      
+      // Update progress bars
+      const activeBusesPercent = Math.round((activeBuses / totalBuses) * 100);
+      document.getElementById('activeBusesPercent').textContent = activeBusesPercent + '%';
+      document.getElementById('activeBusesBar').style.width = activeBusesPercent + '%';
+      
+      const routesAssignedPercent = routes.length > 0 ? 100 : 0;
+      document.getElementById('routesAssignedPercent').textContent = routesAssignedPercent + '%';
+      document.getElementById('routesAssignedBar').style.width = routesAssignedPercent + '%';
+      
+      const oilStatusPercent = Math.round((goodOilStatus / totalBuses) * 100);
+      document.getElementById('oilStatusPercent').textContent = oilStatusPercent + '%';
+      document.getElementById('oilStatusBar').style.width = oilStatusPercent + '%';
+      
+      // Generate activity feed
+      const activityFeed = document.getElementById('activityFeed');
+      const activities = [
+        { icon: 'user', type: 'user', title: 'New User Registration', desc: `${activeDrivers.length} active drivers`, time: 'System Status' },
+        { icon: 'trip', type: 'trip', title: 'Fleet Operations', desc: `${activeBuses} buses operational`, time: 'Current' },
+        { icon: 'assignment', type: 'assignment', title: 'Route Coverage', desc: `${routes.length} routes configured`, time: 'Active' },
+        { icon: 'maintenance', type: 'maintenance', title: 'Maintenance Status', desc: `${goodOilStatus} buses with good oil status`, time: 'Health Check' }
+      ];
+      
+      const activitiesHTML = activities.map(activity => `
+        <div class="activity-item">
+          <div class="activity-icon ${activity.type}">
+            <i class="bi bi-${activity.icon === 'user' ? 'person' : activity.icon === 'trip' ? 'bus-front' : activity.icon === 'assignment' ? 'map' : 'wrench'}"></i>
+          </div>
+          <div class="activity-content">
+            <div class="activity-title">${activity.title}</div>
+            <div class="activity-description">${activity.desc}</div>
+            <div class="activity-time">${activity.time}</div>
           </div>
         </div>
       `).join('');
-    
-    driverSummariesEl.innerHTML = driverSummariesHTML || '<p class="text-muted text-center">No driver activity in the last 30 days</p>';
-    
-    // Populate route statistics
-    const routeStatsEl = document.getElementById('routeStats');
-    const routeStatsHTML = Object.entries(routeMileage)
-      .sort((a, b) => b[1].miles - a[1].miles)
-      .slice(0, 5)
-      .map(([routeId, stats]) => {
-        const route = routes.find(r => r.route_id === routeId);
-        const routeName = route ? route.route_name : routeId;
-        return `
-          <div class="route-stat-item">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <i class="bi bi-map me-2"></i><strong>${routeName}</strong>
-                <div class="text-muted small">${stats.trips} trips</div>
-              </div>
-              <div class="text-end">
-                <div class="fw-bold">${Math.round(stats.miles)} mi</div>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('');
-    
-    routeStatsEl.innerHTML = routeStatsHTML || '<p class="text-muted text-center">No route activity in the last 30 days</p>';
-    
-    // Populate recent activity
-    const recentActivityEl = document.getElementById('recentActivity');
-    const recentLogs = driverLogs
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, 5);
-    
-    const activityHTML = recentLogs.map(log => {
-      const attendanceCount = log.attendance ? log.attendance.filter(a => a.present).length : 0;
-      return `
-        <div class="activity-item">
-          <div class="d-flex justify-content-between">
-            <div>
-              <strong><i class="bi bi-person-badge me-1"></i>${log.driver}</strong> - ${log.period} route
-              <div class="text-muted small">
-                ${log.date} • ${log.departure || '--'} to ${log.arrival || '--'} • ${log.mileage || 0} miles
-              </div>
-              <div class="text-muted small">
-                <i class="bi bi-people me-1"></i>${attendanceCount} students present
-              </div>
-            </div>
-          </div>
+      
+      activityFeed.innerHTML = activitiesHTML || `
+        <div class="empty-state">
+          <i class="bi bi-inbox"></i>
+          <h6>No Recent Activity</h6>
+          <p>System activity will appear here</p>
         </div>
       `;
-    }).join('');
-    
-    recentActivityEl.innerHTML = activityHTML || '<p class="text-muted text-center">No recent driver activity</p>';
-    
-    // Calculate fleet health percentages
-    const activeBuses = buses.filter(b => b.status === 'active').length;
-    const goodOilBuses = buses.filter(b => b.oil_status === 'good').length;
-    const goodTireBuses = buses.filter(b => b.tire_status === 'good').length;
-    
-    const busHealthPercent = buses.length > 0 ? Math.round((activeBuses / buses.length) * 100) : 0;
-    const oilServicePercent = buses.length > 0 ? Math.round((goodOilBuses / buses.length) * 100) : 0;
-    const tireConditionPercent = buses.length > 0 ? Math.round((goodTireBuses / buses.length) * 100) : 0;
-    
-    // Update progress bars
-    document.getElementById('busHealthPercent').textContent = busHealthPercent + '%';
-    document.getElementById('busHealthBar').style.width = busHealthPercent + '%';
-    
-    document.getElementById('oilServicePercent').textContent = oilServicePercent + '%';
-    document.getElementById('oilServiceBar').style.width = oilServicePercent + '%';
-    
-    document.getElementById('tireConditionPercent').textContent = tireConditionPercent + '%';
-    document.getElementById('tireConditionBar').style.width = tireConditionPercent + '%';
-    
-    // Add animation to metric cards
-    const metricCards = document.querySelectorAll('.metric-card');
-    metricCards.forEach((card, index) => {
-      setTimeout(() => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        card.style.transition = 'all 0.5s ease';
-        setTimeout(() => {
-          card.style.opacity = '1';
-          card.style.transform = 'translateY(0)';
-        }, 100);
-      }, index * 150);
     });
-  });
-</script>
+    {{else}}
+    // Driver-specific JavaScript
+    document.addEventListener('DOMContentLoaded', function() {
+      // Driver dashboard initialization
+      console.log('Driver dashboard loaded');
+    });
+    {{end}}
+    
+    // Add stagger animation on scroll
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, observerOptions);
+    
+    document.querySelectorAll('.animate-in').forEach(el => {
+      observer.observe(el);
+    });
+  </script>
 </body>
 </html>
