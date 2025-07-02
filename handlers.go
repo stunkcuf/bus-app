@@ -58,14 +58,3 @@ func handleSaveRouteAssignment(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(http.StatusOK)
     json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
-
-// Add these routes to your main function or setupRoutes function:
-func setupRoutes() {
-    // ... existing routes ...
-    
-    // Route Assignment endpoints
-    http.HandleFunc("/api/route-assignment", handleSaveRouteAssignment)
-    http.HandleFunc("/api/check-driver-bus", handleCheckDriverBus)
-    
-    // ... other routes ...
-}
