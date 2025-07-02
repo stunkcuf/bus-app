@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "chmod +x railway-build.sh && ./railway-build.sh"
+buildCommand = "go mod tidy && go build -o main ."
 
 [deploy]
 startCommand = "./main"
