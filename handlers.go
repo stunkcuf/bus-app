@@ -3,6 +3,7 @@ package main
 
 import (
     "encoding/json"
+    "fmt"
     "log"
     "net/http"
 )
@@ -58,6 +59,7 @@ func handleSaveRouteAssignment(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(http.StatusOK)
     json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
+
 func importMileageHandler(w http.ResponseWriter, r *http.Request) {
     user := getUserFromSession(r)
     if user == nil || user.Role != "manager" {
@@ -185,4 +187,18 @@ func insertMileageRecord(record MileageRecord) error {
         record.TotalMiles,
     )
     return err
+}
+
+// MileageRecord represents a row from the Excel file
+type MileageRecord struct {
+    ReportMonth    string
+    ReportYear     int
+    BusYear        int
+    BusMake        string
+    LicensePlate   string
+    BusID          string
+    LocatedAt      string
+    BeginningMiles int
+    EndingMiles    int
+    TotalMiles     int
 }
