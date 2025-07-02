@@ -304,7 +304,7 @@ func runMigrations() error {
         }
     }
     
-// Create indexes - with existence checks
+    // Create indexes - with existence checks
     indexes := []struct {
         name  string
         query string
@@ -317,11 +317,11 @@ func runMigrations() error {
         {"idx_route_assignments_driver", "CREATE INDEX IF NOT EXISTS idx_route_assignments_driver ON route_assignments(driver)"},
         {"idx_users_role", "CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)"},
         {"idx_users_status", "CREATE INDEX IF NOT EXISTS idx_users_status ON users(status)"},
-	{"idx_mileage_report_date ON monthly_mileage_reports(report_year, report_month)"};
-	{"idx_mileage_bus_id ON monthly_mileage_reports(bus_id)"};
-	{"idx_ecse_report_date ON ecse_transportation_reports(report_year, report_month)"};
-	{"idx_ecse_district ON ecse_transportation_reports(school_district)"};
-	{"idx_ecse_driver ON ecse_transportation_reports(driver_name)"};    
+        {"idx_mileage_report_date", "CREATE INDEX IF NOT EXISTS idx_mileage_report_date ON monthly_mileage_reports(report_year, report_month)"},
+        {"idx_mileage_bus_id", "CREATE INDEX IF NOT EXISTS idx_mileage_bus_id ON monthly_mileage_reports(bus_id)"},
+        {"idx_ecse_report_date", "CREATE INDEX IF NOT EXISTS idx_ecse_report_date ON ecse_transportation_reports(report_year, report_month)"},
+        {"idx_ecse_district", "CREATE INDEX IF NOT EXISTS idx_ecse_district ON ecse_transportation_reports(school_district)"},
+        {"idx_ecse_driver", "CREATE INDEX IF NOT EXISTS idx_ecse_driver ON ecse_transportation_reports(driver_name)"},
     }
     
     for _, idx := range indexes {
