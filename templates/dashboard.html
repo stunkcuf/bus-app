@@ -3,345 +3,423 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Bus Management System</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Dashboard - Fleet Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --grad-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --grad-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --grad-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --grad-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --grad-danger: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        
+        .navbar {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            color: #495057 !important;
+        }
+        
+        .nav-link {
+            color: #6c757d !important;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            color: #667eea !important;
+        }
+        
+        .nav-link.active {
+            color: #667eea !important;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .metric-card {
+            border: none;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+        
+        .metric-icon {
+            font-size: 3rem;
+            opacity: 0.9;
+        }
+        
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.8;
+        }
+        
+        .bg-gradient-primary { background: var(--grad-primary); }
+        .bg-gradient-success { background: var(--grad-success); }
+        .bg-gradient-info { background: var(--grad-info); }
+        .bg-gradient-warning { background: var(--grad-warning); }
+        
+        .quick-action-card {
+            border: 2px dashed #dee2e6;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            padding: 2rem;
+            text-align: center;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        
+        .quick-action-card:hover {
+            border-color: #667eea;
+            background-color: rgba(102, 126, 234, 0.05);
+            transform: translateY(-3px);
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .enhanced-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .enhanced-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+        
+        .pending-notification {
+            background: var(--grad-warning);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .pending-notification .btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .pending-notification .btn:hover {
+            background: rgba(255,255,255,0.3);
+            color: white;
+        }
+        
+        .role-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .role-manager { background: var(--grad-primary); color: white; }
+        .role-driver { background: var(--grad-success); color: white; }
+    </style>
 </head>
-<body class="bg-gray-100">
+<body>
     <!-- Navigation -->
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex justify-between h-16">
-                <div class="flex">
-                    <div class="flex-shrink-0 flex items-center">
-                        <h1 class="text-xl font-bold text-gray-800">Bus Management System</h1>
-                    </div>
-                    <div class="hidden md:ml-6 md:flex md:space-x-8">
-                        <a href="/dashboard" class="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Dashboard
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="bi bi-bus-front-fill me-2"></i>Fleet Management System
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/dashboard">
+                            <i class="bi bi-speedometer2 me-1"></i>Dashboard
                         </a>
-                        <a href="/fleet" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Fleet
+                    </li>
+                    {{if eq .Role "manager"}}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/fleet">
+                            <i class="bi bi-bus-front me-1"></i>Fleet
                         </a>
-                        <a href="/routes" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Routes
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/assign-routes">
+                            <i class="bi bi-map me-1"></i>Routes
                         </a>
-                        <a href="/students" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Students
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/company-fleet">
+                            <i class="bi bi-truck me-1"></i>Company Fleet
                         </a>
-                        <a href="/activities" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Activities
+                    </li>
+                    {{else}}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/students">
+                            <i class="bi bi-people me-1"></i>Students
                         </a>
-                        <a href="/reports" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Reports
+                    </li>
+                    {{end}}
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-1"></i>{{.User.Username}}
                         </a>
-                        <a href="/managers" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium" id="managersLink" style="display: none;">
-                            Management
-                        </a>
-                    </div>
-                </div>
-                <div class="flex items-center">
-                    <span class="text-sm text-gray-700 mr-4" id="userInfo"></span>
-                    <a href="/api/logout" class="text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </div>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><h6 class="dropdown-header">{{.Role}}</h6></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout">
+                                <i class="bi bi-box-arrow-right me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div class="px-4 py-6 sm:px-0">
-            <h1 class="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
-            
-            <!-- Manager Dashboard -->
-            <div id="managerDashboard" style="display: none;">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <!-- Total Drivers -->
-                    <div class="bg-white overflow-hidden shadow rounded-lg">
-                        <div class="p-5">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 bg-indigo-500 rounded-md p-3">
-                                    <i class="fas fa-users text-white"></i>
-                                </div>
-                                <div class="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt class="text-sm font-medium text-gray-500 truncate">Total Drivers</dt>
-                                        <dd class="text-lg font-semibold text-gray-900" id="totalDrivers">0</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Total Buses -->
-                    <div class="bg-white overflow-hidden shadow rounded-lg">
-                        <div class="p-5">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
-                                    <i class="fas fa-bus text-white"></i>
-                                </div>
-                                <div class="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt class="text-sm font-medium text-gray-500 truncate">Total Buses</dt>
-                                        <dd class="text-lg font-semibold text-gray-900" id="totalBuses">0</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Total Routes -->
-                    <div class="bg-white overflow-hidden shadow rounded-lg">
-                        <div class="p-5">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
-                                    <i class="fas fa-route text-white"></i>
-                                </div>
-                                <div class="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt class="text-sm font-medium text-gray-500 truncate">Total Routes</dt>
-                                        <dd class="text-lg font-semibold text-gray-900" id="totalRoutes">0</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Pending Registrations -->
-                    <div class="bg-white overflow-hidden shadow rounded-lg">
-                        <div class="p-5">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3">
-                                    <i class="fas fa-user-clock text-white"></i>
-                                </div>
-                                <div class="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt class="text-sm font-medium text-gray-500 truncate">Pending Registrations</dt>
-                                        <dd class="text-lg font-semibold text-gray-900" id="pendingRegistrations">0</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-white shadow rounded-lg p-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <a href="/managers" class="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                            <i class="fas fa-user-check text-2xl text-indigo-600 mb-2"></i>
-                            <p class="text-sm text-gray-900">Manage Users</p>
-                        </a>
-                        <a href="/fleet" class="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                            <i class="fas fa-bus text-2xl text-green-600 mb-2"></i>
-                            <p class="text-sm text-gray-900">Manage Fleet</p>
-                        </a>
-                        <a href="/routes" class="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                            <i class="fas fa-route text-2xl text-blue-600 mb-2"></i>
-                            <p class="text-sm text-gray-900">Manage Routes</p>
-                        </a>
-                        <a href="/reports" class="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                            <i class="fas fa-chart-bar text-2xl text-purple-600 mb-2"></i>
-                            <p class="text-sm text-gray-900">View Reports</p>
-                        </a>
+    <div class="container-fluid py-4">
+        {{if eq .Role "manager"}}
+        <!-- Manager Dashboard -->
+        <h1 class="h3 mb-4">Manager Dashboard</h1>
+        
+        <!-- Pending Users Notification -->
+        {{if gt .PendingUsers 0}}
+        <div class="pending-notification">
+            <div>
+                <i class="bi bi-exclamation-circle me-2"></i>
+                <strong>{{.PendingUsers}} pending user registration{{if gt .PendingUsers 1}}s{{end}}</strong> awaiting approval
+            </div>
+            <a href="/approve-users" class="btn btn-sm">
+                <i class="bi bi-person-check me-1"></i>Review Now
+            </a>
+        </div>
+        {{end}}
+        
+        <!-- Manager Metrics -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="card metric-card bg-gradient-primary text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-people-fill metric-icon"></i>
+                        <div class="metric-value">{{len .Users}}</div>
+                        <div class="metric-label">Total Users</div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Driver Dashboard -->
-            <div id="driverDashboard" style="display: none;">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <!-- My Routes -->
-                    <div class="bg-white overflow-hidden shadow rounded-lg">
-                        <div class="p-5">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 bg-indigo-500 rounded-md p-3">
-                                    <i class="fas fa-route text-white"></i>
-                                </div>
-                                <div class="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt class="text-sm font-medium text-gray-500 truncate">My Routes</dt>
-                                        <dd class="text-lg font-semibold text-gray-900" id="myRoutesCount">0</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- My Students -->
-                    <div class="bg-white overflow-hidden shadow rounded-lg">
-                        <div class="p-5">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
-                                    <i class="fas fa-user-graduate text-white"></i>
-                                </div>
-                                <div class="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt class="text-sm font-medium text-gray-500 truncate">My Students</dt>
-                                        <dd class="text-lg font-semibold text-gray-900" id="myStudentsCount">0</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Today's Status -->
-                    <div class="bg-white overflow-hidden shadow rounded-lg">
-                        <div class="p-5">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
-                                    <i class="fas fa-calendar-day text-white"></i>
-                                </div>
-                                <div class="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt class="text-sm font-medium text-gray-500 truncate">Today's Logs</dt>
-                                        <dd class="text-lg font-semibold text-gray-900" id="todaysLogsCount">0</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card metric-card bg-gradient-success text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-bus-front-fill metric-icon"></i>
+                        <div class="metric-value">{{len .Buses}}</div>
+                        <div class="metric-label">Total Buses</div>
                     </div>
                 </div>
-                
-                <!-- My Routes Table -->
-                <div class="bg-white shadow rounded-lg p-6 mb-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4">My Assigned Routes</h2>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Route ID</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Route Name</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bus ID</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Date</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200" id="myRoutesTable">
-                                <!-- Routes will be loaded here -->
-                            </tbody>
-                        </table>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card metric-card bg-gradient-info text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-map-fill metric-icon"></i>
+                        <div class="metric-value">{{len .Routes}}</div>
+                        <div class="metric-label">Total Routes</div>
                     </div>
                 </div>
-                
-                <div class="bg-white shadow rounded-lg p-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <a href="/students" class="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                            <i class="fas fa-user-graduate text-2xl text-indigo-600 mb-2"></i>
-                            <p class="text-sm text-gray-900">My Students</p>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card metric-card bg-gradient-warning text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-person-check-fill metric-icon"></i>
+                        <div class="metric-value" id="activeDrivers">0</div>
+                        <div class="metric-label">Active Drivers</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Manager Quick Actions -->
+        <div class="enhanced-card">
+            <div class="card-body">
+                <h5 class="card-title mb-4">
+                    <i class="bi bi-lightning-fill me-2"></i>Quick Actions
+                </h5>
+                <div class="row g-3">
+                    <div class="col-lg-3 col-md-6">
+                        <a href="/new-user" class="quick-action-card">
+                            <i class="bi bi-person-plus fs-2 text-primary d-block mb-3"></i>
+                            <h6 class="fw-semibold">Add User</h6>
+                            <small class="text-muted">Create new driver or manager</small>
                         </a>
-                        <a href="/activities" class="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                            <i class="fas fa-clipboard-list text-2xl text-green-600 mb-2"></i>
-                            <p class="text-sm text-gray-900">Log Activity</p>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <a href="/fleet" class="quick-action-card">
+                            <i class="bi bi-bus-front fs-2 text-success d-block mb-3"></i>
+                            <h6 class="fw-semibold">Manage Fleet</h6>
+                            <small class="text-muted">View and maintain buses</small>
                         </a>
-                        <a href="/routes" class="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                            <i class="fas fa-map text-2xl text-blue-600 mb-2"></i>
-                            <p class="text-sm text-gray-900">View Routes</p>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <a href="/assign-routes" class="quick-action-card">
+                            <i class="bi bi-map fs-2 text-info d-block mb-3"></i>
+                            <h6 class="fw-semibold">Assign Routes</h6>
+                            <small class="text-muted">Manage driver assignments</small>
                         </a>
-                        <a href="/fleet" class="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                            <i class="fas fa-bus text-2xl text-purple-600 mb-2"></i>
-                            <p class="text-sm text-gray-900">Fleet Status</p>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <a href="/company-fleet" class="quick-action-card">
+                            <i class="bi bi-truck fs-2 text-warning d-block mb-3"></i>
+                            <h6 class="fw-semibold">Company Fleet</h6>
+                            <small class="text-muted">All company vehicles</small>
                         </a>
                     </div>
                 </div>
             </div>
         </div>
+        
+        {{else}}
+        <!-- Driver Dashboard -->
+        <h1 class="h3 mb-4">Driver Dashboard</h1>
+        
+        <!-- Driver Metrics -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="card metric-card bg-gradient-primary text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-map metric-icon"></i>
+                        <div class="metric-value">0</div>
+                        <div class="metric-label">My Routes</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card metric-card bg-gradient-success text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-people-fill metric-icon"></i>
+                        <div class="metric-value">0</div>
+                        <div class="metric-label">My Students</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card metric-card bg-gradient-info text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-calendar-check metric-icon"></i>
+                        <div class="metric-value">0</div>
+                        <div class="metric-label">Today's Trips</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card metric-card bg-gradient-warning text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-bus-front metric-icon"></i>
+                        <div class="metric-value">--</div>
+                        <div class="metric-label">My Bus</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Driver Quick Actions -->
+        <div class="enhanced-card">
+            <div class="card-body">
+                <h5 class="card-title mb-4">
+                    <i class="bi bi-lightning-fill me-2"></i>Quick Actions
+                </h5>
+                <div class="row g-3">
+                    <div class="col-lg-3 col-md-6">
+                        <a href="/driver-dashboard" class="quick-action-card">
+                            <i class="bi bi-clipboard-check fs-2 text-primary d-block mb-3"></i>
+                            <h6 class="fw-semibold">Log Route</h6>
+                            <small class="text-muted">Record daily trips</small>
+                        </a>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <a href="/students" class="quick-action-card">
+                            <i class="bi bi-people fs-2 text-success d-block mb-3"></i>
+                            <h6 class="fw-semibold">My Students</h6>
+                            <small class="text-muted">Manage student roster</small>
+                        </a>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <a href="/driver-dashboard?period=morning" class="quick-action-card">
+                            <i class="bi bi-sunrise fs-2 text-info d-block mb-3"></i>
+                            <h6 class="fw-semibold">Morning Route</h6>
+                            <small class="text-muted">AM attendance</small>
+                        </a>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <a href="/driver-dashboard?period=afternoon" class="quick-action-card">
+                            <i class="bi bi-sunset fs-2 text-warning d-block mb-3"></i>
+                            <h6 class="fw-semibold">Afternoon Route</h6>
+                            <small class="text-muted">PM attendance</small>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{end}}
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Get user role from server
-        let userRole = '';
-        let username = '';
-        
-        // Load dashboard data
-        async function loadDashboardData() {
-            try {
-                const response = await fetch('/api/dashboard');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch dashboard data');
-                }
-                
-                const data = await response.json();
-                
-                // Get user info from cookie or session
-                const cookies = document.cookie.split(';');
-                
-                // For this example, we'll need to get user info from the server
-                // In a real app, you might pass this from the server
-                
-                // Show appropriate dashboard
-                if (data.totalDrivers !== undefined) {
-                    // Manager dashboard
-                    userRole = 'manager';
-                    showManagerDashboard(data);
-                } else if (data.myRoutes !== undefined) {
-                    // Driver dashboard
-                    userRole = 'driver';
-                    showDriverDashboard(data);
-                }
-                
-                // Update UI based on role
-                updateUIForRole();
-                
-            } catch (error) {
-                console.error('Error loading dashboard data:', error);
-            }
-        }
-        
-        function showManagerDashboard(data) {
-            document.getElementById('managerDashboard').style.display = 'block';
-            document.getElementById('driverDashboard').style.display = 'none';
+        document.addEventListener('DOMContentLoaded', function() {
+            {{if eq .Role "manager"}}
+            // Calculate active drivers for manager dashboard
+            const users = [
+                {{range .Users}}
+                {role: "{{.Role}}"},
+                {{end}}
+            ];
             
-            // Update stats
-            document.getElementById('totalDrivers').textContent = data.totalDrivers || 0;
-            document.getElementById('totalBuses').textContent = data.totalBuses || 0;
-            document.getElementById('totalRoutes').textContent = data.totalRoutes || 0;
-            document.getElementById('pendingRegistrations').textContent = data.pendingRegistrations || 0;
-        }
-        
-        function showDriverDashboard(data) {
-            document.getElementById('driverDashboard').style.display = 'block';
-            document.getElementById('managerDashboard').style.display = 'none';
+            const activeDrivers = users.filter(u => u.role === 'driver').length;
+            document.getElementById('activeDrivers').textContent = activeDrivers;
+            {{end}}
             
-            // Update stats
-            document.getElementById('myRoutesCount').textContent = data.myRoutes ? data.myRoutes.length : 0;
-            document.getElementById('myStudentsCount').textContent = data.myStudentsCount || 0;
-            document.getElementById('todaysLogsCount').textContent = data.todaysLogs ? data.todaysLogs.length : 0;
-            
-            // Populate routes table
-            const tbody = document.getElementById('myRoutesTable');
-            tbody.innerHTML = '';
-            
-            if (data.myRoutes && data.myRoutes.length > 0) {
-                data.myRoutes.forEach(route => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${route.route_id}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${route.route_name || '-'}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${route.bus_id}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(route.assigned_date).toLocaleDateString()}</td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            } else {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500 py-4">No routes assigned</td></tr>';
-            }
-        }
-        
-        function updateUIForRole() {
-            // Update user info display
-            document.getElementById('userInfo').textContent = userRole.charAt(0).toUpperCase() + userRole.slice(1);
-            
-            // Show/hide management link for managers
-            if (userRole === 'manager') {
-                document.getElementById('managersLink').style.display = 'block';
-            }
-        }
-        
-        // Load dashboard data on page load
-        document.addEventListener('DOMContentLoaded', loadDashboardData);
+            // Add animation to cards
+            const cards = document.querySelectorAll('.metric-card, .enhanced-card');
+            cards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+                    card.style.transition = 'all 0.5s ease';
+                    setTimeout(() => {
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, 100);
+                }, index * 100);
+            });
+        });
     </script>
 </body>
 </html>
