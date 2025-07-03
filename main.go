@@ -731,7 +731,6 @@ func processMileageExcelFile(file multipart.File, filename string) (int, error) 
         
         // Look for different sections in the sheet
         var currentSection string
-        var headerRowIndex int
         var dataStarted bool
         
         for i, row := range rows {
@@ -770,7 +769,6 @@ func processMileageExcelFile(file multipart.File, filename string) (int, error) 
             }
             
             if hasBeginning && hasEnding {
-                headerRowIndex = i
                 dataStarted = true
                 log.Printf("Found header row at index %d", i)
                 continue
@@ -799,6 +797,191 @@ func processMileageExcelFile(file multipart.File, filename string) (int, error) 
     }
     
     return insertMileageRecords(allRecords)
+}
+
+func parseMileageRow(row []string, sheetName string, section string) *MileageRecord {
+    // Skip rows that don't have enough columns
+    if len(row) < 8 {
+        return nil
+    }
+    
+    // Try to identify the structure based on content
+    // Common patterns:
+    // Pattern 1: Year, Make/Model, License, Bus#, Location, Miles columns...
+    // Pattern 2: Bus info in first columns, mileage data in later columns
+    
+    var record MileageRecord
+    record.ReportMonth = sheetName
+    record.ReportYear = 2024 // Default, adjust as needed
+    
+    // Try to find bus ID (might be labeled as "Bus #", "Unit", etc.)
+    busID := ""
+    var beginIdx, endIdx int = -1, -1
+    
+    // First pass - identify column positions
+    for idx, cell := range row {
+        cellTrimmed := strings.TrimSpace(cell)
+        
+        // Look for bus identifier
+        if busID == "" && cellTrimmed != "" && cellTrimmed != "#REF!" {
+            // Check if this looks like a bus number
+            if strings.Contains(strings.ToUpper(cellTrimmed), "BUS") {
+                busID = cellTrimmed
+            } else if idx >= 3 && idx <= 5 { // Common position for bus ID
+                // Could be just a number
+                if _, err := strconv.Atoi(cellTrimmed); err == nil {
+                    busID = cellTrimmed
+                }
+            }
+        }
+        
+        // Look for mileage columns (usually towards the end)
+        if idx >= len(row)-6 { // Last 6 columns likely contain mileage
+            if val := parseInt(cellTrimmed); val > 1000 && val < 999999 { // Reasonable mileage range
+                if beginIdx == -1 {
+                    beginIdx = idx
+                    record.BeginningMiles = val
+                } else if endIdx == -1 && idx > beginIdx {
+                    endIdx = idx
+                    record.EndingMiles = val
+                }
+            }
+        }
+    }
+    
+    // If we didn't find bus ID in expected places, try other positions
+    if busID == "" {
+        // Sometimes bus info is in column 4 or 5
+        for i := 3; i < min(6, len(row)); i++ {
+            cell := strings.TrimSpace(row[i])
+            if cell != "" && cell != "#REF!" {
+                busID = cell
+                break
+            }
+        }
+    }
+    
+    if busID == "" {
+        return nil
+    }
+    
+    // Clean up and standardize bus ID
+    busID = strings.TrimSpace(busID)
+    if !strings.HasPrefix(strings.ToUpper(busID), "BUS") {
+        busID = "BUS" + busID
+    }
+    busID = abbreviateBusID(busID)
+    record.BusID = busID
+    
+    // Parse other fields
+    if len(row) > 0 {
+        // Try to extract year from first column
+        if year := parseInt(row[0]); year > 1900 && year < 2030 {
+            record.BusYear = year
+        }
+    }
+    
+    if len(row) > 1 {
+        record.BusMake = strings.TrimSpace(row[1])
+    }
+    
+    if len(row) > 2 {
+        record.LicensePlate = strings.TrimSpace(row[2])
+    }
+    
+    // Location - try multiple positions
+    for i := 4; i < min(7, len(row)); i++ {
+        loc := strings.TrimSpace(row[i])
+        if loc != "" && loc != "#REF!" && !strings.Contains(loc, "BUS") {
+            record.LocatedAt = loc
+            break
+        }
+    }
+    
+    // If we couldn't find mileage in the standard way, try a different approach
+    if record.BeginningMiles == 0 && record.EndingMiles == 0 {
+        // Sometimes mileage is in specific column positions
+        // Try columns 7-12 for mileage data
+        for i := 7; i < min(len(row), 13); i++ {
+            val := parseInt(row[i])
+            if val > 1000 && val < 999999 {
+                if record.BeginningMiles == 0 {
+                    record.BeginningMiles = val
+                } else if record.EndingMiles == 0 && val != record.BeginningMiles {
+                    record.EndingMiles = val
+                    break
+                }
+            }
+        }
+    }
+    
+    // Calculate total miles if we have both values
+    if record.BeginningMiles > 0 && record.EndingMiles > record.BeginningMiles {
+        record.TotalMiles = record.EndingMiles - record.BeginningMiles
+    }
+    
+    // Add section type to location if not already present
+    if section != "" && record.LocatedAt != "" {
+        switch section {
+        case "school_bus":
+            if !strings.Contains(strings.ToLower(record.LocatedAt), "school") {
+                record.LocatedAt = "School Bus - " + record.LocatedAt
+            }
+        case "agency_vehicle":
+            if !strings.Contains(strings.ToLower(record.LocatedAt), "agency") {
+                record.LocatedAt = "Agency - " + record.LocatedAt
+            }
+        case "program":
+            if !strings.Contains(strings.ToLower(record.LocatedAt), "program") {
+                record.LocatedAt = "Program - " + record.LocatedAt
+            }
+        }
+    }
+    
+    log.Printf("DEBUG: Parsed row - BusID: %s, Begin: %d, End: %d, Total: %d", 
+        record.BusID, record.BeginningMiles, record.EndingMiles, record.TotalMiles)
+    
+    return &record
+}
+
+func min(a, b int) int {
+    if a < b {
+        return a
+    }
+    return b
+}
+
+// Add this debug function to help understand the Excel structure
+func debugExcelStructure(file multipart.File, filename string) error {
+    f, err := excelize.OpenReader(file)
+    if err != nil {
+        return fmt.Errorf("failed to open Excel file: %v", err)
+    }
+    defer f.Close()
+    
+    sheets := f.GetSheetList()
+    log.Printf("\n=== EXCEL STRUCTURE DEBUG ===")
+    log.Printf("File: %s", filename)
+    log.Printf("Sheets: %v", sheets)
+    
+    for _, sheetName := range sheets {
+        log.Printf("\n--- Sheet: %s ---", sheetName)
+        
+        rows, err := f.GetRows(sheetName)
+        if err != nil {
+            log.Printf("Error reading sheet: %v", err)
+            continue
+        }
+        
+        // Print first 20 rows to understand structure
+        for i := 0; i < min(20, len(rows)); i++ {
+            if len(rows[i]) > 0 {
+                log.Printf("Row %d (%d cols): %v", i+1, len(rows[i]), rows[i])
+            }
+        }
+    }
+    
+    return nil
 }
 
 func parseMileageRow(row []string, sheetName string, section string) *MileageRecord {
