@@ -176,7 +176,7 @@ func setupRoutes() *http.ServeMux {
 
 	// Manager-only routes
 	setupManagerRoutes(mux)
-	
+
 	// Driver routes
 	setupDriverRoutes(mux)
 	
@@ -223,6 +223,7 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	
 	// In setupManagerRoutes function, add:
 	mux.HandleFunc("/import-mileage", withRecovery(requireAuth(requireRole("manager")(importMileageHandler))))
+	mux.HandleFunc("/view-mileage-reports", withRecovery(requireAuth(requireRole("manager")(viewMileageReportsHandler))))
 	
 	// Driver profile
 	mux.HandleFunc("/driver/", withRecovery(requireAuth(requireRole("manager")(driverProfileHandler))))
@@ -295,6 +296,134 @@ func handleLoginPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	renderLoginError(w, "Invalid username or password")
+}
+// ============= MILEAGE REPORTS HANDLER =============
+func viewMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
+    user := getUserFromSession(r)
+    if user == nil || user.Role != "manager" {
+        http.Redirect(w, r, "/", http.StatusFound)
+        return
+    }
+    
+    // Get query parameters for filtering
+    month := r.URL.Query().Get("month")
+    year := r.URL.Query().Get("year")
+    busID := r.URL.Query().Get("bus_id")
+    
+    // Load mileage reports from database
+    reports, err := getMileageReports(month, year, busID)
+    if err != nil {
+        log.Printf("Error loading mileage reports: %v", err)
+        reports = []MileageRecord{}
+    }
+    
+    // Get summary statistics
+    stats := getMileageStats(reports)
+    
+    data := struct {
+        User      *User
+        Reports   []MileageRecord
+        Stats     MileageStats
+        CSRFToken string
+        // Filter values
+        FilterMonth string
+        FilterYear  string
+        FilterBusID string
+    }{
+        User:        user,
+        Reports:     reports,
+        Stats:       stats,
+        CSRFToken:   getCSRFToken(r),
+        FilterMonth: month,
+        FilterYear:  year,
+        FilterBusID: busID,
+    }
+    
+    renderTemplate(w, "view_mileage_reports.html", data)
+}
+
+// Add these helper functions
+type MileageStats struct {
+    TotalRecords   int
+    TotalMiles     int
+    AverageMiles   float64
+    UniqueBuses    int
+}
+
+func getMileageReports(month, year, busID string) ([]MileageRecord, error) {
+    query := `
+        SELECT report_month, report_year, bus_year, bus_make, 
+               license_plate, bus_id, located_at, 
+               beginning_miles, ending_miles, total_miles
+        FROM monthly_mileage_reports
+        WHERE 1=1
+    `
+    args := []interface{}{}
+    argCount := 0
+    
+    if month != "" {
+        argCount++
+        query += fmt.Sprintf(" AND report_month = $%d", argCount)
+        args = append(args, month)
+    }
+    
+    if year != "" {
+        argCount++
+        query += fmt.Sprintf(" AND report_year = $%d", argCount)
+        args = append(args, year)
+    }
+    
+    if busID != "" {
+        argCount++
+        query += fmt.Sprintf(" AND bus_id = $%d", argCount)
+        args = append(args, busID)
+    }
+    
+    query += " ORDER BY report_year DESC, report_month, bus_id"
+    
+    rows, err := db.Query(query, args...)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+    
+    var reports []MileageRecord
+    for rows.Next() {
+        var r MileageRecord
+        err := rows.Scan(&r.ReportMonth, &r.ReportYear, &r.BusYear, 
+                        &r.BusMake, &r.LicensePlate, &r.BusID, 
+                        &r.LocatedAt, &r.BeginningMiles, 
+                        &r.EndingMiles, &r.TotalMiles)
+        if err != nil {
+            log.Printf("Error scanning mileage record: %v", err)
+            continue
+        }
+        reports = append(reports, r)
+    }
+    
+    return reports, nil
+}
+
+func getMileageStats(reports []MileageRecord) MileageStats {
+    stats := MileageStats{
+        TotalRecords: len(reports),
+    }
+    
+    busMap := make(map[string]bool)
+    totalMiles := 0
+    
+    for _, r := range reports {
+        totalMiles += r.TotalMiles
+        busMap[r.BusID] = true
+    }
+    
+    stats.TotalMiles = totalMiles
+    stats.UniqueBuses = len(busMap)
+    if stats.TotalRecords > 0 {
+        stats.AverageMiles = float64(totalMiles) / float64(stats.TotalRecords)
+    }
+    
+    return stats
 }
 
 func registerHandler(w http.ResponseWriter, r *http.Request) {
