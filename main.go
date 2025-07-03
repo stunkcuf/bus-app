@@ -483,7 +483,25 @@ func importMileageHandler(w http.ResponseWriter, r *http.Request) {
         log.Printf("File Size: %+v", header.Size)
         log.Printf("MIME Header: %+v", header.Header)
         
-        // For now, just show success
+        // Process the Excel file
+        importedCount, err := processMileageExcelFile(file, header.Filename)
+        if err != nil {
+            log.Printf("Error processing Excel file: %v", err)
+            data := struct {
+                User      *User
+                CSRFToken string
+                Error     string
+                Success   string
+            }{
+                User:      user,
+                CSRFToken: getCSRFToken(r),
+                Error:     fmt.Sprintf("Failed to import file: %v", err),
+            }
+            renderTemplate(w, "import_mileage.html", data)
+            return
+        }
+        
+        // Success!
         data := struct {
             User      *User
             CSRFToken string
@@ -492,13 +510,12 @@ func importMileageHandler(w http.ResponseWriter, r *http.Request) {
         }{
             User:      user,
             CSRFToken: getCSRFToken(r),
-            Success:   fmt.Sprintf("File '%s' uploaded successfully! Import functionality coming soon.", header.Filename),
+            Success:   fmt.Sprintf("Successfully imported %d mileage records from '%s'!", importedCount, header.Filename),
         }
         
         renderTemplate(w, "import_mileage.html", data)
     }
 }
-
 // ============= USER MANAGEMENT HANDLERS =============
 
 func newUserHandler(w http.ResponseWriter, r *http.Request) {
