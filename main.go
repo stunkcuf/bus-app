@@ -99,6 +99,43 @@ func getLength(v interface{}) int {
 	}
 }
 
+// ADD THIS FUNCTION TO FIX THE BUSID LENGTH ISSUE
+func abbreviateBusID(busID string) string {
+	// Define abbreviations for known long BusIDs
+	abbreviations := map[string]string{
+		"BUSLA GRANDE":          "BUSLG",
+		"BUSMAIN OFFICE":        "BUSMAIN",
+		"BUSUMATILLA":          "BUSUMAT",
+		"BUSMILTON FREEWATER":   "BUSMF",
+		"BUSVICTORY SQ":        "BUSVS", 
+		"BUSENTERPRISE":        "BUSENT",
+		"BUSWIC HERMISTON":     "BUSWH",
+		"BUSBOARDMAN":          "BUSBOARD",
+		"BUSPINE TREE":         "BUSPT",
+		"BUSSLATED FOR MILTON": "BUSSFM",
+		"BUSVICTORY 1":         "BUSV1",
+		"BUSVICTORY 2":         "BUSV2",
+		"BUSsub for victory 2": "BUSSUBV2",
+		"BUSROCKY HTS.":        "BUSRH",
+		"BUSPENDLETON":         "BUSPEND",
+		"BUSMO/ JOHN DAY":      "BUSMJD",
+		"BUSAWOC-2":            "BUSAWOC2",
+	}
+	
+	// Check if we have a predefined abbreviation
+	if shortened, exists := abbreviations[busID]; exists {
+		return shortened
+	}
+	
+	// If still too long and not in our map, truncate to 10 chars
+	if len(busID) > 10 {
+		log.Printf("Warning: Truncating BusID '%s' to '%s'", busID, busID[:10])
+		return busID[:10]
+	}
+	
+	return busID
+}
+
 func main() {
 	// Database setup
 	log.Println("🗄️  Setting up PostgreSQL database...")
@@ -627,13 +664,21 @@ func processMileageExcelFile(file multipart.File, filename string) (int, error) 
                     
                     // For mileage data, we'll use default values since this sheet doesn't have mileage
                     if busID != "" && busID != "#REF!" {
+                        // Ensure BUS prefix
+                        if !strings.HasPrefix(busID, "BUS") {
+                            busID = fmt.Sprintf("BUS%s", busID)
+                        }
+                        
+                        // FIX LONG BUS IDS HERE!
+                        busID = abbreviateBusID(busID)
+                        
                         record := MileageRecord{
                             ReportMonth:    sheetName, // Use sheet name as month
                             ReportYear:     2024,      // Default year - adjust as needed
                             BusYear:        year,
                             BusMake:        make,
                             LicensePlate:   license,
-                            BusID:          fmt.Sprintf("BUS%s", busID), // Ensure BUS prefix
+                            BusID:          busID,
                             LocatedAt:      location,
                             BeginningMiles: 0, // Will need to be updated manually
                             EndingMiles:    0, // Will need to be updated manually
@@ -667,13 +712,23 @@ func processMileageExcelFile(file multipart.File, filename string) (int, error) 
                 for i := 1; i < len(rows); i++ {
                     row := rows[i]
                     if len(row) >= 10 {
+                        busID := strings.TrimSpace(row[5])
+                        
+                        // Ensure BUS prefix
+                        if !strings.HasPrefix(busID, "BUS") {
+                            busID = fmt.Sprintf("BUS%s", busID)
+                        }
+                        
+                        // FIX LONG BUS IDS HERE!
+                        busID = abbreviateBusID(busID)
+                        
                         record := MileageRecord{
                             ReportMonth:    strings.TrimSpace(row[0]),
                             ReportYear:     parseInt(row[1]),
                             BusYear:        parseInt(row[2]),
                             BusMake:        strings.TrimSpace(row[3]),
                             LicensePlate:   strings.TrimSpace(row[4]),
-                            BusID:          strings.TrimSpace(row[5]),
+                            BusID:          busID,
                             LocatedAt:      strings.TrimSpace(row[6]),
                             BeginningMiles: parseInt(row[7]),
                             EndingMiles:    parseInt(row[8]),
@@ -681,10 +736,6 @@ func processMileageExcelFile(file multipart.File, filename string) (int, error) 
                         }
                         
                         if record.ReportMonth != "" && record.BusID != "" {
-                            // Ensure BUS prefix
-                            if !strings.HasPrefix(record.BusID, "BUS") {
-                                record.BusID = fmt.Sprintf("BUS%s", record.BusID)
-                            }
                             allRecords = append(allRecords, record)
                         }
                     }
@@ -702,6 +753,7 @@ func processMileageExcelFile(file multipart.File, filename string) (int, error) 
     
     return insertMileageRecords(allRecords)
 }
+
 func parseInt(s string) int {
     val, _ := strconv.Atoi(strings.TrimSpace(s))
     return val
@@ -747,6 +799,7 @@ func insertMileageRecords(records []MileageRecord) (int, error) {
     
     return count, nil
 }
+
 // ============= USER MANAGEMENT HANDLERS =============
 
 func newUserHandler(w http.ResponseWriter, r *http.Request) {
