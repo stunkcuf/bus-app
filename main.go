@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"mime/multipart"
+	"github.com/xuri/excelize/v2"
 )
 
 // Constants for better maintainability
@@ -41,6 +43,20 @@ const (
 	// Minimum password length
 	MinPasswordLength = 6
 )
+
+// MileageRecord represents a row from the Excel file
+type MileageRecord struct {
+	ReportMonth    string
+	ReportYear     int
+	BusYear        int
+	BusMake        string
+	LicensePlate   string
+	BusID          string
+	LocatedAt      string
+	BeginningMiles int
+	EndingMiles    int
+	TotalMiles     int
+}
 
 // Templates variable
 var templates *template.Template
@@ -411,55 +427,6 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "driver_dashboard.html", data)
 }
 
-func processMileageExcelFile(file multipart.File, filename string) (int, error) {
-    f, err := excelize.OpenReader(file)
-    if err != nil {
-        return 0, err
-    }
-    defer f.Close()
-    
-    var records []MileageRecord
-    sheets := f.GetSheetList()
-    if len(sheets) == 0 {
-        return 0, fmt.Errorf("no sheets found")
-    }
-    
-    rows, err := f.GetRows(sheets[0])
-    if err != nil {
-        return 0, err
-    }
-    
-    for i, row := range rows {
-        if i == 0 || len(row) < 10 {
-            continue
-        }
-        
-        record := MileageRecord{
-            ReportMonth:    strings.TrimSpace(row[0]),
-            ReportYear:     parseInt(row[1]),
-            BusYear:        parseInt(row[2]),
-            BusMake:        strings.TrimSpace(row[3]),
-            LicensePlate:   strings.TrimSpace(row[4]),
-            BusID:          strings.TrimSpace(row[5]),
-            LocatedAt:      strings.TrimSpace(row[6]),
-            BeginningMiles: parseInt(row[7]),
-            EndingMiles:    parseInt(row[8]),
-            TotalMiles:     parseInt(row[9]),
-        }
-        
-        if record.ReportMonth != "" && record.ReportYear != 0 && record.BusID != "" {
-            records = append(records, record)
-        }
-    }
-    
-    return insertMileageRecords(records)
-}
-
-func parseInt(s string) int {
-    val, _ := strconv.Atoi(strings.TrimSpace(s))
-    return val
-}
-
 // ============= IMPORT MILEAGE HANDLER =============
 func importMileageHandler(w http.ResponseWriter, r *http.Request) {
     user := getUserFromSession(r)
@@ -565,6 +532,90 @@ func importMileageHandler(w http.ResponseWriter, r *http.Request) {
         renderTemplate(w, "import_mileage.html", data)
     }
 }
+
+func processMileageExcelFile(file multipart.File, filename string) (int, error) {
+    f, err := excelize.OpenReader(file)
+    if err != nil {
+        return 0, err
+    }
+    defer f.Close()
+    
+    var records []MileageRecord
+    sheets := f.GetSheetList()
+    if len(sheets) == 0 {
+        return 0, fmt.Errorf("no sheets found")
+    }
+    
+    rows, err := f.GetRows(sheets[0])
+    if err != nil {
+        return 0, err
+    }
+    
+    for i, row := range rows {
+        if i == 0 || len(row) < 10 {
+            continue
+        }
+        
+        record := MileageRecord{
+            ReportMonth:    strings.TrimSpace(row[0]),
+            ReportYear:     parseInt(row[1]),
+            BusYear:        parseInt(row[2]),
+            BusMake:        strings.TrimSpace(row[3]),
+            LicensePlate:   strings.TrimSpace(row[4]),
+            BusID:          strings.TrimSpace(row[5]),
+            LocatedAt:      strings.TrimSpace(row[6]),
+            BeginningMiles: parseInt(row[7]),
+            EndingMiles:    parseInt(row[8]),
+            TotalMiles:     parseInt(row[9]),
+        }
+        
+        if record.ReportMonth != "" && record.ReportYear != 0 && record.BusID != "" {
+            records = append(records, record)
+        }
+    }
+    
+    return insertMileageRecords(records)
+}
+
+func parseInt(s string) int {
+    val, _ := strconv.Atoi(strings.TrimSpace(s))
+    return val
+}
+
+func insertMileageRecords(records []MileageRecord) (int, error) {
+    if db == nil {
+        return 0, fmt.Errorf("database not initialized")
+    }
+    
+    count := 0
+    for _, record := range records {
+        _, err := db.Exec(`
+            INSERT INTO monthly_mileage_reports 
+            (report_month, report_year, bus_year, bus_make, license_plate, 
+             bus_id, located_at, beginning_miles, ending_miles, total_miles)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            ON CONFLICT (report_month, report_year, bus_id) 
+            DO UPDATE SET
+                bus_year = EXCLUDED.bus_year,
+                bus_make = EXCLUDED.bus_make,
+                license_plate = EXCLUDED.license_plate,
+                located_at = EXCLUDED.located_at,
+                beginning_miles = EXCLUDED.beginning_miles,
+                ending_miles = EXCLUDED.ending_miles,
+                total_miles = EXCLUDED.total_miles,
+                updated_at = CURRENT_TIMESTAMP
+        `, record.ReportMonth, record.ReportYear, record.BusYear, record.BusMake,
+           record.LicensePlate, record.BusID, record.LocatedAt, record.BeginningMiles,
+           record.EndingMiles, record.TotalMiles)
+        
+        if err == nil {
+            count++
+        }
+    }
+    
+    return count, nil
+}
+
 // ============= USER MANAGEMENT HANDLERS =============
 
 func newUserHandler(w http.ResponseWriter, r *http.Request) {
