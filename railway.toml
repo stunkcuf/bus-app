@@ -1,5 +1,10 @@
 [build]
 builder = "nixpacks"
+buildCommand = """
+mv import_mileage.go import_mileage.go.bak 2>/dev/null || true && \
+go mod tidy && \
+go build -o main .
+"""
 
 [deploy]
 startCommand = "./main"
