@@ -706,7 +706,6 @@ func processMileageExcelFile(file multipart.File, filename string) (int, error) 
     }
     defer f.Close()
     
-    // List all sheets
     sheets := f.GetSheetList()
     log.Printf("Excel file has %d sheets: %v", len(sheets), sheets)
     
@@ -716,15 +715,9 @@ func processMileageExcelFile(file multipart.File, filename string) (int, error) 
     
     var allRecords []MileageRecord
     
-    // Try to find the correct sheet with mileage data
-    // Based on the logs, it seems like "August" sheet has vehicle data
-    for sheetIndex, sheetName := range sheets {
-        log.Printf("\n=== Processing sheet %d: '%s' ===", sheetIndex+1, sheetName)
-        
-        // Skip sheets that don't look like month names
-        if sheetName == "Sheet1" || sheetName == "Sheet2" {
-            continue
-        }
+    // Process each sheet
+    for _, sheetName := range sheets {
+        log.Printf("\n=== Processing sheet: '%s' ===", sheetName)
         
         rows, err := f.GetRows(sheetName)
         if err != nil {
@@ -732,143 +725,68 @@ func processMileageExcelFile(file multipart.File, filename string) (int, error) 
             continue
         }
         
-        log.Printf("Sheet '%s' has %d rows", sheetName, len(rows))
-        
         if len(rows) == 0 {
-            log.Printf("Sheet '%s' is empty", sheetName)
             continue
         }
         
-        // Look for rows that contain vehicle data based on the logs
-        // The August sheet seems to have format: Year Make Model License BusID Location
-        for i, row := range rows {
-            if i < 10 { // Print first 10 rows for debugging
-                log.Printf("Row %d (%d cols): %v", i+1, len(row), row)
-            }
-            
-            // Skip empty rows
-            if len(row) < 3 {
-                continue
-            }
-            
-            // Try to parse vehicle data from rows
-            // Based on logs, format appears to be: [2013 FORD FOCUS-RED 778 LBD 8 IRRIGON #REF! #REF!]
-            if len(row) >= 6 {
-                // Check if first column looks like a year (4 digits)
-                yearStr := strings.TrimSpace(row[0])
-                if len(yearStr) == 4 && parseInt(yearStr) > 1900 && parseInt(yearStr) < 2030 {
-                    // Parse vehicle info
-                    year := parseInt(yearStr)
-                    
-                    // Extract make and model from the combined field
-                    makeModel := strings.TrimSpace(row[1])
-                    parts := strings.Fields(makeModel)
-                    make := ""
-                    if len(parts) > 0 {
-                        make = parts[0]
-                    }
-                    
-                    // License plate
-                    license := strings.TrimSpace(row[2])
-                    
-                    // Bus ID (might be in different positions)
-                    busID := ""
-                    if len(row) > 4 {
-                        // Try column 5 first
-                        busID = strings.TrimSpace(row[4])
-                        if busID == "" || busID == "#REF!" {
-                            // Try column 3
-                            busID = strings.TrimSpace(row[3])
-                        }
-                    }
-                    
-                    // Location
-                    location := ""
-                    if len(row) > 5 {
-                        location = strings.TrimSpace(row[5])
-                        if location == "#REF!" {
-                            location = ""
-                        }
-                    }
-                    
-                    // For mileage data, we'll use default values since this sheet doesn't have mileage
-                    if busID != "" && busID != "#REF!" {
-                        // Ensure BUS prefix
-                        if !strings.HasPrefix(busID, "BUS") {
-                            busID = fmt.Sprintf("BUS%s", busID)
-                        }
-                        
-                        // FIX LONG BUS IDS HERE!
-                        busID = abbreviateBusID(busID)
-                        
-                        record := MileageRecord{
-                            ReportMonth:    sheetName, // Use sheet name as month
-                            ReportYear:     2024,      // Default year - adjust as needed
-                            BusYear:        year,
-                            BusMake:        make,
-                            LicensePlate:   license,
-                            BusID:          busID,
-                            LocatedAt:      location,
-                            BeginningMiles: 0, // Will need to be updated manually
-                            EndingMiles:    0, // Will need to be updated manually
-                            TotalMiles:     0, // Will need to be updated manually
-                        }
-                        
-                        allRecords = append(allRecords, record)
-                        log.Printf("Parsed vehicle record: Bus=%s, Year=%d, Make=%s, Location=%s", 
-                            record.BusID, record.BusYear, record.BusMake, record.LocatedAt)
-                    }
-                }
-            }
-        }
-    }
-    
-    // If we still don't have records, try a more flexible approach
-    if len(allRecords) == 0 {
-        log.Printf("\n=== Trying flexible parsing approach ===")
+        // Look for different sections in the sheet
+        var currentSection string
+        var headerRowIndex int
+        var dataStarted bool
         
-        // Look for a sheet that might have the standard mileage format
-        for _, sheetName := range sheets {
-            rows, err := f.GetRows(sheetName)
-            if err != nil || len(rows) < 2 {
+        for i, row := range rows {
+            // Skip empty rows
+            if len(row) == 0 || (len(row) == 1 && strings.TrimSpace(row[0]) == "") {
                 continue
             }
             
-            // Check if this looks like a mileage report by examining headers
-            headerRow := rows[0]
-            if len(headerRow) >= 10 {
-                // Try standard format parsing
-                for i := 1; i < len(rows); i++ {
-                    row := rows[i]
-                    if len(row) >= 10 {
-                        busID := strings.TrimSpace(row[5])
-                        
-                        // Ensure BUS prefix
-                        if !strings.HasPrefix(busID, "BUS") {
-                            busID = fmt.Sprintf("BUS%s", busID)
-                        }
-                        
-                        // FIX LONG BUS IDS HERE!
-                        busID = abbreviateBusID(busID)
-                        
-                        record := MileageRecord{
-                            ReportMonth:    strings.TrimSpace(row[0]),
-                            ReportYear:     parseInt(row[1]),
-                            BusYear:        parseInt(row[2]),
-                            BusMake:        strings.TrimSpace(row[3]),
-                            LicensePlate:   strings.TrimSpace(row[4]),
-                            BusID:          busID,
-                            LocatedAt:      strings.TrimSpace(row[6]),
-                            BeginningMiles: parseInt(row[7]),
-                            EndingMiles:    parseInt(row[8]),
-                            TotalMiles:     parseInt(row[9]),
-                        }
-                        
-                        if record.ReportMonth != "" && record.BusID != "" {
-                            allRecords = append(allRecords, record)
-                        }
-                    }
+            // Check for section headers
+            firstCell := strings.ToLower(strings.TrimSpace(row[0]))
+            if strings.Contains(firstCell, "school bus") {
+                currentSection = "school_bus"
+                log.Printf("Found School Buses section at row %d", i+1)
+                continue
+            } else if strings.Contains(firstCell, "agency vehicle") {
+                currentSection = "agency_vehicle"
+                log.Printf("Found Agency Vehicles section at row %d", i+1)
+                continue
+            } else if strings.Contains(firstCell, "program") {
+                currentSection = "program"
+                log.Printf("Found Programs section at row %d", i+1)
+                continue
+            }
+            
+            // Look for header row (contains "Beginning" or "Ending" miles)
+            hasBeginning := false
+            hasEnding := false
+            for _, cell := range row {
+                cellLower := strings.ToLower(cell)
+                if strings.Contains(cellLower, "beginning") {
+                    hasBeginning = true
                 }
+                if strings.Contains(cellLower, "ending") {
+                    hasEnding = true
+                }
+            }
+            
+            if hasBeginning && hasEnding {
+                headerRowIndex = i
+                dataStarted = true
+                log.Printf("Found header row at index %d", i)
+                continue
+            }
+            
+            // Skip rows until we find data
+            if !dataStarted || currentSection == "" {
+                continue
+            }
+            
+            // Try to parse data row
+            record := parseMileageRow(row, sheetName, currentSection)
+            if record != nil && record.BusID != "" {
+                allRecords = append(allRecords, *record)
+                log.Printf("Parsed record: Bus=%s, Begin=%d, End=%d, Total=%d", 
+                    record.BusID, record.BeginningMiles, record.EndingMiles, record.TotalMiles)
             }
         }
     }
@@ -877,10 +795,162 @@ func processMileageExcelFile(file multipart.File, filename string) (int, error) 
     log.Printf("Total valid records found: %d", len(allRecords))
     
     if len(allRecords) == 0 {
-        return 0, fmt.Errorf("no valid records found in Excel file - please check the file format. Expected columns: Month, Year, Bus Year, Make, License, Bus ID, Location, Beginning Miles, Ending Miles, Total Miles")
+        return 0, fmt.Errorf("no valid records found - please check the Excel format")
     }
     
     return insertMileageRecords(allRecords)
+}
+
+func parseMileageRow(row []string, sheetName string, section string) *MileageRecord {
+    // Skip rows that don't have enough columns
+    if len(row) < 8 {
+        return nil
+    }
+    
+    // Try to identify the structure based on content
+    // Common patterns:
+    // Pattern 1: Year, Make/Model, License, Bus#, Location, Miles columns...
+    // Pattern 2: Bus info in first columns, mileage data in later columns
+    
+    var record MileageRecord
+    record.ReportMonth = sheetName
+    record.ReportYear = 2024 // Default, adjust as needed
+    
+    // Try to find bus ID (might be labeled as "Bus #", "Unit", etc.)
+    busID := ""
+    var beginIdx, endIdx int = -1, -1
+    
+    // First pass - identify column positions
+    for idx, cell := range row {
+        cellTrimmed := strings.TrimSpace(cell)
+        
+        // Look for bus identifier
+        if busID == "" && cellTrimmed != "" && cellTrimmed != "#REF!" {
+            // Check if this looks like a bus number
+            if strings.Contains(strings.ToUpper(cellTrimmed), "BUS") {
+                busID = cellTrimmed
+            } else if idx >= 3 && idx <= 5 { // Common position for bus ID
+                // Could be just a number
+                if _, err := strconv.Atoi(cellTrimmed); err == nil {
+                    busID = cellTrimmed
+                }
+            }
+        }
+        
+        // Look for mileage columns (usually towards the end)
+        if idx >= len(row)-6 { // Last 6 columns likely contain mileage
+            if val := parseInt(cellTrimmed); val > 1000 && val < 999999 { // Reasonable mileage range
+                if beginIdx == -1 {
+                    beginIdx = idx
+                    record.BeginningMiles = val
+                } else if endIdx == -1 && idx > beginIdx {
+                    endIdx = idx
+                    record.EndingMiles = val
+                }
+            }
+        }
+    }
+    
+    // If we didn't find bus ID in expected places, try other positions
+    if busID == "" {
+        // Sometimes bus info is in column 4 or 5
+        for i := 3; i < min(6, len(row)); i++ {
+            cell := strings.TrimSpace(row[i])
+            if cell != "" && cell != "#REF!" {
+                busID = cell
+                break
+            }
+        }
+    }
+    
+    if busID == "" {
+        return nil
+    }
+    
+    // Clean up and standardize bus ID
+    busID = strings.TrimSpace(busID)
+    if !strings.HasPrefix(strings.ToUpper(busID), "BUS") {
+        busID = "BUS" + busID
+    }
+    busID = abbreviateBusID(busID)
+    record.BusID = busID
+    
+    // Parse other fields
+    if len(row) > 0 {
+        // Try to extract year from first column
+        if year := parseInt(row[0]); year > 1900 && year < 2030 {
+            record.BusYear = year
+        }
+    }
+    
+    if len(row) > 1 {
+        record.BusMake = strings.TrimSpace(row[1])
+    }
+    
+    if len(row) > 2 {
+        record.LicensePlate = strings.TrimSpace(row[2])
+    }
+    
+    // Location - try multiple positions
+    for i := 4; i < min(7, len(row)); i++ {
+        loc := strings.TrimSpace(row[i])
+        if loc != "" && loc != "#REF!" && !strings.Contains(loc, "BUS") {
+            record.LocatedAt = loc
+            break
+        }
+    }
+    
+    // If we couldn't find mileage in the standard way, try a different approach
+    if record.BeginningMiles == 0 && record.EndingMiles == 0 {
+        // Sometimes mileage is in specific column positions
+        // Try columns 7-12 for mileage data
+        for i := 7; i < min(len(row), 13); i++ {
+            val := parseInt(row[i])
+            if val > 1000 && val < 999999 {
+                if record.BeginningMiles == 0 {
+                    record.BeginningMiles = val
+                } else if record.EndingMiles == 0 && val != record.BeginningMiles {
+                    record.EndingMiles = val
+                    break
+                }
+            }
+        }
+    }
+    
+    // Calculate total miles if we have both values
+    if record.BeginningMiles > 0 && record.EndingMiles > record.BeginningMiles {
+        record.TotalMiles = record.EndingMiles - record.BeginningMiles
+    }
+    
+    // Add section type to location if not already present
+    if section != "" && record.LocatedAt != "" {
+        switch section {
+        case "school_bus":
+            if !strings.Contains(strings.ToLower(record.LocatedAt), "school") {
+                record.LocatedAt = "School Bus - " + record.LocatedAt
+            }
+        case "agency_vehicle":
+            if !strings.Contains(strings.ToLower(record.LocatedAt), "agency") {
+                record.LocatedAt = "Agency - " + record.LocatedAt
+            }
+        case "program":
+            if !strings.Contains(strings.ToLower(record.LocatedAt), "program") {
+                record.LocatedAt = "Program - " + record.LocatedAt
+            }
+        }
+    }
+    
+    log.Printf("DEBUG: Parsed row - BusID: %s, Begin: %d, End: %d, Total: %d", 
+        record.BusID, record.BeginningMiles, record.EndingMiles, record.TotalMiles)
+    
+    return &record
+}
+
+func min(a, b int) int {
+    if a < b {
+        return a
+    }
+    return b
 }
 
 func parseInt(s string) int {
