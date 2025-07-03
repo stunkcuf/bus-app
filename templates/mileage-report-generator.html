@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mileage Report Template Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    
+    .format-section {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+    
+    th {
+      background-color: #667eea;
+      color: white;
+      font-weight: 600;
+    }
+    
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      margin-right: 10px;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-secondary {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+    
+    .warning {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      color: #856404;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+    
+    .sample-data {
+      margin-top: 30px;
+    }
+    
+    .note {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Mileage Report Excel Template</h1>
+    <p class="subtitle">Generate a properly formatted Excel template for importing mileage data</p>
+    
+    <div class="warning">
+      <strong>⚠️ Important:</strong> Your Excel file must have exactly these 10 columns in this order for successful import.
+    </div>
+    
+    <div class="format-section">
+      <h2>Required Excel Format</h2>
+      <p>The Excel file must contain the following columns in this exact order:</p>
+      
+      <table>
+        <thead>
+          <tr>
+            <th>Column</th>
+            <th>Header Name</th>
+            <th>Description</th>
+            <th>Example Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>A</td>
+            <td>Report Month</td>
+            <td>Month name (January, February, etc.)</td>
+            <td>January</td>
+          </tr>
+          <tr>
+            <td>B</td>
+            <td>Report Year</td>
+            <td>4-digit year</td>
+            <td>2024</td>
+          </tr>
+          <tr>
+            <td>C</td>
+            <td>Bus Year</td>
+            <td>Year the bus was manufactured</td>
+            <td>2019</td>
+          </tr>
+          <tr>
+            <td>D</td>
+            <td>Bus Make</td>
+            <td>Manufacturer name</td>
+            <td>Blue Bird</td>
+          </tr>
+          <tr>
+            <td>E</td>
+            <td>License Plate</td>
+            <td>Vehicle license plate number</td>
+            <td>ABC-123</td>
+          </tr>
+          <tr>
+            <td>F</td>
+            <td>Bus ID</td>
+            <td>Your internal bus ID (will add BUS prefix if missing)</td>
+            <td>001</td>
+          </tr>
+          <tr>
+            <td>G</td>
+            <td>Located At</td>
+            <td>Current location/depot</td>
+            <td>Main Depot</td>
+          </tr>
+          <tr>
+            <td>H</td>
+            <td>Beginning Miles</td>
+            <td>Odometer reading at start of month</td>
+            <td>45000</td>
+          </tr>
+          <tr>
+            <td>I</td>
+            <td>Ending Miles</td>
+            <td>Odometer reading at end of month</td>
+            <td>47500</td>
+          </tr>
+          <tr>
+            <td>J</td>
+            <td>Total Miles</td>
+            <td>Miles driven during the month (Ending - Beginning)</td>
+            <td>2500</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="note">
+      <strong>Note:</strong> The system will automatically add the "BUS" prefix to Bus IDs if not present. So "001" becomes "BUS001".
+    </div>
+    
+    <button class="btn" onclick="generateTemplate()">
+      📥 Download Excel Template
+    </button>
+    
+    <button class="btn btn-secondary" onclick="generateSampleData()">
+      📊 Download Template with Sample Data
+    </button>
+    
+    <div class="sample-data">
+      <h3>Sample Data Preview</h3>
+      <p>Here's what your data should look like:</p>
+      <table id="sampleTable">
+        <thead>
+          <tr>
+            <th>Report Month</th>
+            <th>Report Year</th>
+            <th>Bus Year</th>
+            <th>Bus Make</th>
+            <th>License Plate</th>
+            <th>Bus ID</th>
+            <th>Located At</th>
+            <th>Beginning Miles</th>
+            <th>Ending Miles</th>
+            <th>Total Miles</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>January</td>
+            <td>2024</td>
+            <td>2019</td>
+            <td>Blue Bird</td>
+            <td>ABC-123</td>
+            <td>001</td>
+            <td>Main Depot</td>
+            <td>45000</td>
+            <td>47500</td>
+            <td>2500</td>
+          </tr>
+          <tr>
+            <td>January</td>
+            <td>2024</td>
+            <td>2020</td>
+            <td>Thomas</td>
+            <td>XYZ-789</td>
+            <td>002</td>
+            <td>North Station</td>
+            <td>32000</td>
+            <td>34100</td>
+            <td>2100</td>
+          </tr>
+          <tr>
+            <td>January</td>
+            <td>2024</td>
+            <td>2018</td>
+            <td>International</td>
+            <td>DEF-456</td>
+            <td>003</td>
+            <td>South Depot</td>
+            <td>58000</td>
+            <td>60300</td>
+            <td>2300</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    function generateTemplate() {
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Create headers
+      const headers = [
+        'Report Month',
+        'Report Year', 
+        'Bus Year',
+        'Bus Make',
+        'License Plate',
+        'Bus ID',
+        'Located At',
+        'Beginning Miles',
+        'Ending Miles',
+        'Total Miles'
+      ];
+      
+      // Create worksheet with just headers
+      const ws = XLSX.utils.aoa_to_sheet([headers]);
+      
+      // Set column widths
+      const colWidths = [
+        {wch: 15}, // Report Month
+        {wch: 12}, // Report Year
+        {wch: 10}, // Bus Year
+        {wch: 15}, // Bus Make
+        {wch: 15}, // License Plate
+        {wch: 10}, // Bus ID
+        {wch: 20}, // Located At
+        {wch: 15}, // Beginning Miles
+        {wch: 15}, // Ending Miles
+        {wch: 12}  // Total Miles
+      ];
+      ws['!cols'] = colWidths;
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Mileage Report");
+      
+      // Generate and download file
+      XLSX.writeFile(wb, "mileage_report_template.xlsx");
+    }
+    
+    function generateSampleData() {
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Sample data
+      const data = [
+        ['Report Month', 'Report Year', 'Bus Year', 'Bus Make', 'License Plate', 'Bus ID', 'Located At', 'Beginning Miles', 'Ending Miles', 'Total Miles'],
+        ['January', 2024, 2019, 'Blue Bird', 'ABC-123', '001', 'Main Depot', 45000, 47500, 2500],
+        ['January', 2024, 2020, 'Thomas', 'XYZ-789', '002', 'North Station', 32000, 34100, 2100],
+        ['January', 2024, 2018, 'International', 'DEF-456', '003', 'South Depot', 58000, 60300, 2300],
+        ['January', 2024, 2021, 'Blue Bird', 'GHI-012', '004', 'East Terminal', 15000, 17200, 2200],
+        ['January', 2024, 2019, 'Thomas', 'JKL-345', '005', 'West Garage', 41000, 43800, 2800],
+        ['February', 2024, 2019, 'Blue Bird', 'ABC-123', '001', 'Main Depot', 47500, 49900, 2400],
+        ['February', 2024, 2020, 'Thomas', 'XYZ-789', '002', 'North Station', 34100, 36300, 2200],
+        ['February', 2024, 2018, 'International', 'DEF-456', '003', 'South Depot', 60300, 62500, 2200],
+        ['February', 2024, 2021, 'Blue Bird', 'GHI-012', '004', 'East Terminal', 17200, 19600, 2400],
+        ['February', 2024, 2019, 'Thomas', 'JKL-345', '005', 'West Garage', 43800, 46400, 2600]
+      ];
+      
+      // Create worksheet
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      
+      // Set column widths
+      const colWidths = [
+        {wch: 15}, // Report Month
+        {wch: 12}, // Report Year
+        {wch: 10}, // Bus Year
+        {wch: 15}, // Bus Make
+        {wch: 15}, // License Plate
+        {wch: 10}, // Bus ID
+        {wch: 20}, // Located At
+        {wch: 15}, // Beginning Miles
+        {wch: 15}, // Ending Miles
+        {wch: 12}  // Total Miles
+      ];
+      ws['!cols'] = colWidths;
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Mileage Report");
+      
+      // Generate and download file
+      XLSX.writeFile(wb, "mileage_report_sample.xlsx");
+    }
+  </script>
+</body>
+</html>
