@@ -1,4 +1,4 @@
-// data.go - PostgreSQL-only data loading and saving functions
+// data.go - PostgreSQL-only data loading and saving functions with proper error handling
 package main
 
 import (
@@ -9,13 +9,22 @@ import (
 )
 
 // =============================================================================
-// USER FUNCTIONS
+// USER FUNCTIONS WITH ERROR HANDLING
 // =============================================================================
 
+// DEPRECATED: Use loadUsersFromDB instead
 func loadUsers() []User {
-	if db == nil {
-		log.Println("Database connection not available")
+	users, err := loadUsersFromDB()
+	if err != nil {
+		log.Printf("Error loading users: %v", err)
 		return []User{}
+	}
+	return users
+}
+
+func loadUsersFromDB() ([]User, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database connection not available")
 	}
 	
 	// Try to load with status and registration_date first
@@ -32,8 +41,7 @@ func loadUsers() []User {
 		log.Printf("Loading users without new columns, trying basic query: %v", err)
 		rows, err = db.Query("SELECT username, password, role FROM users ORDER BY username")
 		if err != nil {
-			log.Printf("Error loading users from DB: %v", err)
-			return []User{}
+			return nil, fmt.Errorf("failed to load users from DB: %w", err)
 		}
 		defer rows.Close()
 
@@ -49,7 +57,7 @@ func loadUsers() []User {
 			user.RegistrationDate = ""
 			users = append(users, user)
 		}
-		return users
+		return users, nil
 	}
 	defer rows.Close()
 
@@ -85,7 +93,12 @@ func loadUsers() []User {
 		
 		users = append(users, user)
 	}
-	return users
+	
+	if err = rows.Err(); err != nil {
+		return users, fmt.Errorf("error iterating users: %w", err)
+	}
+	
+	return users, nil
 }
 
 func updateUser(user User) error {
@@ -173,7 +186,13 @@ func saveUsers(users []User) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	
+	success := false
+	defer func() {
+		if !success {
+			tx.Rollback()
+		}
+	}()
 	
 	for _, user := range users {
 		// Set default status if not provided
@@ -196,7 +215,12 @@ func saveUsers(users []User) error {
 		}
 	}
 	
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	
+	success = true
+	return nil
 }
 
 func deleteUser(username string) error {
@@ -209,13 +233,22 @@ func deleteUser(username string) error {
 }
 
 // =============================================================================
-// BUS FUNCTIONS
+// BUS FUNCTIONS WITH ERROR HANDLING
 // =============================================================================
 
+// DEPRECATED: Use loadBusesFromDB instead
 func loadBuses() []*Bus {
-	if db == nil {
-		log.Println("Database connection not available")
+	buses, err := loadBusesFromDB()
+	if err != nil {
+		log.Printf("Error loading buses: %v", err)
 		return []*Bus{}
+	}
+	return buses
+}
+
+func loadBusesFromDB() ([]*Bus, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database connection not available")
 	}
 	
 	rows, err := db.Query(`
@@ -223,8 +256,7 @@ func loadBuses() []*Bus {
 		FROM buses ORDER BY bus_id
 	`)
 	if err != nil {
-		log.Printf("Error loading buses from DB: %v", err)
-		return []*Bus{}
+		return nil, fmt.Errorf("failed to load buses from DB: %w", err)
 	}
 	defer rows.Close()
 
@@ -238,7 +270,12 @@ func loadBuses() []*Bus {
 		}
 		buses = append(buses, bus)
 	}
-	return buses
+	
+	if err = rows.Err(); err != nil {
+		return buses, fmt.Errorf("error iterating buses: %w", err)
+	}
+	
+	return buses, nil
 }
 
 func saveBus(bus *Bus) error {
@@ -269,7 +306,13 @@ func saveBuses(buses []*Bus) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	
+	success := false
+	defer func() {
+		if !success {
+			tx.Rollback()
+		}
+	}()
 
 	for _, bus := range buses {
 		_, err := tx.Exec(`
@@ -286,7 +329,12 @@ func saveBuses(buses []*Bus) error {
 		}
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	
+	success = true
+	return nil
 }
 
 func deleteBus(busID string) error {
@@ -299,12 +347,17 @@ func deleteBus(busID string) error {
 }
 
 // =============================================================================
-// ROUTE FUNCTIONS
+// ROUTE FUNCTIONS WITH ERROR HANDLING
 // =============================================================================
 
+// DEPRECATED: Use loadRoutesFromDB instead
 func loadRoutes() ([]Route, error) {
+	return loadRoutesFromDB()
+}
+
+func loadRoutesFromDB() ([]Route, error) {
 	if db == nil {
-		return []Route{}, fmt.Errorf("database connection not available")
+		return nil, fmt.Errorf("database connection not available")
 	}
 	
 	rows, err := db.Query(`
@@ -312,8 +365,7 @@ func loadRoutes() ([]Route, error) {
 		FROM routes ORDER BY route_id
 	`)
 	if err != nil {
-		log.Printf("Error loading routes from DB: %v", err)
-		return []Route{}, err
+		return nil, fmt.Errorf("failed to load routes from DB: %w", err)
 	}
 	defer rows.Close()
 
@@ -334,6 +386,11 @@ func loadRoutes() ([]Route, error) {
 		
 		routes = append(routes, route)
 	}
+	
+	if err = rows.Err(); err != nil {
+		return routes, fmt.Errorf("error iterating routes: %w", err)
+	}
+	
 	return routes, nil
 }
 
@@ -368,7 +425,13 @@ func saveRoutes(routes []Route) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	
+	success := false
+	defer func() {
+		if !success {
+			tx.Rollback()
+		}
+	}()
 	
 	for _, route := range routes {
 		positionsJSON, err := json.Marshal(route.Positions)
@@ -388,7 +451,12 @@ func saveRoutes(routes []Route) error {
 		}
 	}
 	
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	
+	success = true
+	return nil
 }
 
 func deleteRoute(routeID string) error {
@@ -401,13 +469,22 @@ func deleteRoute(routeID string) error {
 }
 
 // =============================================================================
-// STUDENT FUNCTIONS
+// STUDENT FUNCTIONS WITH ERROR HANDLING
 // =============================================================================
 
+// DEPRECATED: Use loadStudentsFromDB instead
 func loadStudents() []Student {
-	if db == nil {
-		log.Println("Database connection not available")
+	students, err := loadStudentsFromDB()
+	if err != nil {
+		log.Printf("Error loading students: %v", err)
 		return []Student{}
+	}
+	return students
+}
+
+func loadStudentsFromDB() ([]Student, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database connection not available")
 	}
 	
 	rows, err := db.Query(`
@@ -416,8 +493,7 @@ func loadStudents() []Student {
 		FROM students ORDER BY student_id
 	`)
 	if err != nil {
-		log.Printf("Error loading students from DB: %v", err)
-		return []Student{}
+		return nil, fmt.Errorf("failed to load students from DB: %w", err)
 	}
 	defer rows.Close()
 
@@ -450,7 +526,12 @@ func loadStudents() []Student {
 		
 		students = append(students, student)
 	}
-	return students
+	
+	if err = rows.Err(); err != nil {
+		return students, fmt.Errorf("error iterating students: %w", err)
+	}
+	
+	return students, nil
 }
 
 func saveStudent(student Student) error {
@@ -495,9 +576,10 @@ func saveStudent(student Student) error {
 	
 	if err != nil {
 		log.Printf("ERROR: Failed to save student %s: %v", student.StudentID, err)
+		return fmt.Errorf("failed to save student %s: %w", student.StudentID, err)
 	}
 	
-	return err
+	return nil
 }
 
 func deleteStudent(studentID string) error {
@@ -510,12 +592,12 @@ func deleteStudent(studentID string) error {
 }
 
 // =============================================================================
-// ROUTE ASSIGNMENT FUNCTIONS
+// ROUTE ASSIGNMENT FUNCTIONS WITH ERROR HANDLING
 // =============================================================================
 
 func loadRouteAssignments() ([]RouteAssignment, error) {
 	if db == nil {
-		return []RouteAssignment{}, fmt.Errorf("database connection not available")
+		return nil, fmt.Errorf("database connection not available")
 	}
 	
 	rows, err := db.Query(`
@@ -523,8 +605,7 @@ func loadRouteAssignments() ([]RouteAssignment, error) {
 		FROM route_assignments ORDER BY driver
 	`)
 	if err != nil {
-		log.Printf("Error loading route assignments from DB: %v", err)
-		return []RouteAssignment{}, err
+		return nil, fmt.Errorf("failed to load route assignments from DB: %w", err)
 	}
 	defer rows.Close()
 
@@ -559,6 +640,10 @@ func loadRouteAssignments() ([]RouteAssignment, error) {
 		assignments = append(assignments, assignment)
 	}
 	
+	if err = rows.Err(); err != nil {
+		return assignments, fmt.Errorf("error iterating route assignments: %w", err)
+	}
+	
 	log.Printf("Total route assignments loaded: %d", len(assignments))
 	return assignments, nil
 }
@@ -573,12 +658,17 @@ func deleteRouteAssignment(driver string) error {
 }
 
 // =============================================================================
-// DRIVER LOG FUNCTIONS
+// DRIVER LOG FUNCTIONS WITH ERROR HANDLING
 // =============================================================================
 
+// DEPRECATED: Use loadDriverLogsFromDB instead
 func loadDriverLogs() ([]DriverLog, error) {
+	return loadDriverLogsFromDB()
+}
+
+func loadDriverLogsFromDB() ([]DriverLog, error) {
 	if db == nil {
-		return []DriverLog{}, fmt.Errorf("database connection not available")
+		return nil, fmt.Errorf("database connection not available")
 	}
 	
 	rows, err := db.Query(`
@@ -587,8 +677,7 @@ func loadDriverLogs() ([]DriverLog, error) {
 		FROM driver_logs ORDER BY date DESC, driver
 	`)
 	if err != nil {
-		log.Printf("Error loading driver logs from DB: %v", err)
-		return []DriverLog{}, err
+		return nil, fmt.Errorf("failed to load driver logs from DB: %w", err)
 	}
 	defer rows.Close()
 
@@ -624,6 +713,11 @@ func loadDriverLogs() ([]DriverLog, error) {
 		
 		logs = append(logs, driverLog)
 	}
+	
+	if err = rows.Err(); err != nil {
+		return logs, fmt.Errorf("error iterating driver logs: %w", err)
+	}
+	
 	return logs, nil
 }
 
@@ -661,7 +755,13 @@ func saveDriverLogs(logs []DriverLog) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	
+	success := false
+	defer func() {
+		if !success {
+			tx.Rollback()
+		}
+	}()
 	
 	for _, log := range logs {
 		if err := saveDriverLog(log); err != nil {
@@ -669,17 +769,31 @@ func saveDriverLogs(logs []DriverLog) error {
 		}
 	}
 	
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	
+	success = true
+	return nil
 }
 
 // =============================================================================
-// MAINTENANCE LOG FUNCTIONS
+// MAINTENANCE LOG FUNCTIONS WITH ERROR HANDLING
 // =============================================================================
 
+// DEPRECATED: Use loadMaintenanceLogsFromDB instead
 func loadMaintenanceLogs() []BusMaintenanceLog {
-	if db == nil {
-		log.Println("Database connection not available")
+	logs, err := loadMaintenanceLogsFromDB()
+	if err != nil {
+		log.Printf("Error loading maintenance logs: %v", err)
 		return []BusMaintenanceLog{}
+	}
+	return logs
+}
+
+func loadMaintenanceLogsFromDB() ([]BusMaintenanceLog, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database connection not available")
 	}
 	
 	rows, err := db.Query(`
@@ -687,8 +801,7 @@ func loadMaintenanceLogs() []BusMaintenanceLog {
 		FROM bus_maintenance_logs ORDER BY date DESC
 	`)
 	if err != nil {
-		log.Printf("Error loading maintenance logs from DB: %v", err)
-		return []BusMaintenanceLog{}
+		return nil, fmt.Errorf("failed to load maintenance logs from DB: %w", err)
 	}
 	defer rows.Close()
 
@@ -712,7 +825,12 @@ func loadMaintenanceLogs() []BusMaintenanceLog {
 		
 		logs = append(logs, maintenanceLog)
 	}
-	return logs
+	
+	if err = rows.Err(); err != nil {
+		return logs, fmt.Errorf("error iterating maintenance logs: %w", err)
+	}
+	
+	return logs, nil
 }
 
 func saveMaintenanceLog(log BusMaintenanceLog) error {
@@ -737,7 +855,13 @@ func saveMaintenanceLogs(logs []BusMaintenanceLog) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	
+	success := false
+	defer func() {
+		if !success {
+			tx.Rollback()
+		}
+	}()
 	
 	for _, log := range logs {
 		if err := saveMaintenanceLog(log); err != nil {
@@ -745,17 +869,31 @@ func saveMaintenanceLogs(logs []BusMaintenanceLog) error {
 		}
 	}
 	
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	
+	success = true
+	return nil
 }
 
 // =============================================================================
-// VEHICLE FUNCTIONS
+// VEHICLE FUNCTIONS WITH ERROR HANDLING
 // =============================================================================
 
+// DEPRECATED: Use loadVehiclesFromDB instead
 func loadVehicles() []Vehicle {
-	if db == nil {
-		log.Println("Database connection not available")
+	vehicles, err := loadVehiclesFromDB()
+	if err != nil {
+		log.Printf("Error loading vehicles: %v", err)
 		return []Vehicle{}
+	}
+	return vehicles
+}
+
+func loadVehiclesFromDB() ([]Vehicle, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database connection not available")
 	}
 	
 	rows, err := db.Query(`
@@ -764,8 +902,7 @@ func loadVehicles() []Vehicle {
 		FROM vehicles ORDER BY vehicle_id
 	`)
 	if err != nil {
-		log.Printf("Error loading vehicles from DB: %v", err)
-		return []Vehicle{}
+		return nil, fmt.Errorf("failed to load vehicles from DB: %w", err)
 	}
 	defer rows.Close()
 
@@ -781,7 +918,12 @@ func loadVehicles() []Vehicle {
 		}
 		vehicles = append(vehicles, vehicle)
 	}
-	return vehicles
+	
+	if err = rows.Err(); err != nil {
+		return vehicles, fmt.Errorf("error iterating vehicles: %w", err)
+	}
+	
+	return vehicles, nil
 }
 
 func saveVehicle(vehicle Vehicle) error {
@@ -816,7 +958,13 @@ func saveVehicles(vehicles []Vehicle) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	
+	success := false
+	defer func() {
+		if !success {
+			tx.Rollback()
+		}
+	}()
 
 	for _, vehicle := range vehicles {
 		_, err := tx.Exec(`
@@ -836,16 +984,21 @@ func saveVehicles(vehicles []Vehicle) error {
 		}
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	
+	success = true
+	return nil
 }
 
 // =============================================================================
-// ACTIVITY FUNCTIONS
+// ACTIVITY FUNCTIONS WITH ERROR HANDLING
 // =============================================================================
 
 func loadActivities() ([]Activity, error) {
 	if db == nil {
-		return []Activity{}, fmt.Errorf("database connection not available")
+		return nil, fmt.Errorf("database connection not available")
 	}
 	
 	rows, err := db.Query(`
@@ -853,8 +1006,7 @@ func loadActivities() ([]Activity, error) {
 		FROM activities ORDER BY date DESC
 	`)
 	if err != nil {
-		log.Printf("Error loading activities from DB: %v", err)
-		return []Activity{}, err
+		return nil, fmt.Errorf("failed to load activities from DB: %w", err)
 	}
 	defer rows.Close()
 
@@ -875,6 +1027,11 @@ func loadActivities() ([]Activity, error) {
 		
 		activities = append(activities, activity)
 	}
+	
+	if err = rows.Err(); err != nil {
+		return activities, fmt.Errorf("error iterating activities: %w", err)
+	}
+	
 	return activities, nil
 }
 
