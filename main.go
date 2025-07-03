@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 	"mime/multipart"
+	"regexp"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -44,7 +45,7 @@ const (
 	MinPasswordLength = 6
 )
 
-// MileageRecord represents a row from the Excel file
+// MileageRecord represents a row from the Excel file (legacy)
 type MileageRecord struct {
 	ReportMonth    string
 	ReportYear     int
@@ -56,6 +57,72 @@ type MileageRecord struct {
 	BeginningMiles int
 	EndingMiles    int
 	TotalMiles     int
+}
+
+// Enhanced data structures for different report types
+type AgencyVehicleRecord struct {
+	ReportMonth    string
+	ReportYear     int
+	VehicleYear    int
+	MakeModel      string
+	LicensePlate   string
+	VehicleID      string
+	Location       string
+	BeginningMiles int
+	EndingMiles    int
+	TotalMiles     int
+	Status         string // FOR SALE, SOLD, out of lease, etc.
+	Notes          string
+}
+
+type SchoolBusRecord struct {
+	ReportMonth    string
+	ReportYear     int
+	BusYear        int
+	BusMake        string
+	LicensePlate   string
+	BusID          string
+	Location       string
+	BeginningMiles int
+	EndingMiles    int
+	TotalMiles     int
+	Status         string // SPARE, SLATED FOR, etc.
+	Notes          string
+}
+
+type ProgramStaffRecord struct {
+	ReportMonth  string
+	ReportYear   int
+	ProgramType  string // HS, OPK, EHS
+	StaffCount1  int
+	StaffCount2  int
+}
+
+type EnhancedMileageStats struct {
+	// Vehicle stats
+	TotalAgencyVehicles int
+	TotalSchoolBuses    int
+	TotalVehicles       int
+	ActiveVehicles      int
+	InactiveVehicles    int
+	
+	// Mileage stats
+	TotalMiles          int
+	AgencyMiles         int
+	SchoolBusMiles      int
+	AverageMilesPerVehicle float64
+	
+	// Status breakdown
+	VehiclesForSale     int
+	VehiclesSold        int
+	VehiclesOutOfLease  int
+	SpareVehicles       int
+	
+	// Program stats
+	TotalProgramStaff   int
+	HSStaff             int
+	OPKStaff            int
+	EHSStaff            int
 }
 
 // Templates variable
@@ -221,9 +288,9 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/route-assignment", withRecovery(requireAuth(requireRole("manager")(handleSaveRouteAssignment))))
 	mux.HandleFunc("/api/check-driver-bus", withRecovery(requireAuth(requireRole("manager")(handleCheckDriverBus))))
 	
-	// In setupManagerRoutes function, add:
+	// Mileage reports
 	mux.HandleFunc("/import-mileage", withRecovery(requireAuth(requireRole("manager")(importMileageHandler))))
-	mux.HandleFunc("/view-mileage-reports", withRecovery(requireAuth(requireRole("manager")(viewMileageReportsHandler))))
+	mux.HandleFunc("/view-mileage-reports", withRecovery(requireAuth(requireRole("manager")(viewEnhancedMileageReportsHandler))))
 	
 	// Driver profile
 	mux.HandleFunc("/driver/", withRecovery(requireAuth(requireRole("manager")(driverProfileHandler))))
@@ -297,133 +364,96 @@ func handleLoginPost(w http.ResponseWriter, r *http.Request) {
 
 	renderLoginError(w, "Invalid username or password")
 }
-// ============= MILEAGE REPORTS HANDLER =============
+
+// ============= ENHANCED MILEAGE REPORTS HANDLER =============
+func viewEnhancedMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	
+	// Get query parameters
+	reportType := r.URL.Query().Get("type") // agency, school_bus, program, or all
+	month := r.URL.Query().Get("month")
+	year := r.URL.Query().Get("year")
+	vehicleID := r.URL.Query().Get("vehicle_id")
+	
+	// Default to showing all if no type specified
+	if reportType == "" {
+		reportType = "all"
+	}
+	
+	// Load data based on type
+	var agencyVehicles []AgencyVehicleRecord
+	var schoolBuses []SchoolBusRecord
+	var programStaff []ProgramStaffRecord
+	var err error
+	
+	if reportType == "all" || reportType == "agency" {
+		agencyVehicles, err = getAgencyVehicles(month, year, vehicleID)
+		if err != nil {
+			log.Printf("Error loading agency vehicles: %v", err)
+		}
+	}
+	
+	if reportType == "all" || reportType == "school_bus" {
+		schoolBuses, err = getSchoolBuses(month, year, vehicleID)
+		if err != nil {
+			log.Printf("Error loading school buses: %v", err)
+		}
+	}
+	
+	if reportType == "all" || reportType == "program" {
+		programStaff, err = getProgramStaff(month, year)
+		if err != nil {
+			log.Printf("Error loading program staff: %v", err)
+		}
+	}
+	
+	// Calculate statistics
+	stats := calculateEnhancedStats(agencyVehicles, schoolBuses, programStaff)
+	
+	data := struct {
+		User           *User
+		AgencyVehicles []AgencyVehicleRecord
+		SchoolBuses    []SchoolBusRecord
+		ProgramStaff   []ProgramStaffRecord
+		Stats          EnhancedMileageStats
+		CSRFToken      string
+		// Filter values
+		FilterType     string
+		FilterMonth    string
+		FilterYear     string
+		FilterVehicleID string
+	}{
+		User:            user,
+		AgencyVehicles:  agencyVehicles,
+		SchoolBuses:     schoolBuses,
+		ProgramStaff:    programStaff,
+		Stats:           stats,
+		CSRFToken:       getCSRFToken(r),
+		FilterType:      reportType,
+		FilterMonth:     month,
+		FilterYear:      year,
+		FilterVehicleID: vehicleID,
+	}
+	
+	renderTemplate(w, "view_enhanced_mileage_reports.html", data)
+}
+
+// Legacy mileage reports handler (still needed for compatibility)
 func viewMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
-    user := getUserFromSession(r)
-    if user == nil || user.Role != "manager" {
-        http.Redirect(w, r, "/", http.StatusFound)
-        return
-    }
-    
-    // Get query parameters for filtering
-    month := r.URL.Query().Get("month")
-    year := r.URL.Query().Get("year")
-    busID := r.URL.Query().Get("bus_id")
-    
-    // Load mileage reports from database
-    reports, err := getMileageReports(month, year, busID)
-    if err != nil {
-        log.Printf("Error loading mileage reports: %v", err)
-        reports = []MileageRecord{}
-    }
-    
-    // Get summary statistics
-    stats := getMileageStats(reports)
-    
-    data := struct {
-        User      *User
-        Reports   []MileageRecord
-        Stats     MileageStats
-        CSRFToken string
-        // Filter values
-        FilterMonth string
-        FilterYear  string
-        FilterBusID string
-    }{
-        User:        user,
-        Reports:     reports,
-        Stats:       stats,
-        CSRFToken:   getCSRFToken(r),
-        FilterMonth: month,
-        FilterYear:  year,
-        FilterBusID: busID,
-    }
-    
-    renderTemplate(w, "view_mileage_reports.html", data)
+	// Redirect to enhanced version
+	http.Redirect(w, r, "/view-mileage-reports", http.StatusFound)
 }
 
 // Add these helper functions
 type MileageStats struct {
-    TotalRecords   int
-    TotalMiles     int
-    AverageMiles   float64
-    UniqueBuses    int
-}
-
-func getMileageReports(month, year, busID string) ([]MileageRecord, error) {
-    query := `
-        SELECT report_month, report_year, bus_year, bus_make, 
-               license_plate, bus_id, located_at, 
-               beginning_miles, ending_miles, total_miles
-        FROM monthly_mileage_reports
-        WHERE 1=1
-    `
-    args := []interface{}{}
-    argCount := 0
-    
-    if month != "" {
-        argCount++
-        query += fmt.Sprintf(" AND report_month = $%d", argCount)
-        args = append(args, month)
-    }
-    
-    if year != "" {
-        argCount++
-        query += fmt.Sprintf(" AND report_year = $%d", argCount)
-        args = append(args, year)
-    }
-    
-    if busID != "" {
-        argCount++
-        query += fmt.Sprintf(" AND bus_id = $%d", argCount)
-        args = append(args, busID)
-    }
-    
-    query += " ORDER BY report_year DESC, report_month, bus_id"
-    
-    rows, err := db.Query(query, args...)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
-    
-    var reports []MileageRecord
-    for rows.Next() {
-        var r MileageRecord
-        err := rows.Scan(&r.ReportMonth, &r.ReportYear, &r.BusYear, 
-                        &r.BusMake, &r.LicensePlate, &r.BusID, 
-                        &r.LocatedAt, &r.BeginningMiles, 
-                        &r.EndingMiles, &r.TotalMiles)
-        if err != nil {
-            log.Printf("Error scanning mileage record: %v", err)
-            continue
-        }
-        reports = append(reports, r)
-    }
-    
-    return reports, nil
-}
-
-func getMileageStats(reports []MileageRecord) MileageStats {
-    stats := MileageStats{
-        TotalRecords: len(reports),
-    }
-    
-    busMap := make(map[string]bool)
-    totalMiles := 0
-    
-    for _, r := range reports {
-        totalMiles += r.TotalMiles
-        busMap[r.BusID] = true
-    }
-    
-    stats.TotalMiles = totalMiles
-    stats.UniqueBuses = len(busMap)
-    if stats.TotalRecords > 0 {
-        stats.AverageMiles = float64(totalMiles) / float64(stats.TotalRecords)
-    }
-    
-    return stats
+	TotalRecords   int
+	TotalMiles     int
+	AverageMiles   float64
+	UniqueBuses    int
 }
 
 func registerHandler(w http.ResponseWriter, r *http.Request) {
@@ -595,551 +625,838 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 
 // ============= IMPORT MILEAGE HANDLER =============
 func importMileageHandler(w http.ResponseWriter, r *http.Request) {
-    user := getUserFromSession(r)
-    if user == nil || user.Role != "manager" {
-        http.Redirect(w, r, "/", http.StatusFound)
-        return
-    }
-    
-    if r.Method == "GET" {
-        // Display the import form
-        data := struct {
-            User      *User
-            CSRFToken string
-            Error     string
-            Success   string
-        }{
-            User:      user,
-            CSRFToken: getCSRFToken(r),
-        }
-        
-        renderTemplate(w, "import_mileage.html", data)
-        return
-    }
-    
-    // Handle POST - file upload
-    if r.Method == "POST" {
-        // Validate CSRF
-        if !validateCSRF(r) {
-            http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-            return
-        }
-        
-        // Parse multipart form
-        err := r.ParseMultipartForm(10 << 20) // 10 MB max
-        if err != nil {
-            data := struct {
-                User      *User
-                CSRFToken string
-                Error     string
-                Success   string
-            }{
-                User:      user,
-                CSRFToken: getCSRFToken(r),
-                Error:     "Failed to parse form data",
-            }
-            renderTemplate(w, "import_mileage.html", data)
-            return
-        }
-        
-        // Get the file
-        file, header, err := r.FormFile("excel_file")
-        if err != nil {
-            data := struct {
-                User      *User
-                CSRFToken string
-                Error     string
-                Success   string
-            }{
-                User:      user,
-                CSRFToken: getCSRFToken(r),
-                Error:     "Failed to get uploaded file",
-            }
-            renderTemplate(w, "import_mileage.html", data)
-            return
-        }
-        defer file.Close()
-        
-        // Log file info
-        log.Printf("Uploaded File: %+v", header.Filename)
-        log.Printf("File Size: %+v", header.Size)
-        log.Printf("MIME Header: %+v", header.Header)
-        
-        // Process the Excel file
-        importedCount, err := processMileageExcelFile(file, header.Filename)
-        if err != nil {
-            log.Printf("Error processing Excel file: %v", err)
-            data := struct {
-                User      *User
-                CSRFToken string
-                Error     string
-                Success   string
-            }{
-                User:      user,
-                CSRFToken: getCSRFToken(r),
-                Error:     fmt.Sprintf("Failed to import file: %v", err),
-            }
-            renderTemplate(w, "import_mileage.html", data)
-            return
-        }
-        
-        // Success!
-        data := struct {
-            User      *User
-            CSRFToken string
-            Error     string
-            Success   string
-        }{
-            User:      user,
-            CSRFToken: getCSRFToken(r),
-            Success:   fmt.Sprintf("Successfully imported %d mileage records from '%s'!", importedCount, header.Filename),
-        }
-        
-        renderTemplate(w, "import_mileage.html", data)
-    }
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	
+	if r.Method == "GET" {
+		// Display the import form
+		data := struct {
+			User      *User
+			CSRFToken string
+			Error     string
+			Success   string
+		}{
+			User:      user,
+			CSRFToken: getCSRFToken(r),
+		}
+		
+		renderTemplate(w, "import_mileage.html", data)
+		return
+	}
+	
+	// Handle POST - file upload
+	if r.Method == "POST" {
+		// Validate CSRF
+		if !validateCSRF(r) {
+			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+			return
+		}
+		
+		// Parse multipart form
+		err := r.ParseMultipartForm(10 << 20) // 10 MB max
+		if err != nil {
+			data := struct {
+				User      *User
+				CSRFToken string
+				Error     string
+				Success   string
+			}{
+				User:      user,
+				CSRFToken: getCSRFToken(r),
+				Error:     "Failed to parse form data",
+			}
+			renderTemplate(w, "import_mileage.html", data)
+			return
+		}
+		
+		// Get the file
+		file, header, err := r.FormFile("excel_file")
+		if err != nil {
+			data := struct {
+				User      *User
+				CSRFToken string
+				Error     string
+				Success   string
+			}{
+				User:      user,
+				CSRFToken: getCSRFToken(r),
+				Error:     "Failed to get uploaded file",
+			}
+			renderTemplate(w, "import_mileage.html", data)
+			return
+		}
+		defer file.Close()
+		
+		// Log file info
+		log.Printf("Uploaded File: %+v", header.Filename)
+		log.Printf("File Size: %+v", header.Size)
+		log.Printf("MIME Header: %+v", header.Header)
+		
+		// Process the Excel file
+		importedCount, err := processMileageExcelFile(file, header.Filename)
+		if err != nil {
+			log.Printf("Error processing Excel file: %v", err)
+			data := struct {
+				User      *User
+				CSRFToken string
+				Error     string
+				Success   string
+			}{
+				User:      user,
+				CSRFToken: getCSRFToken(r),
+				Error:     fmt.Sprintf("Failed to import file: %v", err),
+			}
+			renderTemplate(w, "import_mileage.html", data)
+			return
+		}
+		
+		// Success!
+		data := struct {
+			User      *User
+			CSRFToken string
+			Error     string
+			Success   string
+		}{
+			User:      user,
+			CSRFToken: getCSRFToken(r),
+			Success:   fmt.Sprintf("Successfully imported %d records from '%s'! This includes agency vehicles, school buses, and program staff data.", importedCount, header.Filename),
+		}
+		
+		renderTemplate(w, "import_mileage.html", data)
+	}
 }
 
-// Replace the existing processMileageExcelFile function in main.go with:
+// ============= ENHANCED EXCEL PROCESSING FUNCTIONS =============
 func processMileageExcelFile(file multipart.File, filename string) (int, error) {
-    return processEnhancedMileageExcelFile(file, filename)
+	f, err := excelize.OpenReader(file)
+	if err != nil {
+		return 0, fmt.Errorf("failed to open Excel file: %v", err)
+	}
+	defer f.Close()
+	
+	sheets := f.GetSheetList()
+	log.Printf("Excel file has %d sheets: %v", len(sheets), sheets)
+	
+	if len(sheets) == 0 {
+		return 0, fmt.Errorf("no sheets found in Excel file")
+	}
+	
+	totalImported := 0
+	
+	// Process each sheet
+	for _, sheetName := range sheets {
+		imported, err := processSheet(f, sheetName)
+		if err != nil {
+			log.Printf("Error processing sheet '%s': %v", sheetName, err)
+			continue
+		}
+		totalImported += imported
+	}
+	
+	return totalImported, nil
 }
 
-// Update the route setup in setupManagerRoutes to use the enhanced handler:
-func setupManagerRoutes(mux *http.ServeMux) {
-    // ... existing routes ...
-    
-    // Replace the existing view-mileage-reports route with:
-    mux.HandleFunc("/view-mileage-reports", withRecovery(requireAuth(requireRole("manager")(viewEnhancedMileageReportsHandler))))
-    
-    // ... rest of routes ...
+func processSheet(f *excelize.File, sheetName string) (int, error) {
+	log.Printf("\n=== Processing sheet: '%s' ===", sheetName)
+	
+	rows, err := f.GetRows(sheetName)
+	if err != nil {
+		return 0, fmt.Errorf("error reading sheet: %v", err)
+	}
+	
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	
+	// Extract month and year from sheet name if possible
+	reportMonth := sheetName
+	reportYear := 2024 // Default, can be overridden
+	
+	// Try to extract year from sheet name (e.g., "January 2024")
+	parts := strings.Split(sheetName, " ")
+	if len(parts) > 1 {
+		if year, err := strconv.Atoi(parts[len(parts)-1]); err == nil && year > 2000 && year < 2100 {
+			reportYear = year
+			reportMonth = strings.Join(parts[:len(parts)-1], " ")
+		}
+	}
+	
+	var agencyVehicles []AgencyVehicleRecord
+	var schoolBuses []SchoolBusRecord
+	var programStaff []ProgramStaffRecord
+	
+	currentSection := ""
+	headerRowIndex := -1
+	
+	// Process rows
+	for i, row := range rows {
+		if len(row) == 0 {
+			continue
+		}
+		
+		firstCell := strings.TrimSpace(row[0])
+		firstCellLower := strings.ToLower(firstCell)
+		
+		// Detect section headers
+		if strings.Contains(firstCellLower, "agency vehicle") {
+			currentSection = "agency"
+			headerRowIndex = -1
+			log.Printf("Found Agency Vehicles section at row %d", i+1)
+			continue
+		} else if strings.Contains(firstCellLower, "school bus") {
+			currentSection = "school_bus"
+			headerRowIndex = -1
+			log.Printf("Found School Buses section at row %d", i+1)
+			continue
+		} else if strings.Contains(firstCellLower, "program") {
+			currentSection = "program"
+			headerRowIndex = -1
+			log.Printf("Found Programs section at row %d", i+1)
+			continue
+		}
+		
+		// Look for header row
+		if headerRowIndex == -1 && isHeaderRow(row) {
+			headerRowIndex = i
+			log.Printf("Found header row at index %d", i)
+			continue
+		}
+		
+		// Skip if we haven't found a section or header yet
+		if currentSection == "" || headerRowIndex == -1 {
+			continue
+		}
+		
+		// Process data rows based on section
+		switch currentSection {
+		case "agency":
+			if vehicle := parseAgencyVehicleRow(row, reportMonth, reportYear); vehicle != nil {
+				agencyVehicles = append(agencyVehicles, *vehicle)
+			}
+		case "school_bus":
+			if bus := parseSchoolBusRow(row, reportMonth, reportYear); bus != nil {
+				schoolBuses = append(schoolBuses, *bus)
+			}
+		case "program":
+			if staff := parseProgramStaffRow(row, reportMonth, reportYear); staff != nil {
+				programStaff = append(programStaff, *staff)
+			}
+		}
+	}
+	
+	// Insert records into database
+	imported := 0
+	
+	if len(agencyVehicles) > 0 {
+		count, err := insertAgencyVehicles(agencyVehicles)
+		if err != nil {
+			log.Printf("Error inserting agency vehicles: %v", err)
+		} else {
+			imported += count
+		}
+	}
+	
+	if len(schoolBuses) > 0 {
+		count, err := insertSchoolBuses(schoolBuses)
+		if err != nil {
+			log.Printf("Error inserting school buses: %v", err)
+		} else {
+			imported += count
+		}
+	}
+	
+	if len(programStaff) > 0 {
+		count, err := insertProgramStaff(programStaff)
+		if err != nil {
+			log.Printf("Error inserting program staff: %v", err)
+		} else {
+			imported += count
+		}
+	}
+	
+	log.Printf("Sheet '%s' - Imported: %d records", sheetName, imported)
+	return imported, nil
 }
 
-// Update the importMileageHandler success message to be more specific:
-func importMileageHandler(w http.ResponseWriter, r *http.Request) {
-    // ... existing code ...
-    
-    // After successful import, update the success message:
-    data := struct {
-        User      *User
-        CSRFToken string
-        Error     string
-        Success   string
-    }{
-        User:      user,
-        CSRFToken: getCSRFToken(r),
-        Success:   fmt.Sprintf("Successfully imported %d records from '%s'! This includes agency vehicles, school buses, and program staff data.", importedCount, header.Filename),
-    }
-    
-    renderTemplate(w, "import_mileage.html", data)
+func isHeaderRow(row []string) bool {
+	// Check for common header keywords
+	headerKeywords := []string{"year", "make", "lic", "id", "located", "beginning", "ending", "total", "miles"}
+	
+	rowText := strings.ToLower(strings.Join(row, " "))
+	matchCount := 0
+	
+	for _, keyword := range headerKeywords {
+		if strings.Contains(rowText, keyword) {
+			matchCount++
+		}
+	}
+	
+	return matchCount >= 3
 }
 
-// Add this helper function to validate vehicle IDs don't exceed database limits:
-func validateVehicleID(id string) string {
-    // Ensure vehicle ID doesn't exceed 20 characters (your database limit)
-    if len(id) > 20 {
-        // Try to intelligently shorten it
-        if strings.HasPrefix(strings.ToUpper(id), "BUS") && len(id) > 20 {
-            // Remove "BUS" prefix and re-add it to fit
-            baseID := strings.TrimPrefix(strings.ToUpper(id), "BUS")
-            if len(baseID) <= 17 {
-                return "BUS" + baseID
-            }
-            // If still too long, truncate
-            return "BUS" + baseID[:17]
-        }
-        // For other IDs, just truncate
-        log.Printf("Warning: Vehicle ID '%s' truncated to '%s'", id, id[:20])
-        return id[:20]
-    }
-    return id
+func parseAgencyVehicleRow(row []string, reportMonth string, reportYear int) *AgencyVehicleRecord {
+	if len(row) < 7 {
+		return nil
+	}
+	
+	// Skip empty or invalid rows
+	if isEmptyRow(row) {
+		return nil
+	}
+	
+	record := &AgencyVehicleRecord{
+		ReportMonth: reportMonth,
+		ReportYear:  reportYear,
+	}
+	
+	// Parse year (column 0)
+	if year := parseInt(row[0]); year > 1900 && year < 2100 {
+		record.VehicleYear = year
+	}
+	
+	// Parse make/model (column 1)
+	if len(row) > 1 {
+		record.MakeModel = cleanText(row[1])
+	}
+	
+	// Parse license plate (column 2)
+	if len(row) > 2 {
+		record.LicensePlate = cleanText(row[2])
+	}
+	
+	// Parse vehicle ID (column 3)
+	if len(row) > 3 {
+		record.VehicleID = cleanText(row[3])
+		if record.VehicleID == "" {
+			return nil // Skip if no vehicle ID
+		}
+	}
+	
+	// Parse location (column 4)
+	if len(row) > 4 {
+		record.Location = cleanText(row[4])
+	}
+	
+	// Parse miles (columns 5, 6, 7)
+	if len(row) > 5 {
+		record.BeginningMiles = parseInt(row[5])
+	}
+	if len(row) > 6 {
+		record.EndingMiles = parseInt(row[6])
+	}
+	if len(row) > 7 {
+		record.TotalMiles = parseInt(row[7])
+	}
+	
+	// Parse status/notes from the end of the row
+	if len(row) > 8 {
+		statusText := strings.ToLower(cleanText(row[8]))
+		if strings.Contains(statusText, "for sale") {
+			record.Status = "FOR SALE"
+		} else if strings.Contains(statusText, "sold") {
+			record.Status = "SOLD"
+		} else if strings.Contains(statusText, "out of lease") {
+			record.Status = "OUT OF LEASE"
+		} else if strings.Contains(statusText, "no report") {
+			record.Status = "NO REPORT"
+		} else if strings.Contains(statusText, "repair") {
+			record.Status = "REPAIRS"
+		} else {
+			record.Notes = cleanText(row[8])
+		}
+	}
+	
+	log.Printf("Parsed agency vehicle: ID=%s, Status=%s, Miles=%d", 
+		record.VehicleID, record.Status, record.TotalMiles)
+	
+	return record
 }
 
-// Update the database global variable declaration if needed:
-var db *sql.DB // Make sure this is declared at package level
-
-// Add this new enhanced parser function
-func parseEnhancedMileageRow(row []string, sheetName string, section string) *MileageRecord {
-    // Skip rows that don't have enough columns
-    if len(row) < 6 {
-        return nil
-    }
-    
-    var record MileageRecord
-    record.ReportMonth = sheetName
-    record.ReportYear = 2024 // Default, adjust as needed
-    
-    // Log the row for debugging
-    log.Printf("Parsing row with %d columns: %v", len(row), row)
-    
-    // Try to find bus ID and mileage data
-    busID := ""
-    var beginMiles, endMiles int
-    
-    // Strategy 1: Look for patterns in specific positions
-    // Common Excel layouts have bus info in columns 3-5 and mileage in later columns
-    
-    // Find bus ID
-    for i := 0; i < len(row) && i < 6; i++ {
-        cell := strings.TrimSpace(row[i])
-        if cell != "" && cell != "#REF!" {
-            // Check if this could be a bus identifier
-            if strings.Contains(strings.ToUpper(cell), "BUS") {
-                busID = cell
-                break
-            } else if i >= 3 && i <= 5 {
-                // Check if it's a number that could be a bus ID
-                if num := parseInt(cell); num > 0 && num < 1000 {
-                    busID = fmt.Sprintf("%d", num)
-                } else if len(cell) <= 10 && !strings.Contains(cell, " ") {
-                    // Short identifier without spaces
-                    busID = cell
-                }
-            }
-        }
-    }
-    
-    // If no bus ID found yet, try alternative positions
-    if busID == "" {
-        for i := 2; i < len(row) && i < 7; i++ {
-            cell := strings.TrimSpace(row[i])
-            if cell != "" && cell != "#REF!" && len(cell) <= 20 {
-                // Take the first non-empty, reasonable length value
-                busID = cell
-                break
-            }
-        }
-    }
-    
-    if busID == "" {
-        return nil
-    }
-    
-    // Find mileage data - typically in the last columns
-    mileageValues := []int{}
-    for i := max(6, len(row)-10); i < len(row); i++ {
-        if val := parseInt(row[i]); val > 1000 && val < 999999 {
-            mileageValues = append(mileageValues, val)
-        }
-    }
-    
-    // Assign beginning and ending miles
-    if len(mileageValues) >= 2 {
-        // Assume first is beginning, second is ending
-        beginMiles = mileageValues[0]
-        endMiles = mileageValues[1]
-        
-        // Sanity check - ending should be greater than beginning
-        if endMiles < beginMiles {
-            beginMiles, endMiles = endMiles, beginMiles
-        }
-    } else if len(mileageValues) == 1 {
-        // Only one mileage value - might be ending miles
-        endMiles = mileageValues[0]
-    }
-    
-    // Clean up and standardize bus ID
-    busID = strings.TrimSpace(busID)
-    if !strings.HasPrefix(strings.ToUpper(busID), "BUS") {
-        busID = "BUS" + busID
-    }
-    busID = abbreviateBusID(busID)
-    record.BusID = busID
-    
-    // Set mileage values
-    record.BeginningMiles = beginMiles
-    record.EndingMiles = endMiles
-    if beginMiles > 0 && endMiles > beginMiles {
-        record.TotalMiles = endMiles - beginMiles
-    }
-    
-    // Parse other fields
-    if len(row) > 0 {
-        if year := parseInt(row[0]); year > 1900 && year < 2030 {
-            record.BusYear = year
-        }
-    }
-    
-    if len(row) > 1 {
-        record.BusMake = strings.TrimSpace(row[1])
-    }
-    
-    if len(row) > 2 {
-        record.LicensePlate = strings.TrimSpace(row[2])
-    }
-    
-    // Location - try multiple positions
-    for i := 4; i < min(7, len(row)); i++ {
-        loc := strings.TrimSpace(row[i])
-        if loc != "" && loc != "#REF!" && !strings.Contains(loc, "BUS") && len(loc) < 50 {
-            record.LocatedAt = loc
-            break
-        }
-    }
-    
-    // Add section prefix to location
-    if section != "" {
-        switch section {
-        case "school_bus":
-            if record.LocatedAt == "" {
-                record.LocatedAt = "School Bus"
-            } else if !strings.Contains(strings.ToLower(record.LocatedAt), "school") {
-                record.LocatedAt = "School Bus - " + record.LocatedAt
-            }
-        case "agency_vehicle":
-            if record.LocatedAt == "" {
-                record.LocatedAt = "Agency Vehicle"
-            } else if !strings.Contains(strings.ToLower(record.LocatedAt), "agency") {
-                record.LocatedAt = "Agency - " + record.LocatedAt
-            }
-        case "program":
-            if record.LocatedAt == "" {
-                record.LocatedAt = "Program Vehicle"
-            } else if !strings.Contains(strings.ToLower(record.LocatedAt), "program") {
-                record.LocatedAt = "Program - " + record.LocatedAt
-            }
-        }
-    }
-    
-    return &record
+func parseSchoolBusRow(row []string, reportMonth string, reportYear int) *SchoolBusRecord {
+	if len(row) < 7 {
+		return nil
+	}
+	
+	// Skip empty rows
+	if isEmptyRow(row) {
+		return nil
+	}
+	
+	record := &SchoolBusRecord{
+		ReportMonth: reportMonth,
+		ReportYear:  reportYear,
+	}
+	
+	// Column mapping for school buses:
+	// 0: ID, 1: Location/Status, 2-3: Miles or Year/Make info
+	
+	// Parse bus ID (usually first column for school buses)
+	if len(row) > 0 {
+		record.BusID = cleanText(row[0])
+		if record.BusID == "" {
+			return nil
+		}
+	}
+	
+	// Parse location/status (column 1)
+	if len(row) > 1 {
+		locationStatus := cleanText(row[1])
+		statusLower := strings.ToLower(locationStatus)
+		
+		if strings.Contains(statusLower, "spare") {
+			record.Status = "SPARE"
+			record.Location = "SPARE"
+		} else if strings.Contains(statusLower, "slated for") {
+			record.Status = "SLATED FOR"
+			record.Location = locationStatus
+		} else if strings.Contains(statusLower, "sub for") {
+			record.Status = "SUBSTITUTE"
+			record.Location = locationStatus
+		} else {
+			record.Location = locationStatus
+		}
+	}
+	
+	// Look for year and make in subsequent columns
+	for i := 2; i < len(row) && i < 5; i++ {
+		if year := parseInt(row[i]); year > 2000 && year < 2100 {
+			record.BusYear = year
+		} else if strings.Contains(strings.ToUpper(row[i]), "CHEV") {
+			record.BusMake = cleanText(row[i])
+		} else if strings.HasPrefix(strings.ToUpper(row[i]), "SC") {
+			record.LicensePlate = cleanText(row[i])
+		}
+	}
+	
+	// Parse miles from the last columns
+	if len(row) >= 7 {
+		// Try to find miles in the last 3 columns
+		for i := len(row) - 3; i < len(row); i++ {
+			if i >= 0 && i < len(row) {
+				miles := parseInt(row[i])
+				if miles > 0 {
+					if record.BeginningMiles == 0 {
+						record.BeginningMiles = miles
+					} else if record.EndingMiles == 0 {
+						record.EndingMiles = miles
+					} else {
+						record.TotalMiles = miles
+					}
+				}
+			}
+		}
+	}
+	
+	log.Printf("Parsed school bus: ID=%s, Status=%s, Location=%s", 
+		record.BusID, record.Status, record.Location)
+	
+	return record
 }
 
-// Add this helper function if you don't have it
-func max(a, b int) int {
-    if a > b {
-        return a
-    }
-    return b
+func parseProgramStaffRow(row []string, reportMonth string, reportYear int) *ProgramStaffRecord {
+	if len(row) < 2 {
+		return nil
+	}
+	
+	// Look for program type in first column
+	programType := ""
+	firstCell := strings.ToUpper(cleanText(row[0]))
+	
+	if strings.Contains(firstCell, "HS") {
+		programType = "HS"
+	} else if strings.Contains(firstCell, "OPK") {
+		programType = "OPK"
+	} else if strings.Contains(firstCell, "EHS") {
+		programType = "EHS"
+	}
+	
+	if programType == "" {
+		return nil
+	}
+	
+	record := &ProgramStaffRecord{
+		ReportMonth: reportMonth,
+		ReportYear:  reportYear,
+		ProgramType: programType,
+	}
+	
+	// Look for staff counts in the row
+	counts := []int{}
+	for i := 1; i < len(row); i++ {
+		if count := parseInt(row[i]); count > 0 {
+			counts = append(counts, count)
+		}
+	}
+	
+	if len(counts) >= 1 {
+		record.StaffCount1 = counts[0]
+	}
+	if len(counts) >= 2 {
+		record.StaffCount2 = counts[1]
+	}
+	
+	log.Printf("Parsed program staff: Type=%s, Count1=%d, Count2=%d", 
+		record.ProgramType, record.StaffCount1, record.StaffCount2)
+	
+	return record
 }
 
-// Add this debug function to help understand the Excel structure
-func debugExcelStructure(file multipart.File, filename string) error {
-    f, err := excelize.OpenReader(file)
-    if err != nil {
-        return fmt.Errorf("failed to open Excel file: %v", err)
-    }
-    defer f.Close()
-    
-    sheets := f.GetSheetList()
-    log.Printf("\n=== EXCEL STRUCTURE DEBUG ===")
-    log.Printf("File: %s", filename)
-    log.Printf("Sheets: %v", sheets)
-    
-    for _, sheetName := range sheets {
-        log.Printf("\n--- Sheet: %s ---", sheetName)
-        
-        rows, err := f.GetRows(sheetName)
-        if err != nil {
-            log.Printf("Error reading sheet: %v", err)
-            continue
-        }
-        
-        // Print first 20 rows to understand structure
-        for i := 0; i < min(20, len(rows)); i++ {
-            if len(rows[i]) > 0 {
-                log.Printf("Row %d (%d cols): %v", i+1, len(rows[i]), rows[i])
-            }
-        }
-    }
-    
-    return nil
+// Database insert functions
+func insertAgencyVehicles(records []AgencyVehicleRecord) (int, error) {
+	if db == nil {
+		return 0, fmt.Errorf("database not initialized")
+	}
+	
+	count := 0
+	for _, record := range records {
+		_, err := db.Exec(`
+			INSERT INTO agency_vehicles 
+			(report_month, report_year, vehicle_year, make_model, license_plate, 
+			 vehicle_id, location, beginning_miles, ending_miles, total_miles, status, notes)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			ON CONFLICT (report_month, report_year, vehicle_id) 
+			DO UPDATE SET
+				vehicle_year = EXCLUDED.vehicle_year,
+				make_model = EXCLUDED.make_model,
+				license_plate = EXCLUDED.license_plate,
+				location = EXCLUDED.location,
+				beginning_miles = EXCLUDED.beginning_miles,
+				ending_miles = EXCLUDED.ending_miles,
+				total_miles = EXCLUDED.total_miles,
+				status = EXCLUDED.status,
+				notes = EXCLUDED.notes,
+				updated_at = CURRENT_TIMESTAMP
+		`, record.ReportMonth, record.ReportYear, record.VehicleYear, record.MakeModel,
+		   record.LicensePlate, record.VehicleID, record.Location, record.BeginningMiles,
+		   record.EndingMiles, record.TotalMiles, record.Status, record.Notes)
+		
+		if err != nil {
+			log.Printf("Error inserting agency vehicle %s: %v", record.VehicleID, err)
+		} else {
+			count++
+		}
+	}
+	
+	log.Printf("Successfully inserted %d agency vehicles", count)
+	return count, nil
 }
 
-func parseMileageRow(row []string, sheetName string, section string) *MileageRecord {
-    // Skip rows that don't have enough columns
-    if len(row) < 8 {
-        return nil
-    }
-    
-    // Try to identify the structure based on content
-    // Common patterns:
-    // Pattern 1: Year, Make/Model, License, Bus#, Location, Miles columns...
-    // Pattern 2: Bus info in first columns, mileage data in later columns
-    
-    var record MileageRecord
-    record.ReportMonth = sheetName
-    record.ReportYear = 2024 // Default, adjust as needed
-    
-    // Try to find bus ID (might be labeled as "Bus #", "Unit", etc.)
-    busID := ""
-    var beginIdx, endIdx int = -1, -1
-    
-    // First pass - identify column positions
-    for idx, cell := range row {
-        cellTrimmed := strings.TrimSpace(cell)
-        
-        // Look for bus identifier
-        if busID == "" && cellTrimmed != "" && cellTrimmed != "#REF!" {
-            // Check if this looks like a bus number
-            if strings.Contains(strings.ToUpper(cellTrimmed), "BUS") {
-                busID = cellTrimmed
-            } else if idx >= 3 && idx <= 5 { // Common position for bus ID
-                // Could be just a number
-                if _, err := strconv.Atoi(cellTrimmed); err == nil {
-                    busID = cellTrimmed
-                }
-            }
-        }
-        
-        // Look for mileage columns (usually towards the end)
-        if idx >= len(row)-6 { // Last 6 columns likely contain mileage
-            if val := parseInt(cellTrimmed); val > 1000 && val < 999999 { // Reasonable mileage range
-                if beginIdx == -1 {
-                    beginIdx = idx
-                    record.BeginningMiles = val
-                } else if endIdx == -1 && idx > beginIdx {
-                    endIdx = idx
-                    record.EndingMiles = val
-                }
-            }
-        }
-    }
-    
-    // If we didn't find bus ID in expected places, try other positions
-    if busID == "" {
-        // Sometimes bus info is in column 4 or 5
-        for i := 3; i < min(6, len(row)); i++ {
-            cell := strings.TrimSpace(row[i])
-            if cell != "" && cell != "#REF!" {
-                busID = cell
-                break
-            }
-        }
-    }
-    
-    if busID == "" {
-        return nil
-    }
-    
-    // Clean up and standardize bus ID
-    busID = strings.TrimSpace(busID)
-    if !strings.HasPrefix(strings.ToUpper(busID), "BUS") {
-        busID = "BUS" + busID
-    }
-    busID = abbreviateBusID(busID)
-    record.BusID = busID
-    
-    // Parse other fields
-    if len(row) > 0 {
-        // Try to extract year from first column
-        if year := parseInt(row[0]); year > 1900 && year < 2030 {
-            record.BusYear = year
-        }
-    }
-    
-    if len(row) > 1 {
-        record.BusMake = strings.TrimSpace(row[1])
-    }
-    
-    if len(row) > 2 {
-        record.LicensePlate = strings.TrimSpace(row[2])
-    }
-    
-    // Location - try multiple positions
-    for i := 4; i < min(7, len(row)); i++ {
-        loc := strings.TrimSpace(row[i])
-        if loc != "" && loc != "#REF!" && !strings.Contains(loc, "BUS") {
-            record.LocatedAt = loc
-            break
-        }
-    }
-    
-    // If we couldn't find mileage in the standard way, try a different approach
-    if record.BeginningMiles == 0 && record.EndingMiles == 0 {
-        // Sometimes mileage is in specific column positions
-        // Try columns 7-12 for mileage data
-        for i := 7; i < min(len(row), 13); i++ {
-            val := parseInt(row[i])
-            if val > 1000 && val < 999999 {
-                if record.BeginningMiles == 0 {
-                    record.BeginningMiles = val
-                } else if record.EndingMiles == 0 && val != record.BeginningMiles {
-                    record.EndingMiles = val
-                    break
-                }
-            }
-        }
-    }
-    
-    // Calculate total miles if we have both values
-    if record.BeginningMiles > 0 && record.EndingMiles > record.BeginningMiles {
-        record.TotalMiles = record.EndingMiles - record.BeginningMiles
-    }
-    
-    // Add section type to location if not already present
-    if section != "" && record.LocatedAt != "" {
-        switch section {
-        case "school_bus":
-            if !strings.Contains(strings.ToLower(record.LocatedAt), "school") {
-                record.LocatedAt = "School Bus - " + record.LocatedAt
-            }
-        case "agency_vehicle":
-            if !strings.Contains(strings.ToLower(record.LocatedAt), "agency") {
-                record.LocatedAt = "Agency - " + record.LocatedAt
-            }
-        case "program":
-            if !strings.Contains(strings.ToLower(record.LocatedAt), "program") {
-                record.LocatedAt = "Program - " + record.LocatedAt
-            }
-        }
-    }
-    
-    log.Printf("DEBUG: Parsed row - BusID: %s, Begin: %d, End: %d, Total: %d", 
-        record.BusID, record.BeginningMiles, record.EndingMiles, record.TotalMiles)
-    
-    return &record
+func insertSchoolBuses(records []SchoolBusRecord) (int, error) {
+	if db == nil {
+		return 0, fmt.Errorf("database not initialized")
+	}
+	
+	count := 0
+	for _, record := range records {
+		_, err := db.Exec(`
+			INSERT INTO school_buses 
+			(report_month, report_year, bus_year, bus_make, license_plate, 
+			 bus_id, location, beginning_miles, ending_miles, total_miles, status, notes)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			ON CONFLICT (report_month, report_year, bus_id) 
+			DO UPDATE SET
+				bus_year = EXCLUDED.bus_year,
+				bus_make = EXCLUDED.bus_make,
+				license_plate = EXCLUDED.license_plate,
+				location = EXCLUDED.location,
+				beginning_miles = EXCLUDED.beginning_miles,
+				ending_miles = EXCLUDED.ending_miles,
+				total_miles = EXCLUDED.total_miles,
+				status = EXCLUDED.status,
+				notes = EXCLUDED.notes,
+				updated_at = CURRENT_TIMESTAMP
+		`, record.ReportMonth, record.ReportYear, record.BusYear, record.BusMake,
+		   record.LicensePlate, record.BusID, record.Location, record.BeginningMiles,
+		   record.EndingMiles, record.TotalMiles, record.Status, record.Notes)
+		
+		if err != nil {
+			log.Printf("Error inserting school bus %s: %v", record.BusID, err)
+		} else {
+			count++
+		}
+	}
+	
+	log.Printf("Successfully inserted %d school buses", count)
+	return count, nil
 }
 
-func min(a, b int) int {
-    if a < b {
-        return a
-    }
-    return b
+func insertProgramStaff(records []ProgramStaffRecord) (int, error) {
+	if db == nil {
+		return 0, fmt.Errorf("database not initialized")
+	}
+	
+	count := 0
+	for _, record := range records {
+		_, err := db.Exec(`
+			INSERT INTO program_staff 
+			(report_month, report_year, program_type, staff_count_1, staff_count_2)
+			VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT (report_month, report_year, program_type) 
+			DO UPDATE SET
+				staff_count_1 = EXCLUDED.staff_count_1,
+				staff_count_2 = EXCLUDED.staff_count_2,
+				updated_at = CURRENT_TIMESTAMP
+		`, record.ReportMonth, record.ReportYear, record.ProgramType,
+		   record.StaffCount1, record.StaffCount2)
+		
+		if err != nil {
+			log.Printf("Error inserting program staff %s: %v", record.ProgramType, err)
+		} else {
+			count++
+		}
+	}
+	
+	log.Printf("Successfully inserted %d program staff records", count)
+	return count, nil
+}
+
+// Helper functions for Excel processing
+func cleanText(s string) string {
+	// Remove strikethrough markers (~~text~~)
+	s = regexp.MustCompile(`~~(.+?)~~`).ReplaceAllString(s, "$1")
+	// Remove extra spaces and trim
+	s = strings.TrimSpace(s)
+	s = regexp.MustCompile(`\s+`).ReplaceAllString(s, " ")
+	return s
 }
 
 func parseInt(s string) int {
-    val, _ := strconv.Atoi(strings.TrimSpace(s))
-    return val
+	s = cleanText(s)
+	// Remove commas from numbers
+	s = strings.ReplaceAll(s, ",", "")
+	val, _ := strconv.Atoi(s)
+	return val
 }
 
-func insertMileageRecords(records []MileageRecord) (int, error) {
-    if db == nil {
-        return 0, fmt.Errorf("database not initialized")
-    }
-    
-    log.Printf("Attempting to insert %d records into database", len(records))
-    
-    count := 0
-    for i, record := range records {
-        _, err := db.Exec(`
-            INSERT INTO monthly_mileage_reports 
-            (report_month, report_year, bus_year, bus_make, license_plate, 
-             bus_id, located_at, beginning_miles, ending_miles, total_miles)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            ON CONFLICT (report_month, report_year, bus_id) 
-            DO UPDATE SET
-                bus_year = EXCLUDED.bus_year,
-                bus_make = EXCLUDED.bus_make,
-                license_plate = EXCLUDED.license_plate,
-                located_at = EXCLUDED.located_at,
-                beginning_miles = EXCLUDED.beginning_miles,
-                ending_miles = EXCLUDED.ending_miles,
-                total_miles = EXCLUDED.total_miles,
-                updated_at = CURRENT_TIMESTAMP
-        `, record.ReportMonth, record.ReportYear, record.BusYear, record.BusMake,
-           record.LicensePlate, record.BusID, record.LocatedAt, record.BeginningMiles,
-           record.EndingMiles, record.TotalMiles)
-        
-        if err != nil {
-            log.Printf("Error inserting record %d (BusID=%s): %v", i+1, record.BusID, err)
-        } else {
-            count++
-            log.Printf("Successfully inserted record %d (BusID=%s)", i+1, record.BusID)
-        }
-    }
-    
-    log.Printf("Successfully inserted %d out of %d records", count, len(records))
-    
-    return count, nil
+func isEmptyRow(row []string) bool {
+	for _, cell := range row {
+		if cleanText(cell) != "" && cleanText(cell) != "-" {
+			return false
+		}
+	}
+	return true
+}
+
+// Enhanced statistics calculation
+func calculateEnhancedStats(agency []AgencyVehicleRecord, buses []SchoolBusRecord, staff []ProgramStaffRecord) EnhancedMileageStats {
+	stats := EnhancedMileageStats{
+		TotalAgencyVehicles: len(agency),
+		TotalSchoolBuses:    len(buses),
+		TotalVehicles:       len(agency) + len(buses),
+	}
+	
+	// Process agency vehicles
+	for _, v := range agency {
+		stats.AgencyMiles += v.TotalMiles
+		
+		switch strings.ToUpper(v.Status) {
+		case "FOR SALE":
+			stats.VehiclesForSale++
+			stats.InactiveVehicles++
+		case "SOLD":
+			stats.VehiclesSold++
+			stats.InactiveVehicles++
+		case "OUT OF LEASE":
+			stats.VehiclesOutOfLease++
+			stats.InactiveVehicles++
+		default:
+			if v.TotalMiles > 0 {
+				stats.ActiveVehicles++
+			}
+		}
+	}
+	
+	// Process school buses
+	for _, b := range buses {
+		stats.SchoolBusMiles += b.TotalMiles
+		
+		if strings.ToUpper(b.Status) == "SPARE" {
+			stats.SpareVehicles++
+			stats.InactiveVehicles++
+		} else if b.TotalMiles > 0 {
+			stats.ActiveVehicles++
+		}
+	}
+	
+	// Calculate total miles and average
+	stats.TotalMiles = stats.AgencyMiles + stats.SchoolBusMiles
+	if stats.ActiveVehicles > 0 {
+		stats.AverageMilesPerVehicle = float64(stats.TotalMiles) / float64(stats.ActiveVehicles)
+	}
+	
+	// Process program staff
+	for _, p := range staff {
+		totalStaff := p.StaffCount1 + p.StaffCount2
+		stats.TotalProgramStaff += totalStaff
+		
+		switch p.ProgramType {
+		case "HS":
+			stats.HSStaff += totalStaff
+		case "OPK":
+			stats.OPKStaff += totalStaff
+		case "EHS":
+			stats.EHSStaff += totalStaff
+		}
+	}
+	
+	return stats
+}
+
+// Database query functions for enhanced reports
+func getAgencyVehicles(month, year, vehicleID string) ([]AgencyVehicleRecord, error) {
+	query := `
+		SELECT report_month, report_year, vehicle_year, make_model, 
+			   license_plate, vehicle_id, location, beginning_miles, 
+			   ending_miles, total_miles, COALESCE(status, ''), COALESCE(notes, '')
+		FROM agency_vehicles
+		WHERE 1=1
+	`
+	args := []interface{}{}
+	argCount := 0
+	
+	if month != "" {
+		argCount++
+		query += fmt.Sprintf(" AND report_month = $%d", argCount)
+		args = append(args, month)
+	}
+	
+	if year != "" {
+		argCount++
+		query += fmt.Sprintf(" AND report_year = $%d", argCount)
+		args = append(args, year)
+	}
+	
+	if vehicleID != "" {
+		argCount++
+		query += fmt.Sprintf(" AND vehicle_id = $%d", argCount)
+		args = append(args, vehicleID)
+	}
+	
+	query += " ORDER BY report_year DESC, report_month, vehicle_id"
+	
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	var vehicles []AgencyVehicleRecord
+	for rows.Next() {
+		var v AgencyVehicleRecord
+		err := rows.Scan(&v.ReportMonth, &v.ReportYear, &v.VehicleYear, 
+						&v.MakeModel, &v.LicensePlate, &v.VehicleID, 
+						&v.Location, &v.BeginningMiles, &v.EndingMiles, 
+						&v.TotalMiles, &v.Status, &v.Notes)
+		if err != nil {
+			log.Printf("Error scanning agency vehicle: %v", err)
+			continue
+		}
+		vehicles = append(vehicles, v)
+	}
+	
+	return vehicles, nil
+}
+
+func getSchoolBuses(month, year, busID string) ([]SchoolBusRecord, error) {
+	query := `
+		SELECT report_month, report_year, bus_year, bus_make, 
+			   license_plate, bus_id, location, beginning_miles, 
+			   ending_miles, total_miles, COALESCE(status, ''), COALESCE(notes, '')
+		FROM school_buses
+		WHERE 1=1
+	`
+	args := []interface{}{}
+	argCount := 0
+	
+	if month != "" {
+		argCount++
+		query += fmt.Sprintf(" AND report_month = $%d", argCount)
+		args = append(args, month)
+	}
+	
+	if year != "" {
+		argCount++
+		query += fmt.Sprintf(" AND report_year = $%d", argCount)
+		args = append(args, year)
+	}
+	
+	if busID != "" {
+		argCount++
+		query += fmt.Sprintf(" AND bus_id = $%d", argCount)
+		args = append(args, busID)
+	}
+	
+	query += " ORDER BY report_year DESC, report_month, bus_id"
+	
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	var buses []SchoolBusRecord
+	for rows.Next() {
+		var b SchoolBusRecord
+		err := rows.Scan(&b.ReportMonth, &b.ReportYear, &b.BusYear, 
+						&b.BusMake, &b.LicensePlate, &b.BusID, 
+						&b.Location, &b.BeginningMiles, &b.EndingMiles, 
+						&b.TotalMiles, &b.Status, &b.Notes)
+		if err != nil {
+			log.Printf("Error scanning school bus: %v", err)
+			continue
+		}
+		buses = append(buses, b)
+	}
+	
+	return buses, nil
+}
+
+func getProgramStaff(month, year string) ([]ProgramStaffRecord, error) {
+	query := `
+		SELECT report_month, report_year, program_type, 
+			   staff_count_1, staff_count_2
+		FROM program_staff
+		WHERE 1=1
+	`
+	args := []interface{}{}
+	argCount := 0
+	
+	if month != "" {
+		argCount++
+		query += fmt.Sprintf(" AND report_month = $%d", argCount)
+		args = append(args, month)
+	}
+	
+	if year != "" {
+		argCount++
+		query += fmt.Sprintf(" AND report_year = $%d", argCount)
+		args = append(args, year)
+	}
+	
+	query += " ORDER BY report_year DESC, report_month, program_type"
+	
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	var staff []ProgramStaffRecord
+	for rows.Next() {
+		var s ProgramStaffRecord
+		err := rows.Scan(&s.ReportMonth, &s.ReportYear, &s.ProgramType,
+						&s.StaffCount1, &s.StaffCount2)
+		if err != nil {
+			log.Printf("Error scanning program staff: %v", err)
+			continue
+		}
+		staff = append(staff, s)
+	}
+	
+	return staff, nil
 }
 
 // ============= USER MANAGEMENT HANDLERS =============
@@ -1237,212 +1554,212 @@ func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
-    // Extract vehicle ID from URL path
-    // When URL is /vehicle-maintenance/11, we need to get "11"
-    path := r.URL.Path
-    
-    // Remove the prefix and any trailing slashes
-    vehicleID := strings.TrimPrefix(path, "/vehicle-maintenance/")
-    vehicleID = strings.TrimSuffix(vehicleID, "/")
-    
-    log.Printf("=== Vehicle Maintenance Handler ===")
-    log.Printf("Full Path: %s", path)
-    log.Printf("Extracted Vehicle ID: '%s'", vehicleID)
-    
-    if vehicleID == "" {
-        log.Printf("ERROR: No vehicle ID in path")
-        http.Error(w, "Vehicle ID required", http.StatusBadRequest)
-        return
-    }
-    
-    // Get vehicle info from vehicles table
-    var vehicle Vehicle
-    err := db.QueryRow(`
-        SELECT vehicle_id, model, description, year, tire_size, 
-               license, oil_status, tire_status, status, maintenance_notes,
-               serial_number, base, COALESCE(service_interval, 0)
-        FROM vehicles 
-        WHERE vehicle_id = $1
-        LIMIT 1
-    `, vehicleID).Scan(
-        &vehicle.VehicleID,
-        &vehicle.Model,
-        &vehicle.Description,
-        &vehicle.Year,
-        &vehicle.TireSize,
-        &vehicle.License,
-        &vehicle.OilStatus,
-        &vehicle.TireStatus,
-        &vehicle.Status,
-        &vehicle.MaintenanceNotes,
-        &vehicle.SerialNumber,
-        &vehicle.Base,
-        &vehicle.ServiceInterval,
-    )
-    
-    if err != nil {
-        log.Printf("Error fetching vehicle info for ID %s: %v", vehicleID, err)
-    }
-    
-    var allRecords []BusMaintenanceLog
-    totalCost := 0.0
-    
-    // Try to get maintenance records
-    vehicleNum, err := strconv.Atoi(vehicleID)
-    if err == nil {
-        log.Printf("Querying maintenance_records for vehicle_number: %d", vehicleNum)
-        
-        rows, err := db.Query(`
-            SELECT vehicle_number, 
-                   COALESCE(service_date::text, created_at::text, ''), 
-                   COALESCE(mileage, 0),
-                   COALESCE(work_description, ''),
-                   COALESCE(cost, 0)
-            FROM maintenance_records 
-            WHERE vehicle_number = $1
-            ORDER BY COALESCE(service_date, created_at) DESC
-        `, vehicleNum)
-        
-        if err != nil {
-            log.Printf("Error querying maintenance_records: %v", err)
-        } else {
-            defer rows.Close()
-            for rows.Next() {
-                var record BusMaintenanceLog
-                var vehicleNum int
-                var cost float64
-                err := rows.Scan(&vehicleNum, &record.Date, &record.Mileage, &record.Notes, &cost)
-                if err == nil {
-                    record.Category = "service"
-                    record.BusID = strconv.Itoa(vehicleNum)
-                    allRecords = append(allRecords, record)
-                    totalCost += cost
-                }
-            }
-            log.Printf("Found %d records in maintenance_records", len(allRecords))
-        }
-    }
-    
-    // Also check service_records
-    rows2, err := db.Query(`
-        SELECT COALESCE(unnamed_1, ''), 
-               COALESCE(unnamed_2, ''),
-               COALESCE(unnamed_3, ''),
-               COALESCE(unnamed_4, ''),
-               COALESCE(created_at::text, '')
-        FROM service_records 
-        WHERE unnamed_1 = $1
-        ORDER BY created_at DESC
-        LIMIT 20
-    `, vehicleID)
-    
-    if err != nil {
-        log.Printf("Error querying service_records: %v", err)
-    } else {
-        defer rows2.Close()
-        serviceCount := 0
-        for rows2.Next() {
-            var vehicleID, vendor, serviceNum, mileageStr, createdAt string
-            err := rows2.Scan(&vehicleID, &vendor, &serviceNum, &mileageStr, &createdAt)
-            if err == nil {
-                mileage := 0
-                if m, err := strconv.Atoi(mileageStr); err == nil {
-                    mileage = m
-                }
-                
-                dateStr := createdAt
-                if len(createdAt) >= 10 {
-                    dateStr = createdAt[:10]
-                }
-                
-                record := BusMaintenanceLog{
-                    BusID:    vehicleID,
-                    Date:     dateStr,
-                    Category: "service",
-                    Notes:    fmt.Sprintf("Service by %s - Invoice #%s", vendor, serviceNum),
-                    Mileage:  mileage,
-                }
-                allRecords = append(allRecords, record)
-                serviceCount++
-            }
-        }
-        log.Printf("Found %d records in service_records", serviceCount)
-    }
-    
-    log.Printf("Total maintenance records for vehicle %s: %d", vehicleID, len(allRecords))
-    
-    // Calculate statistics
-    avgCost := 0.0
-    if len(allRecords) > 0 && totalCost > 0 {
-        avgCost = totalCost / float64(len(allRecords))
-    }
-    
-    recentCount := 0
-    thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
-    for _, record := range allRecords {
-        if recordDate, err := time.Parse("2006-01-02", record.Date); err == nil {
-            if recordDate.After(thirtyDaysAgo) {
-                recentCount++
-            }
-        }
-    }
-    
-    // Create the template data
-    data := struct {
-        VehicleID          string
-        IsBus              bool
-        VehicleInfo        interface{}
-        MaintenanceRecords []BusMaintenanceLog
-        TotalRecords       int
-        TotalCost          float64
-        AverageCost        float64
-        RecentCount        int
-        Today              string
-        CSRFToken          string
-    }{
-        VehicleID:          vehicleID,
-        IsBus:              false,
-        VehicleInfo:        vehicle,
-        MaintenanceRecords: allRecords,
-        TotalRecords:       len(allRecords),
-        TotalCost:          totalCost,
-        AverageCost:        avgCost,
-        RecentCount:        recentCount,
-        Today:              time.Now().Format("2006-01-02"),
-        CSRFToken:          getCSRFToken(r),
-    }
-    
-    executeTemplate(w, "vehicle_maintenance.html", data)
+	// Extract vehicle ID from URL path
+	// When URL is /vehicle-maintenance/11, we need to get "11"
+	path := r.URL.Path
+	
+	// Remove the prefix and any trailing slashes
+	vehicleID := strings.TrimPrefix(path, "/vehicle-maintenance/")
+	vehicleID = strings.TrimSuffix(vehicleID, "/")
+	
+	log.Printf("=== Vehicle Maintenance Handler ===")
+	log.Printf("Full Path: %s", path)
+	log.Printf("Extracted Vehicle ID: '%s'", vehicleID)
+	
+	if vehicleID == "" {
+		log.Printf("ERROR: No vehicle ID in path")
+		http.Error(w, "Vehicle ID required", http.StatusBadRequest)
+		return
+	}
+	
+	// Get vehicle info from vehicles table
+	var vehicle Vehicle
+	err := db.QueryRow(`
+		SELECT vehicle_id, model, description, year, tire_size, 
+			   license, oil_status, tire_status, status, maintenance_notes,
+			   serial_number, base, COALESCE(service_interval, 0)
+		FROM vehicles 
+		WHERE vehicle_id = $1
+		LIMIT 1
+	`, vehicleID).Scan(
+		&vehicle.VehicleID,
+		&vehicle.Model,
+		&vehicle.Description,
+		&vehicle.Year,
+		&vehicle.TireSize,
+		&vehicle.License,
+		&vehicle.OilStatus,
+		&vehicle.TireStatus,
+		&vehicle.Status,
+		&vehicle.MaintenanceNotes,
+		&vehicle.SerialNumber,
+		&vehicle.Base,
+		&vehicle.ServiceInterval,
+	)
+	
+	if err != nil {
+		log.Printf("Error fetching vehicle info for ID %s: %v", vehicleID, err)
+	}
+	
+	var allRecords []BusMaintenanceLog
+	totalCost := 0.0
+	
+	// Try to get maintenance records
+	vehicleNum, err := strconv.Atoi(vehicleID)
+	if err == nil {
+		log.Printf("Querying maintenance_records for vehicle_number: %d", vehicleNum)
+		
+		rows, err := db.Query(`
+			SELECT vehicle_number, 
+				   COALESCE(service_date::text, created_at::text, ''), 
+				   COALESCE(mileage, 0),
+				   COALESCE(work_description, ''),
+				   COALESCE(cost, 0)
+			FROM maintenance_records 
+			WHERE vehicle_number = $1
+			ORDER BY COALESCE(service_date, created_at) DESC
+		`, vehicleNum)
+		
+		if err != nil {
+			log.Printf("Error querying maintenance_records: %v", err)
+		} else {
+			defer rows.Close()
+			for rows.Next() {
+				var record BusMaintenanceLog
+				var vehicleNum int
+				var cost float64
+				err := rows.Scan(&vehicleNum, &record.Date, &record.Mileage, &record.Notes, &cost)
+				if err == nil {
+					record.Category = "service"
+					record.BusID = strconv.Itoa(vehicleNum)
+					allRecords = append(allRecords, record)
+					totalCost += cost
+				}
+			}
+			log.Printf("Found %d records in maintenance_records", len(allRecords))
+		}
+	}
+	
+	// Also check service_records
+	rows2, err := db.Query(`
+		SELECT COALESCE(unnamed_1, ''), 
+			   COALESCE(unnamed_2, ''),
+			   COALESCE(unnamed_3, ''),
+			   COALESCE(unnamed_4, ''),
+			   COALESCE(created_at::text, '')
+		FROM service_records 
+		WHERE unnamed_1 = $1
+		ORDER BY created_at DESC
+		LIMIT 20
+	`, vehicleID)
+	
+	if err != nil {
+		log.Printf("Error querying service_records: %v", err)
+	} else {
+		defer rows2.Close()
+		serviceCount := 0
+		for rows2.Next() {
+			var vehicleID, vendor, serviceNum, mileageStr, createdAt string
+			err := rows2.Scan(&vehicleID, &vendor, &serviceNum, &mileageStr, &createdAt)
+			if err == nil {
+				mileage := 0
+				if m, err := strconv.Atoi(mileageStr); err == nil {
+					mileage = m
+				}
+				
+				dateStr := createdAt
+				if len(createdAt) >= 10 {
+					dateStr = createdAt[:10]
+				}
+				
+				record := BusMaintenanceLog{
+					BusID:    vehicleID,
+					Date:     dateStr,
+					Category: "service",
+					Notes:    fmt.Sprintf("Service by %s - Invoice #%s", vendor, serviceNum),
+					Mileage:  mileage,
+				}
+				allRecords = append(allRecords, record)
+				serviceCount++
+			}
+		}
+		log.Printf("Found %d records in service_records", serviceCount)
+	}
+	
+	log.Printf("Total maintenance records for vehicle %s: %d", vehicleID, len(allRecords))
+	
+	// Calculate statistics
+	avgCost := 0.0
+	if len(allRecords) > 0 && totalCost > 0 {
+		avgCost = totalCost / float64(len(allRecords))
+	}
+	
+	recentCount := 0
+	thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
+	for _, record := range allRecords {
+		if recordDate, err := time.Parse("2006-01-02", record.Date); err == nil {
+			if recordDate.After(thirtyDaysAgo) {
+				recentCount++
+			}
+		}
+	}
+	
+	// Create the template data
+	data := struct {
+		VehicleID          string
+		IsBus              bool
+		VehicleInfo        interface{}
+		MaintenanceRecords []BusMaintenanceLog
+		TotalRecords       int
+		TotalCost          float64
+		AverageCost        float64
+		RecentCount        int
+		Today              string
+		CSRFToken          string
+	}{
+		VehicleID:          vehicleID,
+		IsBus:              false,
+		VehicleInfo:        vehicle,
+		MaintenanceRecords: allRecords,
+		TotalRecords:       len(allRecords),
+		TotalCost:          totalCost,
+		AverageCost:        avgCost,
+		RecentCount:        recentCount,
+		Today:              time.Now().Format("2006-01-02"),
+		CSRFToken:          getCSRFToken(r),
+	}
+	
+	executeTemplate(w, "vehicle_maintenance.html", data)
 }
 
 func fleetHandler(w http.ResponseWriter, r *http.Request) {
-    user := getUserFromSession(r)
-    if user == nil || user.Role != "manager" {
-        http.Redirect(w, r, "/", http.StatusSeeOther)
-        return
-    }
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 
-    // Load buses
-    buses := loadBuses()
-    
-    // Load recent maintenance logs from PostgreSQL only
-    recentMaintenanceLogs, err := getRecentMaintenanceActivity(5)
-    if err != nil {
-        log.Printf("Error loading recent maintenance logs: %v", err)
-        recentMaintenanceLogs = []BusMaintenanceLog{}
-    }
-    
-    log.Printf("Fleet handler: Found %d buses and %d recent maintenance logs", len(buses), len(recentMaintenanceLogs))
-    
-    data := FleetData{
-        User:               user,
-        Buses:              buses,
-        Today:              time.Now().Format("2006-01-02"),
-        CSRFToken:          getCSRFToken(r),
-        MaintenanceLogs:    recentMaintenanceLogs,
-    }
-    
-    executeTemplate(w, "fleet.html", data)
+	// Load buses
+	buses := loadBuses()
+	
+	// Load recent maintenance logs from PostgreSQL only
+	recentMaintenanceLogs, err := getRecentMaintenanceActivity(5)
+	if err != nil {
+		log.Printf("Error loading recent maintenance logs: %v", err)
+		recentMaintenanceLogs = []BusMaintenanceLog{}
+	}
+	
+	log.Printf("Fleet handler: Found %d buses and %d recent maintenance logs", len(buses), len(recentMaintenanceLogs))
+	
+	data := FleetData{
+		User:               user,
+		Buses:              buses,
+		Today:              time.Now().Format("2006-01-02"),
+		CSRFToken:          getCSRFToken(r),
+		MaintenanceLogs:    recentMaintenanceLogs,
+	}
+	
+	executeTemplate(w, "fleet.html", data)
 }
 func debugVehicleHandler(w http.ResponseWriter, r *http.Request) {
 	vehicleID := extractIDFromPath(r.URL.Path, "/debug-vehicle/")
@@ -2851,4 +3168,19 @@ func getDriverLogs(driverUsername string) []DriverLog {
 		}
 	}
 	return driverLogs
+}
+
+// Add these min/max helper functions
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
