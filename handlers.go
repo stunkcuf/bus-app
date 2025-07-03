@@ -5,6 +5,8 @@ import (
     "encoding/json"
     "log"
     "net/http"
+    "fmt"
+    "strings"
 )
 
 // NEW HANDLER: Check if driver has existing bus
