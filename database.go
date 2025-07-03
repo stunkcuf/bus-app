@@ -232,6 +232,124 @@ func runMigrations() error {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    -- Drop existing tables if needed (be careful with this in production!)
+-- DROP TABLE IF EXISTS monthly_mileage_reports CASCADE;
+-- DROP TABLE IF EXISTS agency_vehicles CASCADE;
+-- DROP TABLE IF EXISTS school_buses CASCADE;
+-- DROP TABLE IF EXISTS program_staff CASCADE;
+
+-- Create table for Agency Vehicles
+CREATE TABLE IF NOT EXISTS agency_vehicles (
+    id SERIAL PRIMARY KEY,
+    report_month VARCHAR(20) NOT NULL,
+    report_year INTEGER NOT NULL,
+    vehicle_year INTEGER,
+    make_model VARCHAR(100),
+    license_plate VARCHAR(20),
+    vehicle_id VARCHAR(20) NOT NULL,
+    location VARCHAR(100),
+    beginning_miles INTEGER DEFAULT 0,
+    ending_miles INTEGER DEFAULT 0,
+    total_miles INTEGER DEFAULT 0,
+    status VARCHAR(50), -- FOR SALE, SOLD, out of lease, no report given, repairs
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(report_month, report_year, vehicle_id)
+);
+
+-- Create table for School Buses
+CREATE TABLE IF NOT EXISTS school_buses (
+    id SERIAL PRIMARY KEY,
+    report_month VARCHAR(20) NOT NULL,
+    report_year INTEGER NOT NULL,
+    bus_year INTEGER,
+    bus_make VARCHAR(100),
+    license_plate VARCHAR(20),
+    bus_id VARCHAR(20) NOT NULL,
+    location VARCHAR(100),
+    beginning_miles INTEGER DEFAULT 0,
+    ending_miles INTEGER DEFAULT 0,
+    total_miles INTEGER DEFAULT 0,
+    status VARCHAR(50), -- SPARE, SLATED FOR, sub for, etc.
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(report_month, report_year, bus_id)
+);
+
+-- Create table for Program Staff counts
+CREATE TABLE IF NOT EXISTS program_staff (
+    id SERIAL PRIMARY KEY,
+    report_month VARCHAR(20) NOT NULL,
+    report_year INTEGER NOT NULL,
+    program_type VARCHAR(20) NOT NULL, -- HS, OPK, EHS
+    staff_count_1 INTEGER DEFAULT 0,
+    staff_count_2 INTEGER DEFAULT 0,
+    total_staff INTEGER GENERATED ALWAYS AS (staff_count_1 + staff_count_2) STORED,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(report_month, report_year, program_type)
+);
+
+-- Create a unified view for all vehicle mileage (combines agency vehicles and school buses)
+CREATE OR REPLACE VIEW all_vehicle_mileage AS
+SELECT 
+    'agency' as vehicle_type,
+    report_month,
+    report_year,
+    vehicle_year as year,
+    make_model as make,
+    license_plate,
+    vehicle_id as id,
+    location,
+    beginning_miles,
+    ending_miles,
+    total_miles,
+    status,
+    notes
+FROM agency_vehicles
+UNION ALL
+SELECT 
+    'school_bus' as vehicle_type,
+    report_month,
+    report_year,
+    bus_year as year,
+    bus_make as make,
+    license_plate,
+    bus_id as id,
+    location,
+    beginning_miles,
+    ending_miles,
+    total_miles,
+    status,
+    notes
+FROM school_buses;
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_agency_vehicles_report ON agency_vehicles(report_month, report_year);
+CREATE INDEX IF NOT EXISTS idx_agency_vehicles_vehicle ON agency_vehicles(vehicle_id);
+CREATE INDEX IF NOT EXISTS idx_school_buses_report ON school_buses(report_month, report_year);
+CREATE INDEX IF NOT EXISTS idx_school_buses_bus ON school_buses(bus_id);
+CREATE INDEX IF NOT EXISTS idx_program_staff_report ON program_staff(report_month, report_year);
+
+-- Update trigger for updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_agency_vehicles_updated_at BEFORE UPDATE ON agency_vehicles
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_school_buses_updated_at BEFORE UPDATE ON school_buses
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_program_staff_updated_at BEFORE UPDATE ON program_staff
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
     -- Activities table
     CREATE TABLE IF NOT EXISTS activities (
