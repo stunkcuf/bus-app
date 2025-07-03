@@ -699,119 +699,63 @@ func importMileageHandler(w http.ResponseWriter, r *http.Request) {
     }
 }
 
+// Replace the existing processMileageExcelFile function in main.go with:
 func processMileageExcelFile(file multipart.File, filename string) (int, error) {
-    f, err := excelize.OpenReader(file)
-    if err != nil {
-        return 0, fmt.Errorf("failed to open Excel file: %v", err)
-    }
-    defer f.Close()
-    
-    sheets := f.GetSheetList()
-    log.Printf("Excel file has %d sheets: %v", len(sheets), sheets)
-    
-    if len(sheets) == 0 {
-        return 0, fmt.Errorf("no sheets found in Excel file")
-    }
-    
-    var allRecords []MileageRecord
-    
-    // Process each sheet
-    for _, sheetName := range sheets {
-        log.Printf("\n=== Processing sheet: '%s' ===", sheetName)
-        
-        rows, err := f.GetRows(sheetName)
-        if err != nil {
-            log.Printf("Error reading sheet '%s': %v", sheetName, err)
-            continue
-        }
-        
-        if len(rows) == 0 {
-            continue
-        }
-        
-        // Look for different sections in the sheet
-        var currentSection string
-        var dataStarted bool
-        
-        for i, row := range rows {
-            // Skip empty rows
-            if len(row) == 0 || (len(row) == 1 && strings.TrimSpace(row[0]) == "") {
-                continue
-            }
-            
-            // Check for section headers
-            firstCell := strings.ToLower(strings.TrimSpace(row[0]))
-            if strings.Contains(firstCell, "school bus") {
-                currentSection = "school_bus"
-                log.Printf("Found School Buses section at row %d", i+1)
-                continue
-            } else if strings.Contains(firstCell, "agency vehicle") {
-                currentSection = "agency_vehicle"
-                log.Printf("Found Agency Vehicles section at row %d", i+1)
-                continue
-            } else if strings.Contains(firstCell, "program") {
-                currentSection = "program"
-                log.Printf("Found Programs section at row %d", i+1)
-                continue
-            }
-            
-            // Look for header row (contains "Beginning" or "Ending" miles)
-            hasBeginning := false
-            hasEnding := false
-            for _, cell := range row {
-                cellLower := strings.ToLower(cell)
-                if strings.Contains(cellLower, "beginning") {
-                    hasBeginning = true
-                }
-                if strings.Contains(cellLower, "ending") {
-                    hasEnding = true
-                }
-            }
-            
-            if hasBeginning && hasEnding {
-                dataStarted = true
-                log.Printf("Found header row at index %d with columns: %v", i, row)
-                continue
-            }
-            
-            // Skip rows until we find data
-            if !dataStarted {
-                // Try alternative approach - look for rows with numeric data
-                numericCount := 0
-                for _, cell := range row {
-                    if val := parseInt(cell); val > 0 {
-                        numericCount++
-                    }
-                }
-                // If we have multiple numeric values, might be a data row
-                if numericCount >= 3 {
-                    dataStarted = true
-                }
-            }
-            
-            if !dataStarted && currentSection == "" {
-                continue
-            }
-            
-            // Try to parse data row using the more intelligent parser
-            record := parseEnhancedMileageRow(row, sheetName, currentSection)
-            if record != nil && record.BusID != "" {
-                allRecords = append(allRecords, *record)
-                log.Printf("Parsed record: Bus=%s, Begin=%d, End=%d, Total=%d, Section=%s", 
-                    record.BusID, record.BeginningMiles, record.EndingMiles, record.TotalMiles, currentSection)
-            }
-        }
-    }
-    
-    log.Printf("\n=== Import Summary ===")
-    log.Printf("Total valid records found: %d", len(allRecords))
-    
-    if len(allRecords) == 0 {
-        return 0, fmt.Errorf("no valid records found - please check the Excel format")
-    }
-    
-    return insertMileageRecords(allRecords)
+    return processEnhancedMileageExcelFile(file, filename)
 }
+
+// Update the route setup in setupManagerRoutes to use the enhanced handler:
+func setupManagerRoutes(mux *http.ServeMux) {
+    // ... existing routes ...
+    
+    // Replace the existing view-mileage-reports route with:
+    mux.HandleFunc("/view-mileage-reports", withRecovery(requireAuth(requireRole("manager")(viewEnhancedMileageReportsHandler))))
+    
+    // ... rest of routes ...
+}
+
+// Update the importMileageHandler success message to be more specific:
+func importMileageHandler(w http.ResponseWriter, r *http.Request) {
+    // ... existing code ...
+    
+    // After successful import, update the success message:
+    data := struct {
+        User      *User
+        CSRFToken string
+        Error     string
+        Success   string
+    }{
+        User:      user,
+        CSRFToken: getCSRFToken(r),
+        Success:   fmt.Sprintf("Successfully imported %d records from '%s'! This includes agency vehicles, school buses, and program staff data.", importedCount, header.Filename),
+    }
+    
+    renderTemplate(w, "import_mileage.html", data)
+}
+
+// Add this helper function to validate vehicle IDs don't exceed database limits:
+func validateVehicleID(id string) string {
+    // Ensure vehicle ID doesn't exceed 20 characters (your database limit)
+    if len(id) > 20 {
+        // Try to intelligently shorten it
+        if strings.HasPrefix(strings.ToUpper(id), "BUS") && len(id) > 20 {
+            // Remove "BUS" prefix and re-add it to fit
+            baseID := strings.TrimPrefix(strings.ToUpper(id), "BUS")
+            if len(baseID) <= 17 {
+                return "BUS" + baseID
+            }
+            // If still too long, truncate
+            return "BUS" + baseID[:17]
+        }
+        // For other IDs, just truncate
+        log.Printf("Warning: Vehicle ID '%s' truncated to '%s'", id, id[:20])
+        return id[:20]
+    }
+    return id
+}
+
+// Update the database global variable declaration if needed:
+var db *sql.DB // Make sure this is declared at package level
 
 // Add this new enhanced parser function
 func parseEnhancedMileageRow(row []string, sheetName string, section string) *MileageRecord {
