@@ -411,6 +411,55 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "driver_dashboard.html", data)
 }
 
+func processMileageExcelFile(file multipart.File, filename string) (int, error) {
+    f, err := excelize.OpenReader(file)
+    if err != nil {
+        return 0, err
+    }
+    defer f.Close()
+    
+    var records []MileageRecord
+    sheets := f.GetSheetList()
+    if len(sheets) == 0 {
+        return 0, fmt.Errorf("no sheets found")
+    }
+    
+    rows, err := f.GetRows(sheets[0])
+    if err != nil {
+        return 0, err
+    }
+    
+    for i, row := range rows {
+        if i == 0 || len(row) < 10 {
+            continue
+        }
+        
+        record := MileageRecord{
+            ReportMonth:    strings.TrimSpace(row[0]),
+            ReportYear:     parseInt(row[1]),
+            BusYear:        parseInt(row[2]),
+            BusMake:        strings.TrimSpace(row[3]),
+            LicensePlate:   strings.TrimSpace(row[4]),
+            BusID:          strings.TrimSpace(row[5]),
+            LocatedAt:      strings.TrimSpace(row[6]),
+            BeginningMiles: parseInt(row[7]),
+            EndingMiles:    parseInt(row[8]),
+            TotalMiles:     parseInt(row[9]),
+        }
+        
+        if record.ReportMonth != "" && record.ReportYear != 0 && record.BusID != "" {
+            records = append(records, record)
+        }
+    }
+    
+    return insertMileageRecords(records)
+}
+
+func parseInt(s string) int {
+    val, _ := strconv.Atoi(strings.TrimSpace(s))
+    return val
+}
+
 // ============= IMPORT MILEAGE HANDLER =============
 func importMileageHandler(w http.ResponseWriter, r *http.Request) {
     user := getUserFromSession(r)
