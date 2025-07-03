@@ -1,15 +1,19 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 	"mime/multipart"
 	"regexp"
@@ -45,61 +49,16 @@ const (
 	MinPasswordLength = 6
 )
 
-// MileageRecord represents a row from the Excel file (legacy)
-type MileageRecord struct {
-	ReportMonth    string
-	ReportYear     int
-	BusYear        int
-	BusMake        string
-	LicensePlate   string
-	BusID          string
-	LocatedAt      string
-	BeginningMiles int
-	EndingMiles    int
-	TotalMiles     int
-}
-
-// Enhanced data structures for different report types
-type AgencyVehicleRecord struct {
-	ReportMonth    string
-	ReportYear     int
-	VehicleYear    int
-	MakeModel      string
-	LicensePlate   string
-	VehicleID      string
-	Location       string
-	BeginningMiles int
-	EndingMiles    int
-	TotalMiles     int
-	Status         string // FOR SALE, SOLD, out of lease, etc.
-	Notes          string
-}
-
-type SchoolBusRecord struct {
-	ReportMonth    string
-	ReportYear     int
-	BusYear        int
-	BusMake        string
-	LicensePlate   string
-	BusID          string
-	Location       string
-	BeginningMiles int
-	EndingMiles    int
-	TotalMiles     int
-	Status         string // SPARE, SLATED FOR, etc.
-	Notes          string
-}
-
-type ProgramStaffRecord struct {
-	ReportMonth  string
-	ReportYear   int
-	ProgramType  string // HS, OPK, EHS
-	StaffCount1  int
-	StaffCount2  int
+// Global cache for performance
+var cache = &DataCache{
+	ttl: 5 * time.Minute,
 }
 
 // Templates variable
 var templates *template.Template
+
+// Cleanup management
+var cleanupOnce sync.Once
 
 func init() {
 	funcMap := template.FuncMap{
@@ -114,6 +73,11 @@ func init() {
 	if err != nil {
 		log.Fatalf("Failed to load templates: %v", err)
 	}
+	
+	// Initialize session cleanup
+	cleanupOnce.Do(func() {
+		go periodicSessionCleanup()
+	})
 }
 
 // Template helper functions
@@ -139,7 +103,7 @@ func getLength(v interface{}) int {
 	}
 }
 
-// ADD THIS FUNCTION TO FIX THE BUSID LENGTH ISSUE
+// FIXED: Better bus ID abbreviation system that avoids collisions
 func abbreviateBusID(busID string) string {
 	// Define abbreviations for known long BusIDs
 	abbreviations := map[string]string{
@@ -167,19 +131,30 @@ func abbreviateBusID(busID string) string {
 		return shortened
 	}
 	
-	// If still too long and not in our map, truncate to 10 chars
+	// If still too long, generate a unique short ID
 	if len(busID) > 10 {
-		log.Printf("Warning: Truncating BusID '%s' to '%s'", busID, busID[:10])
-		return busID[:10]
+		// Use first 7 chars + 3-digit hash to avoid collisions
+		hash := hashString(busID) % 1000
+		return fmt.Sprintf("%s%03d", busID[:min(7, len(busID))], hash)
 	}
 	
 	return busID
 }
 
+func hashString(s string) uint32 {
+	h := uint32(0)
+	for _, c := range s {
+		h = h*31 + uint32(c)
+	}
+	return h
+}
+
 func main() {
 	// Database setup
 	log.Println("🗄️  Setting up PostgreSQL database...")
-	setupDatabase()
+	if err := setupDatabase(); err != nil {
+		log.Fatalf("Failed to setup database: %v", err)
+	}
 	defer closeDatabase()
 
 	mux := setupRoutes()
@@ -198,8 +173,11 @@ func main() {
 		MaxHeaderBytes: MaxHeaderBytes,
 	}
 
+	// Graceful shutdown
+	go gracefulShutdown(server)
+
 	log.Printf("🚀 Server starting on port %s", port)
-	if err := server.ListenAndServe(); err != nil {
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("Server error: %v", err)
 	}
 }
@@ -221,7 +199,7 @@ func setupRoutes() *http.ServeMux {
 	setupDriverRoutes(mux)
 	
 	// Common protected routes
-	mux.HandleFunc("/dashboard", withRecovery(requireAuth(dashboardRouter)))
+	mux.HandleFunc("/dashboard", withRecovery(requireAuth(requireDatabase(dashboardRouter))))
 
 	return mux
 }
@@ -229,56 +207,56 @@ func setupRoutes() *http.ServeMux {
 // setupManagerRoutes configures manager-specific routes
 func setupManagerRoutes(mux *http.ServeMux) {
 	// User management
-	mux.HandleFunc("/approve-users", withRecovery(requireAuth(requireRole("manager")(approveUsersHandler))))
-	mux.HandleFunc("/approve-user", withRecovery(requireAuth(requireRole("manager")(approveUserHandler))))
-	mux.HandleFunc("/new-user", withRecovery(requireAuth(requireRole("manager")(newUserHandler))))
-	mux.HandleFunc("/edit-user", withRecovery(requireAuth(requireRole("manager")(editUserHandler))))
-	mux.HandleFunc("/remove-user", withRecovery(requireAuth(requireRole("manager")(removeUserHandler))))
+	mux.HandleFunc("/approve-users", withRecovery(requireAuth(requireRole("manager")(requireDatabase(approveUsersHandler)))))
+	mux.HandleFunc("/approve-user", withRecovery(requireAuth(requireRole("manager")(requireDatabase(approveUserHandler)))))
+	mux.HandleFunc("/new-user", withRecovery(requireAuth(requireRole("manager")(requireDatabase(newUserHandler)))))
+	mux.HandleFunc("/edit-user", withRecovery(requireAuth(requireRole("manager")(requireDatabase(editUserHandler)))))
+	mux.HandleFunc("/remove-user", withRecovery(requireAuth(requireRole("manager")(requireDatabase(removeUserHandler)))))
 	
 	// Dashboard
-	mux.HandleFunc("/manager-dashboard", withRecovery(requireAuth(requireRole("manager")(managerDashboard))))
+	mux.HandleFunc("/manager-dashboard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(managerDashboard)))))
 	
 	// Fleet management
-	mux.HandleFunc("/fleet", withRecovery(requireAuth(requireRole("manager")(fleetPage))))
-	mux.HandleFunc("/company-fleet", withRecovery(requireAuth(requireRole("manager")(companyFleetPage))))
-	mux.HandleFunc("/update-vehicle-status", withRecovery(requireAuth(requireRole("manager")(updateVehicleStatus))))
+	mux.HandleFunc("/fleet", withRecovery(requireAuth(requireRole("manager")(requireDatabase(fleetPage)))))
+	mux.HandleFunc("/company-fleet", withRecovery(requireAuth(requireRole("manager")(requireDatabase(companyFleetPage)))))
+	mux.HandleFunc("/update-vehicle-status", withRecovery(requireAuth(requireRole("manager")(requireDatabase(updateVehicleStatus)))))
 	
 	// Maintenance
-	mux.HandleFunc("/debug-vehicle/", withRecovery(requireAuth(requireRole("manager")(debugVehicleHandler))))
-	mux.HandleFunc("/bus-maintenance/", withRecovery(requireAuth(requireRole("manager")(busMaintenanceHandler))))
-	mux.HandleFunc("/vehicle-maintenance/", withRecovery(requireAuth(requireRole("manager")(vehicleMaintenanceHandler))))
-	mux.HandleFunc("/save-maintenance-record", withRecovery(requireAuth(requireRole("manager")(saveMaintenanceRecordHandler))))
+	mux.HandleFunc("/debug-vehicle/", withRecovery(requireAuth(requireRole("manager")(requireDatabase(debugVehicleHandler)))))
+	mux.HandleFunc("/bus-maintenance/", withRecovery(requireAuth(requireRole("manager")(requireDatabase(busMaintenanceHandler)))))
+	mux.HandleFunc("/vehicle-maintenance/", withRecovery(requireAuth(requireRole("manager")(requireDatabase(vehicleMaintenanceHandler)))))
+	mux.HandleFunc("/save-maintenance-record", withRecovery(requireAuth(requireRole("manager")(requireDatabase(saveMaintenanceRecordHandler)))))
 	
 	// Route management
-	mux.HandleFunc("/assign-routes", withRecovery(requireAuth(requireRole("manager")(assignRoutesPage))))
-	mux.HandleFunc("/assign-route", withRecovery(requireAuth(requireRole("manager")(assignRouteHandler))))
-	mux.HandleFunc("/unassign-route", withRecovery(requireAuth(requireRole("manager")(unassignRouteHandler))))
-	mux.HandleFunc("/assign-routes/add", withRecovery(requireAuth(requireRole("manager")(addRouteHandler))))
-	mux.HandleFunc("/assign-routes/edit", withRecovery(requireAuth(requireRole("manager")(editRouteHandler))))
-	mux.HandleFunc("/assign-routes/delete", withRecovery(requireAuth(requireRole("manager")(deleteRouteHandler))))
+	mux.HandleFunc("/assign-routes", withRecovery(requireAuth(requireRole("manager")(requireDatabase(assignRoutesPage)))))
+	mux.HandleFunc("/assign-route", withRecovery(requireAuth(requireRole("manager")(requireDatabase(assignRouteHandler)))))
+	mux.HandleFunc("/unassign-route", withRecovery(requireAuth(requireRole("manager")(requireDatabase(unassignRouteHandler)))))
+	mux.HandleFunc("/assign-routes/add", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addRouteHandler)))))
+	mux.HandleFunc("/assign-routes/edit", withRecovery(requireAuth(requireRole("manager")(requireDatabase(editRouteHandler)))))
+	mux.HandleFunc("/assign-routes/delete", withRecovery(requireAuth(requireRole("manager")(requireDatabase(deleteRouteHandler)))))
 	
 	// API endpoints for route assignment
-	mux.HandleFunc("/api/route-assignment", withRecovery(requireAuth(requireRole("manager")(handleSaveRouteAssignment))))
-	mux.HandleFunc("/api/check-driver-bus", withRecovery(requireAuth(requireRole("manager")(handleCheckDriverBus))))
+	mux.HandleFunc("/api/route-assignment", withRecovery(requireAuth(requireRole("manager")(requireDatabase(handleSaveRouteAssignment)))))
+	mux.HandleFunc("/api/check-driver-bus", withRecovery(requireAuth(requireRole("manager")(requireDatabase(handleCheckDriverBus)))))
 	
 	// Mileage reports
-	mux.HandleFunc("/import-mileage", withRecovery(requireAuth(requireRole("manager")(importMileageHandler))))
-	mux.HandleFunc("/view-mileage-reports", withRecovery(requireAuth(requireRole("manager")(viewEnhancedMileageReportsHandler))))
+	mux.HandleFunc("/import-mileage", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importMileageHandler)))))
+	mux.HandleFunc("/view-mileage-reports", withRecovery(requireAuth(requireRole("manager")(requireDatabase(viewEnhancedMileageReportsHandler)))))
 	
 	// Driver profile
-	mux.HandleFunc("/driver/", withRecovery(requireAuth(requireRole("manager")(driverProfileHandler))))
+	mux.HandleFunc("/driver/", withRecovery(requireAuth(requireRole("manager")(requireDatabase(driverProfileHandler)))))
 }
 
 // setupDriverRoutes configures driver-specific routes
 func setupDriverRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/driver-dashboard", withRecovery(requireAuth(requireRole("driver")(driverDashboard))))
-	mux.HandleFunc("/save-log", withRecovery(requireAuth(requireRole("driver")(saveDriverLogHandler))))
+	mux.HandleFunc("/driver-dashboard", withRecovery(requireAuth(requireRole("driver")(requireDatabase(driverDashboard)))))
+	mux.HandleFunc("/save-log", withRecovery(requireAuth(requireRole("driver")(requireDatabase(saveDriverLogHandler)))))
 	
 	// Student management
-	mux.HandleFunc("/students", withRecovery(requireAuth(requireRole("driver")(studentsPage))))
-	mux.HandleFunc("/add-student", withRecovery(requireAuth(requireRole("driver")(addStudentHandler))))
-	mux.HandleFunc("/edit-student", withRecovery(requireAuth(requireRole("driver")(editStudentHandler))))
-	mux.HandleFunc("/remove-student", withRecovery(requireAuth(requireRole("driver")(removeStudentHandler))))
+	mux.HandleFunc("/students", withRecovery(requireAuth(requireRole("driver")(requireDatabase(studentsPage)))))
+	mux.HandleFunc("/add-student", withRecovery(requireAuth(requireRole("driver")(requireDatabase(addStudentHandler)))))
+	mux.HandleFunc("/edit-student", withRecovery(requireAuth(requireRole("driver")(requireDatabase(editStudentHandler)))))
+	mux.HandleFunc("/remove-student", withRecovery(requireAuth(requireRole("driver")(requireDatabase(removeStudentHandler)))))
 }
 
 // ============= AUTHENTICATION & REGISTRATION HANDLERS =============
@@ -314,7 +292,13 @@ func handleLoginPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Find user and check credentials
-	users := loadUsers()
+	users, err := cache.GetUsers()
+	if err != nil {
+		log.Printf("Error loading users: %v", err)
+		renderLoginError(w, "System error. Please try again.")
+		return
+	}
+	
 	for _, user := range users {
 		if user.Username == username && CheckPasswordHash(password, user.Password) {
 			if user.Role == RoleDriverPending {
@@ -344,14 +328,6 @@ func viewMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/view-mileage-reports", http.StatusFound)
 }
 
-// Add these helper functions
-type MileageStats struct {
-	TotalRecords   int
-	TotalMiles     int
-	AverageMiles   float64
-	UniqueBuses    int
-}
-
 func registerHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		renderTemplate(w, "register.html", struct{ Error string }{})
@@ -369,7 +345,16 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if username exists
-	if userExists(username) {
+	exists, err := userExists(username)
+	if err != nil {
+		log.Printf("Error checking user existence: %v", err)
+		renderTemplate(w, "register.html", struct{ Error string }{
+			Error: "System error. Please try again.",
+		})
+		return
+	}
+	
+	if exists {
 		renderTemplate(w, "register.html", struct{ Error string }{
 			Error: "Username already exists. Please choose another.",
 		})
@@ -384,6 +369,9 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Clear user cache
+	cache.InvalidateUsers()
+	
 	renderTemplate(w, "registration_success.html", nil)
 }
 
@@ -394,7 +382,13 @@ func approveUsersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pendingUsers := getPendingUsers()
+	pendingUsers, err := getPendingUsers()
+	if err != nil {
+		log.Printf("Error getting pending users: %v", err)
+		http.Error(w, "Failed to load pending users", http.StatusInternalServerError)
+		return
+	}
+	
 	csrfToken := getCSRFToken(r)
 
 	data := struct {
@@ -436,6 +430,9 @@ func approveUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Clear cache after user update
+	cache.InvalidateUsers()
+	
 	http.Redirect(w, r, "/approve-users", http.StatusFound)
 }
 
@@ -458,15 +455,24 @@ func managerDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pendingCount := countPendingUsers()
+	pendingCount, err := countPendingUsers()
+	if err != nil {
+		log.Printf("Error counting pending users: %v", err)
+		pendingCount = 0
+	}
+	
 	csrfToken := getCSRFToken(r)
+	
+	users, _ := cache.GetUsers()
+	buses, _ := cache.GetBuses()
+	routes, _ := cache.GetRoutes()
 	
 	data := DashboardData{
 		User:            user,
 		Role:            user.Role,
-		Users:           loadUsers(),
-		Buses:           loadBuses(),
-		Routes:          loadRoutesWithDefault(),
+		Users:           users,
+		Buses:           buses,
+		Routes:          routes,
 		DriverSummaries: []*DriverSummary{},
 		RouteStats:      []*RouteStats{},
 		Activities:      []Activity{},
@@ -490,9 +496,14 @@ func driverDashboard(w http.ResponseWriter, r *http.Request) {
 	// Load driver's data
 	assignment, _ := getDriverRouteAssignment(user.Username)
 	route, bus := getRouteAndBus(assignment)
-	routeStudents := getRouteStudents(route, user.Username, period)
+	routeStudents, err := getRouteStudents(route, user.Username, period)
+	if err != nil {
+		log.Printf("Error getting route students: %v", err)
+		routeStudents = []Student{}
+	}
+	
 	driverLog := getDriverLogForDatePeriod(user.Username, date, period)
-	recentLogs := getRecentDriverLogs(user.Username, 5)
+	recentLogs, _ := getRecentDriverLogs(user.Username, 5)
 	
 	data := struct {
 		User          *User
@@ -729,15 +740,15 @@ func processSheet(f *excelize.File, sheetName string) (int, error) {
 		// Process data rows based on section
 		switch currentSection {
 		case "agency":
-			if vehicle := parseAgencyVehicleRow(row, reportMonth, reportYear); vehicle != nil {
+			if vehicle := parseAgencyVehicleRow(row, reportMonth, reportYear, i+1); vehicle != nil {
 				agencyVehicles = append(agencyVehicles, *vehicle)
 			}
 		case "school_bus":
-			if bus := parseSchoolBusRow(row, reportMonth, reportYear); bus != nil {
+			if bus := parseSchoolBusRow(row, reportMonth, reportYear, i+1); bus != nil {
 				schoolBuses = append(schoolBuses, *bus)
 			}
 		case "program":
-			if staff := parseProgramStaffRow(row, reportMonth, reportYear); staff != nil {
+			if staff := parseProgramStaffRow(row, reportMonth, reportYear, i+1); staff != nil {
 				programStaff = append(programStaff, *staff)
 			}
 		}
@@ -793,7 +804,7 @@ func isHeaderRow(row []string) bool {
 	return matchCount >= 3
 }
 
-func parseAgencyVehicleRow(row []string, reportMonth string, reportYear int) *AgencyVehicleRecord {
+func parseAgencyVehicleRow(row []string, reportMonth string, reportYear int, rowNum int) *AgencyVehicleRecord {
 	if len(row) < 7 {
 		return nil
 	}
@@ -827,8 +838,15 @@ func parseAgencyVehicleRow(row []string, reportMonth string, reportYear int) *Ag
 	if len(row) > 3 {
 		record.VehicleID = cleanText(row[3])
 		if record.VehicleID == "" {
-			return nil // Skip if no vehicle ID
+			log.Printf("Skipping row %d: missing vehicle ID", rowNum)
+			return nil
 		}
+	}
+	
+	// Validate required fields
+	if record.ReportMonth == "" || record.ReportYear == 0 {
+		log.Printf("Skipping row %d: missing report date", rowNum)
+		return nil
 	}
 	
 	// Parse location (column 4)
@@ -871,7 +889,7 @@ func parseAgencyVehicleRow(row []string, reportMonth string, reportYear int) *Ag
 	return record
 }
 
-func parseSchoolBusRow(row []string, reportMonth string, reportYear int) *SchoolBusRecord {
+func parseSchoolBusRow(row []string, reportMonth string, reportYear int, rowNum int) *SchoolBusRecord {
 	if len(row) < 7 {
 		return nil
 	}
@@ -893,8 +911,15 @@ func parseSchoolBusRow(row []string, reportMonth string, reportYear int) *School
 	if len(row) > 0 {
 		record.BusID = cleanText(row[0])
 		if record.BusID == "" {
+			log.Printf("Skipping row %d: missing bus ID", rowNum)
 			return nil
 		}
+	}
+	
+	// Validate required fields
+	if record.ReportMonth == "" || record.ReportYear == 0 {
+		log.Printf("Skipping row %d: missing report date", rowNum)
+		return nil
 	}
 	
 	// Parse location/status (column 1)
@@ -952,7 +977,7 @@ func parseSchoolBusRow(row []string, reportMonth string, reportYear int) *School
 	return record
 }
 
-func parseProgramStaffRow(row []string, reportMonth string, reportYear int) *ProgramStaffRecord {
+func parseProgramStaffRow(row []string, reportMonth string, reportYear int, rowNum int) *ProgramStaffRecord {
 	if len(row) < 2 {
 		return nil
 	}
@@ -1136,7 +1161,7 @@ func isEmptyRow(row []string) bool {
 	return true
 }
 
-// ============= REST OF YOUR HANDLERS (without the duplicates) =============
+// ============= REST OF YOUR HANDLERS =============
 
 // ============= USER MANAGEMENT HANDLERS =============
 
@@ -1167,6 +1192,9 @@ func newUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Clear cache after user creation
+	cache.InvalidateUsers()
+	
 	http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
 }
 
@@ -1192,6 +1220,9 @@ func removeUserHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to remove user", http.StatusInternalServerError)
 		return
 	}
+	
+	// Clear cache after user deletion
+	cache.InvalidateUsers()
 	
 	http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
 }
@@ -1234,7 +1265,6 @@ func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 
 func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	// Extract vehicle ID from URL path
-	// When URL is /vehicle-maintenance/11, we need to get "11"
 	path := r.URL.Path
 	
 	// Remove the prefix and any trailing slashes
@@ -1252,136 +1282,36 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Get vehicle info from vehicles table
-	var vehicle Vehicle
-	err := db.QueryRow(`
-		SELECT vehicle_id, model, description, year, tire_size, 
-			   license, oil_status, tire_status, status, maintenance_notes,
-			   serial_number, base, COALESCE(service_interval, 0)
-		FROM vehicles 
-		WHERE vehicle_id = $1
-		LIMIT 1
-	`, vehicleID).Scan(
-		&vehicle.VehicleID,
-		&vehicle.Model,
-		&vehicle.Description,
-		&vehicle.Year,
-		&vehicle.TireSize,
-		&vehicle.License,
-		&vehicle.OilStatus,
-		&vehicle.TireStatus,
-		&vehicle.Status,
-		&vehicle.MaintenanceNotes,
-		&vehicle.SerialNumber,
-		&vehicle.Base,
-		&vehicle.ServiceInterval,
-	)
-	
+	vehicles, err := cache.GetVehicles()
 	if err != nil {
-		log.Printf("Error fetching vehicle info for ID %s: %v", vehicleID, err)
+		log.Printf("Error loading vehicles: %v", err)
+		http.Error(w, "Failed to load vehicles", http.StatusInternalServerError)
+		return
 	}
 	
-	var allRecords []BusMaintenanceLog
-	totalCost := 0.0
-	
-	// Try to get maintenance records
-	vehicleNum, err := strconv.Atoi(vehicleID)
-	if err == nil {
-		log.Printf("Querying maintenance_records for vehicle_number: %d", vehicleNum)
-		
-		rows, err := db.Query(`
-			SELECT vehicle_number, 
-				   COALESCE(service_date::text, created_at::text, ''), 
-				   COALESCE(mileage, 0),
-				   COALESCE(work_description, ''),
-				   COALESCE(cost, 0)
-			FROM maintenance_records 
-			WHERE vehicle_number = $1
-			ORDER BY COALESCE(service_date, created_at) DESC
-		`, vehicleNum)
-		
-		if err != nil {
-			log.Printf("Error querying maintenance_records: %v", err)
-		} else {
-			defer rows.Close()
-			for rows.Next() {
-				var record BusMaintenanceLog
-				var vehicleNum int
-				var cost float64
-				err := rows.Scan(&vehicleNum, &record.Date, &record.Mileage, &record.Notes, &cost)
-				if err == nil {
-					record.Category = "service"
-					record.BusID = strconv.Itoa(vehicleNum)
-					allRecords = append(allRecords, record)
-					totalCost += cost
-				}
-			}
-			log.Printf("Found %d records in maintenance_records", len(allRecords))
+	var vehicle *Vehicle
+	for i := range vehicles {
+		if vehicles[i].VehicleID == vehicleID {
+			vehicle = &vehicles[i]
+			break
 		}
 	}
 	
-	// Also check service_records
-	rows2, err := db.Query(`
-		SELECT COALESCE(unnamed_1, ''), 
-			   COALESCE(unnamed_2, ''),
-			   COALESCE(unnamed_3, ''),
-			   COALESCE(unnamed_4, ''),
-			   COALESCE(created_at::text, '')
-		FROM service_records 
-		WHERE unnamed_1 = $1
-		ORDER BY created_at DESC
-		LIMIT 20
-	`, vehicleID)
-	
-	if err != nil {
-		log.Printf("Error querying service_records: %v", err)
-	} else {
-		defer rows2.Close()
-		serviceCount := 0
-		for rows2.Next() {
-			var vehicleID, vendor, serviceNum, mileageStr, createdAt string
-			err := rows2.Scan(&vehicleID, &vendor, &serviceNum, &mileageStr, &createdAt)
-			if err == nil {
-				mileage := 0
-				if m, err := strconv.Atoi(mileageStr); err == nil {
-					mileage = m
-				}
-				
-				dateStr := createdAt
-				if len(createdAt) >= 10 {
-					dateStr = createdAt[:10]
-				}
-				
-				record := BusMaintenanceLog{
-					BusID:    vehicleID,
-					Date:     dateStr,
-					Category: "service",
-					Notes:    fmt.Sprintf("Service by %s - Invoice #%s", vendor, serviceNum),
-					Mileage:  mileage,
-				}
-				allRecords = append(allRecords, record)
-				serviceCount++
-			}
-		}
-		log.Printf("Found %d records in service_records", serviceCount)
+	if vehicle == nil {
+		log.Printf("Vehicle not found: %s", vehicleID)
+		http.Error(w, "Vehicle not found", http.StatusNotFound)
+		return
 	}
 	
-	log.Printf("Total maintenance records for vehicle %s: %d", vehicleID, len(allRecords))
+	// Get maintenance records
+	allRecords, err := getAllVehicleMaintenanceRecords(vehicleID)
+	if err != nil {
+		log.Printf("Error getting maintenance records: %v", err)
+		allRecords = []BusMaintenanceLog{}
+	}
 	
 	// Calculate statistics
-	avgCost := 0.0
-	if len(allRecords) > 0 && totalCost > 0 {
-		avgCost = totalCost / float64(len(allRecords))
-	}
-	
-	recentCount := 0
-	thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
-	for _, record := range allRecords {
-		if recordDate, err := time.Parse("2006-01-02", record.Date); err == nil {
-			if recordDate.After(thirtyDaysAgo) {
-				recentCount++
-			}
-		}
-	}
+	stats := calculateMaintenanceStats(allRecords)
 	
 	// Create the template data
 	data := struct {
@@ -1400,15 +1330,15 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 		IsBus:              false,
 		VehicleInfo:        vehicle,
 		MaintenanceRecords: allRecords,
-		TotalRecords:       len(allRecords),
-		TotalCost:          totalCost,
-		AverageCost:        avgCost,
-		RecentCount:        recentCount,
+		TotalRecords:       stats.TotalRecords,
+		TotalCost:          stats.TotalCost,
+		AverageCost:        stats.AverageCost,
+		RecentCount:        stats.RecentCount,
 		Today:              time.Now().Format("2006-01-02"),
 		CSRFToken:          getCSRFToken(r),
 	}
 	
-	executeTemplate(w, "vehicle_maintenance.html", data)
+	renderTemplate(w, "vehicle_maintenance.html", data)
 }
 
 func fleetHandler(w http.ResponseWriter, r *http.Request) {
@@ -1419,9 +1349,13 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Load buses
-	buses := loadBuses()
+	buses, err := cache.GetBuses()
+	if err != nil {
+		log.Printf("Error loading buses: %v", err)
+		buses = []*Bus{}
+	}
 	
-	// Load recent maintenance logs from PostgreSQL only
+	// Load recent maintenance logs
 	recentMaintenanceLogs, err := getRecentMaintenanceActivity(5)
 	if err != nil {
 		log.Printf("Error loading recent maintenance logs: %v", err)
@@ -1438,7 +1372,7 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 		MaintenanceLogs:    recentMaintenanceLogs,
 	}
 	
-	executeTemplate(w, "fleet.html", data)
+	renderTemplate(w, "fleet.html", data)
 }
 
 func debugVehicleHandler(w http.ResponseWriter, r *http.Request) {
@@ -1499,8 +1433,17 @@ func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
 
 func studentsPage(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
-	driverStudents := getDriverStudents(user.Username)
-	routes, _ := loadRoutes()
+	driverStudents, err := getDriverStudents(user.Username)
+	if err != nil {
+		log.Printf("Error getting driver students: %v", err)
+		driverStudents = []Student{}
+	}
+	
+	routes, err := cache.GetRoutes()
+	if err != nil {
+		log.Printf("Error loading routes: %v", err)
+		routes = []Route{}
+	}
 	
 	data := StudentData{
 		User:      user,
@@ -1602,9 +1545,15 @@ func removeStudentHandler(w http.ResponseWriter, r *http.Request) {
 // ============= FLEET MANAGEMENT HANDLERS =============
 
 func fleetPage(w http.ResponseWriter, r *http.Request) {
+	buses, err := cache.GetBuses()
+	if err != nil {
+		log.Printf("Error loading buses: %v", err)
+		buses = []*Bus{}
+	}
+	
 	data := FleetData{
 		User:      getUserFromSession(r),
-		Buses:     loadBuses(),
+		Buses:     buses,
 		Today:     time.Now().Format(DateFormat),
 		CSRFToken: getCSRFToken(r),
 	}
@@ -1613,9 +1562,15 @@ func fleetPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func companyFleetPage(w http.ResponseWriter, r *http.Request) {
+	vehicles, err := cache.GetVehicles()
+	if err != nil {
+		log.Printf("Error loading vehicles: %v", err)
+		vehicles = []Vehicle{}
+	}
+	
 	data := CompanyFleetData{
 		User:      getUserFromSession(r),
-		Vehicles:  loadVehicles(),
+		Vehicles:  vehicles,
 		CSRFToken: getCSRFToken(r),
 	}
 	
@@ -1649,6 +1604,9 @@ func updateVehicleStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Clear cache after vehicle update
+	cache.InvalidateVehicles()
+	
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
 }
@@ -1656,10 +1614,15 @@ func updateVehicleStatus(w http.ResponseWriter, r *http.Request) {
 // ============= ROUTE ASSIGNMENT HANDLERS =============
 
 func assignRoutesPage(w http.ResponseWriter, r *http.Request) {
-	assignments, _ := loadRouteAssignments()
-	routes, _ := loadRoutes()
-	buses := loadBuses()
-	users := loadUsers()
+	assignments, err := loadRouteAssignments()
+	if err != nil {
+		log.Printf("Error loading route assignments: %v", err)
+		assignments = []RouteAssignment{}
+	}
+	
+	routes, _ := cache.GetRoutes()
+	buses, _ := cache.GetBuses()
+	users, _ := cache.GetUsers()
 	
 	// Calculate available resources
 	assignmentData := calculateAssignmentData(assignments, routes, buses, users)
@@ -1746,6 +1709,9 @@ func addRouteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Clear cache after route creation
+	cache.InvalidateRoutes()
+	
 	http.Redirect(w, r, "/assign-routes", http.StatusFound)
 }
 
@@ -1770,6 +1736,9 @@ func editRouteHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to update route", http.StatusInternalServerError)
 		return
 	}
+	
+	// Clear cache after route update
+	cache.InvalidateRoutes()
 	
 	http.Redirect(w, r, "/assign-routes", http.StatusFound)
 }
@@ -1801,6 +1770,9 @@ func deleteRouteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Clear cache after route deletion
+	cache.InvalidateRoutes()
+	
 	http.Redirect(w, r, "/assign-routes", http.StatusFound)
 }
 
@@ -1813,7 +1785,11 @@ func driverProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	driverLogs := getDriverLogs(driverUsername)
+	driverLogs, err := getDriverLogs(driverUsername)
+	if err != nil {
+		log.Printf("Error getting driver logs: %v", err)
+		driverLogs = []DriverLog{}
+	}
 	
 	data := struct {
 		Name string
@@ -1829,16 +1805,46 @@ func driverProfileHandler(w http.ResponseWriter, r *http.Request) {
 // ============= UTILITY HANDLERS =============
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {
+	health := struct {
+		Status      string `json:"status"`
+		Service     string `json:"service"`
+		Timestamp   string `json:"timestamp"`
+		Database    string `json:"database"`
+		Version     string `json:"version"`
+		SessionCount int   `json:"active_sessions"`
+	}{
+		Status:      "ok",
+		Service:     "bus-fleet-management",
+		Timestamp:   time.Now().Format(time.RFC3339),
+		Database:    "connected",
+		Version:     "2.0.0",
+		SessionCount: GetActiveSessionCount(),
+	}
+	
+	// Check database connection
+	if db == nil || db.Ping() != nil {
+		health.Status = "degraded"
+		health.Database = "disconnected"
+	}
+	
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
-		"status":    "ok",
-		"service":   "bus-fleet-management",
-		"timestamp": time.Now().Format(time.RFC3339),
-	})
+	
+	if health.Status == "ok" {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}
+	
+	json.NewEncoder(w).Encode(health)
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
+	// Get username from session before clearing
+	if user := getUserFromSession(r); user != nil {
+		// Clear all sessions for this user
+		ClearUserSessions(user.Username)
+	}
+	
 	http.SetCookie(w, &http.Cookie{
 		Name:     SessionCookieName,
 		Value:    "",
@@ -1937,14 +1943,18 @@ func validateRegistration(username, password string) error {
 	return nil
 }
 
-func userExists(username string) bool {
-	users := loadUsers()
+func userExists(username string) (bool, error) {
+	users, err := cache.GetUsers()
+	if err != nil {
+		return false, err
+	}
+	
 	for _, user := range users {
 		if user.Username == username {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 func createPendingUser(username, password string) error {
@@ -1963,38 +1973,48 @@ func createPendingUser(username, password string) error {
 	return saveUser(newUser)
 }
 
-func getPendingUsers() []struct {
+func getPendingUsers() ([]struct {
 	Username  string
 	CreatedAt string
-} {
+}, error) {
 	var pendingUsers []struct {
 		Username  string
 		CreatedAt string
 	}
 	
-	for _, u := range loadUsers() {
+	users, err := cache.GetUsers()
+	if err != nil {
+		return nil, err
+	}
+	
+	for _, u := range users {
 		if u.Role == RoleDriverPending {
 			pendingUsers = append(pendingUsers, struct {
 				Username  string
 				CreatedAt string
 			}{
 				Username:  u.Username,
-				CreatedAt: "Recently", // You could add timestamp to User struct
+				CreatedAt: u.RegistrationDate,
 			})
 		}
 	}
 	
-	return pendingUsers
+	return pendingUsers, nil
 }
 
-func countPendingUsers() int {
+func countPendingUsers() (int, error) {
+	users, err := cache.GetUsers()
+	if err != nil {
+		return 0, err
+	}
+	
 	count := 0
-	for _, u := range loadUsers() {
+	for _, u := range users {
 		if u.Role == RoleDriverPending {
 			count++
 		}
 	}
-	return count
+	return count, nil
 }
 
 func validateApprovalRequest(username, action string) error {
@@ -2010,25 +2030,20 @@ func processUserApproval(username, action string) error {
 	}
 	
 	// Approve user
-	users := loadUsers()
+	users, err := loadUsersFromDB()
+	if err != nil {
+		return err
+	}
+	
 	for i, u := range users {
 		if u.Username == username && u.Role == RoleDriverPending {
 			users[i].Role = RoleDriver
 			users[i].Status = StatusActive
-			return saveUsers(users)
+			return updateUser(users[i])
 		}
 	}
 	
 	return fmt.Errorf("User not found or already processed")
-}
-
-func loadRoutesWithDefault() []Route {
-	routes, err := loadRoutes()
-	if err != nil {
-		log.Printf("Error loading routes: %v", err)
-		return []Route{}
-	}
-	return routes
 }
 
 func getRouteAndBus(assignment *RouteAssignment) (*Route, *Bus) {
@@ -2037,7 +2052,7 @@ func getRouteAndBus(assignment *RouteAssignment) (*Route, *Bus) {
 	}
 	
 	// Get route
-	routes, _ := loadRoutes()
+	routes, _ := cache.GetRoutes()
 	var route *Route
 	for _, r := range routes {
 		if r.RouteID == assignment.RouteID {
@@ -2047,7 +2062,7 @@ func getRouteAndBus(assignment *RouteAssignment) (*Route, *Bus) {
 	}
 	
 	// Get bus
-	buses := loadBuses()
+	buses, _ := cache.GetBuses()
 	var bus *Bus
 	for _, b := range buses {
 		if b.BusID == assignment.BusID {
@@ -2059,13 +2074,18 @@ func getRouteAndBus(assignment *RouteAssignment) (*Route, *Bus) {
 	return route, bus
 }
 
-func getRouteStudents(route *Route, driverUsername, period string) []Student {
+func getRouteStudents(route *Route, driverUsername, period string) ([]Student, error) {
 	if route == nil {
-		return []Student{}
+		return []Student{}, nil
+	}
+	
+	students, err := loadStudentsFromDB()
+	if err != nil {
+		return nil, err
 	}
 	
 	var routeStudents []Student
-	for _, s := range loadStudents() {
+	for _, s := range students {
 		if s.RouteID == route.RouteID && s.Driver == driverUsername && s.Active {
 			routeStudents = append(routeStudents, s)
 		}
@@ -2092,11 +2112,16 @@ func getRouteStudents(route *Route, driverUsername, period string) []Student {
 		}
 	})
 	
-	return routeStudents
+	return routeStudents, nil
 }
 
 func getDriverLogForDatePeriod(driver, date, period string) *DriverLog {
-	logs, _ := loadDriverLogs()
+	logs, err := loadDriverLogsFromDB()
+	if err != nil {
+		log.Printf("Error loading driver logs: %v", err)
+		return nil
+	}
+	
 	for _, log := range logs {
 		if log.Driver == driver && log.Date == date && log.Period == period {
 			return &log
@@ -2105,8 +2130,12 @@ func getDriverLogForDatePeriod(driver, date, period string) *DriverLog {
 	return nil
 }
 
-func getRecentDriverLogs(driver string, limit int) []DriverLog {
-	logs, _ := loadDriverLogs()
+func getRecentDriverLogs(driver string, limit int) ([]DriverLog, error) {
+	logs, err := loadDriverLogsFromDB()
+	if err != nil {
+		return nil, err
+	}
+	
 	var recentLogs []DriverLog
 	for _, log := range logs {
 		if log.Driver == driver {
@@ -2116,7 +2145,7 @@ func getRecentDriverLogs(driver string, limit int) []DriverLog {
 			}
 		}
 	}
-	return recentLogs
+	return recentLogs, nil
 }
 
 func validateNewUser(username, password, role string) error {
@@ -2159,8 +2188,14 @@ func handleEditUserGet(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Find user
+	users, err := cache.GetUsers()
+	if err != nil {
+		http.Error(w, "Failed to load users", http.StatusInternalServerError)
+		return
+	}
+	
 	var targetUser *User
-	for _, u := range loadUsers() {
+	for _, u := range users {
 		if u.Username == username {
 			targetUser = &u
 			break
@@ -2202,7 +2237,12 @@ func handleEditUserPost(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Find existing user
-	users := loadUsers()
+	users, err := loadUsersFromDB()
+	if err != nil {
+		http.Error(w, "Failed to load users", http.StatusInternalServerError)
+		return
+	}
+	
 	var existingUser *User
 	for i := range users {
 		if users[i].Username == username {
@@ -2271,6 +2311,9 @@ func handleEditUserPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Clear cache after user update
+	cache.InvalidateUsers()
+	
 	http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
 }
 
@@ -2333,7 +2376,7 @@ func handleVehicleMaintenance(w http.ResponseWriter, r *http.Request, vehicleID 
 	var vehicleInfo interface{}
 	
 	if isBus {
-		buses := loadBuses()
+		buses, _ := cache.GetBuses()
 		for _, bus := range buses {
 			if bus.BusID == vehicleID {
 				vehicleInfo = bus
@@ -2341,7 +2384,7 @@ func handleVehicleMaintenance(w http.ResponseWriter, r *http.Request, vehicleID 
 			}
 		}
 	} else {
-		vehicles := loadVehicles()
+		vehicles, _ := cache.GetVehicles()
 		for i := range vehicles {
 			if vehicles[i].VehicleID == vehicleID {
 				vehicleInfo = &vehicles[i]
@@ -2478,7 +2521,7 @@ func parseMaintenanceRecord(r *http.Request) (BusMaintenanceLog, error) {
 func saveMaintenanceRecordToDB(maintenanceLog BusMaintenanceLog) error {
 	// Determine vehicle type
 	vehicleType := "vehicle"
-	buses := loadBuses()
+	buses, _ := cache.GetBuses()
 	for _, bus := range buses {
 		if bus.BusID == maintenanceLog.BusID {
 			vehicleType = "bus"
@@ -2511,18 +2554,27 @@ func saveMaintenanceRecordToDB(maintenanceLog BusMaintenanceLog) error {
 	return nil
 }
 
-func getDriverStudents(driverUsername string) []Student {
+func getDriverStudents(driverUsername string) ([]Student, error) {
+	students, err := loadStudentsFromDB()
+	if err != nil {
+		return nil, err
+	}
+	
 	var driverStudents []Student
-	for _, s := range loadStudents() {
+	for _, s := range students {
 		if s.Driver == driverUsername {
 			driverStudents = append(driverStudents, s)
 		}
 	}
-	return driverStudents
+	return driverStudents, nil
 }
 
 func verifyStudentOwnership(studentID, driverUsername string) bool {
-	students := loadStudents()
+	students, err := loadStudentsFromDB()
+	if err != nil {
+		return false
+	}
+	
 	for _, s := range students {
 		if s.StudentID == studentID && s.Driver == driverUsername {
 			return true
@@ -2543,7 +2595,7 @@ func parseStudentForm(r *http.Request, driverUsername, studentID string) (Studen
 	
 	// Generate student ID if new
 	if studentID == "" {
-		students := loadStudents()
+		students, _ := loadStudentsFromDB()
 		studentID = fmt.Sprintf("STU%03d", len(students)+1)
 	}
 	
@@ -2657,7 +2709,10 @@ func updateVehicleStatusInDB(status struct {
 	StatusType string
 	NewStatus  string
 }) error {
-	vehicles := loadVehicles()
+	vehicles, err := loadVehiclesFromDB()
+	if err != nil {
+		return err
+	}
 	
 	for i := range vehicles {
 		if vehicles[i].VehicleID == status.VehicleID {
@@ -2745,7 +2800,7 @@ func parseRouteAssignment(r *http.Request) (RouteAssignment, error) {
 	routeID := r.FormValue("route_id")
 	
 	// Get route name
-	routes, _ := loadRoutes()
+	routes, _ := cache.GetRoutes()
 	routeName := ""
 	for _, route := range routes {
 		if route.RouteID == routeID {
@@ -2772,7 +2827,7 @@ func parseNewRoute(r *http.Request) (Route, error) {
 	}
 	
 	// Generate route ID
-	routes, _ := loadRoutes()
+	routes, _ := cache.GetRoutes()
 	routeID := fmt.Sprintf("RT%03d", len(routes)+1)
 	
 	return Route{
@@ -2796,7 +2851,7 @@ func parseRouteUpdate(r *http.Request) (Route, error) {
 	}
 	
 	// Find existing route
-	routes, _ := loadRoutes()
+	routes, _ := cache.GetRoutes()
 	for _, route := range routes {
 		if route.RouteID == routeID {
 			route.RouteName = routeName
@@ -2809,7 +2864,11 @@ func parseRouteUpdate(r *http.Request) (Route, error) {
 }
 
 func updateRoute(route Route) error {
-	routes, _ := loadRoutes()
+	routes, err := loadRoutesFromDB()
+	if err != nil {
+		return err
+	}
+	
 	for i := range routes {
 		if routes[i].RouteID == route.RouteID {
 			routes[i] = route
@@ -2829,7 +2888,7 @@ func validateRouteDelete(routeID string) error {
 	}
 	
 	// Check if students are on this route
-	students := loadStudents()
+	students, _ := loadStudentsFromDB()
 	for _, s := range students {
 		if s.RouteID == routeID && s.Active {
 			return fmt.Errorf("Cannot delete route that has active students assigned")
@@ -2839,18 +2898,42 @@ func validateRouteDelete(routeID string) error {
 	return nil
 }
 
-func getDriverLogs(driverUsername string) []DriverLog {
-	allLogs, _ := loadDriverLogs()
+func getDriverLogs(driverUsername string) ([]DriverLog, error) {
+	allLogs, err := loadDriverLogsFromDB()
+	if err != nil {
+		return nil, err
+	}
+	
 	var driverLogs []DriverLog
 	for _, log := range allLogs {
 		if log.Driver == driverUsername {
 			driverLogs = append(driverLogs, log)
 		}
 	}
-	return driverLogs
+	return driverLogs, nil
 }
 
-// Add these min/max helper functions
+// Graceful shutdown
+func gracefulShutdown(server *http.Server) {
+	// Wait for interrupt signal
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	<-sigChan
+	
+	log.Println("Shutting down server...")
+	
+	// Give connections 30 seconds to finish
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	if err := server.Shutdown(ctx); err != nil {
+		log.Printf("Server forced to shutdown: %v", err)
+	}
+	
+	log.Println("Server shutdown complete")
+}
+
+// Helper functions
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -2863,4 +2946,9 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// Development mode check
+func isDevelopment() bool {
+	return os.Getenv("APP_ENV") == "development"
 }
