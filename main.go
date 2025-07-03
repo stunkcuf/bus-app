@@ -536,45 +536,104 @@ func importMileageHandler(w http.ResponseWriter, r *http.Request) {
 func processMileageExcelFile(file multipart.File, filename string) (int, error) {
     f, err := excelize.OpenReader(file)
     if err != nil {
-        return 0, err
+        return 0, fmt.Errorf("failed to open Excel file: %v", err)
     }
     defer f.Close()
     
-    var records []MileageRecord
+    // List all sheets
     sheets := f.GetSheetList()
+    log.Printf("Excel file has %d sheets: %v", len(sheets), sheets)
+    
     if len(sheets) == 0 {
-        return 0, fmt.Errorf("no sheets found")
+        return 0, fmt.Errorf("no sheets found in Excel file")
     }
     
-    rows, err := f.GetRows(sheets[0])
-    if err != nil {
-        return 0, err
-    }
+    var allRecords []MileageRecord
     
-    for i, row := range rows {
-        if i == 0 || len(row) < 10 {
+    // Try each sheet
+    for sheetIndex, sheetName := range sheets {
+        log.Printf("\n=== Processing sheet %d: '%s' ===", sheetIndex+1, sheetName)
+        
+        rows, err := f.GetRows(sheetName)
+        if err != nil {
+            log.Printf("Error reading sheet '%s': %v", sheetName, err)
             continue
         }
         
-        record := MileageRecord{
-            ReportMonth:    strings.TrimSpace(row[0]),
-            ReportYear:     parseInt(row[1]),
-            BusYear:        parseInt(row[2]),
-            BusMake:        strings.TrimSpace(row[3]),
-            LicensePlate:   strings.TrimSpace(row[4]),
-            BusID:          strings.TrimSpace(row[5]),
-            LocatedAt:      strings.TrimSpace(row[6]),
-            BeginningMiles: parseInt(row[7]),
-            EndingMiles:    parseInt(row[8]),
-            TotalMiles:     parseInt(row[9]),
+        log.Printf("Sheet '%s' has %d rows", sheetName, len(rows))
+        
+        if len(rows) == 0 {
+            log.Printf("Sheet '%s' is empty", sheetName)
+            continue
         }
         
-        if record.ReportMonth != "" && record.ReportYear != 0 && record.BusID != "" {
-            records = append(records, record)
+        // Print first few rows to understand structure
+        for i, row := range rows {
+            if i < 5 { // Print first 5 rows
+                log.Printf("Row %d (%d cols): %v", i+1, len(row), row)
+            }
+            
+            // Skip header row (assuming first row is headers)
+            if i == 0 {
+                continue
+            }
+            
+            // Try different column counts in case the format varies
+            if len(row) >= 10 {
+                record := MileageRecord{
+                    ReportMonth:    strings.TrimSpace(row[0]),
+                    ReportYear:     parseInt(row[1]),
+                    BusYear:        parseInt(row[2]),
+                    BusMake:        strings.TrimSpace(row[3]),
+                    LicensePlate:   strings.TrimSpace(row[4]),
+                    BusID:          strings.TrimSpace(row[5]),
+                    LocatedAt:      strings.TrimSpace(row[6]),
+                    BeginningMiles: parseInt(row[7]),
+                    EndingMiles:    parseInt(row[8]),
+                    TotalMiles:     parseInt(row[9]),
+                }
+                
+                if record.ReportMonth != "" && record.ReportYear != 0 && record.BusID != "" {
+                    allRecords = append(allRecords, record)
+                    log.Printf("Valid record found: Month=%s, Year=%d, BusID=%s", 
+                        record.ReportMonth, record.ReportYear, record.BusID)
+                }
+            } else if len(row) > 0 {
+                // Log rows with unexpected column count
+                log.Printf("Row %d has only %d columns (expected 10+): %v", i+1, len(row), row)
+            }
         }
     }
     
-    return insertMileageRecords(records)
+    log.Printf("\n=== Import Summary ===")
+    log.Printf("Total valid records found: %d", len(allRecords))
+    
+    if len(allRecords) == 0 {
+        // Try to read cell by cell for first sheet to debug
+        sheetName := sheets[0]
+        log.Printf("\n=== Cell-by-cell inspection of sheet '%s' ===", sheetName)
+        
+        // Get dimensions
+        cols, err := f.GetCols(sheetName)
+        if err == nil {
+            log.Printf("Sheet has %d columns", len(cols))
+        }
+        
+        // Try to read specific cells
+        for r := 1; r <= 5; r++ {
+            var rowData []string
+            for c := 1; c <= 10; c++ {
+                cellName, _ := excelize.CoordinatesToCellName(c, r)
+                cellValue, _ := f.GetCellValue(sheetName, cellName)
+                rowData = append(rowData, cellValue)
+            }
+            log.Printf("Row %d (cell-by-cell): %v", r, rowData)
+        }
+        
+        return 0, fmt.Errorf("no valid records found in Excel file - check logs for details")
+    }
+    
+    return insertMileageRecords(allRecords)
 }
 
 func parseInt(s string) int {
@@ -587,8 +646,10 @@ func insertMileageRecords(records []MileageRecord) (int, error) {
         return 0, fmt.Errorf("database not initialized")
     }
     
+    log.Printf("Attempting to insert %d records into database", len(records))
+    
     count := 0
-    for _, record := range records {
+    for i, record := range records {
         _, err := db.Exec(`
             INSERT INTO monthly_mileage_reports 
             (report_month, report_year, bus_year, bus_make, license_plate, 
@@ -608,14 +669,18 @@ func insertMileageRecords(records []MileageRecord) (int, error) {
            record.LicensePlate, record.BusID, record.LocatedAt, record.BeginningMiles,
            record.EndingMiles, record.TotalMiles)
         
-        if err == nil {
+        if err != nil {
+            log.Printf("Error inserting record %d (BusID=%s): %v", i+1, record.BusID, err)
+        } else {
             count++
+            log.Printf("Successfully inserted record %d (BusID=%s)", i+1, record.BusID)
         }
     }
     
+    log.Printf("Successfully inserted %d out of %d records", count, len(records))
+    
     return count, nil
 }
-
 // ============= USER MANAGEMENT HANDLERS =============
 
 func newUserHandler(w http.ResponseWriter, r *http.Request) {
