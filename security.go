@@ -343,90 +343,6 @@ func (rl *RateLimiter) checkRateLimit(ip string) bool {
 	return true
 }
 
-// RateLimitMiddleware limits requests per IP
-func RateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Get client IP
-		ip := r.RemoteAddr
-		if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
-			ip = strings.Split(forwarded, ",")[0]
-		}
-		
-		// Only rate limit POST requests
-		if r.Method == "POST" {
-			if !loginLimiter.checkRateLimit(ip) {
-				http.Error(w, "Too many requests. Please try again later.", http.StatusTooManyRequests)
-				return
-			}
-		}
-		
-		next(w, r)
-	}
-}
-
-// Authentication middleware
-
-// requireAuth ensures user is authenticated
-func requireAuth(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie(SessionCookieName)
-		if err != nil {
-			http.Redirect(w, r, "/", http.StatusFound)
-			return
-		}
-		
-		session, err := GetSecureSession(cookie.Value)
-		if err != nil {
-			http.Redirect(w, r, "/", http.StatusFound)
-			return
-		}
-		
-		// Add user info to context
-		ctx := context.WithValue(r.Context(), "user", &User{
-			Username: session.Username,
-			Role:     session.Role,
-		})
-		
-		next(w, r.WithContext(ctx))
-	}
-}
-
-// requireRole ensures user has a specific role
-func requireRole(role string) func(http.HandlerFunc) http.HandlerFunc {
-	return func(next http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			user := getUserFromSession(r)
-			if user == nil || user.Role != role {
-				http.Error(w, "Forbidden", http.StatusForbidden)
-				return
-			}
-			next(w, r)
-		}
-	}
-}
-
-// FIXED: requireDatabase middleware to ensure DB connection
-func requireDatabase(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if db == nil {
-			http.Error(w, "Database unavailable", http.StatusServiceUnavailable)
-			return
-		}
-		
-		// Ping database to ensure connection is alive
-		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
-		defer cancel()
-		
-		if err := db.PingContext(ctx); err != nil {
-			log.Printf("Database ping failed: %v", err)
-			http.Error(w, "Database connection lost", http.StatusServiceUnavailable)
-			return
-		}
-		
-		next(w, r)
-	}
-}
-
 // getUserFromSession gets user from request context or session
 func getUserFromSession(r *http.Request) *User {
 	// Check context first
@@ -448,19 +364,6 @@ func getUserFromSession(r *http.Request) *User {
 	return &User{
 		Username: session.Username,
 		Role:     session.Role,
-	}
-}
-
-// Recovery middleware
-func withRecovery(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			if err := recover(); err != nil {
-				log.Printf("Panic recovered: %v", err)
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
-			}
-		}()
-		next(w, r)
 	}
 }
 
