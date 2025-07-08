@@ -210,18 +210,18 @@
     </header>
 
     <!-- Alerts -->
-    {{if .Error}}
+    {{if .Data.Error}}
     <div class="alert alert-danger alert-custom alert-dismissible fade show" role="alert">
       <i class="bi bi-exclamation-triangle me-2"></i>
-      <strong>Import Error:</strong> {{.Error}}
+      <strong>Import Error:</strong> {{.Data.Error}}
       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     {{end}}
     
-    {{if .Success}}
+    {{if .Data.Success}}
     <div class="alert alert-success alert-custom alert-dismissible fade show" role="alert">
       <i class="bi bi-check-circle me-2"></i>
-      <strong>Success!</strong> {{.Success}}
+      <strong>Success!</strong> {{.Data.Success}}
       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     {{end}}
@@ -238,7 +238,7 @@
             <h3 class="text-center mb-4">Upload Mileage Report</h3>
             
             <form method="POST" action="/import-mileage" enctype="multipart/form-data" id="importForm">
-              <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+              <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
               
               <div class="file-upload-area" id="uploadArea">
                 <i class="bi bi-cloud-arrow-up fs-1 text-muted mb-3 d-block"></i>
