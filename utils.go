@@ -12,14 +12,6 @@ import (
 
 // executeTemplate executes a template with error handling
 func executeTemplate(w http.ResponseWriter, name string, data interface{}) {
-	// Add CSP nonce from context if available
-	if r, ok := w.(*responseWriter); ok && r.request != nil {
-		if nonce, ok := r.request.Context().Value("csp-nonce").(string); ok {
-			// If data is a struct, we need to add the nonce
-			// This is a simplified version - in production, you'd want a more robust solution
-			log.Printf("CSP nonce available for template: %s", name)
-		}
-	}
 	
 	if err := templates.ExecuteTemplate(w, name, data); err != nil {
 		log.Printf("Error executing template %s: %v", name, err)
@@ -31,33 +23,6 @@ func executeTemplate(w http.ResponseWriter, name string, data interface{}) {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 	}
-}
-
-// Custom response writer to capture request context
-type responseWriter struct {
-	http.ResponseWriter
-	request *http.Request
-}
-
-// isDevelopment checks if the app is running in development mode
-func isDevelopment() bool {
-	return os.Getenv("APP_ENV") == "development"
-}
-
-// min returns the minimum of two integers
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-// max returns the maximum of two integers
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
 
 // formatDate formats a date string for display
@@ -200,18 +165,6 @@ func mergeErrors(errors []error) error {
 		msg += err.Error()
 	}
 	return fmt.Errorf(msg)
-}
-
-// sanitizeFilename removes potentially dangerous characters from filenames
-func sanitizeFilename(filename string) string {
-	// Remove any path separators
-	filename = strings.ReplaceAll(filename, "/", "_")
-	filename = strings.ReplaceAll(filename, "\\", "_")
-	filename = strings.ReplaceAll(filename, "..", "_")
-	
-	// Keep only safe characters
-	safe := regexp.MustCompile(`[^a-zA-Z0-9._-]`)
-	return safe.ReplaceAllString(filename, "_")
 }
 
 // sanitizeFilename removes potentially dangerous characters from filenames
