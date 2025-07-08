@@ -10,9 +10,8 @@ import (
 	"strings"
 )
 
-// executeTemplate executes a template with error handling
+// executeTemplate executes a template with error handling and CSP nonce support
 func executeTemplate(w http.ResponseWriter, name string, data interface{}) {
-	
 	if err := templates.ExecuteTemplate(w, name, data); err != nil {
 		log.Printf("Error executing template %s: %v", name, err)
 		
@@ -23,6 +22,37 @@ func executeTemplate(w http.ResponseWriter, name string, data interface{}) {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 	}
+}
+
+// renderTemplate renders a template with CSP nonce support
+func renderTemplate(w http.ResponseWriter, r *http.Request, name string, data interface{}) {
+	// Get nonce from context
+	nonce := ""
+	if n, ok := r.Context().Value("csp-nonce").(string); ok {
+		nonce = n
+	}
+	
+	// Create a wrapper that includes both nonce and original data
+	type TemplateWrapper struct {
+		CSPNonce string      // This will be available as {{.CSPNonce}} in templates
+		Data     interface{} // This will be available as {{.Data}} in templates
+	}
+	
+	wrapper := TemplateWrapper{
+		CSPNonce: nonce,
+		Data:     data,
+	}
+	
+	executeTemplate(w, name, wrapper)
+}
+
+// renderLoginError renders login page with error (CSP-aware)
+func renderLoginError(w http.ResponseWriter, r *http.Request, errorMsg string) {
+	csrfToken, _ := GenerateSecureToken()
+	renderTemplate(w, r, "login.html", LoginFormData{
+		Error:     errorMsg,
+		CSRFToken: csrfToken,
+	})
 }
 
 // formatDate formats a date string for display
