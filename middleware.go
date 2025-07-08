@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -19,6 +22,41 @@ func withRecovery(next http.HandlerFunc) http.HandlerFunc {
 		}()
 		next(w, r)
 	}
+}
+
+// CSPMiddleware adds CSP nonce to request context
+func CSPMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Generate nonce
+		b := make([]byte, 16)
+		if _, err := rand.Read(b); err != nil {
+			log.Printf("Error generating nonce: %v", err)
+			next.ServeHTTP(w, r)
+			return
+		}
+		nonce := base64.StdEncoding.EncodeToString(b)
+		
+		// Add to context
+		ctx := context.WithValue(r.Context(), "csp-nonce", nonce)
+		r = r.WithContext(ctx)
+		
+		// Set CSP header with nonce
+		csp := fmt.Sprintf(
+			"default-src 'self'; "+
+				"script-src 'self' 'nonce-%s' https://cdn.jsdelivr.net https://unpkg.com; "+
+				"style-src 'self' 'nonce-%s' https://cdn.jsdelivr.net https://unpkg.com; "+
+				"font-src 'self' https://cdn.jsdelivr.net; "+
+				"img-src 'self' data: https:; "+
+				"connect-src 'self'; "+
+				"frame-ancestors 'none'; "+
+				"base-uri 'self'; "+
+				"form-action 'self'",
+			nonce, nonce)
+		
+		w.Header().Set("Content-Security-Policy", csp)
+		
+		next.ServeHTTP(w, r)
+	})
 }
 
 // RateLimitMiddleware limits requests per IP
