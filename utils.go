@@ -214,6 +214,18 @@ func sanitizeFilename(filename string) string {
 	return safe.ReplaceAllString(filename, "_")
 }
 
+// sanitizeFilename removes potentially dangerous characters from filenames
+func sanitizeFilename(filename string) string {
+	// Remove any path separators
+	filename = strings.ReplaceAll(filename, "/", "_")
+	filename = strings.ReplaceAll(filename, "\\", "_")
+	filename = strings.ReplaceAll(filename, "..", "_")
+	
+	// Keep only safe characters
+	safe := regexp.MustCompile(`[^a-zA-Z0-9._-]`)
+	return safe.ReplaceAllString(filename, "_")
+}
+
 // parseIntOrDefault parses an integer with a default value
 func parseIntOrDefault(s string, defaultValue int) int {
 	if val, err := strconv.Atoi(s); err == nil {
