@@ -6,7 +6,7 @@
   <title>Approve Users - Fleet Management System</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <style>
+  <style nonce="{{.CSPNonce}}">
     :root {
       --grad-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       --grad-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
@@ -144,11 +144,11 @@
     <!-- Pending Users -->
     <div class="row">
       <div class="col-12">
-        {{if .PendingUsers}}
+        {{if .Data.PendingUsers}}
           <h5 class="mb-3">
-            <span class="pending-badge">{{len .PendingUsers}} Pending</span>
+            <span class="pending-badge">{{len .Data.PendingUsers}} Pending</span>
           </h5>
-          {{range .PendingUsers}}
+          {{range .Data.PendingUsers}}
           <div class="approval-card">
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-center">
@@ -167,7 +167,7 @@
                 </div>
                 <div>
                   <form method="POST" action="/approve-user" class="d-inline">
-                    <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                    <input type="hidden" name="csrf_token" value="{{$.Data.CSRFToken}}">
                     <input type="hidden" name="username" value="{{.Username}}">
                     <input type="hidden" name="action" value="approve">
                     <button type="submit" class="btn btn-approve">
@@ -175,7 +175,7 @@
                     </button>
                   </form>
                   <form method="POST" action="/approve-user" class="d-inline ms-2">
-                    <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                    <input type="hidden" name="csrf_token" value="{{$.Data.CSRFToken}}">
                     <input type="hidden" name="username" value="{{.Username}}">
                     <input type="hidden" name="action" value="reject">
                     <button type="submit" class="btn btn-reject">
