@@ -1,182 +1,231 @@
-// utils.go - Utility functions and helpers (PostgreSQL-only)
 package main
 
 import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
 )
 
-// executeTemplate safely executes a template with error handling
+// executeTemplate executes a template with error handling
 func executeTemplate(w http.ResponseWriter, name string, data interface{}) {
+	// Add CSP nonce from context if available
+	if r, ok := w.(*responseWriter); ok && r.request != nil {
+		if nonce, ok := r.request.Context().Value("csp-nonce").(string); ok {
+			// If data is a struct, we need to add the nonce
+			// This is a simplified version - in production, you'd want a more robust solution
+			log.Printf("CSP nonce available for template: %s", name)
+		}
+	}
+	
 	if err := templates.ExecuteTemplate(w, name, data); err != nil {
 		log.Printf("Error executing template %s: %v", name, err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		
+		// In development mode, show detailed error
+		if isDevelopment() {
+			http.Error(w, fmt.Sprintf("Template error in %s: %v", name, err), http.StatusInternalServerError)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 	}
 }
 
-// getDriverRouteAssignment returns the current route assignment for a driver
-// NOTE: This returns the FIRST assignment found - drivers can have multiple routes
-func getDriverRouteAssignment(driverUsername string) (*RouteAssignment, error) {
-	assignments, err := loadRouteAssignments()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load assignments: %w", err)
-	}
-
-	for _, assignment := range assignments {
-		if assignment.Driver == driverUsername {
-			return &assignment, nil
-		}
-	}
-
-	return nil, fmt.Errorf("no assignment found for driver %s", driverUsername)
+// Custom response writer to capture request context
+type responseWriter struct {
+	http.ResponseWriter
+	request *http.Request
 }
 
-// getDriverRouteAssignments returns ALL route assignments for a driver
-func getDriverRouteAssignments(driverUsername string) ([]RouteAssignment, error) {
-	assignments, err := loadRouteAssignments()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load assignments: %w", err)
-	}
-
-	var driverAssignments []RouteAssignment
-	for _, assignment := range assignments {
-		if assignment.Driver == driverUsername {
-			driverAssignments = append(driverAssignments, assignment)
-		}
-	}
-
-	return driverAssignments, nil
+// isDevelopment checks if the app is running in development mode
+func isDevelopment() bool {
+	return os.Getenv("APP_ENV") == "development"
 }
 
-// validateRouteAssignment checks if a route assignment is valid
-func validateRouteAssignment(assignment RouteAssignment) error {
-	if assignment.Driver == "" {
-		return fmt.Errorf("driver cannot be empty")
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
 	}
-	if assignment.BusID == "" {
-		return fmt.Errorf("bus ID cannot be empty")
-	}
-	if assignment.RouteID == "" {
-		return fmt.Errorf("route ID cannot be empty")
-	}
-
-	// Check if driver exists
-	users := loadUsers()
-	driverExists := false
-	for _, u := range users {
-		if u.Username == assignment.Driver && u.Role == "driver" {
-			driverExists = true
-			break
-		}
-	}
-	if !driverExists {
-		return fmt.Errorf("driver %s does not exist or is not a driver", assignment.Driver)
-	}
-
-	// Check if bus exists and is active
-	buses := loadBuses()
-	busExists := false
-	for _, b := range buses {
-		if b.BusID == assignment.BusID {
-			if b.Status != "active" {
-				return fmt.Errorf("bus %s is not active (status: %s)", assignment.BusID, b.Status)
-			}
-			busExists = true
-			break
-		}
-	}
-	if !busExists {
-		return fmt.Errorf("bus %s does not exist", assignment.BusID)
-	}
-
-	// Check if route exists
-	routes, err := loadRoutes()
-	if err != nil {
-		return fmt.Errorf("failed to load routes for validation: %w", err)
-	}
-	
-	routeExists := false
-	for _, r := range routes {
-		if r.RouteID == assignment.RouteID {
-			routeExists = true
-			// Also ensure the route name matches if provided
-			if assignment.RouteName != "" && r.RouteName != assignment.RouteName {
-				log.Printf("Warning: Route name mismatch for route %s: expected '%s', got '%s'", 
-					assignment.RouteID, r.RouteName, assignment.RouteName)
-			}
-			break
-		}
-	}
-	if !routeExists {
-		return fmt.Errorf("route %s does not exist", assignment.RouteID)
-	}
-
-	// Check if this exact assignment already exists (driver + route combination)
-	existingAssignments, err := loadRouteAssignments()
-	if err != nil {
-		log.Printf("Warning: Could not check existing assignments: %v", err)
-		// Continue anyway - the database constraint will catch duplicates
-	} else {
-		for _, existing := range existingAssignments {
-			if existing.Driver == assignment.Driver && existing.RouteID == assignment.RouteID {
-				return fmt.Errorf("driver %s is already assigned to route %s", 
-					assignment.Driver, existing.RouteID)
-			}
-		}
-	}
-
-	// NOTE: We NO LONGER check if driver is assigned to other routes
-	// Drivers can now have multiple route assignments
-
-	return nil
+	return b
 }
 
-// getUserFromSession retrieves the user from the secure session
-func getUserFromSession(r *http.Request) *User {
-	// Get session cookie
-	cookie, err := r.Cookie("session_id")
-	if err != nil {
-		return nil
+// max returns the maximum of two integers
+func max(a, b int) int {
+	if a > b {
+		return a
 	}
-	
-	// Get session data
-	session, exists := GetSecureSession(cookie.Value)
-	if !exists {
-		return nil
-	}
-	
-	// Load user from database
-	users := loadUsers()
-	for _, u := range users {
-		if u.Username == session.Username {
-			return &u
-		}
-	}
-	
-	return nil
+	return b
 }
 
-// generateID generates a unique ID for entities
-func generateID(prefix string, count int) string {
+// formatDate formats a date string for display
+func formatDate(date string) string {
+	// Add any date formatting logic here
+	return date
+}
+
+// formatTime formats a time string for display
+func formatTime(time string) string {
+	// Add any time formatting logic here
+	return time
+}
+
+// calculateMileage calculates mileage between two readings
+func calculateMileage(start, end int) int {
+	if end < start {
+		return 0 // Invalid reading
+	}
+	return end - start
+}
+
+// generateUniqueID generates a unique ID with a prefix
+func generateUniqueID(prefix string, count int) string {
 	return fmt.Sprintf("%s%03d", prefix, count+1)
 }
 
-// ensureUniqueID ensures the generated ID is unique among existing IDs
-func ensureUniqueID(prefix string, existingIDs []string) string {
-	counter := len(existingIDs) + 1
-	for {
-		newID := fmt.Sprintf("%s%03d", prefix, counter)
-		exists := false
-		for _, id := range existingIDs {
-			if id == newID {
-				exists = true
-				break
-			}
-		}
-		if !exists {
-			return newID
-		}
-		counter++
+// truncateString safely truncates a string to a maximum length
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
 	}
+	if maxLen <= 3 {
+		return s[:maxLen]
+	}
+	return s[:maxLen-3] + "..."
+}
+
+// isValidEmail checks if an email address is valid
+func isValidEmail(email string) bool {
+	// Simple email validation
+	return len(email) > 3 && len(email) < 255 && 
+		   emailRegex.MatchString(email)
+}
+
+// isValidPhone checks if a phone number is valid
+func isValidPhone(phone string) bool {
+	// Remove common formatting characters
+	cleaned := phoneRegex.ReplaceAllString(phone, "")
+	return len(cleaned) >= 10 && len(cleaned) <= 15
+}
+
+// Helper regex patterns
+var (
+	emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+	phoneRegex = regexp.MustCompile(`[^\d]`)
+)
+
+// logError logs an error with context
+func logError(context string, err error) {
+	if err != nil {
+		log.Printf("[ERROR] %s: %v", context, err)
+	}
+}
+
+// logInfo logs an informational message
+func logInfo(format string, args ...interface{}) {
+	log.Printf("[INFO] "+format, args...)
+}
+
+// logDebug logs a debug message (only in development)
+func logDebug(format string, args ...interface{}) {
+	if isDevelopment() {
+		log.Printf("[DEBUG] "+format, args...)
+	}
+}
+
+// getEnv gets an environment variable with a default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+// mustGetEnv gets an environment variable or panics
+func mustGetEnv(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		panic(fmt.Sprintf("Environment variable %s is required", key))
+	}
+	return value
+}
+
+// stringInSlice checks if a string is in a slice
+func stringInSlice(str string, slice []string) bool {
+	for _, s := range slice {
+		if s == str {
+			return true
+		}
+	}
+	return false
+}
+
+// removeFromSlice removes a string from a slice
+func removeFromSlice(slice []string, str string) []string {
+	result := make([]string, 0, len(slice))
+	for _, s := range slice {
+		if s != str {
+			result = append(result, s)
+		}
+	}
+	return result
+}
+
+// copyMap creates a shallow copy of a map
+func copyMap(m map[string]string) map[string]string {
+	result := make(map[string]string, len(m))
+	for k, v := range m {
+		result[k] = v
+	}
+	return result
+}
+
+// mergeErrors combines multiple errors into one
+func mergeErrors(errors []error) error {
+	if len(errors) == 0 {
+		return nil
+	}
+	
+	if len(errors) == 1 {
+		return errors[0]
+	}
+	
+	var msg string
+	for i, err := range errors {
+		if i > 0 {
+			msg += "; "
+		}
+		msg += err.Error()
+	}
+	return fmt.Errorf(msg)
+}
+
+// sanitizeFilename removes potentially dangerous characters from filenames
+func sanitizeFilename(filename string) string {
+	// Remove any path separators
+	filename = strings.ReplaceAll(filename, "/", "_")
+	filename = strings.ReplaceAll(filename, "\\", "_")
+	filename = strings.ReplaceAll(filename, "..", "_")
+	
+	// Keep only safe characters
+	safe := regexp.MustCompile(`[^a-zA-Z0-9._-]`)
+	return safe.ReplaceAllString(filename, "_")
+}
+
+// parseIntOrDefault parses an integer with a default value
+func parseIntOrDefault(s string, defaultValue int) int {
+	if val, err := strconv.Atoi(s); err == nil {
+		return val
+	}
+	return defaultValue
+}
+
+// parseFloatOrDefault parses a float with a default value
+func parseFloatOrDefault(s string, defaultValue float64) float64 {
+	if val, err := strconv.ParseFloat(s, 64); err == nil {
+		return val
+	}
+	return defaultValue
 }
