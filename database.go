@@ -699,7 +699,7 @@ func viewEnhancedMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
 		CSRFToken:        getCSRFToken(r),
 	}
 	
-	renderTemplate(w, "mileage_reports.html", templateData)
+	renderTemplate(w, r, "mileage_reports.html", templateData)
 }
 
 // Get agency vehicle reports
