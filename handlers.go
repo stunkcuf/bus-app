@@ -1,383 +1,576 @@
-// handlers.go - HTTP handlers for route assignment fixes
 package main
 
 import (
-    "encoding/json"
-    "log"
-    "net/http"
-    "fmt"
-    "strings"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"strings"
+	"time"
 )
 
-// NEW HANDLER: Check if driver has existing bus
-func handleCheckDriverBus(w http.ResponseWriter, r *http.Request) {
-    driver := r.URL.Query().Get("driver")
-    if driver == "" {
-        http.Error(w, "Driver parameter required", http.StatusBadRequest)
-        return
-    }
-    
-    busID, err := getDriverAssignedBus(driver)
-    if err != nil {
-        log.Printf("Error checking driver bus: %v", err)
-        http.Error(w, "Failed to check driver bus", http.StatusInternalServerError)
-        return
-    }
-    
-    response := map[string]string{
-        "bus_id": busID,
-    }
-    
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(response)
+// getAgencyVehicles returns agency vehicles as JSON (for AJAX requests)
+func getAgencyVehicles(w http.ResponseWriter, r *http.Request) {
+	// Get query parameters
+	month := r.URL.Query().Get("month")
+	year := r.URL.Query().Get("year")
+	
+	if month == "" || year == "" {
+		http.Error(w, "Month and year parameters required", http.StatusBadRequest)
+		return
+	}
+	
+	vehicles, err := getAgencyVehicleReports(month, year)
+	if err != nil {
+		log.Printf("Error getting agency vehicles: %v", err)
+		http.Error(w, "Failed to get agency vehicles", http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(vehicles); err != nil {
+		log.Printf("Error encoding agency vehicles: %v", err)
+	}
 }
 
-// UPDATED HANDLER: Handle route assignment with optional bus
-func handleSaveRouteAssignment(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        return
-    }
-    
-    var assignment RouteAssignment
-    if err := json.NewDecoder(r.Body).Decode(&assignment); err != nil {
-        http.Error(w, "Invalid request body", http.StatusBadRequest)
-        return
-    }
-    
-    // Validate required fields (bus_id is now optional)
-    if assignment.Driver == "" || assignment.RouteID == "" {
-        http.Error(w, "Driver and route_id are required", http.StatusBadRequest)
-        return
-    }
-    
-    if err := saveRouteAssignment(assignment); err != nil {
-        log.Printf("Error saving route assignment: %v", err)
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
-    
-    w.WriteHeader(http.StatusOK)
-    json.NewEncoder(w).Encode(map[string]bool{"success": true})
-}
-// Enhanced view mileage reports handler with support for all data types
-func viewEnhancedMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
-    user := getUserFromSession(r)
-    if user == nil || user.Role != "manager" {
-        http.Redirect(w, r, "/", http.StatusFound)
-        return
-    }
-    
-    // Get query parameters
-    reportType := r.URL.Query().Get("type") // agency, school_bus, program, or all
-    month := r.URL.Query().Get("month")
-    year := r.URL.Query().Get("year")
-    vehicleID := r.URL.Query().Get("vehicle_id")
-    
-    // Default to showing all if no type specified
-    if reportType == "" {
-        reportType = "all"
-    }
-    
-    // Load data based on type
-    var agencyVehicles []AgencyVehicleRecord
-    var schoolBuses []SchoolBusRecord
-    var programStaff []ProgramStaffRecord
-    var err error
-    
-    if reportType == "all" || reportType == "agency" {
-        agencyVehicles, err = getAgencyVehicles(month, year, vehicleID)
-        if err != nil {
-            log.Printf("Error loading agency vehicles: %v", err)
-        }
-    }
-    
-    if reportType == "all" || reportType == "school_bus" {
-        schoolBuses, err = getSchoolBuses(month, year, vehicleID)
-        if err != nil {
-            log.Printf("Error loading school buses: %v", err)
-        }
-    }
-    
-    if reportType == "all" || reportType == "program" {
-        programStaff, err = getProgramStaff(month, year)
-        if err != nil {
-            log.Printf("Error loading program staff: %v", err)
-        }
-    }
-    
-    // Calculate statistics
-    stats := calculateEnhancedStats(agencyVehicles, schoolBuses, programStaff)
-    
-    data := struct {
-        User           *User
-        AgencyVehicles []AgencyVehicleRecord
-        SchoolBuses    []SchoolBusRecord
-        ProgramStaff   []ProgramStaffRecord
-        Stats          EnhancedMileageStats
-        CSRFToken      string
-        // Filter values
-        FilterType     string
-        FilterMonth    string
-        FilterYear     string
-        FilterVehicleID string
-    }{
-        User:            user,
-        AgencyVehicles:  agencyVehicles,
-        SchoolBuses:     schoolBuses,
-        ProgramStaff:    programStaff,
-        Stats:           stats,
-        CSRFToken:       getCSRFToken(r),
-        FilterType:      reportType,
-        FilterMonth:     month,
-        FilterYear:      year,
-        FilterVehicleID: vehicleID,
-    }
-    
-    renderTemplate(w, "view_enhanced_mileage_reports.html", data)
+// getSchoolBuses returns school buses as JSON (for AJAX requests)
+func getSchoolBuses(w http.ResponseWriter, r *http.Request) {
+	// Get query parameters
+	month := r.URL.Query().Get("month")
+	year := r.URL.Query().Get("year")
+	
+	if month == "" || year == "" {
+		http.Error(w, "Month and year parameters required", http.StatusBadRequest)
+		return
+	}
+	
+	buses, err := getSchoolBusReports(month, year)
+	if err != nil {
+		log.Printf("Error getting school buses: %v", err)
+		http.Error(w, "Failed to get school buses", http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(buses); err != nil {
+		log.Printf("Error encoding school buses: %v", err)
+	}
 }
 
-type EnhancedMileageStats struct {
-    // Vehicle stats
-    TotalAgencyVehicles int
-    TotalSchoolBuses    int
-    TotalVehicles       int
-    ActiveVehicles      int
-    InactiveVehicles    int
-    
-    // Mileage stats
-    TotalMiles          int
-    AgencyMiles         int
-    SchoolBusMiles      int
-    AverageMilesPerVehicle float64
-    
-    // Status breakdown
-    VehiclesForSale     int
-    VehiclesSold        int
-    VehiclesOutOfLease  int
-    SpareVehicles       int
-    
-    // Program stats
-    TotalProgramStaff   int
-    HSStaff             int
-    OPKStaff            int
-    EHSStaff            int
+// exportMileageReport exports mileage data as CSV
+func exportMileageReport(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	
+	// Get parameters
+	reportType := r.URL.Query().Get("type")
+	month := r.URL.Query().Get("month")
+	year := r.URL.Query().Get("year")
+	
+	if reportType == "" || month == "" || year == "" {
+		http.Error(w, "Missing required parameters", http.StatusBadRequest)
+		return
+	}
+	
+	// Set CSV headers
+	filename := fmt.Sprintf("%s_%s_%s.csv", reportType, month, year)
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+	
+	// Write CSV based on type
+	switch reportType {
+	case "agency":
+		exportAgencyVehiclesCSV(w, month, year)
+	case "school":
+		exportSchoolBusesCSV(w, month, year)
+	case "program":
+		exportProgramStaffCSV(w, month, year)
+	default:
+		http.Error(w, "Invalid report type", http.StatusBadRequest)
+	}
 }
 
-func calculateEnhancedStats(agency []AgencyVehicleRecord, buses []SchoolBusRecord, staff []ProgramStaffRecord) EnhancedMileageStats {
-    stats := EnhancedMileageStats{
-        TotalAgencyVehicles: len(agency),
-        TotalSchoolBuses:    len(buses),
-        TotalVehicles:       len(agency) + len(buses),
-    }
-    
-    // Process agency vehicles
-    for _, v := range agency {
-        stats.AgencyMiles += v.TotalMiles
-        
-        switch strings.ToUpper(v.Status) {
-        case "FOR SALE":
-            stats.VehiclesForSale++
-            stats.InactiveVehicles++
-        case "SOLD":
-            stats.VehiclesSold++
-            stats.InactiveVehicles++
-        case "OUT OF LEASE":
-            stats.VehiclesOutOfLease++
-            stats.InactiveVehicles++
-        default:
-            if v.TotalMiles > 0 {
-                stats.ActiveVehicles++
-            }
-        }
-    }
-    
-    // Process school buses
-    for _, b := range buses {
-        stats.SchoolBusMiles += b.TotalMiles
-        
-        if strings.ToUpper(b.Status) == "SPARE" {
-            stats.SpareVehicles++
-            stats.InactiveVehicles++
-        } else if b.TotalMiles > 0 {
-            stats.ActiveVehicles++
-        }
-    }
-    
-    // Calculate total miles and average
-    stats.TotalMiles = stats.AgencyMiles + stats.SchoolBusMiles
-    if stats.ActiveVehicles > 0 {
-        stats.AverageMilesPerVehicle = float64(stats.TotalMiles) / float64(stats.ActiveVehicles)
-    }
-    
-    // Process program staff
-    for _, p := range staff {
-        totalStaff := p.StaffCount1 + p.StaffCount2
-        stats.TotalProgramStaff += totalStaff
-        
-        switch p.ProgramType {
-        case "HS":
-            stats.HSStaff += totalStaff
-        case "OPK":
-            stats.OPKStaff += totalStaff
-        case "EHS":
-            stats.EHSStaff += totalStaff
-        }
-    }
-    
-    return stats
+func exportAgencyVehiclesCSV(w http.ResponseWriter, month, year string) {
+	vehicles, err := getAgencyVehicleReports(month, year)
+	if err != nil {
+		http.Error(w, "Failed to get data", http.StatusInternalServerError)
+		return
+	}
+	
+	// Write CSV header
+	fmt.Fprintf(w, "Vehicle ID,Year,Make/Model,License Plate,Location,Beginning Miles,Ending Miles,Total Miles,Status,Notes\n")
+	
+	// Write data rows
+	for _, v := range vehicles {
+		fmt.Fprintf(w, "%s,%d,%s,%s,%s,%d,%d,%d,%s,%s\n",
+			escapeCSV(v.VehicleID),
+			v.VehicleYear,
+			escapeCSV(v.MakeModel),
+			escapeCSV(v.LicensePlate),
+			escapeCSV(v.Location),
+			v.BeginningMiles,
+			v.EndingMiles,
+			v.TotalMiles,
+			escapeCSV(v.Status),
+			escapeCSV(v.Notes))
+	}
 }
 
-// Database query functions
-func getAgencyVehicles(month, year, vehicleID string) ([]AgencyVehicleRecord, error) {
-    query := `
-        SELECT report_month, report_year, vehicle_year, make_model, 
-               license_plate, vehicle_id, location, beginning_miles, 
-               ending_miles, total_miles, COALESCE(status, ''), COALESCE(notes, '')
-        FROM agency_vehicles
-        WHERE 1=1
-    `
-    args := []interface{}{}
-    argCount := 0
-    
-    if month != "" {
-        argCount++
-        query += fmt.Sprintf(" AND report_month = $%d", argCount)
-        args = append(args, month)
-    }
-    
-    if year != "" {
-        argCount++
-        query += fmt.Sprintf(" AND report_year = $%d", argCount)
-        args = append(args, year)
-    }
-    
-    if vehicleID != "" {
-        argCount++
-        query += fmt.Sprintf(" AND vehicle_id = $%d", argCount)
-        args = append(args, vehicleID)
-    }
-    
-    query += " ORDER BY report_year DESC, report_month, vehicle_id"
-    
-    rows, err := db.Query(query, args...)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
-    
-    var vehicles []AgencyVehicleRecord
-    for rows.Next() {
-        var v AgencyVehicleRecord
-        err := rows.Scan(&v.ReportMonth, &v.ReportYear, &v.VehicleYear, 
-                        &v.MakeModel, &v.LicensePlate, &v.VehicleID, 
-                        &v.Location, &v.BeginningMiles, &v.EndingMiles, 
-                        &v.TotalMiles, &v.Status, &v.Notes)
-        if err != nil {
-            log.Printf("Error scanning agency vehicle: %v", err)
-            continue
-        }
-        vehicles = append(vehicles, v)
-    }
-    
-    return vehicles, nil
+func exportSchoolBusesCSV(w http.ResponseWriter, month, year string) {
+	buses, err := getSchoolBusReports(month, year)
+	if err != nil {
+		http.Error(w, "Failed to get data", http.StatusInternalServerError)
+		return
+	}
+	
+	// Write CSV header
+	fmt.Fprintf(w, "Bus ID,Year,Make,License Plate,Location,Beginning Miles,Ending Miles,Total Miles,Status,Notes\n")
+	
+	// Write data rows
+	for _, b := range buses {
+		fmt.Fprintf(w, "%s,%d,%s,%s,%s,%d,%d,%d,%s,%s\n",
+			escapeCSV(b.BusID),
+			b.BusYear,
+			escapeCSV(b.BusMake),
+			escapeCSV(b.LicensePlate),
+			escapeCSV(b.Location),
+			b.BeginningMiles,
+			b.EndingMiles,
+			b.TotalMiles,
+			escapeCSV(b.Status),
+			escapeCSV(b.Notes))
+	}
 }
 
-func getSchoolBuses(month, year, busID string) ([]SchoolBusRecord, error) {
-    query := `
-        SELECT report_month, report_year, bus_year, bus_make, 
-               license_plate, bus_id, location, beginning_miles, 
-               ending_miles, total_miles, COALESCE(status, ''), COALESCE(notes, '')
-        FROM school_buses
-        WHERE 1=1
-    `
-    args := []interface{}{}
-    argCount := 0
-    
-    if month != "" {
-        argCount++
-        query += fmt.Sprintf(" AND report_month = $%d", argCount)
-        args = append(args, month)
-    }
-    
-    if year != "" {
-        argCount++
-        query += fmt.Sprintf(" AND report_year = $%d", argCount)
-        args = append(args, year)
-    }
-    
-    if busID != "" {
-        argCount++
-        query += fmt.Sprintf(" AND bus_id = $%d", argCount)
-        args = append(args, busID)
-    }
-    
-    query += " ORDER BY report_year DESC, report_month, bus_id"
-    
-    rows, err := db.Query(query, args...)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
-    
-    var buses []SchoolBusRecord
-    for rows.Next() {
-        var b SchoolBusRecord
-        err := rows.Scan(&b.ReportMonth, &b.ReportYear, &b.BusYear, 
-                        &b.BusMake, &b.LicensePlate, &b.BusID, 
-                        &b.Location, &b.BeginningMiles, &b.EndingMiles, 
-                        &b.TotalMiles, &b.Status, &b.Notes)
-        if err != nil {
-            log.Printf("Error scanning school bus: %v", err)
-            continue
-        }
-        buses = append(buses, b)
-    }
-    
-    return buses, nil
+func exportProgramStaffCSV(w http.ResponseWriter, month, year string) {
+	staff, err := getProgramStaffReports(month, year)
+	if err != nil {
+		http.Error(w, "Failed to get data", http.StatusInternalServerError)
+		return
+	}
+	
+	// Write CSV header
+	fmt.Fprintf(w, "Program Type,Staff Count 1,Staff Count 2\n")
+	
+	// Write data rows
+	for _, s := range staff {
+		fmt.Fprintf(w, "%s,%d,%d\n",
+			escapeCSV(s.ProgramType),
+			s.StaffCount1,
+			s.StaffCount2)
+	}
 }
 
-func getProgramStaff(month, year string) ([]ProgramStaffRecord, error) {
-    query := `
-        SELECT report_month, report_year, program_type, 
-               staff_count_1, staff_count_2
-        FROM program_staff
-        WHERE 1=1
-    `
-    args := []interface{}{}
-    argCount := 0
-    
-    if month != "" {
-        argCount++
-        query += fmt.Sprintf(" AND report_month = $%d", argCount)
-        args = append(args, month)
-    }
-    
-    if year != "" {
-        argCount++
-        query += fmt.Sprintf(" AND report_year = $%d", argCount)
-        args = append(args, year)
-    }
-    
-    query += " ORDER BY report_year DESC, report_month, program_type"
-    
-    rows, err := db.Query(query, args...)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
-    
-    var staff []ProgramStaffRecord
-    for rows.Next() {
-        var s ProgramStaffRecord
-        err := rows.Scan(&s.ReportMonth, &s.ReportYear, &s.ProgramType,
-                        &s.StaffCount1, &s.StaffCount2)
-        if err != nil {
-            log.Printf("Error scanning program staff: %v", err)
-            continue
-        }
-        staff = append(staff, s)
-    }
-    
-    return staff, nil
+// escapeCSV escapes special characters in CSV fields
+func escapeCSV(s string) string {
+	if strings.ContainsAny(s, ",\"\n") {
+		s = strings.ReplaceAll(s, "\"", "\"\"")
+		return fmt.Sprintf("\"%s\"", s)
+	}
+	return s
+}
+
+// studentDetailsAPI returns student details as JSON
+func studentDetailsAPI(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	
+	studentID := r.URL.Query().Get("id")
+	if studentID == "" {
+		http.Error(w, "Student ID required", http.StatusBadRequest)
+		return
+	}
+	
+	// Load students
+	students, err := cache.GetStudents()
+	if err != nil {
+		http.Error(w, "Failed to load students", http.StatusInternalServerError)
+		return
+	}
+	
+	// Find the student
+	for _, student := range students {
+		if student.StudentID == studentID {
+			// Check permissions
+			if user.Role == "driver" && student.Driver != user.Username {
+				http.Error(w, "Access denied", http.StatusForbidden)
+				return
+			}
+			
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(student)
+			return
+		}
+	}
+	
+	http.Error(w, "Student not found", http.StatusNotFound)
+}
+
+// routeDetailsAPI returns route details with all students
+func routeDetailsAPI(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	
+	routeID := r.URL.Query().Get("id")
+	if routeID == "" {
+		http.Error(w, "Route ID required", http.StatusBadRequest)
+		return
+	}
+	
+	// Get route
+	routes, err := cache.GetRoutes()
+	if err != nil {
+		http.Error(w, "Failed to load routes", http.StatusInternalServerError)
+		return
+	}
+	
+	var route *Route
+	for _, r := range routes {
+		if r.RouteID == routeID {
+			route = &r
+			break
+		}
+	}
+	
+	if route == nil {
+		http.Error(w, "Route not found", http.StatusNotFound)
+		return
+	}
+	
+	// Get students on this route
+	students, err := cache.GetStudents()
+	if err != nil {
+		http.Error(w, "Failed to load students", http.StatusInternalServerError)
+		return
+	}
+	
+	var routeStudents []Student
+	for _, s := range students {
+		if s.RouteID == routeID && s.Active {
+			// For drivers, only show their students
+			if user.Role == "driver" && s.Driver != user.Username {
+				continue
+			}
+			routeStudents = append(routeStudents, s)
+		}
+	}
+	
+	// Create response
+	response := struct {
+		Route    *Route    `json:"route"`
+		Students []Student `json:"students"`
+		Count    int       `json:"student_count"`
+	}{
+		Route:    route,
+		Students: routeStudents,
+		Count:    len(routeStudents),
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// busStatusAPI returns current bus status
+func busStatusAPI(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	
+	busID := r.URL.Query().Get("id")
+	if busID == "" {
+		http.Error(w, "Bus ID required", http.StatusBadRequest)
+		return
+	}
+	
+	// Get bus
+	buses, err := cache.GetBuses()
+	if err != nil {
+		http.Error(w, "Failed to load buses", http.StatusInternalServerError)
+		return
+	}
+	
+	for _, bus := range buses {
+		if bus.BusID == busID {
+			// Get maintenance records
+			maintenanceRecords, _ := getAllVehicleMaintenanceRecords(busID)
+			
+			// Get current assignment
+			var currentDriver string
+			var currentRoute string
+			assignments, _ := loadRouteAssignments()
+			for _, a := range assignments {
+				if a.BusID == busID {
+					currentDriver = a.Driver
+					currentRoute = a.RouteName
+					break
+				}
+			}
+			
+			// Create response
+			response := struct {
+				Bus                *Bus                `json:"bus"`
+				CurrentDriver      string              `json:"current_driver"`
+				CurrentRoute       string              `json:"current_route"`
+				MaintenanceRecords []BusMaintenanceLog `json:"maintenance_records"`
+				RecentMaintenance  int                 `json:"recent_maintenance_count"`
+			}{
+				Bus:                bus,
+				CurrentDriver:      currentDriver,
+				CurrentRoute:       currentRoute,
+				MaintenanceRecords: maintenanceRecords,
+				RecentMaintenance:  countRecentMaintenance(maintenanceRecords, 30),
+			}
+			
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+	}
+	
+	http.Error(w, "Bus not found", http.StatusNotFound)
+}
+
+// driverStatsAPI returns driver statistics
+func driverStatsAPI(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	
+	driverUsername := r.URL.Query().Get("driver")
+	if driverUsername == "" {
+		driverUsername = user.Username
+	}
+	
+	// Check permissions
+	if user.Role == "driver" && driverUsername != user.Username {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+	
+	// Get driver logs
+	logs, err := getDriverLogs(driverUsername)
+	if err != nil {
+		http.Error(w, "Failed to load driver logs", http.StatusInternalServerError)
+		return
+	}
+	
+	// Calculate statistics
+	stats := calculateDriverStats(logs)
+	
+	// Get current assignment
+	assignment, _ := getDriverRouteAssignment(driverUsername)
+	
+	// Get student count
+	students, _ := getDriverStudents(driverUsername)
+	
+	response := struct {
+		Driver          string            `json:"driver"`
+		TotalTrips      int               `json:"total_trips"`
+		TotalMiles      float64           `json:"total_miles"`
+		AverageMiles    float64           `json:"average_miles"`
+		LastTripDate    string            `json:"last_trip_date"`
+		CurrentRoute    string            `json:"current_route"`
+		CurrentBus      string            `json:"current_bus"`
+		StudentCount    int               `json:"student_count"`
+		MonthlyStats    map[string]Stats  `json:"monthly_stats"`
+	}{
+		Driver:       driverUsername,
+		TotalTrips:   stats.TotalTrips,
+		TotalMiles:   stats.TotalMiles,
+		AverageMiles: stats.AverageMiles,
+		LastTripDate: stats.LastTripDate,
+		StudentCount: len(students),
+	}
+	
+	if assignment != nil {
+		response.CurrentRoute = assignment.RouteName
+		response.CurrentBus = assignment.BusID
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// Helper structures
+type Stats struct {
+	Trips int     `json:"trips"`
+	Miles float64 `json:"miles"`
+}
+
+type DriverStats struct {
+	TotalTrips   int
+	TotalMiles   float64
+	AverageMiles float64
+	LastTripDate string
+}
+
+// Helper functions
+
+func countRecentMaintenance(records []BusMaintenanceLog, days int) int {
+	cutoff := time.Now().AddDate(0, 0, -days).Format("2006-01-02")
+	count := 0
+	for _, record := range records {
+		if record.Date >= cutoff {
+			count++
+		}
+	}
+	return count
+}
+
+func calculateDriverStats(logs []DriverLog) DriverStats {
+	stats := DriverStats{}
+	
+	if len(logs) == 0 {
+		return stats
+	}
+	
+	for _, log := range logs {
+		stats.TotalTrips++
+		stats.TotalMiles += log.Mileage
+		if log.Date > stats.LastTripDate {
+			stats.LastTripDate = log.Date
+		}
+	}
+	
+	if stats.TotalTrips > 0 {
+		stats.AverageMiles = stats.TotalMiles / float64(stats.TotalTrips)
+	}
+	
+	return stats
+}
+
+// activityReportHandler shows activity reports
+func activityReportHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	
+	// Get date range
+	startDate := r.URL.Query().Get("start")
+	endDate := r.URL.Query().Get("end")
+	
+	if startDate == "" || endDate == "" {
+		// Default to current month
+		now := time.Now()
+		startDate = now.AddDate(0, 0, -now.Day()+1).Format("2006-01-02")
+		endDate = now.Format("2006-01-02")
+	}
+	
+	// Load activities
+	activities, err := loadActivitiesInRange(startDate, endDate)
+	if err != nil {
+		log.Printf("Error loading activities: %v", err)
+		activities = []Activity{}
+	}
+	
+	// Calculate totals
+	totalMiles := 0.0
+	totalAttendance := 0
+	for _, a := range activities {
+		totalMiles += a.Miles
+		totalAttendance += a.Attendance
+	}
+	
+	data := struct {
+		User            *User
+		Activities      []Activity
+		StartDate       string
+		EndDate         string
+		TotalMiles      float64
+		TotalAttendance int
+		CSRFToken       string
+	}{
+		User:            user,
+		Activities:      activities,
+		StartDate:       startDate,
+		EndDate:         endDate,
+		TotalMiles:      totalMiles,
+		TotalAttendance: totalAttendance,
+		CSRFToken:       getCSRFToken(r),
+	}
+	
+	renderTemplate(w, "activity_report.html", data)
+}
+
+func loadActivitiesInRange(startDate, endDate string) ([]Activity, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	
+	var activities []Activity
+	err := db.Select(&activities, `
+		SELECT date::text, driver, trip_name, attendance, miles, notes
+		FROM activities
+		WHERE date >= $1 AND date <= $2
+		ORDER BY date DESC, created_at DESC
+	`, startDate, endDate)
+	
+	return activities, err
+}
+
+// systemHealthAPI returns system health metrics
+func systemHealthAPI(w http.ResponseWriter, r *http.Request) {
+	health := struct {
+		Status       string                 `json:"status"`
+		Timestamp    string                 `json:"timestamp"`
+		Database     string                 `json:"database"`
+		CacheStats   map[string]interface{} `json:"cache_stats"`
+		SessionCount int                    `json:"active_sessions"`
+		Version      string                 `json:"version"`
+		Uptime       string                 `json:"uptime"`
+	}{
+		Status:       "healthy",
+		Timestamp:    time.Now().Format(time.RFC3339),
+		Database:     "connected",
+		CacheStats:   cache.GetStats(),
+		SessionCount: GetActiveSessionCount(),
+		Version:      "2.0.0",
+		Uptime:       getUptime(),
+	}
+	
+	// Check database
+	if db == nil || db.Ping() != nil {
+		health.Status = "degraded"
+		health.Database = "disconnected"
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	if health.Status == "healthy" {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}
+	
+	json.NewEncoder(w).Encode(health)
+}
+
+var startTime = time.Now()
+
+func getUptime() string {
+	duration := time.Since(startTime)
+	days := int(duration.Hours() / 24)
+	hours := int(duration.Hours()) % 24
+	minutes := int(duration.Minutes()) % 60
+	
+	if days > 0 {
+		return fmt.Sprintf("%dd %dh %dm", days, hours, minutes)
+	} else if hours > 0 {
+		return fmt.Sprintf("%dh %dm", hours, minutes)
+	}
+	return fmt.Sprintf("%dm", minutes)
 }
