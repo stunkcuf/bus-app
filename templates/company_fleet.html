@@ -6,7 +6,7 @@
   <title>Company Fleet Overview - Fleet Management System</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
-  <style>
+  <style nonce="{{.CSPNonce}}">
     :root {
       --grad-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       --grad-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
@@ -83,6 +83,7 @@
       font-size: 2rem;
       font-weight: 700;
       display: block;
+      color: #667eea;
     }
 
     .stat-label {
@@ -91,11 +92,6 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
-
-    .stat-total { color: #667eea; }
-    .stat-active { color: #28a745; }
-    .stat-maintenance { color: #ffc107; }
-    .stat-out-service { color: #dc3545; }
 
     .search-box {
       border-radius: 30px;
@@ -373,25 +369,25 @@
       <div class="row g-4">
         <div class="col-md-3">
           <div class="stat-item">
-            <span class="stat-number stat-total" id="totalVehicles">{{len .Vehicles}}</span>
+            <span class="stat-number" id="totalVehicles">{{len .Vehicles}}</span>
             <div class="stat-label">Total Vehicles</div>
           </div>
         </div>
         <div class="col-md-3">
           <div class="stat-item">
-            <span class="stat-number stat-active" id="activeVehicles" aria-live="polite">0</span>
+            <span class="stat-number" id="activeVehicles" aria-live="polite">0</span>
             <div class="stat-label">Active</div>
           </div>
         </div>
         <div class="col-md-3">
           <div class="stat-item">
-            <span class="stat-number stat-maintenance" id="maintenanceVehicles" aria-live="polite">0</span>
+            <span class="stat-number" id="maintenanceVehicles" aria-live="polite">0</span>
             <div class="stat-label">Maintenance</div>
           </div>
         </div>
         <div class="col-md-3">
           <div class="stat-item">
-            <span class="stat-number stat-out-service" id="outOfServiceVehicles" aria-live="polite">0</span>
+            <span class="stat-number" id="outOfServiceVehicles" aria-live="polite">0</span>
             <div class="stat-label">Out of Service</div>
           </div>
         </div>
@@ -616,7 +612,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
+  <script nonce="{{.CSPNonce}}">
     // Constants
     const DEBOUNCE_DELAY = 300;
     const ANIMATION_DELAY = 100;
