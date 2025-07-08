@@ -1,71 +1,79 @@
-// middleware.go - HTTP middleware functions
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 )
 
-// withRecovery wraps handlers to recover from panics and log requests
-func withRecovery(h http.HandlerFunc) http.HandlerFunc {
+// withRecovery middleware recovers from panics
+func withRecovery(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
 		defer func() {
-			duration := time.Since(start)
-			log.Printf("%s %s - %v", r.Method, r.URL.Path, duration)
 			if err := recover(); err != nil {
-				log.Printf("Recovered from panic in handler %s: %v", r.URL.Path, err)
+				log.Printf("Panic recovered: %v", err)
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
 			}
 		}()
-		h(w, r)
-	}
-}
-
-// RateLimitMiddleware uses the global rate limiter from security.go
-func RateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ip := r.RemoteAddr
-		if forwardedIP := r.Header.Get("X-Forwarded-For"); forwardedIP != "" {
-			// Take the first IP if there are multiple
-			if idx := strings.Index(forwardedIP, ","); idx != -1 {
-				ip = forwardedIP[:idx]
-			} else {
-				ip = forwardedIP
-			}
-		}
-
-		limiter := rateLimiter.GetVisitor(ip)
-		if !limiter.Allow() {
-			http.Error(w, "Too many requests. Please try again later.", http.StatusTooManyRequests)
-			return
-		}
-
 		next(w, r)
 	}
 }
 
-// requireAuth middleware checks if user is authenticated
+// RateLimitMiddleware limits requests per IP
+func RateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get client IP
+		ip := r.RemoteAddr
+		if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
+			ip = strings.Split(forwarded, ",")[0]
+		}
+		
+		// Only rate limit POST requests
+		if r.Method == "POST" {
+			if !loginLimiter.checkRateLimit(ip) {
+				http.Error(w, "Too many requests. Please try again later.", http.StatusTooManyRequests)
+				return
+			}
+		}
+		
+		next(w, r)
+	}
+}
+
+// requireAuth ensures user is authenticated
 func requireAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		user := getUserFromSession(r)
-		if user == nil {
+		cookie, err := r.Cookie(SessionCookieName)
+		if err != nil {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
-		next(w, r)
+		
+		session, err := GetSecureSession(cookie.Value)
+		if err != nil {
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
+		
+		// Add user info to context
+		ctx := context.WithValue(r.Context(), "user", &User{
+			Username: session.Username,
+			Role:     session.Role,
+		})
+		
+		next(w, r.WithContext(ctx))
 	}
 }
 
-// requireRole middleware checks if user has specific role
+// requireRole ensures user has a specific role
 func requireRole(role string) func(http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			user := getUserFromSession(r)
 			if user == nil || user.Role != role {
-				http.Error(w, "Unauthorized", http.StatusForbidden)
+				http.Error(w, "Forbidden", http.StatusForbidden)
 				return
 			}
 			next(w, r)
@@ -73,12 +81,111 @@ func requireRole(role string) func(http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// loggingMiddleware logs all requests
-func loggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
+// requireDatabase middleware to ensure DB connection
+func requireDatabase(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		log.Printf("Started %s %s", r.Method, r.URL.Path)
+		if db == nil {
+			http.Error(w, "Database unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		
+		// Ping database to ensure connection is alive
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		
+		if err := db.PingContext(ctx); err != nil {
+			log.Printf("Database ping failed: %v", err)
+			http.Error(w, "Database connection lost", http.StatusServiceUnavailable)
+			return
+		}
+		
 		next(w, r)
-		log.Printf("Completed %s %s in %v", r.Method, r.URL.Path, time.Since(start))
 	}
+}
+
+// loggingMiddleware logs HTTP requests
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		
+		// Wrap the ResponseWriter to capture status code
+		wrapped := &responseWriter{
+			ResponseWriter: w,
+			statusCode:    http.StatusOK,
+		}
+		
+		next.ServeHTTP(wrapped, r)
+		
+		log.Printf("%s %s %s %d %v",
+			r.RemoteAddr,
+			r.Method,
+			r.URL.Path,
+			wrapped.statusCode,
+			time.Since(start))
+	})
+}
+
+// responseWriter wraps http.ResponseWriter to capture status code
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+// corsMiddleware adds CORS headers
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Set CORS headers
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-CSRF-Token")
+		
+		// Handle preflight requests
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		
+		next.ServeHTTP(w, r)
+	})
+}
+
+// timeoutMiddleware adds request timeout
+func timeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx, cancel := context.WithTimeout(r.Context(), timeout)
+			defer cancel()
+			
+			r = r.WithContext(ctx)
+			
+			done := make(chan struct{})
+			go func() {
+				next.ServeHTTP(w, r)
+				close(done)
+			}()
+			
+			select {
+			case <-done:
+				return
+			case <-ctx.Done():
+				http.Error(w, "Request timeout", http.StatusRequestTimeout)
+			}
+		})
+	}
+}
+
+// contentTypeMiddleware ensures proper content type
+func contentTypeMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Set default content type if not set
+		if w.Header().Get("Content-Type") == "" {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		}
+		next.ServeHTTP(w, r)
+	})
 }
