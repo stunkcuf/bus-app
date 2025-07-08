@@ -268,7 +268,7 @@
           <h1 id="pageTitle" class="fs-3 mb-1">
             <i class="bi bi-bus-front me-2"></i>Driver Dashboard
           </h1>
-          <p class="mb-0 opacity-75">Welcome back, {{.User.Username}}! Here's your route overview.</p>
+          <p class="mb-0 opacity-75">Welcome back, {{.Data.User.Username}}! Here's your route overview.</p>
         </div>
         <nav class="btn-group btn-group-sm" role="group" aria-label="Primary actions">
           <a href="/students" class="btn">
@@ -290,52 +290,52 @@
           </div>
           <div class="card-body">
             <form action="/save-log" method="POST">
-              <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+              <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
               <div class="row mb-3">
                 <div class="col-md-3">
                   <label class="form-label">Date</label>
-                  <input type="date" class="form-control" name="date" value="{{.Date}}" required>
+                  <input type="date" class="form-control" name="date" value="{{.Data.Date}}" required>
                 </div>
                 <div class="col-md-3">
                   <div class="mb-3">
                     <label class="form-label">Period</label>
                     <select class="form-select" name="period" id="periodSelect">
-                      <option value="morning" {{if eq .Period "morning"}}selected{{end}}>Morning Route (AM)</option>
-                      <option value="afternoon" {{if eq .Period "afternoon"}}selected{{end}}>Afternoon Route (PM)</option>
+                      <option value="morning" {{if eq .Data.Period "morning"}}selected{{end}}>Morning Route (AM)</option>
+                      <option value="afternoon" {{if eq .Data.Period "afternoon"}}selected{{end}}>Afternoon Route (PM)</option>
                     </select>
                   </div>
                 </div>
                 <div class="col-md-3">
                   <label class="form-label">Departure Time</label>
                   <input type="time" class="form-control" name="departure" 
-                         value="{{if .DriverLog}}{{.DriverLog.Departure}}{{end}}" required>
+                         value="{{if .Data.DriverLog}}{{.Data.DriverLog.Departure}}{{end}}" required>
                 </div>
                 <div class="col-md-3">
                   <label class="form-label">Arrival Time</label>
                   <input type="time" class="form-control" name="arrival" 
-                         value="{{if .DriverLog}}{{.DriverLog.Arrival}}{{end}}" required>
+                         value="{{if .Data.DriverLog}}{{.Data.DriverLog.Arrival}}{{end}}" required>
                 </div>
               </div>
 
-              {{if .Route}}
-              <input type="hidden" name="route_id" value="{{.Route.RouteID}}">
-              <input type="hidden" name="bus_id" value="{{if .Bus}}{{.Bus.BusID}}{{end}}">
+              {{if .Data.Route}}
+              <input type="hidden" name="route_id" value="{{.Data.Route.RouteID}}">
+              <input type="hidden" name="bus_id" value="{{if .Data.Bus}}{{.Data.Bus.BusID}}{{end}}">
               
               <div class="assignment-info mb-3">
                 <div class="row">
                   <div class="col-md-4">
                     <strong><i class="bi bi-bus-front me-1"></i>Bus:</strong> 
-                    {{if .Bus}}#{{.Bus.BusID}} - {{.Bus.Model}}{{else}}Not Assigned{{end}}
+                    {{if .Data.Bus}}#{{.Data.Bus.BusID}} - {{.Data.Bus.Model}}{{else}}Not Assigned{{end}}
                   </div>
                   <div class="col-md-4">
                     <strong><i class="bi bi-map me-1"></i>Route:</strong> 
-                    {{.Route.RouteName}} ({{.Route.RouteID}})
+                    {{.Data.Route.RouteName}} ({{.Data.Route.RouteID}})
                   </div>
                   <div class="col-md-4">
                     <strong><i class="bi bi-speedometer2 me-1"></i>Mileage:</strong>
                     <input type="number" class="form-control form-control-sm d-inline-block w-auto" 
                            name="mileage" step="0.1" placeholder="0.0" 
-                           value="{{if .DriverLog}}{{.DriverLog.Mileage}}{{end}}" required>
+                           value="{{if .Data.DriverLog}}{{.Data.DriverLog.Mileage}}{{end}}" required>
                   </div>
                 </div>
               </div>
@@ -344,10 +344,10 @@
               <div class="alert alert-info alert-sm">
                 <i class="bi bi-info-circle me-2"></i>
                 Students are automatically ordered by their 
-                {{if eq .Period "morning"}}pickup{{else}}dropoff{{end}} times for efficient route planning.
+                {{if eq .Data.Period "morning"}}pickup{{else}}dropoff{{end}} times for efficient route planning.
               </div>
               <div class="route-positions">
-                {{if .Students}}
+                {{if .Data.Students}}
                 <div class="table-responsive">
                   <table class="table student-table">
                     <thead>
@@ -356,13 +356,13 @@
                         <th>Student Name</th>
                         <th>Guardian</th>
                         <th>Phone</th>
-                        <th width="120">{{if eq .Period "morning"}}Pickup{{else}}Dropoff{{end}} Time</th>
+                        <th width="120">{{if eq .Data.Period "morning"}}Pickup{{else}}Dropoff{{end}} Time</th>
                         <th width="100">Present</th>
                         <th width="150">Actual Time</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {{range $index, $student := .Students}}
+                      {{range $index, $student := .Data.Students}}
                       {{$position := $student.PositionNumber}}
                       <tr>
                         <td>
@@ -381,7 +381,7 @@
                         </td>
                         <td>
                           <strong class="text-primary">
-                            {{if eq $.Period "morning"}}
+                            {{if eq $.Data.Period "morning"}}
                               {{.PickupTime}}
                             {{else}}
                               {{.DropoffTime}}
@@ -392,8 +392,8 @@
                           <div class="form-check">
                             <input class="form-check-input" type="checkbox" 
                                    name="present_{{.PositionNumber}}" id="present_{{.PositionNumber}}"
-                                   {{if $.DriverLog}}
-                                     {{range $.DriverLog.Attendance}}
+                                   {{if $.Data.DriverLog}}
+                                     {{range $.Data.DriverLog.Attendance}}
                                        {{if eq .Position $position}}{{if .Present}}checked{{end}}{{end}}
                                      {{end}}
                                    {{end}}>
@@ -406,8 +406,8 @@
                           <input type="time" class="form-control form-control-sm" 
                                  name="pickup_{{.PositionNumber}}"
                                  placeholder="HH:MM"
-                                 {{if $.DriverLog}}
-                                   {{range $.DriverLog.Attendance}}
+                                 {{if $.Data.DriverLog}}
+                                   {{range $.Data.DriverLog.Attendance}}
                                      {{if eq .Position $position}}value="{{.PickupTime}}"{{end}}
                                    {{end}}
                                  {{end}}>
@@ -418,9 +418,9 @@
                   </table>
                 </div>
                 <div class="mt-2 text-muted">
-                  <small><i class="bi bi-info-circle me-1"></i>Total students on route: {{len .Students}}</small>
+                  <small><i class="bi bi-info-circle me-1"></i>Total students on route: {{len .Data.Students}}</small>
                   <br>
-                  <small><i class="bi bi-clock me-1"></i>Order shows the sequence for {{if eq .Period "morning"}}pickups{{else}}dropoffs{{end}}</small>
+                  <small><i class="bi bi-clock me-1"></i>Order shows the sequence for {{if eq .Data.Period "morning"}}pickups{{else}}dropoffs{{end}}</small>
                 </div>
                 {{else}}
                 <div class="alert alert-info">
@@ -450,7 +450,7 @@
     </div>
 
     <!-- Quick Stats Row -->
-    {{if .Route}}
+    {{if .Data.Route}}
     <div class="row g-4 mb-4">
       <div class="col-lg-3 col-md-6">
         <div class="card metric-card bg-gradient-primary text-white">
@@ -465,7 +465,7 @@
         <div class="card metric-card bg-gradient-success text-white">
           <div class="card-body text-center">
             <i class="bi bi-people-fill metric-icon"></i>
-            <div class="metric-value">{{if .Students}}{{len .Students}}{{else}}0{{end}}</div>
+            <div class="metric-value">{{if .Data.Students}}{{len .Data.Students}}{{else}}0{{end}}</div>
             <div class="metric-label">Students on Route</div>
           </div>
         </div>
@@ -474,7 +474,7 @@
         <div class="card metric-card bg-gradient-info text-white">
           <div class="card-body text-center">
             <i class="bi bi-bus-front metric-icon"></i>
-            <div class="metric-value">{{if .Bus}}{{.Bus.BusID}}{{else}}--{{end}}</div>
+            <div class="metric-value">{{if .Data.Bus}}{{.Data.Bus.BusID}}{{else}}--{{end}}</div>
             <div class="metric-label">Assigned Bus</div>
           </div>
         </div>
@@ -483,7 +483,7 @@
         <div class="card metric-card bg-gradient-warning text-white">
           <div class="card-body text-center">
             <i class="bi bi-speedometer2 metric-icon"></i>
-            <div class="metric-value">{{if .DriverLog}}{{printf "%.1f" .DriverLog.Mileage}}{{else}}0.0{{end}}</div>
+            <div class="metric-value">{{if .Data.DriverLog}}{{printf "%.1f" .Data.DriverLog.Mileage}}{{else}}0.0{{end}}</div>
             <div class="metric-label">Today's Miles</div>
           </div>
         </div>
@@ -499,8 +499,8 @@
             <h5><i class="bi bi-clock-history me-2"></i>Recent Trip Logs</h5>
           </div>
           <div class="card-body">
-            {{if .RecentLogs}}
-            {{range .RecentLogs}}
+            {{if .Data.RecentLogs}}
+            {{range .Data.RecentLogs}}
             <div class="trip-log-item">
               <div class="d-flex justify-content-between align-items-center">
                 <div>
@@ -544,7 +544,7 @@
                 </a>
               </div>
               <div class="col-6">
-                <a href="/driver-dashboard?date={{.Date}}&period=morning" class="text-decoration-none">
+                <a href="/driver-dashboard?date={{.Data.Date}}&period=morning" class="text-decoration-none">
                   <div class="quick-action-card">
                     <i class="bi bi-sunrise fs-2 text-warning d-block mb-2"></i>
                     <h6 class="fw-semibold">Morning</h6>
@@ -553,7 +553,7 @@
                 </a>
               </div>
               <div class="col-6">
-                <a href="/driver-dashboard?date={{.Date}}&period=afternoon" class="text-decoration-none">
+                <a href="/driver-dashboard?date={{.Data.Date}}&period=afternoon" class="text-decoration-none">
                   <div class="quick-action-card">
                     <i class="bi bi-sunset fs-2 text-info d-block mb-2"></i>
                     <h6 class="fw-semibold">Afternoon</h6>
