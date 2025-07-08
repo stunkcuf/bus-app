@@ -503,8 +503,7 @@ func activityReportHandler(w http.ResponseWriter, r *http.Request) {
 		TotalAttendance: totalAttendance,
 		CSRFToken:       getCSRFToken(r),
 	}
-	
-	renderTemplate(w, "activity_report.html", data)
+	renderTemplate(w, r, "activity_report.html", data)
 }
 
 func loadActivitiesInRange(startDate, endDate string) ([]Activity, error) {
