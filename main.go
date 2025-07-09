@@ -248,10 +248,30 @@ func getCSRFToken(r *http.Request) string {
 }
 
 func validateCSRF(r *http.Request) bool {
-	cookie, _ := r.Cookie(SessionCookieName)
-	return cookie != nil && ValidateCSRFToken(cookie.Value, r.FormValue("csrf_token"))
+	// Get session cookie
+	cookie, err := r.Cookie(SessionCookieName)
+	if err != nil {
+		// No session cookie = no CSRF validation needed
+		// This happens on login/register pages
+		return true
+	}
+	
+	// Get session
+	session, err := GetSecureSession(cookie.Value)
+	if err != nil {
+		// Invalid session = fail validation
+		return false
+	}
+	
+	// Compare tokens
+	submittedToken := r.FormValue("csrf_token")
+	if submittedToken == "" {
+		// Also check header for AJAX requests
+		submittedToken = r.Header.Get("X-CSRF-Token")
+	}
+	
+	return session.CSRFToken == submittedToken
 }
-
 // Graceful shutdown
 func gracefulShutdown(server *http.Server) {
 	// Wait for interrupt signal
