@@ -453,30 +453,58 @@ func updateVehicleStatusHandler(w http.ResponseWriter, r *http.Request) {
 func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	busID := strings.TrimPrefix(r.URL.Path, "/bus-maintenance/")
 	
-	logs := []BusMaintenanceLog{}
-	rows, err := db.Query(`
-		SELECT id, date, category, notes, mileage, created_at
+	// Get maintenance records
+	records := []MaintenanceRecord{}
+	query := `
+		SELECT bus_id as vehicle_id, date, category, mileage, 0 as cost, notes, created_at
 		FROM bus_maintenance_logs
 		WHERE bus_id = $1
 		ORDER BY date DESC
-	`, busID)
+	`
 	
+	rows, err := db.Query(query, busID)
 	if err == nil {
 		defer rows.Close()
 		for rows.Next() {
-			var log BusMaintenanceLog
-			rows.Scan(&log.ID, &log.Date, &log.Category, &log.Notes, &log.Mileage, &log.CreatedAt)
-			log.BusID = busID
-			logs = append(logs, log)
+			var record MaintenanceRecord
+			rows.Scan(&record.VehicleID, &record.Date, &record.Category, 
+				&record.Mileage, &record.Cost, &record.Notes, &record.CreatedAt)
+			records = append(records, record)
 		}
 	}
 
-	renderTemplate(w, r, "bus_maintenance.html", map[string]interface{}{
-		"BusID":           busID,
-		"MaintenanceLogs": logs,
-		"Today":           time.Now().Format("2006-01-02"),
-		"CSRFToken":       generateCSRFToken(),
-	})
+	// Calculate statistics
+	var totalCost float64
+	recentCount := 0
+	sixMonthsAgo := time.Now().AddDate(0, -6, 0)
+	
+	for _, record := range records {
+		totalCost += record.Cost
+		if record.CreatedAt.After(sixMonthsAgo) {
+			recentCount++
+		}
+	}
+
+	totalRecords := len(records)
+	averageCost := float64(0)
+	if totalRecords > 0 {
+		averageCost = totalCost / float64(totalRecords)
+	}
+
+	// Create data map for template - use same template as vehicle maintenance
+	data := map[string]interface{}{
+		"VehicleID":          busID,
+		"IsBus":              true,  // This is always a bus
+		"MaintenanceRecords": records,
+		"TotalRecords":       totalRecords,
+		"TotalCost":          totalCost,
+		"AverageCost":        averageCost,
+		"RecentCount":        recentCount,
+		"Today":              time.Now().Format("2006-01-02"),
+		"CSRFToken":          generateCSRFToken(),
+	}
+
+	renderTemplate(w, r, "vehicle_maintenance.html", data)
 }
 
 // vehicleMaintenanceHandler shows maintenance for any vehicle
