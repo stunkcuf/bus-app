@@ -8,13 +8,11 @@ import (
 	"io"
 	"log"
 	"net/http"
-	// REMOVED: "strconv" - not used, parsing is done by utility functions
 	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"github.com/xuri/excelize/v2"
-	// REMOVED: "github.com/google/uuid" - not used
 	_ "github.com/lib/pq"
 )
 
@@ -73,7 +71,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 func registerHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		csrfToken, _ := GenerateSecureToken()
-		executeTemplate(w, "register.html", map[string]interface{}{
+		renderTemplate(w, r, "register.html", map[string]interface{}{
 			"CSRFToken": csrfToken,
 		})
 		return
@@ -169,7 +167,8 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 		data.PendingUsers = countPendingUsers()
 	}
 
-	executeTemplate(w, "dashboard.html", data)
+	// Use renderTemplate instead of executeTemplate for CSP nonce support
+	renderTemplate(w, r, "dashboard.html", data)
 }
 
 // approveUsersHandler shows pending users for approval
@@ -185,7 +184,7 @@ func approveUsersHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	executeTemplate(w, "approve_users.html", map[string]interface{}{
+	renderTemplate(w, r, "approve_users.html", map[string]interface{}{
 		"Users":     users,
 		"CSRFToken": generateCSRFToken(),
 	})
@@ -213,7 +212,7 @@ func approveUserHandler(w http.ResponseWriter, r *http.Request) {
 // manageUsersHandler shows all users for management
 func manageUsersHandler(w http.ResponseWriter, r *http.Request) {
 	users := loadUsers()
-	executeTemplate(w, "manage_users.html", map[string]interface{}{
+	renderTemplate(w, r, "manage_users.html", map[string]interface{}{
 		"Users":     users,
 		"CSRFToken": generateCSRFToken(),
 	})
@@ -229,7 +228,7 @@ func editUserHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		executeTemplate(w, "edit_user.html", map[string]interface{}{
+		renderTemplate(w, r, "edit_user.html", map[string]interface{}{
 			"User":      user,
 			"CSRFToken": generateCSRFToken(),
 		})
@@ -285,7 +284,7 @@ func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	logs := getDriverLogs(user.Username, 7) // Last 7 days
 	students := getRouteStudents(assignment.RouteID)
 
-	executeTemplate(w, "driver_dashboard.html", map[string]interface{}{
+	renderTemplate(w, r, "driver_dashboard.html", map[string]interface{}{
 		"User":       user,
 		"Assignment": assignment,
 		"Logs":       logs,
@@ -395,7 +394,7 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 		"Today":           time.Now().Format("2006-01-02"),
 		"CSRFToken":       generateCSRFToken(),
 	}
-	executeTemplate(w, "fleet.html", data)
+	renderTemplate(w, r, "fleet.html", data)
 }
 
 // companyFleetHandler shows company vehicles
@@ -415,7 +414,7 @@ func companyFleetHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	executeTemplate(w, "company_fleet.html", CompanyFleetData{
+	renderTemplate(w, r, "company_fleet.html", CompanyFleetData{
 		User:      getUserFromSession(r),
 		Vehicles:  vehicles,
 		CSRFToken: generateCSRFToken(),
@@ -474,7 +473,7 @@ func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	executeTemplate(w, "bus_maintenance.html", map[string]interface{}{
+	renderTemplate(w, r, "bus_maintenance.html", map[string]interface{}{
 		"BusID":           busID,
 		"MaintenanceLogs": logs,
 		"Today":           time.Now().Format("2006-01-02"),
@@ -550,7 +549,7 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 		CSRFToken:          generateCSRFToken(),
 	}
 
-	executeTemplate(w, "vehicle_maintenance.html", data)
+	renderTemplate(w, r, "vehicle_maintenance.html", data)
 }
 
 // saveMaintenanceRecordHandler saves a maintenance record
@@ -599,7 +598,7 @@ func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	executeTemplate(w, "assign_routes.html", AssignRouteData{
+	renderTemplate(w, r, "assign_routes.html", AssignRouteData{
 		User:             user,
 		Assignments:      assignments,
 		Drivers:          drivers,
@@ -736,7 +735,7 @@ func studentsHandler(w http.ResponseWriter, r *http.Request) {
 	assignment := getDriverAssignment(user.Username)
 	students := getRouteStudents(assignment.RouteID)
 
-	executeTemplate(w, "students.html", StudentData{
+	renderTemplate(w, r, "students.html", StudentData{
 		User:      user,
 		Students:  students,
 		CSRFToken: generateCSRFToken(),
@@ -833,7 +832,7 @@ func removeStudentHandler(w http.ResponseWriter, r *http.Request) {
 // importMileageHandler handles mileage report imports
 func importMileageHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		executeTemplate(w, "import_mileage.html", map[string]interface{}{
+		renderTemplate(w, r, "import_mileage.html", map[string]interface{}{
 			"CSRFToken": generateCSRFToken(),
 		})
 		return
@@ -889,7 +888,7 @@ func viewMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	executeTemplate(w, "view_mileage_reports.html", map[string]interface{}{
+	renderTemplate(w, r, "view_mileage_reports.html", map[string]interface{}{
 		"Reports":   reports,
 		"CSRFToken": generateCSRFToken(),
 	})
@@ -918,7 +917,7 @@ func driverProfileHandler(w http.ResponseWriter, r *http.Request) {
 		totalMiles += log.Mileage
 	}
 
-	executeTemplate(w, "driver_profile.html", map[string]interface{}{
+	renderTemplate(w, r, "driver_profile.html", map[string]interface{}{
 		"Driver":     driver,
 		"Assignment": assignment,
 		"Logs":       logs,
