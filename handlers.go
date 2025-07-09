@@ -24,8 +24,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// Note: Session management is handled in security.go, not here
-
 // loginHandler handles user login
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
@@ -53,8 +51,8 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Create session
-		sessionID, err := CreateSecureSession(user.Username, user.Role)
+		// Create session - adjusted for 3 return values
+		sessionID, _, err := CreateSecureSession(user.Username, user.Role)
 		if err != nil {
 			renderLoginError(w, r, "Failed to create session")
 			return
@@ -132,7 +130,8 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(SessionCookieName)
 	if err == nil {
-		DeleteSecureSession(cookie.Value)
+		// Use the DeleteSession function from security.go
+		DeleteSession(cookie.Value)
 	}
 
 	// Clear cookie
@@ -167,11 +166,13 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 	if user.Role == "manager" {
 		// Load manager-specific data
 		data.Users = loadUsers()
-		data.Buses = loadBusesFromCache()
-		data.Routes = loadRoutes()
+		data.Buses = loadBuses()
+		routes, _ := loadRoutes()
+		data.Routes = routes
 		data.DriverSummaries = loadDriverSummaries()
 		data.RouteStats = loadRouteStats()
-		data.Activities = loadActivities()
+		activities, _ := loadActivities(10)
+		data.Activities = activities
 		data.PendingUsers = countPendingUsers()
 	}
 
@@ -370,7 +371,7 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	buses := loadBusesFromCache()
+	buses := loadBuses()
 	
 	// Get recent maintenance logs
 	maintenanceLogs := []MaintenanceRecord{}
@@ -592,10 +593,10 @@ func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
 // assignRoutesHandler shows route assignment page
 func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
-	assignments := loadRouteAssignments()
+	assignments, _ := loadRouteAssignments()
 	drivers := loadDrivers()
-	routes := loadRoutes()
-	buses := loadBusesFromCache()
+	routes, _ := loadRoutes()
+	buses := loadBuses()
 
 	// Filter available buses
 	availableBuses := []*Bus{}
@@ -872,35 +873,6 @@ func importMileageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// viewMileageReportsHandler shows mileage reports
-func viewMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
-	// Load mileage reports from database
-	reports := []MileageReport{}
-	rows, err := db.Query(`
-		SELECT report_month, report_year, vehicle_year, make_model, license_plate,
-			   vehicle_id, location, beginning_miles, ending_miles, total_miles, status
-		FROM mileage_reports
-		ORDER BY report_year DESC, report_month DESC, vehicle_id
-	`)
-	
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var report MileageReport
-			rows.Scan(&report.ReportMonth, &report.ReportYear, &report.VehicleYear,
-				&report.MakeModel, &report.LicensePlate, &report.VehicleID,
-				&report.Location, &report.BeginningMiles, &report.EndingMiles,
-				&report.TotalMiles, &report.Status)
-			reports = append(reports, report)
-		}
-	}
-
-	executeTemplate(w, "view_mileage_reports.html", map[string]interface{}{
-		"Reports":   reports,
-		"CSRFToken": generateCSRFToken(),
-	})
-}
-
 // driverProfileHandler shows driver profile
 func driverProfileHandler(w http.ResponseWriter, r *http.Request) {
 	driverUsername := strings.TrimPrefix(r.URL.Path, "/driver/")
@@ -972,39 +944,6 @@ func getUserByUsername(username string) *User {
 	return &user
 }
 
-func getUserFromSession(r *http.Request) *User {
-	cookie, err := r.Cookie(SessionCookieName)
-	if err != nil {
-		return nil
-	}
-
-	session, err := GetSecureSession(cookie.Value)
-	if err != nil || session == nil {
-		return nil
-	}
-
-	return getUserByUsername(session.Username)
-}
-
-func generateCSRFToken() string {
-	token, _ := GenerateSecureToken()
-	return token
-}
-
-func loadUsers() []User {
-	users := []User{}
-	rows, err := db.Query(`SELECT username, role, status, registration_date FROM users ORDER BY username`)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var user User
-			rows.Scan(&user.Username, &user.Role, &user.Status, &user.RegistrationDate)
-			users = append(users, user)
-		}
-	}
-	return users
-}
-
 func loadDrivers() []User {
 	drivers := []User{}
 	rows, err := db.Query(`SELECT username, role, status FROM users WHERE role = 'driver' AND status = 'active'`)
@@ -1017,67 +956,6 @@ func loadDrivers() []User {
 		}
 	}
 	return drivers
-}
-
-func loadBusesFromCache() []*Bus {
-	// Try cache first
-	if buses := cache.GetBuses(); buses != nil {
-		return buses
-	}
-
-	// Load from database
-	buses := []*Bus{}
-	rows, err := db.Query(`
-		SELECT bus_id, status, model, capacity, oil_status, tire_status, maintenance_notes
-		FROM buses
-		ORDER BY bus_id
-	`)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var bus Bus
-			rows.Scan(&bus.BusID, &bus.Status, &bus.Model, &bus.Capacity, 
-				&bus.OilStatus, &bus.TireStatus, &bus.MaintenanceNotes)
-			buses = append(buses, &bus)
-		}
-	}
-
-	// Cache the result
-	cache.SetBuses(buses)
-	return buses
-}
-
-func loadRoutes() []Route {
-	routes := []Route{}
-	rows, err := db.Query(`SELECT route_id, route_name, description FROM routes ORDER BY route_name`)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var route Route
-			rows.Scan(&route.RouteID, &route.RouteName, &route.Description)
-			routes = append(routes, route)
-		}
-	}
-	return routes
-}
-
-func loadRouteAssignments() []RouteAssignment {
-	assignments := []RouteAssignment{}
-	rows, err := db.Query(`
-		SELECT ra.driver, ra.bus_id, ra.route_id, r.route_name, ra.assigned_date
-		FROM route_assignments ra
-		LEFT JOIN routes r ON ra.route_id = r.route_id
-		ORDER BY ra.driver
-	`)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var a RouteAssignment
-			rows.Scan(&a.Driver, &a.BusID, &a.RouteID, &a.RouteName, &a.AssignedDate)
-			assignments = append(assignments, a)
-		}
-	}
-	return assignments
 }
 
 func loadDriverSummaries() []*DriverSummary {
@@ -1122,25 +1000,6 @@ func loadRouteStats() []*RouteStats {
 		}
 	}
 	return stats
-}
-
-func loadActivities() []Activity {
-	activities := []Activity{}
-	rows, err := db.Query(`
-		SELECT date, driver, trip_name, attendance, miles, notes
-		FROM activities
-		ORDER BY date DESC
-		LIMIT 10
-	`)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var a Activity
-			rows.Scan(&a.Date, &a.Driver, &a.TripName, &a.Attendance, &a.Miles, &a.Notes)
-			activities = append(activities, a)
-		}
-	}
-	return activities
 }
 
 func countPendingUsers() int {
@@ -1296,11 +1155,6 @@ func generateCSPNonce() string {
 		return ""
 	}
 	return base64.StdEncoding.EncodeToString(b)
-}
-
-// viewEnhancedMileageReportsHandler is an alias for viewMileageReportsHandler
-func viewEnhancedMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
-	viewMileageReportsHandler(w, r)
 }
 
 // getUser gets the current user from session
