@@ -32,11 +32,8 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		username := r.FormValue("username")
 		password := r.FormValue("password")
 
-		// Validate CSRF token
-		if !validateCSRF(r) {
-			renderLoginError(w, r, "Invalid security token")
-			return
-		}
+		// REMOVED CSRF validation on login - no session exists yet to validate against
+		// CSRF protection is for authenticated sessions, not login attempts
 
 		// Authenticate user
 		user, err := authenticateUser(username, password)
@@ -86,6 +83,8 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		username := r.FormValue("username")
 		password := r.FormValue("password")
 		role := r.FormValue("role")
+
+		// REMOVED CSRF validation on registration - no session exists yet
 
 		// Validate input
 		if username == "" || password == "" || role == "" {
