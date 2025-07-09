@@ -1,22 +1,4 @@
-// Get maintenance records
-	records := []MaintenanceRecord{}
-	query := `
-		SELECT bus_id as vehicle_id, date, category, mileage, 0 as cost, notes, created_at
-		FROM bus_maintenance_logs
-		WHERE bus_id = $1
-		ORDER BY date DESC
-	`
-	
-	rows, err := db.Query(query, vehicleID)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var record MaintenanceRecord
-			rows.Scan(&record.VehicleID, &record.Date, &record.Category, 
-				&record.Mileage, &record.Cost, &record.Notes, &record.CreatedAt)
-			records = append(records, record)
-		}
-	}package main
+package main
 
 import (
 	"crypto/rand"
@@ -388,7 +370,6 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query(`
 		SELECT bus_id, date, category, notes, mileage, created_at
 		FROM bus_maintenance_logs
-		WHERE bus_id LIKE 'BUS%'
 		ORDER BY date DESC
 		LIMIT 10
 	`)
@@ -508,9 +489,9 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	// Get maintenance records
 	records := []MaintenanceRecord{}
 	query := `
-		SELECT vehicle_id, date, category, mileage, cost, notes, created_at
-		FROM maintenance_logs
-		WHERE vehicle_id = $1
+		SELECT bus_id as vehicle_id, date, category, mileage, 0 as cost, notes, created_at
+		FROM bus_maintenance_logs
+		WHERE bus_id = $1
 		ORDER BY date DESC
 	`
 	
@@ -571,7 +552,6 @@ func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
 		date := r.FormValue("date")
 		category := r.FormValue("category")
 		mileage := parseIntOrDefault(r.FormValue("mileage"), 0)
-		cost := parseFloatOrDefault(r.FormValue("cost"), 0)
 		notes := r.FormValue("notes")
 
 		// Save to bus_maintenance_logs table
