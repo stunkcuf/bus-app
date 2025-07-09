@@ -327,13 +327,10 @@
             <span class="info-label">Vehicle ID:</span>
             <span class="info-value">{{.Data.VehicleID}}</span>
           </div>
-          {{if .Data.VehicleInfo}}
-            <!-- If VehicleInfo is populated, show its details -->
-            <div class="info-item">
-              <span class="info-label">Type:</span>
-              <span class="info-value">{{if .Data.IsBus}}Bus{{else}}Vehicle{{end}}</span>
-            </div>
-          {{end}}
+          <div class="info-item">
+            <span class="info-label">Type:</span>
+            <span class="info-value">{{if .Data.IsBus}}Bus{{else}}Vehicle{{end}}</span>
+          </div>
         </div>
       </div>
     </div>
