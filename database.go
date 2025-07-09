@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"  // Added missing import
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -294,6 +294,10 @@ func createTables() error {
 		`CREATE INDEX IF NOT EXISTS idx_route_assignments_route ON route_assignments(route_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_vehicles_status ON vehicles(status)`,
 		`CREATE INDEX IF NOT EXISTS idx_buses_status ON buses(status)`,
+		`CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date)`,
+		`CREATE INDEX IF NOT EXISTS idx_activities_driver ON activities(driver)`,
+		`CREATE INDEX IF NOT EXISTS idx_maintenance_records_vehicle ON maintenance_records(vehicle_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_maintenance_records_date ON maintenance_records(date)`,
 	}
 
 	for _, index := range indexes {
@@ -328,6 +332,9 @@ func runMigrations() error {
 		`ALTER TABLE students ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`,
 		`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`,
 		`ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`,
+		
+		// Add maintenance_date to service_records if missing
+		`ALTER TABLE service_records ADD COLUMN IF NOT EXISTS maintenance_date DATE`,
 	}
 
 	for _, migration := range migrations {
@@ -340,9 +347,11 @@ func runMigrations() error {
 	return nil
 }
 
-// Database query functions
+// =============================================================================
+// DATABASE QUERY FUNCTIONS WITH COMPREHENSIVE LOG RETRIEVAL
+// =============================================================================
 
-// FIXED: getDriverBusForRoute gets the bus assigned to a driver for a specific route
+// getDriverBusForRoute gets the bus assigned to a driver for a specific route
 func getDriverBusForRoute(driver, routeID string) (string, error) {
 	if db == nil {
 		return "", fmt.Errorf("database not initialized")
@@ -455,19 +464,44 @@ func validateRouteAssignment(assignment RouteAssignment) error {
 	return nil
 }
 
-// getRecentMaintenanceActivity gets recent maintenance records
+// =============================================================================
+// ENHANCED LOG RETRIEVAL FUNCTIONS
+// =============================================================================
+
+// getRecentMaintenanceActivity gets recent maintenance records across all tables
 func getRecentMaintenanceActivity(limit int) ([]BusMaintenanceLog, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
 	
-	var logs []BusMaintenanceLog
-	err := db.Select(&logs, `
-		SELECT bus_id, date::text, category, notes, mileage 
-		FROM bus_maintenance_logs 
-		ORDER BY date DESC, created_at DESC 
+	query := `
+		SELECT * FROM (
+			-- Bus maintenance logs
+			SELECT id, bus_id as vehicle_id, date::text, category, notes, mileage, cost, created_at
+			FROM bus_maintenance_logs
+			
+			UNION ALL
+			
+			-- Maintenance records
+			SELECT id, vehicle_id, date::text, category, notes, mileage, cost, created_at
+			FROM maintenance_records
+			
+			UNION ALL
+			
+			-- Service records (legacy)
+			SELECT id, COALESCE(vehicle_id, vehicle_number) as vehicle_id, 
+			       COALESCE(maintenance_date::text, date::text, '') as date,
+			       COALESCE(service_type, 'service') as category,
+			       notes, 0 as mileage, 0 as cost, created_at
+			FROM service_records
+			WHERE vehicle_id IS NOT NULL OR vehicle_number IS NOT NULL
+		) combined
+		ORDER BY created_at DESC
 		LIMIT $1
-	`, limit)
+	`
+	
+	var logs []BusMaintenanceLog
+	err := db.Select(&logs, query, limit)
 	
 	return logs, err
 }
@@ -478,31 +512,39 @@ func getAllVehicleMaintenanceRecords(vehicleID string) ([]BusMaintenanceLog, err
 		return nil, fmt.Errorf("database not initialized")
 	}
 	
-	var records []BusMaintenanceLog
+	query := `
+		SELECT * FROM (
+			-- Bus maintenance logs
+			SELECT id, bus_id, date::text, category, notes, mileage, cost, created_at
+			FROM bus_maintenance_logs
+			WHERE bus_id = $1
+			
+			UNION ALL
+			
+			-- Maintenance records
+			SELECT id, vehicle_id as bus_id, date::text, category, notes, mileage, cost, created_at
+			FROM maintenance_records
+			WHERE vehicle_id = $1
+			
+			UNION ALL
+			
+			-- Service records (legacy)
+			SELECT id, COALESCE(vehicle_id, vehicle_number) as bus_id,
+			       COALESCE(maintenance_date::text, date::text, '') as date,
+			       COALESCE(service_type, 'service') as category,
+			       notes, 0 as mileage, 0 as cost, created_at
+			FROM service_records
+			WHERE vehicle_id = $1 OR vehicle_number = $1
+		) combined
+		WHERE date != ''
+		ORDER BY date DESC, created_at DESC
+	`
 	
-	// Get from bus_maintenance_logs
-	err := db.Select(&records, `
-		SELECT bus_id, date::text, category, notes, mileage 
-		FROM bus_maintenance_logs 
-		WHERE bus_id = $1 
-		ORDER BY date DESC
-	`, vehicleID)
+	var records []BusMaintenanceLog
+	err := db.Select(&records, query, vehicleID)
 	
 	if err != nil && err != sql.ErrNoRows {
 		return nil, err
-	}
-	
-	// Also get from maintenance_records
-	var additionalRecords []BusMaintenanceLog
-	err = db.Select(&additionalRecords, `
-		SELECT vehicle_id as bus_id, date::text, category, notes, mileage 
-		FROM maintenance_records 
-		WHERE vehicle_id = $1 
-		ORDER BY date DESC
-	`, vehicleID)
-	
-	if err == nil {
-		records = append(records, additionalRecords...)
 	}
 	
 	return records, nil
@@ -516,11 +558,195 @@ func saveMaintenanceRecord(log BusMaintenanceLog, vehicleType string) error {
 	
 	_, err := db.Exec(`
 		INSERT INTO maintenance_records 
-		(vehicle_id, vehicle_type, date, category, notes, mileage) 
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, log.BusID, vehicleType, log.Date, log.Category, log.Notes, log.Mileage)
+		(vehicle_id, vehicle_type, date, category, notes, mileage, cost) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`, log.BusID, vehicleType, log.Date, log.Category, log.Notes, log.Mileage, log.Cost)
 	
 	return err
+}
+
+// getDriverLogSummary gets a summary of driver logs
+func getDriverLogSummary(driver string, days int) (map[string]interface{}, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	
+	startDate := time.Now().AddDate(0, 0, -days).Format("2006-01-02")
+	summary := make(map[string]interface{})
+	
+	// Total miles driven
+	var totalMiles sql.NullFloat64
+	err := db.QueryRow(`
+		SELECT SUM(mileage) FROM driver_logs 
+		WHERE driver = $1 AND date >= $2
+	`, driver, startDate).Scan(&totalMiles)
+	
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+	summary["total_miles"] = totalMiles.Float64
+	
+	// Number of trips
+	var tripCount int
+	err = db.QueryRow(`
+		SELECT COUNT(*) FROM driver_logs 
+		WHERE driver = $1 AND date >= $2
+	`, driver, startDate).Scan(&tripCount)
+	
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+	summary["trip_count"] = tripCount
+	
+	// Average students per trip (based on attendance)
+	rows, err := db.Query(`
+		SELECT attendance FROM driver_logs 
+		WHERE driver = $1 AND date >= $2 AND attendance IS NOT NULL
+	`, driver, startDate)
+	
+	if err == nil {
+		defer rows.Close()
+		totalStudents := 0
+		validTrips := 0
+		
+		for rows.Next() {
+			var attendanceJSON []byte
+			if err := rows.Scan(&attendanceJSON); err == nil && len(attendanceJSON) > 0 {
+				var attendance []StudentAttendance
+				if json.Unmarshal(attendanceJSON, &attendance) == nil {
+					presentCount := 0
+					for _, a := range attendance {
+						if a.Present {
+							presentCount++
+						}
+					}
+					totalStudents += presentCount
+					validTrips++
+				}
+			}
+		}
+		
+		if validTrips > 0 {
+			summary["avg_students_per_trip"] = float64(totalStudents) / float64(validTrips)
+		} else {
+			summary["avg_students_per_trip"] = 0
+		}
+	}
+	
+	// Recent activity count
+	var recentCount int
+	err = db.QueryRow(`
+		SELECT COUNT(*) FROM driver_logs 
+		WHERE driver = $1 AND date >= $2
+	`, driver, time.Now().AddDate(0, 0, -7).Format("2006-01-02")).Scan(&recentCount)
+	
+	if err == nil {
+		summary["recent_trips_7_days"] = recentCount
+	}
+	
+	// Special trips/activities
+	var activityCount int
+	err = db.QueryRow(`
+		SELECT COUNT(*) FROM activities 
+		WHERE driver = $1 AND date >= $2
+	`, driver, startDate).Scan(&activityCount)
+	
+	if err == nil {
+		summary["special_trips"] = activityCount
+	}
+	
+	return summary, nil
+}
+
+// getFleetMaintenanceOverview gets maintenance overview for all vehicles
+func getFleetMaintenanceOverview() (map[string]interface{}, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	
+	overview := make(map[string]interface{})
+	
+	// Vehicles needing attention (based on status)
+	var needsAttention int
+	err := db.QueryRow(`
+		SELECT COUNT(*) FROM (
+			SELECT bus_id FROM buses 
+			WHERE oil_status != 'good' OR tire_status != 'good' OR status != 'active'
+			UNION
+			SELECT vehicle_id FROM vehicles 
+			WHERE oil_status != 'good' OR tire_status != 'good' OR status != 'active'
+		) AS vehicles_needing_attention
+	`).Scan(&needsAttention)
+	
+	if err == nil {
+		overview["vehicles_needing_attention"] = needsAttention
+	}
+	
+	// Recent maintenance (last 30 days)
+	thirtyDaysAgo := time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+	
+	var recentMaintenanceCount int
+	err = db.QueryRow(`
+		SELECT COUNT(*) FROM (
+			SELECT id FROM bus_maintenance_logs WHERE date >= $1
+			UNION ALL
+			SELECT id FROM maintenance_records WHERE date >= $1
+		) AS recent_maintenance
+	`, thirtyDaysAgo).Scan(&recentMaintenanceCount)
+	
+	if err == nil {
+		overview["recent_maintenance_count"] = recentMaintenanceCount
+	}
+	
+	// Total maintenance cost (last 30 days)
+	var totalCost sql.NullFloat64
+	err = db.QueryRow(`
+		SELECT SUM(cost) FROM (
+			SELECT cost FROM bus_maintenance_logs WHERE date >= $1
+			UNION ALL
+			SELECT cost FROM maintenance_records WHERE date >= $1
+		) AS maintenance_costs
+	`, thirtyDaysAgo).Scan(&totalCost)
+	
+	if err == nil {
+		overview["recent_maintenance_cost"] = totalCost.Float64
+	}
+	
+	// Overdue maintenance (vehicles without maintenance in 90+ days)
+	ninetyDaysAgo := time.Now().AddDate(0, 0, -90).Format("2006-01-02")
+	
+	rows, err := db.Query(`
+		SELECT DISTINCT vehicle_id FROM (
+			SELECT bus_id as vehicle_id FROM buses
+			WHERE bus_id NOT IN (
+				SELECT DISTINCT bus_id FROM bus_maintenance_logs WHERE date >= $1
+			)
+			UNION
+			SELECT vehicle_id FROM vehicles
+			WHERE vehicle_id NOT IN (
+				SELECT DISTINCT vehicle_id FROM maintenance_records WHERE date >= $1
+			)
+		) AS overdue_vehicles
+	`, ninetyDaysAgo)
+	
+	if err == nil {
+		defer rows.Close()
+		overdueCount := 0
+		var overdueVehicles []string
+		
+		for rows.Next() {
+			var vehicleID string
+			if err := rows.Scan(&vehicleID); err == nil {
+				overdueCount++
+				overdueVehicles = append(overdueVehicles, vehicleID)
+			}
+		}
+		
+		overview["overdue_maintenance_count"] = overdueCount
+		overview["overdue_vehicles"] = overdueVehicles
+	}
+	
+	return overview, nil
 }
 
 // debugMaintenanceTables helps debug maintenance table issues
@@ -569,8 +795,11 @@ func debugMaintenanceTables(vehicleID string) {
 	log.Printf("=== End debug ===\n")
 }
 
-// API handlers for route assignments
+// =============================================================================
+// API HANDLERS FOR LOGS AND REPORTS
+// =============================================================================
 
+// handleSaveRouteAssignment handles route assignment saving
 func handleSaveRouteAssignment(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -596,6 +825,7 @@ func handleSaveRouteAssignment(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleCheckDriverBus checks driver's assigned bus
 func handleCheckDriverBus(w http.ResponseWriter, r *http.Request) {
 	driver := r.URL.Query().Get("driver")
 	routeID := r.URL.Query().Get("route_id")
@@ -624,6 +854,83 @@ func handleCheckDriverBus(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"bus_id": busID,
 	})
+}
+
+// handleGetDriverLogs returns driver logs with optional filtering
+func handleGetDriverLogs(w http.ResponseWriter, r *http.Request) {
+	driver := r.URL.Query().Get("driver")
+	startDate := r.URL.Query().Get("start_date")
+	endDate := r.URL.Query().Get("end_date")
+	limit := r.URL.Query().Get("limit")
+	
+	var logs []DriverLog
+	var err error
+	
+	if driver != "" && startDate != "" && endDate != "" {
+		logs, err = getDriverLogsByDateRange(driver, startDate, endDate)
+	} else if driver != "" && limit != "" {
+		limitInt, _ := strconv.Atoi(limit)
+		logs, err = loadDriverLogsForDriver(driver, limitInt)
+	} else {
+		logs, err = loadDriverLogsFromDB()
+	}
+	
+	if err != nil {
+		log.Printf("Error getting driver logs: %v", err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(logs)
+}
+
+// handleGetMaintenanceLogs returns maintenance logs for a vehicle
+func handleGetMaintenanceLogs(w http.ResponseWriter, r *http.Request) {
+	vehicleID := r.URL.Query().Get("vehicle_id")
+	
+	if vehicleID == "" {
+		http.Error(w, "Vehicle ID required", http.StatusBadRequest)
+		return
+	}
+	
+	logs, err := getAllVehicleMaintenanceRecords(vehicleID)
+	if err != nil {
+		log.Printf("Error getting maintenance logs: %v", err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(logs)
+}
+
+// handleGetLogSummary returns log summary for a driver
+func handleGetLogSummary(w http.ResponseWriter, r *http.Request) {
+	driver := r.URL.Query().Get("driver")
+	days := r.URL.Query().Get("days")
+	
+	if driver == "" {
+		http.Error(w, "Driver parameter required", http.StatusBadRequest)
+		return
+	}
+	
+	daysInt := 30 // default
+	if days != "" {
+		if d, err := strconv.Atoi(days); err == nil {
+			daysInt = d
+		}
+	}
+	
+	summary, err := getDriverLogSummary(driver, daysInt)
+	if err != nil {
+		log.Printf("Error getting driver log summary: %v", err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(summary)
 }
 
 // Enhanced mileage reports handler
@@ -778,4 +1085,90 @@ func getAvailableReports() ([]string, error) {
 	`)
 	
 	return reports, err
+}
+
+// getComprehensiveActivityLog gets all activities across all tables for reporting
+func getComprehensiveActivityLog(startDate, endDate string) ([]map[string]interface{}, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	
+	query := `
+		SELECT * FROM (
+			-- Driver logs
+			SELECT 
+				dl.date::text as activity_date,
+				dl.driver as user_name,
+				'Route ' || dl.period as activity_type,
+				r.route_name as description,
+				dl.mileage as miles,
+				jsonb_array_length(dl.attendance) as count,
+				'driver_log' as source
+			FROM driver_logs dl
+			LEFT JOIN routes r ON dl.route_id = r.route_id
+			WHERE dl.date BETWEEN $1 AND $2
+			
+			UNION ALL
+			
+			-- Activities
+			SELECT 
+				a.date::text as activity_date,
+				a.driver as user_name,
+				'Special Trip' as activity_type,
+				a.trip_name as description,
+				a.miles,
+				a.attendance as count,
+				'activity' as source
+			FROM activities a
+			WHERE a.date BETWEEN $1 AND $2
+			
+			UNION ALL
+			
+			-- Maintenance logs
+			SELECT 
+				m.date::text as activity_date,
+				'Maintenance' as user_name,
+				m.category as activity_type,
+				m.bus_id || ': ' || m.notes as description,
+				0 as miles,
+				0 as count,
+				'maintenance' as source
+			FROM bus_maintenance_logs m
+			WHERE m.date BETWEEN $1 AND $2
+		) combined
+		ORDER BY activity_date DESC, user_name
+	`
+	
+	rows, err := db.Query(query, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get comprehensive activity log: %w", err)
+	}
+	defer rows.Close()
+	
+	var activities []map[string]interface{}
+	for rows.Next() {
+		var activityDate, userName, activityType, description, source string
+		var miles float64
+		var count int
+		
+		err := rows.Scan(&activityDate, &userName, &activityType, &description, &miles, &count, &source)
+		if err != nil {
+			log.Printf("Error scanning activity: %v", err)
+			continue
+		}
+		
+		activity := map[string]interface{}{
+			"date":        activityDate,
+			"user":        userName,
+			"type":        activityType,
+			"description": description,
+			"miles":       miles,
+			"count":       count,
+			"source":      source,
+		}
+		
+		activities = append(activities, activity)
+	}
+	
+	return activities, nil
 }
