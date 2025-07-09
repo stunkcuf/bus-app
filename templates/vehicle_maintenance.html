@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Maintenance Records - {{if .IsBus}}Bus #{{.VehicleID}}{{else}}Vehicle {{.VehicleID}}{{end}}</title>
+  <title>Maintenance Records - {{if .Data.IsBus}}Bus #{{.Data.VehicleID}}{{else}}Vehicle {{.Data.VehicleID}}{{end}}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <style nonce="{{.CSPNonce}}">
@@ -271,7 +271,7 @@
 <body>
   <div class="container-fluid py-4">
     <!-- Store CSRF Token -->
-    <input type="hidden" id="csrfToken" value="{{.CSRFToken}}">
+    <input type="hidden" id="csrfToken" value="{{.Data.CSRFToken}}">
     
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
@@ -288,11 +288,11 @@
             <i class="bi bi-wrench me-2"></i>Maintenance Records
           </h1>
           <p class="mb-0 opacity-75">
-            {{if .IsBus}}Bus #{{.VehicleID}}{{else}}Vehicle {{.VehicleID}}{{end}} - Service History
+            {{if .Data.IsBus}}Bus #{{.Data.VehicleID}}{{else}}Vehicle {{.Data.VehicleID}}{{end}} - Service History
           </p>
         </div>
         <nav class="btn-group btn-group-sm" role="group">
-          {{if .IsBus}}
+          {{if .Data.IsBus}}
           <a href="/fleet" class="btn">
             <i class="bi bi-arrow-left me-1"></i>Back to Fleet
           </a>
@@ -315,23 +315,23 @@
     <div class="vehicle-info-card">
       <div class="d-flex align-items-center">
         <div class="vehicle-avatar">
-          {{if .IsBus}}
+          {{if .Data.IsBus}}
           <i class="bi bi-bus-front"></i>
           {{else}}
           <i class="bi bi-truck"></i>
           {{end}}
         </div>
         <div>
-          <h3>{{if .IsBus}}Bus #{{.VehicleID}}{{else}}{{.VehicleID}}{{end}}</h3>
+          <h3>{{if .Data.IsBus}}Bus #{{.Data.VehicleID}}{{else}}{{.Data.VehicleID}}{{end}}</h3>
           <div class="info-item">
             <span class="info-label">Vehicle ID:</span>
-            <span class="info-value">{{.VehicleID}}</span>
+            <span class="info-value">{{.Data.VehicleID}}</span>
           </div>
-          {{if .VehicleInfo}}
+          {{if .Data.VehicleInfo}}
             <!-- If VehicleInfo is populated, show its details -->
             <div class="info-item">
               <span class="info-label">Type:</span>
-              <span class="info-value">{{if .IsBus}}Bus{{else}}Vehicle{{end}}</span>
+              <span class="info-value">{{if .Data.IsBus}}Bus{{else}}Vehicle{{end}}</span>
             </div>
           {{end}}
         </div>
@@ -343,25 +343,25 @@
       <div class="row g-4">
         <div class="col-md-3">
           <div class="stat-item">
-            <span class="stat-number stat-records">{{.TotalRecords}}</span>
+            <span class="stat-number stat-records">{{.Data.TotalRecords}}</span>
             <div class="stat-label">Total Records</div>
           </div>
         </div>
         <div class="col-md-3">
           <div class="stat-item">
-            <span class="stat-number stat-cost">${{printf "%.2f" .TotalCost}}</span>
+            <span class="stat-number stat-cost">${{printf "%.2f" .Data.TotalCost}}</span>
             <div class="stat-label">Total Cost</div>
           </div>
         </div>
         <div class="col-md-3">
           <div class="stat-item">
-            <span class="stat-number stat-avg">${{printf "%.2f" .AverageCost}}</span>
+            <span class="stat-number stat-avg">${{printf "%.2f" .Data.AverageCost}}</span>
             <div class="stat-label">Average Cost</div>
           </div>
         </div>
         <div class="col-md-3">
           <div class="stat-item">
-            <span class="stat-number stat-recent">{{.RecentCount}}</span>
+            <span class="stat-number stat-recent">{{.Data.RecentCount}}</span>
             <div class="stat-label">Last 30 Days</div>
           </div>
         </div>
@@ -383,15 +383,15 @@
         </div>
         <div class="card-body">
           <form class="maintenance-form" onsubmit="logMaintenance(event)">
-            <input type="hidden" name="vehicle_id" value="{{.VehicleID}}">
-            <input type="hidden" name="is_bus" value="{{.IsBus}}">
+            <input type="hidden" name="vehicle_id" value="{{.Data.VehicleID}}">
+            <input type="hidden" name="is_bus" value="{{.Data.IsBus}}">
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">
                     <i class="bi bi-calendar me-1"></i>Date
                   </label>
-                  <input type="date" class="form-control" name="date" value="{{.Today}}" required>
+                  <input type="date" class="form-control" name="date" value="{{.Data.Today}}" required>
                 </div>
               </div>
               <div class="col-md-6">
@@ -450,10 +450,10 @@
     <div class="enhanced-card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5><i class="bi bi-journal-text me-2"></i>Maintenance History</h5>
-        <small class="text-muted">{{.TotalRecords}} records</small>
+        <small class="text-muted">{{.Data.TotalRecords}} records</small>
       </div>
       <div class="card-body p-0">
-        {{if .MaintenanceRecords}}
+        {{if .Data.MaintenanceRecords}}
         <div class="table-responsive">
           <table class="table table-hover mb-0">
             <thead class="table-light">
@@ -465,7 +465,7 @@
               </tr>
             </thead>
             <tbody>
-              {{range .MaintenanceRecords}}
+              {{range .Data.MaintenanceRecords}}
               <tr class="maintenance-log">
                 <td>
                   <strong>{{.Date}}</strong>
