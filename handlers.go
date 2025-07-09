@@ -8,13 +8,13 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
+	// REMOVED: "strconv" - not used, parsing is done by utility functions
 	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"github.com/xuri/excelize/v2"
-	"github.com/google/uuid"
+	// REMOVED: "github.com/google/uuid" - not used
 	_ "github.com/lib/pq"
 )
 
@@ -124,8 +124,8 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(SessionCookieName)
 	if err == nil {
-		// Delete the session - assuming the security.go uses a sync.Map
-		secureSessions.Delete(cookie.Value)
+		// FIXED: Use ClearSession function instead of undefined secureSessions
+		ClearSession(cookie.Value)
 	}
 
 	// Clear cookie
