@@ -2,20 +2,14 @@ package main
 
 import (
 	"crypto/rand"
-	"database/sql"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"log"
 	"net/http"
-	"net/url"
-	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -130,8 +124,8 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(SessionCookieName)
 	if err == nil {
-		// Use the DeleteSession function from security.go
-		DeleteSession(cookie.Value)
+		// Delete the session - assuming the security.go uses a sync.Map
+		secureSessions.Delete(cookie.Value)
 	}
 
 	// Clear cookie
@@ -171,7 +165,7 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 		data.Routes = routes
 		data.DriverSummaries = loadDriverSummaries()
 		data.RouteStats = loadRouteStats()
-		activities, _ := loadActivities(10)
+		activities, _ := loadActivities()
 		data.Activities = activities
 		data.PendingUsers = countPendingUsers()
 	}
@@ -871,6 +865,35 @@ func importMileageHandler(w http.ResponseWriter, r *http.Request) {
 
 		http.Redirect(w, r, "/view-mileage-reports", http.StatusSeeOther)
 	}
+}
+
+// viewMileageReportsHandler shows mileage reports
+func viewMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
+	// Load mileage reports from database
+	reports := []MileageReport{}
+	rows, err := db.Query(`
+		SELECT report_month, report_year, vehicle_year, make_model, license_plate,
+			   vehicle_id, location, beginning_miles, ending_miles, total_miles, status
+		FROM mileage_reports
+		ORDER BY report_year DESC, report_month DESC, vehicle_id
+	`)
+	
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var report MileageReport
+			rows.Scan(&report.ReportMonth, &report.ReportYear, &report.VehicleYear,
+				&report.MakeModel, &report.LicensePlate, &report.VehicleID,
+				&report.Location, &report.BeginningMiles, &report.EndingMiles,
+				&report.TotalMiles, &report.Status)
+			reports = append(reports, report)
+		}
+	}
+
+	executeTemplate(w, "view_mileage_reports.html", map[string]interface{}{
+		"Reports":   reports,
+		"CSRFToken": generateCSRFToken(),
+	})
 }
 
 // driverProfileHandler shows driver profile
