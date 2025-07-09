@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Enhanced Mileage Reports - Fleet Management System</title>
+  <title>Mileage Reports - Fleet Management</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <style nonce="{{.CSPNonce}}">
@@ -11,8 +11,6 @@
       --grad-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       --grad-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
       --grad-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      --grad-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-      --grad-danger: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
     }
     
     body {
@@ -29,116 +27,23 @@
       box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
     }
     
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
+    .page-header .btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
     }
     
-    .stat-card {
-      background: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      text-align: center;
-      transition: all 0.3s ease;
-    }
-    
-    .stat-card:hover {
+    .page-header .btn:hover {
+      background: rgba(255,255,255,0.3);
       transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.15);
-    }
-    
-    .stat-number {
-      font-size: 2.5rem;
-      font-weight: 700;
-      background: var(--grad-primary);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin: 0;
-    }
-    
-    .stat-label {
-      font-size: 0.875rem;
-      color: #6c757d;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .nav-pills .nav-link {
-      border-radius: 10px;
-      padding: 0.75rem 1.5rem;
-      margin-right: 0.5rem;
-      background: #f8f9fa;
-      color: #495057;
-      font-weight: 500;
-      transition: all 0.3s ease;
-    }
-    
-    .nav-pills .nav-link.active {
-      background: var(--grad-primary);
       color: white;
     }
     
-    .nav-pills .nav-link:hover:not(.active) {
-      background: #e9ecef;
-    }
-    
-    .data-section {
-      background: white;
+    .report-card {
+      border: none;
       border-radius: 15px;
       box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-      margin-bottom: 2rem;
       overflow: hidden;
-    }
-    
-    .section-header {
-      background: #f8f9fa;
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid #dee2e6;
-      font-weight: 600;
-    }
-    
-    .table {
-      margin-bottom: 0;
-    }
-    
-    .table thead th {
-      background: #f8f9fa;
-      font-weight: 600;
-      text-transform: uppercase;
-      font-size: 0.85rem;
-      letter-spacing: 0.5px;
-      border-bottom: 2px solid #dee2e6;
-    }
-    
-    .status-badge {
-      padding: 0.25rem 0.75rem;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      text-transform: uppercase;
-    }
-    
-    .status-for-sale {
-      background: var(--grad-warning);
-      color: white;
-    }
-    
-    .status-sold {
-      background: var(--grad-danger);
-      color: white;
-    }
-    
-    .status-spare {
-      background: var(--grad-info);
-      color: white;
-    }
-    
-    .status-active {
-      background: var(--grad-success);
-      color: white;
     }
     
     .filter-section {
@@ -146,358 +51,217 @@
       border-radius: 15px;
       padding: 1.5rem;
       margin-bottom: 2rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.05);
     }
     
-    .program-card {
+    .stats-card {
       background: linear-gradient(45deg, #f8f9fa, #e9ecef);
       border-radius: 12px;
       padding: 1.5rem;
-      margin-bottom: 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .program-name {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin: 0;
-    }
-    
-    .program-counts {
-      display: flex;
-      gap: 2rem;
-    }
-    
-    .count-item {
       text-align: center;
+      margin-bottom: 1rem;
     }
     
-    .count-number {
-      font-size: 1.5rem;
+    .stats-number {
+      font-size: 2rem;
       font-weight: 700;
       color: #667eea;
     }
     
-    .count-label {
-      font-size: 0.75rem;
+    .stats-label {
+      font-size: 0.9rem;
       color: #6c757d;
+      text-transform: uppercase;
     }
     
-    .empty-state {
-      text-align: center;
-      padding: 3rem;
-      color: #6c757d;
-    }
-    
-    .empty-state i {
-      font-size: 4rem;
-      opacity: 0.3;
-      margin-bottom: 1rem;
-    }
+    .status-active { color: #28a745; }
+    .status-inactive { color: #dc3545; }
+    .status-pending { color: #ffc107; }
   </style>
 </head>
 <body>
   <div class="container-fluid py-4">
+    <input type="hidden" id="csrfToken" value="{{.Data.CSRFToken}}">
+    
     <!-- Header -->
     <header class="page-header">
       <div class="d-flex justify-content-between align-items-center flex-wrap">
         <div>
           <h1 class="fs-3 mb-1">
-            <i class="bi bi-graph-up me-2"></i>Enhanced Mileage Reports
+            <i class="bi bi-file-earmark-bar-graph me-2"></i>Mileage Reports
           </h1>
-          <p class="mb-0 opacity-75">Comprehensive view of all fleet and program data</p>
+          <p class="mb-0 opacity-75">Monthly vehicle mileage tracking</p>
         </div>
         <nav class="btn-group btn-group-sm" role="group">
-          <a href="/import-mileage" class="btn btn-light">
+          <a href="/import-mileage" class="btn">
             <i class="bi bi-upload me-1"></i>Import
           </a>
-          <a href="/manager-dashboard" class="btn btn-light">
-            <i class="bi bi-arrow-left me-1"></i>Dashboard
+          <a href="/manager-dashboard" class="btn">
+            <i class="bi bi-speedometer2 me-1"></i>Dashboard
           </a>
         </nav>
       </div>
     </header>
 
-    <!-- Statistics Grid -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <h3 class="stat-number">{{.Stats.TotalVehicles}}</h3>
-        <div class="stat-label">Total Vehicles</div>
-      </div>
-      <div class="stat-card">
-        <h3 class="stat-number">{{.Stats.ActiveVehicles}}</h3>
-        <div class="stat-label">Active Vehicles</div>
-      </div>
-      <div class="stat-card">
-        <h3 class="stat-number">{{.Stats.TotalMiles}}</h3>
-        <div class="stat-label">Total Miles</div>
-      </div>
-      <div class="stat-card">
-        <h3 class="stat-number">{{printf "%.0f" .Stats.AverageMilesPerVehicle}}</h3>
-        <div class="stat-label">Avg Miles/Vehicle</div>
-      </div>
-      <div class="stat-card">
-        <h3 class="stat-number">{{.Stats.TotalProgramStaff}}</h3>
-        <div class="stat-label">Total Staff</div>
-      </div>
-      <div class="stat-card">
-        <h3 class="stat-number">{{.Stats.VehiclesForSale}}</h3>
-        <div class="stat-label">For Sale</div>
-      </div>
-    </div>
-
     <!-- Filter Section -->
     <div class="filter-section">
-      <form method="GET" action="/view-mileage-reports">
-        <div class="row g-3">
-          <div class="col-md-3">
-            <label class="form-label">Report Type</label>
-            <select name="type" class="form-select">
-              <option value="all" {{if eq .FilterType "all"}}selected{{end}}>All Reports</option>
-              <option value="agency" {{if eq .FilterType "agency"}}selected{{end}}>Agency Vehicles</option>
-              <option value="school_bus" {{if eq .FilterType "school_bus"}}selected{{end}}>School Buses</option>
-              <option value="program" {{if eq .FilterType "program"}}selected{{end}}>Program Staff</option>
-            </select>
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">Month</label>
-            <select name="month" class="form-select">
-              <option value="">All Months</option>
-              <option value="January" {{if eq .FilterMonth "January"}}selected{{end}}>January</option>
-              <option value="February" {{if eq .FilterMonth "February"}}selected{{end}}>February</option>
-              <option value="March" {{if eq .FilterMonth "March"}}selected{{end}}>March</option>
-              <option value="April" {{if eq .FilterMonth "April"}}selected{{end}}>April</option>
-              <option value="May" {{if eq .FilterMonth "May"}}selected{{end}}>May</option>
-              <option value="June" {{if eq .FilterMonth "June"}}selected{{end}}>June</option>
-              <option value="July" {{if eq .FilterMonth "July"}}selected{{end}}>July</option>
-              <option value="August" {{if eq .FilterMonth "August"}}selected{{end}}>August</option>
-              <option value="September" {{if eq .FilterMonth "September"}}selected{{end}}>September</option>
-              <option value="October" {{if eq .FilterMonth "October"}}selected{{end}}>October</option>
-              <option value="November" {{if eq .FilterMonth "November"}}selected{{end}}>November</option>
-              <option value="December" {{if eq .FilterMonth "December"}}selected{{end}}>December</option>
-            </select>
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">Year</label>
-            <input type="number" name="year" class="form-control" placeholder="2024" value="{{.FilterYear}}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Vehicle ID</label>
-            <input type="text" name="vehicle_id" class="form-control" placeholder="e.g. 001" value="{{.FilterVehicleID}}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">&nbsp;</label>
-            <div>
-              <button type="submit" class="btn btn-primary">
-                <i class="bi bi-search me-2"></i>Filter
-              </button>
-              <a href="/view-mileage-reports" class="btn btn-secondary">
-                <i class="bi bi-x-circle"></i>
-              </a>
-            </div>
-          </div>
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label">Month</label>
+          <select class="form-select" name="month">
+            <option value="">All Months</option>
+            <option value="January">January</option>
+            <option value="February">February</option>
+            <option value="March">March</option>
+            <option value="April">April</option>
+            <option value="May">May</option>
+            <option value="June">June</option>
+            <option value="July">July</option>
+            <option value="August">August</option>
+            <option value="September">September</option>
+            <option value="October">October</option>
+            <option value="November">November</option>
+            <option value="December">December</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Year</label>
+          <select class="form-select" name="year">
+            <option value="">All Years</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Vehicle</label>
+          <input type="text" class="form-control" name="vehicle" placeholder="Vehicle ID">
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-funnel me-2"></i>Filter
+          </button>
         </div>
       </form>
     </div>
 
-    <!-- Navigation Tabs -->
-    <ul class="nav nav-pills mb-3" id="reportTabs" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="agency-tab" data-bs-toggle="pill" data-bs-target="#agency" type="button">
-          <i class="bi bi-truck me-2"></i>Agency Vehicles ({{len .AgencyVehicles}})
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="school-tab" data-bs-toggle="pill" data-bs-target="#school" type="button">
-          <i class="bi bi-bus-front me-2"></i>School Buses ({{len .SchoolBuses}})
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="program-tab" data-bs-toggle="pill" data-bs-target="#program" type="button">
-          <i class="bi bi-people me-2"></i>Program Staff ({{len .ProgramStaff}})
-        </button>
-      </li>
-    </ul>
-
-    <!-- Tab Content -->
-    <div class="tab-content" id="reportTabsContent">
-      <!-- Agency Vehicles Tab -->
-      <div class="tab-pane fade show active" id="agency" role="tabpanel">
-        <div class="data-section">
-          <div class="section-header">
-            <i class="bi bi-truck me-2"></i>Agency Vehicles
-          </div>
-          {{if .AgencyVehicles}}
-          <div class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>Month/Year</th>
-                  <th>Vehicle ID</th>
-                  <th>Year/Make</th>
-                  <th>License</th>
-                  <th>Location</th>
-                  <th>Beginning</th>
-                  <th>Ending</th>
-                  <th>Total Miles</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {{range .AgencyVehicles}}
-                <tr>
-                  <td>{{.ReportMonth}} {{.ReportYear}}</td>
-                  <td><strong>{{.VehicleID}}</strong></td>
-                  <td>{{.VehicleYear}} {{.MakeModel}}</td>
-                  <td>{{.LicensePlate}}</td>
-                  <td>{{.Location}}</td>
-                  <td>{{.BeginningMiles}}</td>
-                  <td>{{.EndingMiles}}</td>
-                  <td><strong>{{.TotalMiles}}</strong></td>
-                  <td>
-                    {{if .Status}}
-                      {{if eq .Status "FOR SALE"}}
-                        <span class="status-badge status-for-sale">{{.Status}}</span>
-                      {{else if eq .Status "SOLD"}}
-                        <span class="status-badge status-sold">{{.Status}}</span>
-                      {{else if eq .Status "OUT OF LEASE"}}
-                        <span class="status-badge status-sold">{{.Status}}</span>
-                      {{else}}
-                        <span class="status-badge">{{.Status}}</span>
-                      {{end}}
-                    {{else if gt .TotalMiles 0}}
-                      <span class="status-badge status-active">Active</span>
-                    {{end}}
-                  </td>
-                </tr>
-                {{end}}
-              </tbody>
-            </table>
-          </div>
-          {{else}}
-          <div class="empty-state">
-            <i class="bi bi-inbox"></i>
-            <h5>No Agency Vehicle Records</h5>
-          </div>
-          {{end}}
+    <!-- Statistics -->
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <div class="stats-card">
+          <div class="stats-number">{{len .Data.Reports}}</div>
+          <div class="stats-label">Total Reports</div>
         </div>
       </div>
-
-      <!-- School Buses Tab -->
-      <div class="tab-pane fade" id="school" role="tabpanel">
-        <div class="data-section">
-          <div class="section-header">
-            <i class="bi bi-bus-front me-2"></i>School Buses
-          </div>
-          {{if .SchoolBuses}}
-          <div class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>Month/Year</th>
-                  <th>Bus ID</th>
-                  <th>Year/Make</th>
-                  <th>License</th>
-                  <th>Location</th>
-                  <th>Beginning</th>
-                  <th>Ending</th>
-                  <th>Total Miles</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {{range .SchoolBuses}}
-                <tr>
-                  <td>{{.ReportMonth}} {{.ReportYear}}</td>
-                  <td><strong>{{.BusID}}</strong></td>
-                  <td>{{if .BusYear}}{{.BusYear}}{{end}} {{.BusMake}}</td>
-                  <td>{{.LicensePlate}}</td>
-                  <td>{{.Location}}</td>
-                  <td>{{.BeginningMiles}}</td>
-                  <td>{{.EndingMiles}}</td>
-                  <td><strong>{{.TotalMiles}}</strong></td>
-                  <td>
-                    {{if .Status}}
-                      {{if eq .Status "SPARE"}}
-                        <span class="status-badge status-spare">{{.Status}}</span>
-                      {{else}}
-                        <span class="status-badge">{{.Status}}</span>
-                      {{end}}
-                    {{else if gt .TotalMiles 0}}
-                      <span class="status-badge status-active">Active</span>
-                    {{end}}
-                  </td>
-                </tr>
-                {{end}}
-              </tbody>
-            </table>
-          </div>
-          {{else}}
-          <div class="empty-state">
-            <i class="bi bi-inbox"></i>
-            <h5>No School Bus Records</h5>
-          </div>
-          {{end}}
+      <div class="col-md-3">
+        <div class="stats-card">
+          <div class="stats-number" id="totalMiles">0</div>
+          <div class="stats-label">Total Miles</div>
         </div>
       </div>
+      <div class="col-md-3">
+        <div class="stats-card">
+          <div class="stats-number" id="activeVehicles">0</div>
+          <div class="stats-label">Active Vehicles</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stats-card">
+          <div class="stats-number" id="avgMiles">0</div>
+          <div class="stats-label">Avg Miles/Vehicle</div>
+        </div>
+      </div>
+    </div>
 
-      <!-- Program Staff Tab -->
-      <div class="tab-pane fade" id="program" role="tabpanel">
-        <div class="data-section">
-          <div class="section-header">
-            <i class="bi bi-people me-2"></i>Program Staff Counts
-          </div>
-          <div class="p-3">
-            {{if .ProgramStaff}}
-              {{range $month := .ProgramStaff}}
-              <div class="program-card">
-                <div>
-                  <h5 class="program-name">{{$month.ProgramType}}</h5>
-                  <div class="text-muted">{{$month.ReportMonth}} {{$month.ReportYear}}</div>
-                </div>
-                <div class="program-counts">
-                  <div class="count-item">
-                    <div class="count-number">{{$month.StaffCount1}}</div>
-                    <div class="count-label">Count 1</div>
-                  </div>
-                  <div class="count-item">
-                    <div class="count-number">{{$month.StaffCount2}}</div>
-                    <div class="count-label">Count 2</div>
-                  </div>
-                  <div class="count-item">
-                    <div class="count-number">{{add $month.StaffCount1 $month.StaffCount2}}</div>
-                    <div class="count-label">Total</div>
-                  </div>
-                </div>
-              </div>
+    <!-- Reports Table -->
+    <div class="report-card">
+      <div class="card-body p-0">
+        {{if .Data.Reports}}
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Month/Year</th>
+                <th>Vehicle ID</th>
+                <th>Make/Model</th>
+                <th>License</th>
+                <th>Location</th>
+                <th>Begin Miles</th>
+                <th>End Miles</th>
+                <th>Total Miles</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{range .Data.Reports}}
+              <tr>
+                <td>{{.ReportMonth}} {{.ReportYear}}</td>
+                <td><strong>{{.VehicleID}}</strong></td>
+                <td>{{.MakeModel}}</td>
+                <td>{{.LicensePlate}}</td>
+                <td>{{.Location}}</td>
+                <td>{{.BeginningMiles}}</td>
+                <td>{{.EndingMiles}}</td>
+                <td><strong>{{.TotalMiles}}</strong></td>
+                <td>
+                  {{if eq .Status "active"}}
+                    <span class="status-active">●</span> Active
+                  {{else if eq .Status "inactive"}}
+                    <span class="status-inactive">●</span> Inactive
+                  {{else}}
+                    <span class="status-pending">●</span> {{.Status}}
+                  {{end}}
+                </td>
+              </tr>
               {{end}}
-            {{else}}
-            <div class="empty-state">
-              <i class="bi bi-inbox"></i>
-              <h5>No Program Staff Records</h5>
-            </div>
-            {{end}}
-          </div>
+            </tbody>
+          </table>
         </div>
+        {{else}}
+        <div class="text-center py-5">
+          <i class="bi bi-file-earmark-x display-1 text-muted"></i>
+          <h5 class="mt-3">No Mileage Reports Found</h5>
+          <p class="text-muted">Import your first mileage report to get started</p>
+          <a href="/import-mileage" class="btn btn-primary">
+            <i class="bi bi-upload me-2"></i>Import Reports
+          </a>
+        </div>
+        {{end}}
       </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="{{.CSPNonce}}">
-    // Keep active tab on filter
+    // Calculate statistics
     document.addEventListener('DOMContentLoaded', function() {
-      const activeTab = localStorage.getItem('activeReportTab');
-      if (activeTab) {
-        const tabButton = document.querySelector(`#${activeTab}-tab`);
-        if (tabButton) {
-          new bootstrap.Tab(tabButton).show();
-        }
-      }
+      {{if .Data.Reports}}
+      const reports = [
+        {{range .Data.Reports}}
+        {
+          totalMiles: {{.TotalMiles}},
+          status: "{{.Status}}"
+        },
+        {{end}}
+      ];
       
-      // Save active tab
-      document.querySelectorAll('#reportTabs button').forEach(button => {
-        button.addEventListener('click', function() {
-          localStorage.setItem('activeReport
+      let totalMiles = 0;
+      let activeCount = 0;
+      
+      reports.forEach(report => {
+        totalMiles += report.totalMiles;
+        if (report.status === 'active') {
+          activeCount++;
+        }
+      });
+      
+      document.getElementById('totalMiles').textContent = totalMiles.toLocaleString();
+      document.getElementById('activeVehicles').textContent = activeCount;
+      
+      const avgMiles = activeCount > 0 ? Math.round(totalMiles / activeCount) : 0;
+      document.getElementById('avgMiles').textContent = avgMiles.toLocaleString();
+      {{end}}
+    });
+  </script>
+</body>
+</html>
