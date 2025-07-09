@@ -1,4 +1,22 @@
-package main
+// Get maintenance records
+	records := []MaintenanceRecord{}
+	query := `
+		SELECT bus_id as vehicle_id, date, category, mileage, 0 as cost, notes, created_at
+		FROM bus_maintenance_logs
+		WHERE bus_id = $1
+		ORDER BY date DESC
+	`
+	
+	rows, err := db.Query(query, vehicleID)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var record MaintenanceRecord
+			rows.Scan(&record.VehicleID, &record.Date, &record.Category, 
+				&record.Mileage, &record.Cost, &record.Notes, &record.CreatedAt)
+			records = append(records, record)
+		}
+	}package main
 
 import (
 	"crypto/rand"
@@ -366,20 +384,20 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 	buses := loadBuses()
 	
 	// Get recent maintenance logs
-	maintenanceLogs := []MaintenanceRecord{}
+	maintenanceLogs := []BusMaintenanceLog{}
 	rows, err := db.Query(`
-		SELECT vehicle_id, date, category, mileage, cost, notes, created_at
-		FROM maintenance_logs
-		WHERE vehicle_id LIKE 'BUS%'
-		ORDER BY created_at DESC
+		SELECT bus_id, date, category, notes, mileage, created_at
+		FROM bus_maintenance_logs
+		WHERE bus_id LIKE 'BUS%'
+		ORDER BY date DESC
 		LIMIT 10
 	`)
 	if err == nil {
 		defer rows.Close()
 		for rows.Next() {
-			var log MaintenanceRecord
-			err := rows.Scan(&log.VehicleID, &log.Date, &log.Category, 
-				&log.Mileage, &log.Cost, &log.Notes, &log.CreatedAt)
+			var log BusMaintenanceLog
+			err := rows.Scan(&log.BusID, &log.Date, &log.Category, 
+				&log.Notes, &log.Mileage, &log.CreatedAt)
 			if err == nil {
 				maintenanceLogs = append(maintenanceLogs, log)
 			}
@@ -389,6 +407,7 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]interface{}{
+		"User":            user,
 		"Buses":           buses,
 		"MaintenanceLogs": maintenanceLogs,
 		"Today":           time.Now().Format("2006-01-02"),
@@ -524,29 +543,17 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 		averageCost = totalCost / float64(totalRecords)
 	}
 
-	// Create data structure for template
-	data := struct {
-		CSPNonce           string
-		VehicleID          string
-		IsBus              bool
-		MaintenanceRecords []MaintenanceRecord
-		TotalRecords       int
-		TotalCost          float64
-		AverageCost        float64
-		RecentCount        int
-		Today              string
-		CSRFToken          string
-	}{
-		CSPNonce:           generateCSPNonce(),
-		VehicleID:          vehicleID,
-		IsBus:              isBus,
-		MaintenanceRecords: records,
-		TotalRecords:       totalRecords,
-		TotalCost:          totalCost,
-		AverageCost:        averageCost,
-		RecentCount:        recentCount,
-		Today:              time.Now().Format("2006-01-02"),
-		CSRFToken:          generateCSRFToken(),
+	// Create data map for template (no need for CSPNonce, renderTemplate handles it)
+	data := map[string]interface{}{
+		"VehicleID":          vehicleID,
+		"IsBus":              isBus,
+		"MaintenanceRecords": records,
+		"TotalRecords":       totalRecords,
+		"TotalCost":          totalCost,
+		"AverageCost":        averageCost,
+		"RecentCount":        recentCount,
+		"Today":              time.Now().Format("2006-01-02"),
+		"CSRFToken":          generateCSRFToken(),
 	}
 
 	renderTemplate(w, r, "vehicle_maintenance.html", data)
@@ -567,18 +574,23 @@ func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
 		cost := parseFloatOrDefault(r.FormValue("cost"), 0)
 		notes := r.FormValue("notes")
 
+		// Save to bus_maintenance_logs table
 		_, err := db.Exec(`
-			INSERT INTO maintenance_logs (vehicle_id, date, category, mileage, cost, notes, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)
-		`, vehicleID, date, category, mileage, cost, notes, time.Now())
+			INSERT INTO bus_maintenance_logs (bus_id, date, category, mileage, notes, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6)
+		`, vehicleID, date, category, mileage, notes, time.Now())
 
 		if err != nil {
 			http.Error(w, "Failed to save maintenance record", http.StatusInternalServerError)
 			return
 		}
 
-		// Redirect back to the maintenance page
-		http.Redirect(w, r, fmt.Sprintf("/vehicle-maintenance/%s", vehicleID), http.StatusSeeOther)
+		// Return JSON response for AJAX requests
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status": "success",
+			"message": "Maintenance record saved successfully",
+		})
 	}
 }
 
@@ -1169,15 +1181,6 @@ func processSchoolBusRow(row []string) {
 	processAgencyVehicleRow(row)
 }
 
-// generateCSPNonce generates a CSP nonce for inline scripts
-func generateCSPNonce() string {
-	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
-		return ""
-	}
-	return base64.StdEncoding.EncodeToString(b)
-}
-
 // getUser gets the current user from session
 func getUser(r *http.Request) *User {
 	return getUserFromSession(r)
@@ -1185,7 +1188,7 @@ func getUser(r *http.Request) *User {
 
 // isLoggedIn checks if user has valid session
 func isLoggedIn(r *http.Request) bool {
-	cookie, err := r.Cookie("session")
+	cookie, err := r.Cookie(SessionCookieName)
 	if err != nil {
 		return false
 	}
