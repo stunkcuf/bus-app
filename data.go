@@ -686,7 +686,7 @@ func loadDriverLogsFromDB() ([]DriverLog, error) {
 		var driverLog DriverLog
 		var attendanceJSON []byte
 		var date sql.NullTime
-		var departureTime, arrivalTime sql.NullTime
+		var departureTime, arrivalTime sql.NullString
 		
 		if err := rows.Scan(&driverLog.Driver, &driverLog.BusID, &driverLog.RouteID,
 			&date, &driverLog.Period, &departureTime,
@@ -699,10 +699,10 @@ func loadDriverLogsFromDB() ([]DriverLog, error) {
 			driverLog.Date = date.Time.Format("2006-01-02")
 		}
 		if departureTime.Valid {
-			driverLog.Departure = departureTime.Time.Format("15:04")
+			driverLog.Departure = departureTime.String
 		}
 		if arrivalTime.Valid {
-			driverLog.Arrival = arrivalTime.Time.Format("15:04")
+			driverLog.Arrival = arrivalTime.String
 		}
 		
 		if len(attendanceJSON) > 0 {
@@ -716,6 +716,119 @@ func loadDriverLogsFromDB() ([]DriverLog, error) {
 	
 	if err = rows.Err(); err != nil {
 		return logs, fmt.Errorf("error iterating driver logs: %w", err)
+	}
+	
+	return logs, nil
+}
+
+// Load driver logs for a specific driver with limit
+func loadDriverLogsForDriver(driver string, limit int) ([]DriverLog, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database connection not available")
+	}
+	
+	query := `
+		SELECT driver, bus_id, route_id, date, period, departure_time, 
+			arrival_time, mileage, attendance 
+		FROM driver_logs 
+		WHERE driver = $1
+		ORDER BY date DESC, period DESC
+		LIMIT $2
+	`
+	
+	rows, err := db.Query(query, driver, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load driver logs: %w", err)
+	}
+	defer rows.Close()
+
+	var logs []DriverLog
+	for rows.Next() {
+		var driverLog DriverLog
+		var attendanceJSON []byte
+		var date sql.NullTime
+		var departureTime, arrivalTime sql.NullString
+		
+		if err := rows.Scan(&driverLog.Driver, &driverLog.BusID, &driverLog.RouteID,
+			&date, &driverLog.Period, &departureTime,
+			&arrivalTime, &driverLog.Mileage, &attendanceJSON); err != nil {
+			log.Printf("Error scanning driver log: %v", err)
+			continue
+		}
+		
+		if date.Valid {
+			driverLog.Date = date.Time.Format("2006-01-02")
+		}
+		if departureTime.Valid {
+			driverLog.Departure = departureTime.String
+		}
+		if arrivalTime.Valid {
+			driverLog.Arrival = arrivalTime.String
+		}
+		
+		if len(attendanceJSON) > 0 {
+			if err := json.Unmarshal(attendanceJSON, &driverLog.Attendance); err != nil {
+				log.Printf("Error unmarshaling attendance: %v", err)
+			}
+		}
+		
+		logs = append(logs, driverLog)
+	}
+	
+	return logs, nil
+}
+
+// Get driver logs by date range
+func getDriverLogsByDateRange(driver string, startDate, endDate string) ([]DriverLog, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database connection not available")
+	}
+	
+	query := `
+		SELECT driver, bus_id, route_id, date, period, departure_time, 
+			arrival_time, mileage, attendance 
+		FROM driver_logs 
+		WHERE driver = $1 AND date BETWEEN $2 AND $3
+		ORDER BY date DESC, period DESC
+	`
+	
+	rows, err := db.Query(query, driver, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load driver logs by date range: %w", err)
+	}
+	defer rows.Close()
+
+	var logs []DriverLog
+	for rows.Next() {
+		var driverLog DriverLog
+		var attendanceJSON []byte
+		var date sql.NullTime
+		var departureTime, arrivalTime sql.NullString
+		
+		if err := rows.Scan(&driverLog.Driver, &driverLog.BusID, &driverLog.RouteID,
+			&date, &driverLog.Period, &departureTime,
+			&arrivalTime, &driverLog.Mileage, &attendanceJSON); err != nil {
+			log.Printf("Error scanning driver log: %v", err)
+			continue
+		}
+		
+		if date.Valid {
+			driverLog.Date = date.Time.Format("2006-01-02")
+		}
+		if departureTime.Valid {
+			driverLog.Departure = departureTime.String
+		}
+		if arrivalTime.Valid {
+			driverLog.Arrival = arrivalTime.String
+		}
+		
+		if len(attendanceJSON) > 0 {
+			if err := json.Unmarshal(attendanceJSON, &driverLog.Attendance); err != nil {
+				log.Printf("Error unmarshaling attendance: %v", err)
+			}
+		}
+		
+		logs = append(logs, driverLog)
 	}
 	
 	return logs, nil
@@ -797,7 +910,7 @@ func loadMaintenanceLogsFromDB() ([]BusMaintenanceLog, error) {
 	}
 	
 	rows, err := db.Query(`
-		SELECT bus_id, date, category, notes, mileage, cost 
+		SELECT id, bus_id, date, category, notes, mileage, cost, created_at
 		FROM bus_maintenance_logs ORDER BY date DESC
 	`)
 	if err != nil {
@@ -810,10 +923,11 @@ func loadMaintenanceLogsFromDB() ([]BusMaintenanceLog, error) {
 		var maintenanceLog BusMaintenanceLog
 		var date sql.NullTime
 		var cost sql.NullFloat64
+		var createdAt sql.NullTime
 		
-		if err := rows.Scan(&maintenanceLog.BusID, &date,
+		if err := rows.Scan(&maintenanceLog.ID, &maintenanceLog.BusID, &date,
 			&maintenanceLog.Category, &maintenanceLog.Notes, 
-			&maintenanceLog.Mileage, &cost); err != nil {
+			&maintenanceLog.Mileage, &cost, &createdAt); err != nil {
 			log.Printf("Error scanning maintenance log: %v", err)
 			continue
 		}
@@ -821,7 +935,12 @@ func loadMaintenanceLogsFromDB() ([]BusMaintenanceLog, error) {
 		if date.Valid {
 			maintenanceLog.Date = date.Time.Format("2006-01-02")
 		}
-		// Note: BusMaintenanceLog doesn't have a Cost field in your model
+		if cost.Valid {
+			maintenanceLog.Cost = cost.Float64
+		}
+		if createdAt.Valid {
+			maintenanceLog.CreatedAt = createdAt.Time
+		}
 		
 		logs = append(logs, maintenanceLog)
 	}
@@ -833,15 +952,205 @@ func loadMaintenanceLogsFromDB() ([]BusMaintenanceLog, error) {
 	return logs, nil
 }
 
+// Get maintenance logs for specific vehicle (bus or vehicle)
+func getMaintenanceLogsForVehicle(vehicleID string) ([]BusMaintenanceLog, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database connection not available")
+	}
+	
+	// First try bus_maintenance_logs
+	logs, err := getBusMaintenanceLogs(vehicleID)
+	if err != nil {
+		log.Printf("Error getting bus maintenance logs: %v", err)
+	}
+	
+	// Then try maintenance_records table
+	additionalLogs, err := getVehicleMaintenanceLogs(vehicleID)
+	if err != nil {
+		log.Printf("Error getting vehicle maintenance logs: %v", err)
+	} else {
+		logs = append(logs, additionalLogs...)
+	}
+	
+	// Also check service_records for legacy data
+	legacyLogs, err := getLegacyServiceRecords(vehicleID)
+	if err != nil {
+		log.Printf("Error getting legacy service records: %v", err)
+	} else {
+		logs = append(logs, legacyLogs...)
+	}
+	
+	return logs, nil
+}
+
+// Get bus-specific maintenance logs
+func getBusMaintenanceLogs(busID string) ([]BusMaintenanceLog, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database connection not available")
+	}
+	
+	rows, err := db.Query(`
+		SELECT id, bus_id, date, category, notes, mileage, cost, created_at
+		FROM bus_maintenance_logs 
+		WHERE bus_id = $1
+		ORDER BY date DESC
+	`, busID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load bus maintenance logs: %w", err)
+	}
+	defer rows.Close()
+
+	var logs []BusMaintenanceLog
+	for rows.Next() {
+		var maintenanceLog BusMaintenanceLog
+		var date sql.NullTime
+		var cost sql.NullFloat64
+		var createdAt sql.NullTime
+		
+		if err := rows.Scan(&maintenanceLog.ID, &maintenanceLog.BusID, &date,
+			&maintenanceLog.Category, &maintenanceLog.Notes, 
+			&maintenanceLog.Mileage, &cost, &createdAt); err != nil {
+			log.Printf("Error scanning maintenance log: %v", err)
+			continue
+		}
+		
+		if date.Valid {
+			maintenanceLog.Date = date.Time.Format("2006-01-02")
+		}
+		if cost.Valid {
+			maintenanceLog.Cost = cost.Float64
+		}
+		if createdAt.Valid {
+			maintenanceLog.CreatedAt = createdAt.Time
+		}
+		
+		logs = append(logs, maintenanceLog)
+	}
+	
+	return logs, nil
+}
+
+// Get vehicle maintenance logs from unified table
+func getVehicleMaintenanceLogs(vehicleID string) ([]BusMaintenanceLog, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database connection not available")
+	}
+	
+	rows, err := db.Query(`
+		SELECT id, vehicle_id, date, category, notes, mileage, cost, created_at
+		FROM maintenance_records 
+		WHERE vehicle_id = $1
+		ORDER BY date DESC
+	`, vehicleID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load vehicle maintenance logs: %w", err)
+	}
+	defer rows.Close()
+
+	var logs []BusMaintenanceLog
+	for rows.Next() {
+		var maintenanceLog BusMaintenanceLog
+		var date sql.NullTime
+		var cost sql.NullFloat64
+		var createdAt sql.NullTime
+		
+		if err := rows.Scan(&maintenanceLog.ID, &maintenanceLog.VehicleID, &date,
+			&maintenanceLog.Category, &maintenanceLog.Notes, 
+			&maintenanceLog.Mileage, &cost, &createdAt); err != nil {
+			log.Printf("Error scanning vehicle maintenance log: %v", err)
+			continue
+		}
+		
+		// Use VehicleID as BusID for compatibility
+		maintenanceLog.BusID = maintenanceLog.VehicleID
+		
+		if date.Valid {
+			maintenanceLog.Date = date.Time.Format("2006-01-02")
+		}
+		if cost.Valid {
+			maintenanceLog.Cost = cost.Float64
+		}
+		if createdAt.Valid {
+			maintenanceLog.CreatedAt = createdAt.Time
+		}
+		
+		logs = append(logs, maintenanceLog)
+	}
+	
+	return logs, nil
+}
+
+// Get legacy service records
+func getLegacyServiceRecords(vehicleID string) ([]BusMaintenanceLog, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database connection not available")
+	}
+	
+	rows, err := db.Query(`
+		SELECT id, COALESCE(vehicle_id, vehicle_number, unnamed_1), 
+		       maintenance_date, service_type, notes, created_at
+		FROM service_records 
+		WHERE vehicle_id = $1 OR vehicle_number = $1 OR unnamed_1 = $1
+		ORDER BY maintenance_date DESC
+	`, vehicleID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load legacy service records: %w", err)
+	}
+	defer rows.Close()
+
+	var logs []BusMaintenanceLog
+	for rows.Next() {
+		var maintenanceLog BusMaintenanceLog
+		var vehicleRef sql.NullString
+		var date sql.NullTime
+		var serviceType sql.NullString
+		var notes sql.NullString
+		var createdAt sql.NullTime
+		
+		if err := rows.Scan(&maintenanceLog.ID, &vehicleRef, &date,
+			&serviceType, &notes, &createdAt); err != nil {
+			log.Printf("Error scanning legacy service record: %v", err)
+			continue
+		}
+		
+		if vehicleRef.Valid {
+			maintenanceLog.BusID = vehicleRef.String
+			maintenanceLog.VehicleID = vehicleRef.String
+		}
+		
+		if date.Valid {
+			maintenanceLog.Date = date.Time.Format("2006-01-02")
+		}
+		
+		if serviceType.Valid {
+			maintenanceLog.Category = serviceType.String
+		} else {
+			maintenanceLog.Category = "service"
+		}
+		
+		if notes.Valid {
+			maintenanceLog.Notes = notes.String
+		}
+		
+		if createdAt.Valid {
+			maintenanceLog.CreatedAt = createdAt.Time
+		}
+		
+		logs = append(logs, maintenanceLog)
+	}
+	
+	return logs, nil
+}
+
 func saveMaintenanceLog(log BusMaintenanceLog) error {
 	if db == nil {
 		return fmt.Errorf("database connection not available")
 	}
 	
 	_, err := db.Exec(`
-		INSERT INTO bus_maintenance_logs (bus_id, date, category, notes, mileage) 
-		VALUES ($1, $2, $3, $4, $5)
-	`, log.BusID, log.Date, log.Category, log.Notes, log.Mileage)
+		INSERT INTO bus_maintenance_logs (bus_id, date, category, notes, mileage, cost) 
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`, log.BusID, log.Date, log.Category, log.Notes, log.Mileage, log.Cost)
 	
 	return err
 }
@@ -1035,6 +1344,85 @@ func loadActivities() ([]Activity, error) {
 	return activities, nil
 }
 
+// Get activities for a specific driver
+func getDriverActivities(driver string, limit int) ([]Activity, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database connection not available")
+	}
+	
+	query := `
+		SELECT date, driver, trip_name, attendance, miles, notes 
+		FROM activities 
+		WHERE driver = $1
+		ORDER BY date DESC
+		LIMIT $2
+	`
+	
+	rows, err := db.Query(query, driver, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load driver activities: %w", err)
+	}
+	defer rows.Close()
+
+	var activities []Activity
+	for rows.Next() {
+		var activity Activity
+		var date sql.NullTime
+		
+		if err := rows.Scan(&date, &activity.Driver, &activity.TripName,
+			&activity.Attendance, &activity.Miles, &activity.Notes); err != nil {
+			log.Printf("Error scanning activity: %v", err)
+			continue
+		}
+		
+		if date.Valid {
+			activity.Date = date.Time.Format("2006-01-02")
+		}
+		
+		activities = append(activities, activity)
+	}
+	
+	return activities, nil
+}
+
+// Get activities by date range
+func getActivitiesByDateRange(startDate, endDate string) ([]Activity, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database connection not available")
+	}
+	
+	rows, err := db.Query(`
+		SELECT date, driver, trip_name, attendance, miles, notes 
+		FROM activities 
+		WHERE date BETWEEN $1 AND $2
+		ORDER BY date DESC
+	`, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load activities by date range: %w", err)
+	}
+	defer rows.Close()
+
+	var activities []Activity
+	for rows.Next() {
+		var activity Activity
+		var date sql.NullTime
+		
+		if err := rows.Scan(&date, &activity.Driver, &activity.TripName,
+			&activity.Attendance, &activity.Miles, &activity.Notes); err != nil {
+			log.Printf("Error scanning activity: %v", err)
+			continue
+		}
+		
+		if date.Valid {
+			activity.Date = date.Time.Format("2006-01-02")
+		}
+		
+		activities = append(activities, activity)
+	}
+	
+	return activities, nil
+}
+
 func saveActivity(activity Activity) error {
 	if db == nil {
 		return fmt.Errorf("database connection not available")
@@ -1047,4 +1435,121 @@ func saveActivity(activity Activity) error {
 		activity.Attendance, activity.Miles, activity.Notes)
 	
 	return err
+}
+
+// =============================================================================
+// MILEAGE REPORT FUNCTIONS
+// =============================================================================
+
+// Get monthly mileage reports for all vehicles
+func getMonthlyMileageReports(month string, year int) ([]MileageReport, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database connection not available")
+	}
+	
+	var reports []MileageReport
+	
+	// Query from agency_vehicles
+	query1 := `
+		SELECT report_month, report_year, vehicle_year, make_model, license_plate,
+		       vehicle_id, location, beginning_miles, ending_miles, total_miles, status
+		FROM agency_vehicles
+		WHERE report_month = $1 AND report_year = $2
+		ORDER BY vehicle_id
+	`
+	
+	rows, err := db.Query(query1, month, year)
+	if err != nil {
+		log.Printf("Error querying agency vehicles: %v", err)
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var report MileageReport
+			err := rows.Scan(&report.ReportMonth, &report.ReportYear, &report.VehicleYear,
+				&report.MakeModel, &report.LicensePlate, &report.VehicleID,
+				&report.Location, &report.BeginningMiles, &report.EndingMiles,
+				&report.TotalMiles, &report.Status)
+			if err != nil {
+				log.Printf("Error scanning agency vehicle: %v", err)
+				continue
+			}
+			reports = append(reports, report)
+		}
+	}
+	
+	// Query from school_buses
+	query2 := `
+		SELECT report_month, report_year, bus_year, bus_make, license_plate,
+		       bus_id, location, beginning_miles, ending_miles, total_miles, status
+		FROM school_buses
+		WHERE report_month = $1 AND report_year = $2
+		ORDER BY bus_id
+	`
+	
+	rows, err = db.Query(query2, month, year)
+	if err != nil {
+		log.Printf("Error querying school buses: %v", err)
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var report MileageReport
+			var busYear sql.NullInt64
+			var busMake sql.NullString
+			
+			err := rows.Scan(&report.ReportMonth, &report.ReportYear, &busYear,
+				&busMake, &report.LicensePlate, &report.VehicleID,
+				&report.Location, &report.BeginningMiles, &report.EndingMiles,
+				&report.TotalMiles, &report.Status)
+			if err != nil {
+				log.Printf("Error scanning school bus: %v", err)
+				continue
+			}
+			
+			if busYear.Valid {
+				report.VehicleYear = int(busYear.Int64)
+			}
+			if busMake.Valid {
+				report.MakeModel = busMake.String
+			}
+			
+			reports = append(reports, report)
+		}
+	}
+	
+	return reports, nil
+}
+
+// Get available report periods
+func getAvailableReportPeriods() ([]string, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database connection not available")
+	}
+	
+	query := `
+		SELECT DISTINCT report_month || ' ' || report_year::text as period
+		FROM (
+			SELECT report_month, report_year FROM agency_vehicles
+			UNION
+			SELECT report_month, report_year FROM school_buses
+		) combined
+		ORDER BY period DESC
+	`
+	
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get available report periods: %w", err)
+	}
+	defer rows.Close()
+	
+	var periods []string
+	for rows.Next() {
+		var period string
+		if err := rows.Scan(&period); err != nil {
+			log.Printf("Error scanning period: %v", err)
+			continue
+		}
+		periods = append(periods, period)
+	}
+	
+	return periods, nil
 }
