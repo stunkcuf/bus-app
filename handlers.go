@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -83,9 +84,14 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		// REMOVED CSRF validation on registration - no session exists yet
 
 		// Validate input
-		if username == "" || password == "" || role == "" {
+		if username == "" || password == "" {
 			http.Error(w, "All fields are required", http.StatusBadRequest)
 			return
+		}
+
+		// Default role to driver if not specified
+		if role == "" {
+			role = "driver"
 		}
 
 		// Hash password
@@ -314,19 +320,25 @@ func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Get driver's log for this date/period if exists
-	var driverLog *DriverLog
+	var driverLog DriverLog
+	var attendanceJSON sql.NullString
 	err := db.QueryRow(`
 		SELECT id, driver, bus_id, route_id, date, period, 
 		       departure_time, arrival_time, mileage, attendance
 		FROM driver_logs
 		WHERE driver = $1 AND date = $2 AND period = $3
-	`, user.Username, date, period).Scan(&driverLog.ID, &driverLog.Driver, 
+	`, user.Username, date, period).Scan(
+		&driverLog.ID, &driverLog.Driver, 
 		&driverLog.BusID, &driverLog.RouteID, &driverLog.Date, 
 		&driverLog.Period, &driverLog.Departure, &driverLog.Arrival, 
-		&driverLog.Mileage, &driverLog.AttendanceJSON)
+		&driverLog.Mileage, &attendanceJSON)
 	
-	if err == nil && driverLog.AttendanceJSON != "" {
-		json.Unmarshal([]byte(driverLog.AttendanceJSON), &driverLog.Attendance)
+	var driverLogPtr *DriverLog
+	if err == nil {
+		driverLogPtr = &driverLog
+		if attendanceJSON.Valid && attendanceJSON.String != "" {
+			json.Unmarshal([]byte(attendanceJSON.String), &driverLog.Attendance)
+		}
 	}
 	
 	// Get recent logs
@@ -338,7 +350,7 @@ func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		"Bus":        bus,
 		"Route":      route,
 		"Students":   students,
-		"DriverLog":  driverLog,
+		"DriverLog":  driverLogPtr,
 		"RecentLogs": recentLogs,
 		"Date":       date,
 		"Period":     period,
@@ -378,9 +390,10 @@ func saveLogHandler(w http.ResponseWriter, r *http.Request) {
 		// Parse attendance
 		var attendance []StudentAttendance
 		for key, values := range r.Form {
-			if strings.HasPrefix(key, "attendance_") {
-				position := parseIntOrDefault(strings.TrimPrefix(key, "attendance_"), 0)
-				if position > 0 && len(values) > 0 && values[0] == "on" {
+			if strings.HasPrefix(key, "present_") {
+				positionStr := strings.TrimPrefix(key, "present_")
+				position := parseIntOrDefault(positionStr, 0)
+				if position > 0 && len(values) > 0 {
 					attendance = append(attendance, StudentAttendance{
 						Position: position,
 						Present:  true,
@@ -394,6 +407,8 @@ func saveLogHandler(w http.ResponseWriter, r *http.Request) {
 		_, err := db.Exec(`
 			INSERT INTO driver_logs (driver, date, period, route_id, bus_id, departure_time, arrival_time, mileage, attendance)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			ON CONFLICT (driver, date, period) DO UPDATE 
+			SET route_id = $4, bus_id = $5, departure_time = $6, arrival_time = $7, mileage = $8, attendance = $9
 		`, log.Driver, log.Date, log.Period, log.RouteID, log.BusID, log.Departure, log.Arrival, log.Mileage, string(attendanceJSON))
 
 		if err != nil {
@@ -531,7 +546,7 @@ func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	// Get maintenance records
 	records := []MaintenanceRecord{}
 	query := `
-		SELECT bus_id as vehicle_id, date, category, mileage, 0 as cost, notes, created_at
+		SELECT bus_id, date, category, mileage, 0 as cost, notes, created_at
 		FROM bus_maintenance_logs
 		WHERE bus_id = $1
 		ORDER BY date DESC
@@ -551,12 +566,15 @@ func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	// Calculate statistics
 	var totalCost float64
 	recentCount := 0
-	sixMonthsAgo := time.Now().AddDate(0, -6, 0)
+	thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
 	
 	for _, record := range records {
 		totalCost += record.Cost
-		if record.CreatedAt.After(sixMonthsAgo) {
-			recentCount++
+		// Parse the date string to compare
+		if recordDate, err := time.Parse("2006-01-02", record.Date); err == nil {
+			if recordDate.After(thirtyDaysAgo) {
+				recentCount++
+			}
 		}
 	}
 
@@ -600,7 +618,7 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	if isBus {
 		// Query bus_maintenance_logs
 		query := `
-			SELECT bus_id as vehicle_id, date, category, mileage, 
+			SELECT bus_id, date, category, mileage, 
 			       COALESCE(cost, 0) as cost, notes, created_at
 			FROM bus_maintenance_logs
 			WHERE bus_id = $1
@@ -644,8 +662,11 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	
 	for _, record := range records {
 		totalCost += record.Cost
-		if record.Date.After(thirtyDaysAgo) {
-			recentCount++
+		// Parse the date string to compare
+		if recordDate, err := time.Parse("2006-01-02", record.Date); err == nil {
+			if recordDate.After(thirtyDaysAgo) {
+				recentCount++
+			}
 		}
 	}
 
@@ -724,7 +745,7 @@ func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
 	// Get all buses
 	allBuses := loadBuses()
 
-	// Create map of assigned bus IDs
+	// Create map of assigned bus IDs and route IDs
 	assignedBusIDs := make(map[string]bool)
 	assignedRouteIDs := make(map[string]bool)
 	for _, assignment := range assignments {
@@ -749,13 +770,13 @@ func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
 		
 		// Add to routesWithStatus for display
 		routesWithStatus = append(routesWithStatus, &RouteWithStatus{
-			Route:      *route,
+			Route:      *route,  // Dereference the route pointer
 			IsAssigned: isAssigned,
 		})
 		
 		// Add to availableRoutes if not assigned
 		if !isAssigned {
-			availableRoutes = append(availableRoutes, route)
+			availableRoutes = append(availableRoutes, route) // route is already a pointer
 		}
 	}
 
@@ -1238,12 +1259,14 @@ func getDriverLogs(driver string, days int) []DriverLog {
 		defer rows.Close()
 		for rows.Next() {
 			var log DriverLog
-			var attendanceJSON string
+			var attendanceJSON sql.NullString
 			rows.Scan(&log.ID, &log.Driver, &log.BusID, &log.RouteID, &log.Date, 
 				&log.Period, &log.Departure, &log.Arrival, &log.Mileage, &attendanceJSON)
 			
 			// Parse attendance JSON
-			json.Unmarshal([]byte(attendanceJSON), &log.Attendance)
+			if attendanceJSON.Valid && attendanceJSON.String != "" {
+				json.Unmarshal([]byte(attendanceJSON.String), &log.Attendance)
+			}
 			logs = append(logs, log)
 		}
 	}
