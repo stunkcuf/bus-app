@@ -302,3 +302,8 @@ type LoginFormData struct {
 	Error     string
 	CSRFToken string
 }
+
+type RouteWithStatus struct {
+	Route
+	IsAssigned bool `json:"is_assigned"`
+}
