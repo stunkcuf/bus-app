@@ -269,7 +269,7 @@ func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// driverDashboardHandler serves the driver dashboard
+// driverDashboardHandler serves the driver dashboard - FIXED VERSION
 func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "driver" {
@@ -277,19 +277,76 @@ func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get date and period from query params
+	date := r.URL.Query().Get("date")
+	if date == "" {
+		date = time.Now().Format("2006-01-02")
+	}
+	
+	period := r.URL.Query().Get("period")
+	if period == "" {
+		period = "morning"
+	}
+
 	// Get driver's assignment
 	assignment := getDriverAssignment(user.Username)
-	logs := getDriverLogs(user.Username, 7) // Last 7 days
-	students := getRouteStudents(assignment.RouteID)
+	
+	// Get bus details if assigned
+	var bus *Bus
+	if assignment.BusID != "" {
+		bus = getBusByID(assignment.BusID)
+	}
+	
+	// Get route details if assigned
+	var route *Route
+	if assignment.RouteID != "" {
+		route = getRouteByID(assignment.RouteID)
+	}
+	
+	// Get students for the route ordered by pickup/dropoff time
+	students := []Student{}
+	if assignment.RouteID != "" {
+		if period == "morning" {
+			students = getRouteStudentsOrderedByPickup(assignment.RouteID)
+		} else {
+			students = getRouteStudentsOrderedByDropoff(assignment.RouteID)
+		}
+	}
+	
+	// Get driver's log for this date/period if exists
+	var driverLog *DriverLog
+	err := db.QueryRow(`
+		SELECT id, driver, bus_id, route_id, date, period, 
+		       departure_time, arrival_time, mileage, attendance
+		FROM driver_logs
+		WHERE driver = $1 AND date = $2 AND period = $3
+	`, user.Username, date, period).Scan(&driverLog.ID, &driverLog.Driver, 
+		&driverLog.BusID, &driverLog.RouteID, &driverLog.Date, 
+		&driverLog.Period, &driverLog.Departure, &driverLog.Arrival, 
+		&driverLog.Mileage, &driverLog.AttendanceJSON)
+	
+	if err == nil && driverLog.AttendanceJSON != "" {
+		json.Unmarshal([]byte(driverLog.AttendanceJSON), &driverLog.Attendance)
+	}
+	
+	// Get recent logs
+	recentLogs := getDriverLogs(user.Username, 7)
 
-	renderTemplate(w, r, "driver_dashboard.html", map[string]interface{}{
+	data := map[string]interface{}{
 		"User":       user,
 		"Assignment": assignment,
-		"Logs":       logs,
+		"Bus":        bus,
+		"Route":      route,
 		"Students":   students,
+		"DriverLog":  driverLog,
+		"RecentLogs": recentLogs,
+		"Date":       date,
+		"Period":     period,
 		"Today":      time.Now().Format("2006-01-02"),
 		"CSRFToken":  generateCSRFToken(),
-	})
+	}
+
+	renderTemplate(w, r, "driver_dashboard.html", data)
 }
 
 // saveLogHandler saves a driver's log
@@ -419,7 +476,7 @@ func companyFleetHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// updateVehicleStatusHandler updates vehicle status
+// updateVehicleStatusHandler updates vehicle status - FIXED VERSION
 func updateVehicleStatusHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		if !validateCSRF(r) {
@@ -428,24 +485,42 @@ func updateVehicleStatusHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		vehicleID := r.FormValue("vehicle_id")
-		field := r.FormValue("field")
-		value := r.FormValue("value")
+		statusType := r.FormValue("status_type")  // Changed from "field"
+		newStatus := r.FormValue("new_status")    // Changed from "value"
 
-		// Validate field
-		allowedFields := map[string]string{
-			"status":      "status",
-			"oil_status":  "oil_status",
-			"tire_status": "tire_status",
+		// Map status types to database columns
+		fieldMap := map[string]string{
+			"status": "status",
+			"oil":    "oil_status",
+			"tire":   "tire_status",
 		}
 
-		if dbField, ok := allowedFields[field]; ok {
-			_, err := db.Exec(fmt.Sprintf("UPDATE buses SET %s = $1 WHERE bus_id = $2", dbField), value, vehicleID)
+		if dbField, ok := fieldMap[statusType]; ok {
+			// First try buses table (numeric IDs)
+			result, err := db.Exec(fmt.Sprintf("UPDATE buses SET %s = $1, updated_at = NOW() WHERE bus_id = $2", dbField), newStatus, vehicleID)
 			if err != nil {
-				_, err = db.Exec(fmt.Sprintf("UPDATE vehicles SET %s = $1 WHERE vehicle_id = $2", dbField), value, vehicleID)
+				log.Printf("Error updating bus: %v", err)
+			}
+			
+			rowsAffected, _ := result.RowsAffected()
+			
+			// If no bus was updated, try vehicles table
+			if rowsAffected == 0 {
+				_, err = db.Exec(fmt.Sprintf("UPDATE vehicles SET %s = $1, updated_at = NOW() WHERE vehicle_id = $2", dbField), newStatus, vehicleID)
+				if err != nil {
+					log.Printf("Error updating vehicle: %v", err)
+					http.Error(w, "Failed to update status", http.StatusInternalServerError)
+					return
+				}
 			}
 		}
 
-		w.WriteHeader(http.StatusOK)
+		// Return JSON response
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status": "success",
+			"message": "Status updated successfully",
+		})
 	}
 }
 
@@ -507,39 +582,69 @@ func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, r, "vehicle_maintenance.html", data)
 }
 
-// vehicleMaintenanceHandler shows maintenance for any vehicle
+// vehicleMaintenanceHandler shows maintenance for any vehicle - FIXED VERSION
 func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	vehicleID := strings.TrimPrefix(r.URL.Path, "/vehicle-maintenance/")
-	isBus := strings.HasPrefix(vehicleID, "BUS")
-
-	// Get maintenance records
-	records := []MaintenanceRecord{}
-	query := `
-		SELECT bus_id as vehicle_id, date, category, mileage, 0 as cost, notes, created_at
-		FROM bus_maintenance_logs
-		WHERE bus_id = $1
-		ORDER BY date DESC
-	`
 	
-	rows, err := db.Query(query, vehicleID)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var record MaintenanceRecord
-			rows.Scan(&record.VehicleID, &record.Date, &record.Category, 
-				&record.Mileage, &record.Cost, &record.Notes, &record.CreatedAt)
-			records = append(records, record)
+	// Try to determine if it's a bus by checking buses table
+	var isBus bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM buses WHERE bus_id = $1)", vehicleID).Scan(&isBus)
+	if err != nil {
+		// If not in buses table, check if it looks like a bus ID (numeric)
+		isBus = false
+	}
+
+	// Get maintenance records from appropriate table
+	records := []MaintenanceRecord{}
+	
+	if isBus {
+		// Query bus_maintenance_logs
+		query := `
+			SELECT bus_id as vehicle_id, date, category, mileage, 
+			       COALESCE(cost, 0) as cost, notes, created_at
+			FROM bus_maintenance_logs
+			WHERE bus_id = $1
+			ORDER BY date DESC
+		`
+		rows, err := db.Query(query, vehicleID)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var record MaintenanceRecord
+				rows.Scan(&record.VehicleID, &record.Date, &record.Category, 
+					&record.Mileage, &record.Cost, &record.Notes, &record.CreatedAt)
+				records = append(records, record)
+			}
+		}
+	} else {
+		// Query maintenance_records for other vehicles
+		query := `
+			SELECT vehicle_id, date, 'maintenance' as category, mileage, 
+			       COALESCE(cost, 0) as cost, work_description as notes, created_at
+			FROM maintenance_records
+			WHERE vehicle_id = $1
+			ORDER BY date DESC
+		`
+		rows, err := db.Query(query, vehicleID)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var record MaintenanceRecord
+				rows.Scan(&record.VehicleID, &record.Date, &record.Category, 
+					&record.Mileage, &record.Cost, &record.Notes, &record.CreatedAt)
+				records = append(records, record)
+			}
 		}
 	}
 
 	// Calculate statistics
 	var totalCost float64
 	recentCount := 0
-	sixMonthsAgo := time.Now().AddDate(0, -6, 0)
+	thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
 	
 	for _, record := range records {
 		totalCost += record.Cost
-		if record.CreatedAt.After(sixMonthsAgo) {
+		if record.Date.After(thirtyDaysAgo) {
 			recentCount++
 		}
 	}
@@ -550,7 +655,6 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 		averageCost = totalCost / float64(totalRecords)
 	}
 
-	// Create data map for template (no need for CSPNonce, renderTemplate handles it)
 	data := map[string]interface{}{
 		"VehicleID":          vehicleID,
 		"IsBus":              isBus,
@@ -600,32 +704,90 @@ func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// assignRoutesHandler shows route assignment page
+// assignRoutesHandler shows route assignment page - FIXED VERSION
 func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
-	assignments, _ := loadRouteAssignments()
-	drivers := loadDrivers()
-	routes, _ := loadRoutes()
-	buses := loadBuses()
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
-	// Filter available buses
+	// Get all assignments
+	assignments, _ := loadRouteAssignments()
+	
+	// Get all drivers
+	drivers := loadDrivers()
+	
+	// Get all routes with assignment status
+	allRoutes, _ := loadRoutes()
+	
+	// Get all buses
+	allBuses := loadBuses()
+
+	// Create map of assigned bus IDs
+	assignedBusIDs := make(map[string]bool)
+	assignedRouteIDs := make(map[string]bool)
+	for _, assignment := range assignments {
+		assignedBusIDs[assignment.BusID] = true
+		assignedRouteIDs[assignment.RouteID] = true
+	}
+
+	// Filter available buses (active and not assigned)
 	availableBuses := []*Bus{}
-	for _, bus := range buses {
-		if bus.Status == "active" {
+	for _, bus := range allBuses {
+		if bus.Status == "active" && !assignedBusIDs[bus.BusID] {
 			availableBuses = append(availableBuses, bus)
 		}
 	}
 
-	renderTemplate(w, r, "assign_routes.html", AssignRouteData{
-		User:             user,
-		Assignments:      assignments,
-		Drivers:          drivers,
-		AvailableRoutes:  routes,
-		AvailableBuses:   availableBuses,
-		TotalAssignments: len(assignments),
-		TotalRoutes:      len(routes),
-		CSRFToken:        generateCSRFToken(),
-	})
+	// Filter available routes (not assigned)
+	availableRoutes := []*Route{}
+	routesWithStatus := []*RouteWithStatus{}
+	
+	for _, route := range allRoutes {
+		isAssigned := assignedRouteIDs[route.RouteID]
+		
+		// Add to routesWithStatus for display
+		routesWithStatus = append(routesWithStatus, &RouteWithStatus{
+			Route:      *route,
+			IsAssigned: isAssigned,
+		})
+		
+		// Add to availableRoutes if not assigned
+		if !isAssigned {
+			availableRoutes = append(availableRoutes, route)
+		}
+	}
+
+	// Count available drivers (not assigned)
+	availableDriversCount := 0
+	assignedDrivers := make(map[string]bool)
+	for _, assignment := range assignments {
+		assignedDrivers[assignment.Driver] = true
+	}
+	for _, driver := range drivers {
+		if !assignedDrivers[driver.Username] {
+			availableDriversCount++
+		}
+	}
+
+	data := map[string]interface{}{
+		"User":                  user,
+		"Assignments":           assignments,
+		"Drivers":               drivers,
+		"Routes":                allRoutes,
+		"RoutesWithStatus":      routesWithStatus,
+		"AvailableRoutes":       availableRoutes,
+		"Buses":                 allBuses,
+		"AvailableBuses":        availableBuses,
+		"TotalAssignments":      len(assignments),
+		"TotalRoutes":           len(allRoutes),
+		"AvailableDriversCount": availableDriversCount,
+		"AvailableBusesCount":   len(availableBuses),
+		"CSRFToken":             generateCSRFToken(),
+	}
+
+	renderTemplate(w, r, "assign_routes.html", data)
 }
 
 // assignRouteHandler assigns a route to a driver
@@ -1097,6 +1259,85 @@ func getRouteStudents(routeID string) []Student {
 		FROM students
 		WHERE route_id = $1 AND active = true
 		ORDER BY position_number
+	`, routeID)
+	
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var s Student
+			rows.Scan(&s.StudentID, &s.Name, &s.PhoneNumber, &s.AltPhoneNumber,
+				&s.Guardian, &s.PickupTime, &s.DropoffTime, &s.PositionNumber,
+				&s.RouteID, &s.Driver)
+			s.Active = true
+			students = append(students, s)
+		}
+	}
+	
+	return students
+}
+
+// NEW HELPER FUNCTIONS FROM FIXES
+
+func getBusByID(busID string) *Bus {
+	var bus Bus
+	err := db.QueryRow(`
+		SELECT bus_id, model, capacity, status, oil_status, tire_status, maintenance_notes
+		FROM buses WHERE bus_id = $1
+	`, busID).Scan(&bus.BusID, &bus.Model, &bus.Capacity, &bus.Status, 
+		&bus.OilStatus, &bus.TireStatus, &bus.MaintenanceNotes)
+	
+	if err != nil {
+		return nil
+	}
+	return &bus
+}
+
+func getRouteByID(routeID string) *Route {
+	var route Route
+	err := db.QueryRow(`
+		SELECT route_id, route_name, description
+		FROM routes WHERE route_id = $1
+	`, routeID).Scan(&route.RouteID, &route.RouteName, &route.Description)
+	
+	if err != nil {
+		return nil
+	}
+	return &route
+}
+
+func getRouteStudentsOrderedByPickup(routeID string) []Student {
+	students := []Student{}
+	rows, err := db.Query(`
+		SELECT student_id, name, phone_number, alt_phone_number, guardian,
+			   pickup_time, dropoff_time, position_number, route_id, driver
+		FROM students
+		WHERE route_id = $1 AND active = true
+		ORDER BY pickup_time, position_number
+	`, routeID)
+	
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var s Student
+			rows.Scan(&s.StudentID, &s.Name, &s.PhoneNumber, &s.AltPhoneNumber,
+				&s.Guardian, &s.PickupTime, &s.DropoffTime, &s.PositionNumber,
+				&s.RouteID, &s.Driver)
+			s.Active = true
+			students = append(students, s)
+		}
+	}
+	
+	return students
+}
+
+func getRouteStudentsOrderedByDropoff(routeID string) []Student {
+	students := []Student{}
+	rows, err := db.Query(`
+		SELECT student_id, name, phone_number, alt_phone_number, guardian,
+			   pickup_time, dropoff_time, position_number, route_id, driver
+		FROM students
+		WHERE route_id = $1 AND active = true
+		ORDER BY dropoff_time, position_number
 	`, routeID)
 	
 	if err == nil {
