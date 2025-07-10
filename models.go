@@ -23,6 +23,7 @@ type Bus struct {
 	OilStatus        string `json:"oil_status" db:"oil_status"`
 	TireStatus       string `json:"tire_status" db:"tire_status"`
 	MaintenanceNotes string `json:"maintenance_notes" db:"maintenance_notes"`
+	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"` // Add this field
 }
 
 // Route represents a bus route
@@ -77,18 +78,19 @@ type DriverAssignment struct {
 	RouteName string `json:"route_name" db:"route_name"`
 }
 
-// DriverLog represents a driver's daily log
+// DriverLog represents a driver's daily log - CORRECTED VERSION
 type DriverLog struct {
-	ID         int         `json:"id" db:"id"`
-	Driver     string      `json:"driver" db:"driver"`
-	BusID      string      `json:"bus_id" db:"bus_id"`
-	RouteID    string      `json:"route_id" db:"route_id"`
-	Date       string      `json:"date" db:"date"`
-	Period     string      `json:"period" db:"period"` // "morning" or "afternoon"
-	Departure  string      `json:"departure" db:"departure_time"`
-	Arrival    string      `json:"arrival" db:"arrival_time"`
-	Mileage    float64     `json:"mileage" db:"mileage"`
-	Attendance interface{} `json:"attendance" db:"attendance"`
+	ID         int                 `json:"id" db:"id"`
+	Driver     string              `json:"driver" db:"driver"`
+	BusID      string              `json:"bus_id" db:"bus_id"`
+	RouteID    string              `json:"route_id" db:"route_id"`
+	Date       string              `json:"date" db:"date"`
+	Period     string              `json:"period" db:"period"` // "morning" or "afternoon"
+	Departure  string              `json:"departure_time" db:"departure_time"`
+	Arrival    string              `json:"arrival_time" db:"arrival_time"`
+	Mileage    float64             `json:"mileage" db:"mileage"`
+	Attendance []StudentAttendance `json:"attendance"` // Changed from interface{} to proper type
+	CreatedAt  time.Time           `json:"created_at" db:"created_at"` // Add this field
 }
 
 // BusMaintenanceLog represents a maintenance record
@@ -135,6 +137,7 @@ type Vehicle struct {
 	Base             string    `json:"base" db:"base"`
 	ServiceInterval  int       `json:"service_interval" db:"service_interval"`
 	CreatedAt        time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"` // Add this field
 }
 
 // Activity represents a special activity or trip
@@ -229,7 +232,7 @@ type DashboardData struct {
 	Role            string
 	Users           []User
 	Buses           []*Bus
-	Routes          []Route
+	Routes          []*Route  // Changed from []Route to []*Route to match handlers
 	DriverSummaries []*DriverSummary
 	RouteStats      []*RouteStats
 	Activities      []Activity
@@ -276,14 +279,12 @@ type StudentData struct {
 
 type AssignRouteData struct {
 	User                  *User
-	Assignments           []RouteAssignment
+	Assignments           []*RouteAssignment  // Changed to pointer
 	Drivers               []User
-	AvailableRoutes       []Route
+	Routes                []*Route            // Add this field
+	AvailableRoutes       []*Route            // Changed to pointer
 	AvailableBuses        []*Bus
-	RoutesWithStatus      []struct {
-		Route
-		IsAssigned bool `json:"is_assigned"`
-	}
+	RoutesWithStatus      []*RouteWithStatus  // Changed to use proper type
 	TotalAssignments      int
 	TotalRoutes           int
 	AvailableDriversCount int
@@ -303,6 +304,7 @@ type LoginFormData struct {
 	CSRFToken string
 }
 
+// This is already defined correctly at the bottom
 type RouteWithStatus struct {
 	Route
 	IsAssigned bool `json:"is_assigned"`
