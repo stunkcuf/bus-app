@@ -162,8 +162,15 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 		// Load manager-specific data
 		data.Users = loadUsers()
 		data.Buses = loadBuses()
+		
+		// FIX: Convert []Route to []*Route
 		routes, _ := loadRoutes()
-		data.Routes = routes
+		routePtrs := make([]*Route, len(routes))
+		for i := range routes {
+			routePtrs[i] = &routes[i]
+		}
+		data.Routes = routePtrs
+		
 		data.DriverSummaries = loadDriverSummaries()
 		data.RouteStats = loadRouteStats()
 		activities, _ := loadActivities()
@@ -765,18 +772,20 @@ func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
 	availableRoutes := []*Route{}
 	routesWithStatus := []*RouteWithStatus{}
 	
-	for _, route := range allRoutes {
+	// FIX: Process routes correctly
+	for i := range allRoutes {
+		route := &allRoutes[i]  // Take address to get pointer
 		isAssigned := assignedRouteIDs[route.RouteID]
 		
 		// Add to routesWithStatus for display
 		routesWithStatus = append(routesWithStatus, &RouteWithStatus{
-			Route:      *route,  // Dereference the route pointer
+			Route:      *route,  // Dereference the pointer to get the value
 			IsAssigned: isAssigned,
 		})
 		
 		// Add to availableRoutes if not assigned
 		if !isAssigned {
-			availableRoutes = append(availableRoutes, route) // route is already a pointer
+			availableRoutes = append(availableRoutes, route) // route is now a pointer
 		}
 	}
 
@@ -792,11 +801,17 @@ func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Convert routes to pointers for data.Routes
+	routePtrs := make([]*Route, len(allRoutes))
+	for i := range allRoutes {
+		routePtrs[i] = &allRoutes[i]
+	}
+
 	data := map[string]interface{}{
 		"User":                  user,
 		"Assignments":           assignments,
 		"Drivers":               drivers,
-		"Routes":                allRoutes,
+		"Routes":                routePtrs,
 		"RoutesWithStatus":      routesWithStatus,
 		"AvailableRoutes":       availableRoutes,
 		"Buses":                 allBuses,
