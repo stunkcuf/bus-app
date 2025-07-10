@@ -119,6 +119,27 @@
       box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
     }
     
+    /* New CSS classes for dynamic styles to replace inline styles */
+    .form-select.valid {
+      border-color: #28a745 !important;
+    }
+    
+    .form-control.valid {
+      border-color: #28a745 !important;
+    }
+    
+    /* Animation classes */
+    .card-animate-initial {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.5s ease;
+    }
+    
+    .card-animate-final {
+      opacity: 1 !important;
+      transform: translateY(0) !important;
+    }
+    
     .btn-primary {
       background: var(--grad-primary);
       border: none;
@@ -594,9 +615,11 @@
       assignmentSelects.forEach(select => {
         select.addEventListener('change', function() {
           if (this.value) {
-            this.style.borderColor = '#28a745';
+            this.classList.add('valid');
+            this.classList.remove('form-control');
+            this.classList.add('form-control');
           } else {
-            this.style.borderColor = '#e9ecef';
+            this.classList.remove('valid');
           }
         });
       });
@@ -608,9 +631,9 @@
       routeInputs.forEach(input => {
         input.addEventListener('input', function() {
           if (this.value.trim()) {
-            this.style.borderColor = '#28a745';
+            this.classList.add('valid');
           } else {
-            this.style.borderColor = '#e9ecef';
+            this.classList.remove('valid');
           }
         });
       });
@@ -746,16 +769,13 @@
         }
       });
 
-      // Add animation to cards
+      // Add animation to cards - REFACTORED TO USE CSS CLASSES
       const cards = document.querySelectorAll('.enhanced-card');
       cards.forEach((card, index) => {
         setTimeout(() => {
-          card.style.opacity = '0';
-          card.style.transform = 'translateY(20px)';
-          card.style.transition = 'all 0.5s ease';
+          card.classList.add('card-animate-initial');
           setTimeout(() => {
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
+            card.classList.add('card-animate-final');
           }, 100);
         }, index * 200);
       });
