@@ -134,15 +134,12 @@
           <form method="post" enctype="multipart/form-data" id="uploadForm">
             <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
             
-            <div class="upload-zone" onclick="document.getElementById('fileInput').click();" 
-                 ondrop="handleDrop(event);" 
-                 ondragover="handleDragOver(event);" 
-                 ondragleave="handleDragLeave(event);">
+            <div class="upload-zone" id="uploadZone">
               <i class="bi bi-cloud-upload upload-icon"></i>
               <h4>Drop Excel file here or click to browse</h4>
               <p class="text-muted mb-3">Supports .xlsx and .xls files</p>
-              <input type="file" id="fileInput" name="file" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect(event)">
-              <button type="button" class="btn btn-primary" onclick="event.stopPropagation(); document.getElementById('fileInput').click();">
+              <input type="file" id="fileInput" name="file" accept=".xlsx,.xls" style="display: none;">
+              <button type="button" class="btn btn-primary" id="browseBtn">
                 <i class="bi bi-folder-open me-2"></i>Choose File
               </button>
             </div>
@@ -155,7 +152,7 @@
                   <span id="fileName"></span>
                   <small class="text-muted ms-2" id="fileSize"></small>
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearFile()">
+                <button type="button" class="btn btn-sm btn-outline-danger" id="clearBtn">
                   <i class="bi bi-x"></i>
                 </button>
               </div>
@@ -200,40 +197,73 @@
   <script nonce="{{.CSPNonce}}">
     let selectedFile = null;
     
-    function handleDragOver(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.currentTarget.classList.add('dragover');
-    }
+    // Get DOM elements
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const browseBtn = document.getElementById('browseBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const uploadForm = document.getElementById('uploadForm');
     
-    function handleDragLeave(e) {
+    // Drag and drop event handlers
+    uploadZone.addEventListener('dragover', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      e.currentTarget.classList.remove('dragover');
-    }
+      this.classList.add('dragover');
+    });
     
-    function handleDrop(e) {
+    uploadZone.addEventListener('dragleave', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      e.currentTarget.classList.remove('dragover');
+      this.classList.remove('dragover');
+    });
+    
+    uploadZone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.classList.remove('dragover');
       
       const files = e.dataTransfer.files;
       if (files.length > 0) {
         const file = files[0];
         if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
           displayFile(file);
+          // Set the file to the input
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          fileInput.files = dataTransfer.files;
         } else {
           alert('Please select an Excel file (.xlsx or .xls)');
         }
       }
-    }
+    });
     
-    function handleFileSelect(e) {
+    // Click to upload
+    uploadZone.addEventListener('click', function(e) {
+      if (e.target === browseBtn || e.target.parentElement === browseBtn) {
+        e.stopPropagation();
+        fileInput.click();
+      } else if (!e.target.closest('#browseBtn')) {
+        fileInput.click();
+      }
+    });
+    
+    browseBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      fileInput.click();
+    });
+    
+    // File input change handler
+    fileInput.addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (file) {
         displayFile(file);
       }
-    }
+    });
+    
+    // Clear file button
+    clearBtn.addEventListener('click', function() {
+      clearFile();
+    });
     
     function displayFile(file) {
       selectedFile = file;
@@ -245,7 +275,7 @@
     
     function clearFile() {
       selectedFile = null;
-      document.getElementById('fileInput').value = '';
+      fileInput.value = '';
       document.getElementById('fileInfo').style.display = 'none';
       document.getElementById('uploadBtn').style.display = 'none';
     }
@@ -257,7 +287,7 @@
     }
     
     // Handle form submission
-    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    uploadForm.addEventListener('submit', function(e) {
       const btn = document.getElementById('uploadBtn');
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Importing...';
