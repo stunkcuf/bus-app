@@ -3,7 +3,6 @@ package main
 import (
     "database/sql"
     "fmt"
-    "io"
     "log"
     "mime/multipart"
     "strconv"
@@ -475,4 +474,24 @@ func parseDate(dateStr string) string {
     }
     
     return dateStr // Return as-is if parsing fails
+}
+
+// Helper functions
+func cleanText(s string) string {
+    return strings.TrimSpace(s)
+}
+
+func parseInt(s string) int {
+    s = cleanText(s)
+    val, _ := strconv.Atoi(s)
+    return val
+}
+
+func isEmptyRow(row []string) bool {
+    for _, cell := range row {
+        if cleanText(cell) != "" {
+            return false
+        }
+    }
+    return true
 }
