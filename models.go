@@ -252,87 +252,87 @@ type Vehicle struct {
 
 // Activity represents a special activity or trip
 type Activity struct {
-	Date       string  `json:"date" db:"date"`
-	Driver     string  `json:"driver" db:"driver"`
-	TripName   string  `json:"trip_name" db:"trip_name"`
-	Attendance int     `json:"attendance" db:"attendance"`
-	Miles      float64 `json:"miles" db:"miles"`
-	Notes      string  `json:"notes" db:"notes"`
+	Date       string  `db:"date"`
+	Driver     string  `db:"driver"`
+	TripName   string  `db:"trip_name"`
+	Attendance int     `db:"attendance"`
+	Miles      float64 `db:"miles"`
+	Notes      string  `db:"notes"`
 }
 
 // RouteLog represents a driver's daily route log
 type RouteLog struct {
-	ID         int                 `json:"id" db:"id"`
-	Driver     string              `json:"driver" db:"driver"`
-	Date       string              `json:"date" db:"date"`
-	Period     string              `json:"period" db:"period"`
-	RouteID    string              `json:"route_id" db:"route_id"`
-	BusID      string              `json:"bus_id" db:"bus_id"`
-	Mileage    float64             `json:"mileage" db:"mileage"`
-	Departure  string              `json:"departure" db:"departure"`
-	Arrival    string              `json:"arrival" db:"arrival"`
-	Attendance []StudentAttendance `json:"attendance" db:"attendance"`
+	ID         int                 `db:"id"`
+	Driver     string              `db:"driver"`
+	Date       string              `db:"date"`
+	Period     string              `db:"period"`
+	RouteID    string              `db:"route_id"`
+	BusID      string              `db:"bus_id"`
+	Mileage    float64             `db:"mileage"`
+	Departure  string              `db:"departure"`
+	Arrival    string              `db:"arrival"`
+	Attendance []StudentAttendance `db:"attendance"`
 }
 
 // StudentAttendance represents student attendance on a route
 type StudentAttendance struct {
-	Position   int    `json:"position" db:"position"`
-	Present    bool   `json:"present" db:"present"`
-	PickupTime string `json:"pickup_time,omitempty" db:"pickup_time"`
+	Position   int    `db:"position"`
+	Present    bool   `db:"present"`
+	PickupTime string `db:"pickup_time"`
 }
 
 // MileageReport represents a monthly mileage report for a vehicle
 type MileageReport struct {
-	ReportMonth    string `json:"report_month" db:"report_month"`
-	ReportYear     int    `json:"report_year" db:"report_year"`
-	VehicleYear    int    `json:"vehicle_year" db:"vehicle_year"`
-	MakeModel      string `json:"make_model" db:"make_model"`
-	LicensePlate   string `json:"license_plate" db:"license_plate"`
-	VehicleID      string `json:"vehicle_id" db:"vehicle_id"`
-	Location       string `json:"location" db:"location"`
-	BeginningMiles int    `json:"beginning_miles" db:"beginning_miles"`
-	EndingMiles    int    `json:"ending_miles" db:"ending_miles"`
-	TotalMiles     int    `json:"total_miles" db:"total_miles"`
-	Status         string `json:"status" db:"status"`
+	ReportMonth    string `db:"report_month"`
+	ReportYear     int    `db:"report_year"`
+	VehicleYear    int    `db:"vehicle_year"`
+	MakeModel      string `db:"make_model"`
+	LicensePlate   string `db:"license_plate"`
+	VehicleID      string `db:"vehicle_id"`
+	Location       string `db:"location"`
+	BeginningMiles int    `db:"beginning_miles"`
+	EndingMiles    int    `db:"ending_miles"`
+	TotalMiles     int    `db:"total_miles"`
+	Status         string `db:"status"`
 }
 
 // Mileage reporting structures
 type AgencyVehicleRecord struct {
-	ReportMonth    string `json:"report_month" db:"report_month"`
-	ReportYear     int    `json:"report_year" db:"report_year"`
-	VehicleYear    int    `json:"vehicle_year" db:"vehicle_year"`
-	MakeModel      string `json:"make_model" db:"make_model"`
-	LicensePlate   string `json:"license_plate" db:"license_plate"`
-	VehicleID      string `json:"vehicle_id" db:"vehicle_id"`
-	Location       string `json:"location" db:"location"`
-	BeginningMiles int    `json:"beginning_miles" db:"beginning_miles"`
-	EndingMiles    int    `json:"ending_miles" db:"ending_miles"`
-	TotalMiles     int    `json:"total_miles" db:"total_miles"`
-	Status         string `json:"status" db:"status"`
-	Notes          string `json:"notes" db:"notes"`
+	ReportMonth    string `db:"report_month"`
+	ReportYear     int    `db:"report_year"`
+	VehicleYear    int    `db:"vehicle_year"`
+	MakeModel      string `db:"make_model"`
+	LicensePlate   string `db:"license_plate"`
+	VehicleID      string `db:"vehicle_id"`
+	Location       string `db:"location"`
+	BeginningMiles int    `db:"beginning_miles"`
+	EndingMiles    int    `db:"ending_miles"`
+	TotalMiles     int    `db:"total_miles"`
+	Status         string `db:"status"`
+	Notes          string `db:"notes"`
 }
 
 type SchoolBusRecord struct {
-	ReportMonth    string `json:"report_month" db:"report_month"`
-	ReportYear     int    `json:"report_year" db:"report_year"`
-	BusYear        int    `json:"bus_year" db:"bus_year"`
-	BusMake        string `json:"bus_make" db:"bus_make"`
-	LicensePlate   string `json:"license_plate" db:"license_plate"`
-	BusID          string `json:"bus_id" db:"bus_id"`
-	Location       string `json:"location" db:"location"`
-	BeginningMiles int    `json:"beginning_miles" db:"beginning_miles"`
-	EndingMiles    int    `json:"ending_miles" db:"ending_miles"`
-	TotalMiles     int    `json:"total_miles" db:"total_miles"`
-	Status         string `json:"status" db:"status"`
-	Notes          string `json:"notes" db:"notes"`
+	ReportMonth    string `db:"report_month"`
+	ReportYear     int    `db:"report_year"`
+	BusYear        int    `db:"bus_year"`
+	BusMake        string `db:"bus_make"`
+	LicensePlate   string `db:"license_plate"`
+	BusID          string `db:"bus_id"`
+	Location       string `db:"location"`
+	BeginningMiles int    `db:"beginning_miles"`
+	EndingMiles    int    `db:"ending_miles"`
+	TotalMiles     int    `db:"total_miles"`
+	Status         string `db:"status"`
+	Notes          string `db:"notes"`
 }
 
 type ProgramStaffRecord struct {
-	ReportMonth  string `json:"report_month" db:"report_month"`
-	ReportYear   int    `json:"report_year" db:"report_year"`
-	ProgramType  string `json:"program_type" db:"program_type"` // "HS", "OPK", or "EHS"
-	StaffCount1  int    `json:"staff_count_1" db:"staff_count_1"`
-	StaffCount2  int    `json:"staff_count_2" db:"staff_count_2"`
+	ReportMonth  string `db:"report_month"`
+	ReportYear   int    `db:"report_year"`
+	ProgramType  string `db:"program_type"` // "HS", "OPK", or "EHS"
+	StaffCount1  int    `db:"staff_count_1"`
+	StaffCount2  int    `db:"staff_count_2"`
 }
 
 // Template data structures
