@@ -11,44 +11,7 @@ import (
     "github.com/xuri/excelize/v2"
 )
 
-// Data structures for different report types
-type AgencyVehicleRecord struct {
-    ReportMonth    string
-    ReportYear     int
-    VehicleYear    int
-    MakeModel      string
-    LicensePlate   string
-    VehicleID      string
-    Location       string
-    BeginningMiles int
-    EndingMiles    int
-    TotalMiles     int
-    Status         string // FOR SALE, SOLD, out of lease, etc.
-    Notes          string
-}
-
-type SchoolBusRecord struct {
-    ReportMonth    string
-    ReportYear     int
-    BusYear        int
-    BusMake        string
-    LicensePlate   string
-    BusID          string
-    Location       string
-    BeginningMiles int
-    EndingMiles    int
-    TotalMiles     int
-    Status         string // SPARE, SLATED FOR, etc.
-    Notes          string
-}
-
-type ProgramStaffRecord struct {
-    ReportMonth  string
-    ReportYear   int
-    ProgramType  string // HS, OPK, EHS
-    StaffCount1  int
-    StaffCount2  int
-}
+// Data structures are defined in models.go
 
 // Enhanced Excel processing function
 func processEnhancedMileageExcelFile(file multipart.File, filename string) (int, error) {
