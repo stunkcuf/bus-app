@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Data.Student.FirstName}} {{.Data.Student.LastName}} - ECSE Details</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style nonce="{{.CSPNonce}}">
+    :root {
+      --grad-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --grad-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      --grad-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --grad-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+    
+    body {
+      background-color: #f8f9fa;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    
+    .page-header {
+      background: var(--grad-info);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 15px;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
+    }
+    
+    .page-header .btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+    
+    .page-header .btn:hover {
+      background: rgba(255,255,255,0.3);
+      transform: translateY(-2px);
+      color: white;
+    }
+    
+    .info-card {
+      background: white;
+      border-radius: 15px;
+      padding: 2rem;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+      margin-bottom: 2rem;
+      transition: all 0.3s ease;
+    }
+    
+    .info-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    
+    .info-card h5 {
+      color: #2d3748;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .info-card h5 i {
+      color: #4facfe;
+    }
+    
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid #e9ecef;
+    }
+    
+    .info-row:last-child {
+      border-bottom: none;
+    }
+    
+    .info-label {
+      color: #6c757d;
+      font-weight: 500;
+    }
+    
+    .info-value {
+      color: #2d3748;
+      font-weight: 600;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      font-weight: 500;
+      font-size: 0.85rem;
+    }
+    
+    .status-active {
+      background: rgba(17, 153, 142, 0.1);
+      color: #11998e;
+    }
+    
+    .status-inactive {
+      background: rgba(255, 107, 107, 0.1);
+      color: #ff6b6b;
+    }
+    
+    .service-card {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      border-left: 4px solid #4facfe;
+    }
+    
+    .service-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    
+    .service-type {
+      font-weight: 600;
+      color: #2d3748;
+    }
+    
+    .service-details {
+      color: #6c757d;
+      font-size: 0.9rem;
+    }
+    
+    .assessment-item {
+      background: white;
+      border: 1px solid #e9ecef;
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      transition: all 0.2s ease;
+    }
+    
+    .assessment-item:hover {
+      border-color: #4facfe;
+      transform: translateX(5px);
+    }
+    
+    .attendance-table {
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    
+    .attendance-table th {
+      background: #f8f9fa;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .attendance-present {
+      color: #11998e;
+      font-weight: 600;
+    }
+    
+    .attendance-absent {
+      color: #ff6b6b;
+      font-weight: 600;
+    }
+    
+    .attendance-tardy {
+      color: #fa709a;
+      font-weight: 600;
+    }
+    
+    .btn-action {
+      background: var(--grad-primary);
+      color: white;
+      border: none;
+      padding: 0.5rem 1.5rem;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-action:hover {
+      background: var(--grad-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+      color: white;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 2rem;
+      color: #6c757d;
+    }
+    
+    .empty-state i {
+      font-size: 3rem;
+      opacity: 0.3;
+      margin-bottom: 1rem;
+    }
+    
+    .tab-nav {
+      background: white;
+      border-radius: 10px;
+      padding: 0.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .tab-nav .nav-link {
+      color: #6c757d;
+      font-weight: 500;
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      transition: all 0.3s ease;
+    }
+    
+    .tab-nav .nav-link:hover {
+      background: #f8f9fa;
+    }
+    
+    .tab-nav .nav-link.active {
+      background: var(--grad-info);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid py-4">
+    <!-- Header -->
+    <header class="page-header">
+      <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+          <h1 class="fs-3 mb-1">
+            <i class="bi bi-person-badge me-2"></i>{{.Data.Student.FirstName}} {{.Data.Student.LastName}}
+          </h1>
+          <p class="mb-0 opacity-75">Student ID: {{.Data.Student.StudentID}} | Grade: {{.Data.Student.Grade}}</p>
+        </div>
+        <nav class="btn-group btn-group-sm" role="group">
+          <button type="button" class="btn" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i>Print
+          </button>
+          <a href="/view-ecse-reports" class="btn">
+            <i class="bi bi-arrow-left me-1"></i>Back to List
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="tab-nav">
+      <ul class="nav nav-pills" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link active" data-bs-toggle="tab" href="#overview">
+            <i class="bi bi-info-circle me-2"></i>Overview
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#services">
+            <i class="bi bi-heart-pulse me-2"></i>Services
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#assessments">
+            <i class="bi bi-clipboard-check me-2"></i>Assessments
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#attendance">
+            <i class="bi bi-calendar-check me-2"></i>Attendance
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <!-- Overview Tab -->
+      <div class="tab-pane fade show active" id="overview">
+        <div class="row">
+          <!-- Student Information -->
+          <div class="col-lg-6">
+            <div class="info-card">
+              <h5><i class="bi bi-person-fill"></i> Student Information</h5>
+              <div class="info-row">
+                <span class="info-label">Full Name</span>
+                <span class="info-value">{{.Data.Student.FirstName}} {{.Data.Student.LastName}}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Date of Birth</span>
+                <span class="info-value">{{.Data.Student.DateOfBirth}}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Grade</span>
+                <span class="info-value">{{.Data.Student.Grade}}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Enrollment Status</span>
+                <span class="info-value">
+                  <span class="status-badge {{if eq .Data.Student.EnrollmentStatus "Active"}}status-active{{else}}status-inactive{{end}}">
+                    {{.Data.Student.EnrollmentStatus}}
+                  </span>
+                </span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">IEP Status</span>
+                <span class="info-value">{{if .Data.Student.IEPStatus}}{{.Data.Student.IEPStatus}}{{else}}-{{end}}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Primary Disability</span>
+                <span class="info-value">{{if .Data.Student.PrimaryDisability}}{{.Data.Student.PrimaryDisability}}{{else}}-{{end}}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Service Minutes</span>
+                <span class="info-value">{{.Data.Student.ServiceMinutes}} min/week</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact Information -->
+          <div class="col-lg-6">
+            <div class="info-card">
+              <h5><i class="bi bi-telephone-fill"></i> Contact Information</h5>
+              <div class="info-row">
+                <span class="info-label">Parent/Guardian</span>
+                <span class="info-value">{{if .Data.Student.ParentName}}{{.Data.Student.ParentName}}{{else}}-{{end}}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Phone</span>
+                <span class="info-value">{{if .Data.Student.ParentPhone}}{{.Data.Student.ParentPhone}}{{else}}-{{end}}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Email</span>
+                <span class="info-value">{{if .Data.Student.ParentEmail}}{{.Data.Student.ParentEmail}}{{else}}-{{end}}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Address</span>
+                <span class="info-value">
+                  {{if .Data.Student.Address}}
+                    {{.Data.Student.Address}}<br>
+                    {{.Data.Student.City}}, {{.Data.Student.State}} {{.Data.Student.ZipCode}}
+                  {{else}}
+                    -
+                  {{end}}
+                </span>
+              </div>
+            </div>
+
+            <!-- Transportation -->
+            <div class="info-card">
+              <h5><i class="bi bi-bus-front-fill"></i> Transportation</h5>
+              <div class="info-row">
+                <span class="info-label">Transportation Required</span>
+                <span class="info-value">
+                  {{if .Data.Student.TransportationRequired}}
+                    <span class="status-badge status-active">Yes</span>
+                  {{else}}
+                    <span class="text-muted">No</span>
+                  {{end}}
+                </span>
+              </div>
+              {{if .Data.Student.TransportationRequired}}
+              <div class="info-row">
+                <span class="info-label">Bus Route</span>
+                <span class="info-value">{{if .Data.Student.BusRoute}}{{.Data.Student.BusRoute}}{{else}}-{{end}}</span>
+              </div>
+              {{end}}
+            </div>
+          </div>
+        </div>
+
+        {{if .Data.Student.Notes}}
+        <div class="info-card">
+          <h5><i class="bi bi-sticky-fill"></i> Notes</h5>
+          <p>{{.Data.Student.Notes}}</p>
+        </div>
+        {{end}}
+      </div>
+
+      <!-- Services Tab -->
+      <div class="tab-pane fade" id="services">
+        {{if .Data.Services}}
+          {{range .Data.Services}}
+          <div class="service-card">
+            <div class="service-header">
+              <span class="service-type">{{.ServiceType}}</span>
+              <span class="badge bg-primary">{{.Duration}} min</span>
+            </div>
+            <div class="service-details">
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Frequency:</strong> {{if .Frequency}}{{.Frequency}}{{else}}-{{end}}</p>
+                  <p><strong>Provider:</strong> {{if .Provider}}{{.Provider}}{{else}}-{{end}}</p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Start Date:</strong> {{if .StartDate}}{{.StartDate}}{{else}}-{{end}}</p>
+                  <p><strong>End Date:</strong> {{if .EndDate}}{{.EndDate}}{{else}}-{{end}}</p>
+                </div>
+              </div>
+              {{if .Goals}}
+              <p><strong>Goals:</strong> {{.Goals}}</p>
+              {{end}}
+              {{if .Progress}}
+              <p><strong>Progress:</strong> {{.Progress}}</p>
+              {{end}}
+            </div>
+          </div>
+          {{end}}
+        {{else}}
+          <div class="empty-state">
+            <i class="bi bi-heart-pulse"></i>
+            <h5>No Services Recorded</h5>
+            <p>No special education services have been recorded for this student.</p>
+          </div>
+        {{end}}
+      </div>
+
+      <!-- Assessments Tab -->
+      <div class="tab-pane fade" id="assessments">
+        {{if .Data.Assessments}}
+          {{range .Data.Assessments}}
+          <div class="assessment-item">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <h6 class="mb-1">{{.AssessmentType}}</h6>
+                <p class="text-muted mb-2">Date: {{.AssessmentDate}}</p>
+              </div>
+              <span class="badge bg-info">Score: {{.Score}}</span>
+            </div>
+            <p class="mb-1"><strong>Evaluator:</strong> {{.Evaluator}}</p>
+            {{if .Notes}}
+            <p class="mb-1"><strong>Notes:</strong> {{.Notes}}</p>
+            {{end}}
+            {{if .NextReviewDate}}
+            <p class="mb-0 text-warning"><strong>Next Review:</strong> {{.NextReviewDate}}</p>
+            {{end}}
+          </div>
+          {{end}}
+        {{else}}
+          <div class="empty-state">
+            <i class="bi bi-clipboard-check"></i>
+            <h5>No Assessments Recorded</h5>
+            <p>No assessments have been recorded for this student.</p>
+          </div>
+        {{end}}
+      </div>
+
+      <!-- Attendance Tab -->
+      <div class="tab-pane fade" id="attendance">
+        {{if .Data.Attendance}}
+          <div class="attendance-table">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Arrival</th>
+                  <th>Departure</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{range .Data.Attendance}}
+                <tr>
+                  <td>{{.Date}}</td>
+                  <td>
+                    <span class="{{if eq .Status "Present"}}attendance-present{{else if eq .Status "Absent"}}attendance-absent{{else}}attendance-tardy{{end}}">
+                      {{.Status}}
+                    </span>
+                  </td>
+                  <td>{{if .ArrivalTime}}{{.ArrivalTime}}{{else}}-{{end}}</td>
+                  <td>{{if .DepartureTime}}{{.DepartureTime}}{{else}}-{{end}}</td>
+                  <td>{{if .Notes}}{{.Notes}}{{else}}-{{end}}</td>
+                </tr>
+                {{end}}
+              </tbody>
+            </table>
+          </div>
+        {{else}}
+          <div class="empty-state">
+            <i class="bi bi-calendar-check"></i>
+            <h5>No Attendance Records</h5>
+            <p>No attendance records have been found for this student.</p>
+          </div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script nonce="{{.CSPNonce}}">
+    // Print styling
+    window.addEventListener('beforeprint', function() {
+      document.querySelectorAll('.btn').forEach(btn => btn.style.display = 'none');
+      document.querySelectorAll('.tab-nav').forEach(nav => nav.style.display = 'none');
+      document.querySelectorAll('.tab-pane').forEach(pane => {
+        pane.classList.add('show', 'active');
+      });
+    });
+    
+    window.addEventListener('afterprint', function() {
+      document.querySelectorAll('.btn').forEach(btn => btn.style.display = '');
+      document.querySelectorAll('.tab-nav').forEach(nav => nav.style.display = '');
+      // Restore original tab state
+      document.querySelectorAll('.tab-pane').forEach(pane => {
+        if (!pane.id.includes('overview')) {
+          pane.classList.remove('show', 'active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
