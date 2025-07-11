@@ -61,6 +61,116 @@ type Location struct {
 	Description string `json:"description"`
 }
 
+// ECSE (Early Childhood Special Education) Models
+type ECSEStudent struct {
+    StudentID              string    `json:"student_id" db:"student_id"`
+    FirstName              string    `json:"first_name" db:"first_name"`
+    LastName               string    `json:"last_name" db:"last_name"`
+    DateOfBirth            string    `json:"date_of_birth" db:"date_of_birth"`
+    Grade                  string    `json:"grade" db:"grade"`
+    EnrollmentStatus       string    `json:"enrollment_status" db:"enrollment_status"`
+    IEPStatus              string    `json:"iep_status" db:"iep_status"`
+    PrimaryDisability      string    `json:"primary_disability" db:"primary_disability"`
+    ServiceMinutes         int       `json:"service_minutes" db:"service_minutes"`
+    TransportationRequired bool      `json:"transportation_required" db:"transportation_required"`
+    BusRoute               string    `json:"bus_route" db:"bus_route"`
+    ParentName             string    `json:"parent_name" db:"parent_name"`
+    ParentPhone            string    `json:"parent_phone" db:"parent_phone"`
+    ParentEmail            string    `json:"parent_email" db:"parent_email"`
+    Address                string    `json:"address" db:"address"`
+    City                   string    `json:"city" db:"city"`
+    State                  string    `json:"state" db:"state"`
+    ZipCode                string    `json:"zip_code" db:"zip_code"`
+    Notes                  string    `json:"notes" db:"notes"`
+    CreatedAt              time.Time `json:"created_at" db:"created_at"`
+    UpdatedAt              time.Time `json:"updated_at" db:"updated_at"`
+}
+
+type ECSEService struct {
+    ID          int       `json:"id" db:"id"`
+    StudentID   string    `json:"student_id" db:"student_id"`
+    ServiceType string    `json:"service_type" db:"service_type"`
+    Frequency   string    `json:"frequency" db:"frequency"`
+    Duration    int       `json:"duration" db:"duration"`
+    Provider    string    `json:"provider" db:"provider"`
+    StartDate   string    `json:"start_date" db:"start_date"`
+    EndDate     string    `json:"end_date" db:"end_date"`
+    Goals       string    `json:"goals" db:"goals"`
+    Progress    string    `json:"progress" db:"progress"`
+    CreatedAt   time.Time `json:"created_at" db:"created_at"`
+}
+
+type ECSEAssessment struct {
+    ID             int       `json:"id" db:"id"`
+    StudentID      string    `json:"student_id" db:"student_id"`
+    AssessmentType string    `json:"assessment_type" db:"assessment_type"`
+    AssessmentDate string    `json:"assessment_date" db:"assessment_date"`
+    Score          string    `json:"score" db:"score"`
+    Evaluator      string    `json:"evaluator" db:"evaluator"`
+    Notes          string    `json:"notes" db:"notes"`
+    NextReviewDate string    `json:"next_review_date" db:"next_review_date"`
+    CreatedAt      time.Time `json:"created_at" db:"created_at"`
+}
+
+type ECSEAttendance struct {
+    ID            int       `json:"id" db:"id"`
+    StudentID     string    `json:"student_id" db:"student_id"`
+    AttendanceDate string   `json:"attendance_date" db:"attendance_date"`
+    Status        string    `json:"status" db:"status"`
+    ArrivalTime   string    `json:"arrival_time" db:"arrival_time"`
+    DepartureTime string    `json:"departure_time" db:"departure_time"`
+    Notes         string    `json:"notes" db:"notes"`
+    CreatedAt     time.Time `json:"created_at" db:"created_at"`
+}
+
+// View models for ECSE
+type ECSEStudentView struct {
+    StudentID              string `json:"student_id" db:"student_id"`
+    FirstName              string `json:"first_name" db:"first_name"`
+    LastName               string `json:"last_name" db:"last_name"`
+    DateOfBirth            string `json:"date_of_birth" db:"date_of_birth"`
+    Grade                  string `json:"grade" db:"grade"`
+    EnrollmentStatus       string `json:"enrollment_status" db:"enrollment_status"`
+    IEPStatus              string `json:"iep_status" db:"iep_status"`
+    PrimaryDisability      string `json:"primary_disability" db:"primary_disability"`
+    ServiceMinutes         int    `json:"service_minutes" db:"service_minutes"`
+    TransportationRequired bool   `json:"transportation_required" db:"transportation_required"`
+    BusRoute               string `json:"bus_route" db:"bus_route"`
+    ParentName             string `json:"parent_name" db:"parent_name"`
+    ParentPhone            string `json:"parent_phone" db:"parent_phone"`
+    ParentEmail            string `json:"parent_email" db:"parent_email"`
+    Address                string `json:"address" db:"address"`
+    City                   string `json:"city" db:"city"`
+    State                  string `json:"state" db:"state"`
+    ZipCode                string `json:"zip_code" db:"zip_code"`
+    ServiceCount           int    `json:"service_count" db:"service_count"`
+    AssessmentCount        int    `json:"assessment_count" db:"assessment_count"`
+}
+
+type ECSEAttendanceRecord struct {
+    Date          string `json:"date" db:"date"`
+    Status        string `json:"status" db:"status"`
+    ArrivalTime   string `json:"arrival_time" db:"arrival_time"`
+    DepartureTime string `json:"departure_time" db:"departure_time"`
+    Notes         string `json:"notes" db:"notes"`
+}
+
+// ECSE Statistics
+type ECSEStats struct {
+    TotalStudents          int              `json:"total_students"`
+    ActiveStudents         int              `json:"active_students"`
+    TransportationStudents int              `json:"transportation_students"`
+    IEPStudents            int              `json:"iep_students"`
+    TotalServices          int              `json:"total_services"`
+    ServiceTypes           map[string]int   `json:"service_types"`
+}
+
+// ECSE Import Result
+type ECSEImportResult struct {
+    StudentsImported    int      `json:"students_imported"`
+    ServicesImported    int
+}
+
 // RouteAssignment represents driver-bus-route assignment
 type RouteAssignment struct {
 	Driver       string `json:"driver" db:"driver"`
