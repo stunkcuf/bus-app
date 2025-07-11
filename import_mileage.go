@@ -4,230 +4,10 @@ import (
     "database/sql"
     "fmt"
     "log"
-    "os"
-    "strconv"
-    "strings"
-    
-    "github.com/xuri/excelize/v2"
-    _ "github.com/lib/pq"
-)
-
-// MileageRecord represents a row from the Excel file
-type MileageRecord struct {
-    ReportMonth    string
-    ReportYear     int
-    BusYear        int
-    BusMake        string
-    LicensePlate   string
-    BusID          string
-    LocatedAt      string
-    BeginningMiles int
-    EndingMiles    int
-    TotalMiles     int
-}
-
-func main() {
-    // Connect to database
-    db, err := connectDB()
-    if err != nil {
-        log.Fatalf("Failed to connect to database: %v", err)
-    }
-    defer db.Close()
-    
-    // Read Excel file
-    records, err := readExcelFile("MILEAGE REPORT20242025 REPORT.xlsx")
-    if err != nil {
-        log.Fatalf("Failed to read Excel file: %v", err)
-    }
-    
-    // Insert records into database
-    err = insertRecords(db, records)
-    if err != nil {
-        log.Fatalf("Failed to insert records: %v", err)
-    }
-    
-    log.Printf("Successfully imported %d records", len(records))
-}
-
-func connectDB() (*sql.DB, error) {
-    // Use environment variables for connection
-    dbURL := os.Getenv("DATABASE_URL")
-    if dbURL == "" {
-        // Fallback to individual environment variables
-        host := os.Getenv("PGHOST")
-        port := os.Getenv("PGPORT")
-        user := os.Getenv("PGUSER")
-        password := os.Getenv("PGPASSWORD")
-        dbname := os.Getenv("PGDATABASE")
-        
-        if host == "" || port == "" || user == "" || password == "" || dbname == "" {
-            return nil, fmt.Errorf("database connection parameters not set")
-        }
-        
-        dbURL = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=require",
-            user, password, host, port, dbname)
-    }
-    
-    return sql.Open("postgres", dbURL)
-}
-
-func readExcelFile(filename string) ([]MileageRecord, error) {
-    f, err := excelize.OpenFile(filename)
-    if err != nil {
-        return nil, fmt.Errorf("failed to open file: %w", err)
-    }
-    defer f.Close()
-    
-    var records []MileageRecord
-    
-    // Get all sheet names
-    sheets := f.GetSheetList()
-    if len(sheets) == 0 {
-        return nil, fmt.Errorf("no sheets found in Excel file")
-    }
-    
-    // Read from the first sheet
-    sheetName := sheets[0]
-    rows, err := f.GetRows(sheetName)
-    if err != nil {
-        return nil, fmt.Errorf("failed to get rows: %w", err)
-    }
-    
-    // Skip header row (assuming first row is headers)
-    for i, row := range rows {
-        if i == 0 {
-            // Log headers to understand the structure
-            log.Printf("Headers: %v", row)
-            continue
-        }
-        
-        // Skip empty rows
-        if len(row) < 10 {
-            continue
-        }
-        
-        record := MileageRecord{}
-        
-        // Parse each column - adjust indices based on your Excel structure
-        // Example mapping (adjust based on your actual Excel columns):
-        // Column 0: Report Month
-        // Column 1: Report Year
-        // Column 2: Bus Year
-        // Column 3: Bus Make
-        // Column 4: License Plate
-        // Column 5: Bus ID
-        // Column 6: Located At
-        // Column 7: Beginning Miles
-        // Column 8: Ending Miles
-        // Column 9: Total Miles
-        
-        if len(row) > 0 {
-            record.ReportMonth = strings.TrimSpace(row[0])
-        }
-        if len(row) > 1 {
-            record.ReportYear, _ = strconv.Atoi(strings.TrimSpace(row[1]))
-        }
-        if len(row) > 2 {
-            record.BusYear, _ = strconv.Atoi(strings.TrimSpace(row[2]))
-        }
-        if len(row) > 3 {
-            record.BusMake = strings.TrimSpace(row[3])
-        }
-        if len(row) > 4 {
-            record.LicensePlate = strings.TrimSpace(row[4])
-        }
-        if len(row) > 5 {
-            record.BusID = strings.TrimSpace(row[5])
-        }
-        if len(row) > 6 {
-            record.LocatedAt = strings.TrimSpace(row[6])
-        }
-        if len(row) > 7 {
-            record.BeginningMiles, _ = strconv.Atoi(strings.TrimSpace(row[7]))
-        }
-        if len(row) > 8 {
-            record.EndingMiles, _ = strconv.Atoi(strings.TrimSpace(row[8]))
-        }
-        if len(row) > 9 {
-            record.TotalMiles, _ = strconv.Atoi(strings.TrimSpace(row[9]))
-        }
-        
-        // Validate required fields
-        if record.ReportMonth != "" && record.ReportYear != 0 && record.BusID != "" {
-            records = append(records, record)
-        }
-    }
-    
-    return records, nil
-}
-
-func insertRecords(db *sql.DB, records []MileageRecord) error {
-    // Begin transaction
-    tx, err := db.Begin()
-    if err != nil {
-        return fmt.Errorf("failed to begin transaction: %w", err)
-    }
-    defer tx.Rollback()
-    
-    // Prepare insert statement
-    stmt, err := tx.Prepare(`
-        INSERT INTO monthly_mileage_reports 
-        (report_month, report_year, bus_year, bus_make, license_plate, 
-         bus_id, located_at, beginning_miles, ending_miles, total_miles)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        ON CONFLICT (report_month, report_year, bus_id) 
-        DO UPDATE SET
-            bus_year = EXCLUDED.bus_year,
-            bus_make = EXCLUDED.bus_make,
-            license_plate = EXCLUDED.license_plate,
-            located_at = EXCLUDED.located_at,
-            beginning_miles = EXCLUDED.beginning_miles,
-            ending_miles = EXCLUDED.ending_miles,
-            total_miles = EXCLUDED.total_miles,
-            updated_at = CURRENT_TIMESTAMP
-    `)
-    if err != nil {
-        return fmt.Errorf("failed to prepare statement: %w", err)
-    }
-    defer stmt.Close()
-    
-    // Insert each record
-    for i, record := range records {
-        _, err := stmt.Exec(
-            record.ReportMonth,
-            record.ReportYear,
-            record.BusYear,
-            record.BusMake,
-            record.LicensePlate,
-            record.BusID,
-            record.LocatedAt,
-            record.BeginningMiles,
-            record.EndingMiles,
-            record.TotalMiles,
-        )
-        if err != nil {
-            log.Printf("Failed to insert record %d: %v", i+1, err)
-            return fmt.Errorf("failed to insert record %d: %w", i+1, err)
-        }
-    }
-    
-    // Commit transaction
-    if err := tx.Commit(); err != nil {
-        return fmt.Errorf("failed to commit transaction: %w", err)
-    }
-    
-    return nil
-}
-package main
-
-import (
-    "database/sql"
-    "fmt"
-    "log"
+    "mime/multipart"
     "regexp"
     "strconv"
     "strings"
-    "mime/multipart"
     
     "github.com/xuri/excelize/v2"
 )
@@ -290,7 +70,7 @@ func processEnhancedMileageExcelFile(file multipart.File, filename string) (int,
     
     // Process each sheet
     for _, sheetName := range sheets {
-        imported, err := processSheet(f, sheetName)
+        imported, err := processMileageSheet(f, sheetName)
         if err != nil {
             log.Printf("Error processing sheet '%s': %v", sheetName, err)
             continue
@@ -301,7 +81,7 @@ func processEnhancedMileageExcelFile(file multipart.File, filename string) (int,
     return totalImported, nil
 }
 
-func processSheet(f *excelize.File, sheetName string) (int, error) {
+func processMileageSheet(f *excelize.File, sheetName string) (int, error) {
     log.Printf("\n=== Processing sheet: '%s' ===", sheetName)
     
     rows, err := f.GetRows(sheetName)
@@ -445,7 +225,7 @@ func parseAgencyVehicleRow(row []string, reportMonth string, reportYear int) *Ag
     }
     
     // Skip empty or invalid rows
-    if isEmptyRow(row) {
+    if isEmptyMileageRow(row) {
         return nil
     }
     
@@ -455,23 +235,23 @@ func parseAgencyVehicleRow(row []string, reportMonth string, reportYear int) *Ag
     }
     
     // Parse year (column 0)
-    if year := parseInt(row[0]); year > 1900 && year < 2100 {
+    if year := parseMileageInt(row[0]); year > 1900 && year < 2100 {
         record.VehicleYear = year
     }
     
     // Parse make/model (column 1)
     if len(row) > 1 {
-        record.MakeModel = cleanText(row[1])
+        record.MakeModel = cleanMileageText(row[1])
     }
     
     // Parse license plate (column 2)
     if len(row) > 2 {
-        record.LicensePlate = cleanText(row[2])
+        record.LicensePlate = cleanMileageText(row[2])
     }
     
     // Parse vehicle ID (column 3)
     if len(row) > 3 {
-        record.VehicleID = cleanText(row[3])
+        record.VehicleID = cleanMileageText(row[3])
         if record.VehicleID == "" {
             return nil // Skip if no vehicle ID
         }
@@ -479,23 +259,23 @@ func parseAgencyVehicleRow(row []string, reportMonth string, reportYear int) *Ag
     
     // Parse location (column 4)
     if len(row) > 4 {
-        record.Location = cleanText(row[4])
+        record.Location = cleanMileageText(row[4])
     }
     
     // Parse miles (columns 5, 6, 7)
     if len(row) > 5 {
-        record.BeginningMiles = parseInt(row[5])
+        record.BeginningMiles = parseMileageInt(row[5])
     }
     if len(row) > 6 {
-        record.EndingMiles = parseInt(row[6])
+        record.EndingMiles = parseMileageInt(row[6])
     }
     if len(row) > 7 {
-        record.TotalMiles = parseInt(row[7])
+        record.TotalMiles = parseMileageInt(row[7])
     }
     
     // Parse status/notes from the end of the row
     if len(row) > 8 {
-        statusText := strings.ToLower(cleanText(row[8]))
+        statusText := strings.ToLower(cleanMileageText(row[8]))
         if strings.Contains(statusText, "for sale") {
             record.Status = "FOR SALE"
         } else if strings.Contains(statusText, "sold") {
@@ -507,7 +287,7 @@ func parseAgencyVehicleRow(row []string, reportMonth string, reportYear int) *Ag
         } else if strings.Contains(statusText, "repair") {
             record.Status = "REPAIRS"
         } else {
-            record.Notes = cleanText(row[8])
+            record.Notes = cleanMileageText(row[8])
         }
     }
     
@@ -523,7 +303,7 @@ func parseSchoolBusRow(row []string, reportMonth string, reportYear int) *School
     }
     
     // Skip empty rows
-    if isEmptyRow(row) {
+    if isEmptyMileageRow(row) {
         return nil
     }
     
@@ -537,7 +317,7 @@ func parseSchoolBusRow(row []string, reportMonth string, reportYear int) *School
     
     // Parse bus ID (usually first column for school buses)
     if len(row) > 0 {
-        record.BusID = cleanText(row[0])
+        record.BusID = cleanMileageText(row[0])
         if record.BusID == "" {
             return nil
         }
@@ -545,7 +325,7 @@ func parseSchoolBusRow(row []string, reportMonth string, reportYear int) *School
     
     // Parse location/status (column 1)
     if len(row) > 1 {
-        locationStatus := cleanText(row[1])
+        locationStatus := cleanMileageText(row[1])
         statusLower := strings.ToLower(locationStatus)
         
         if strings.Contains(statusLower, "spare") {
@@ -564,12 +344,12 @@ func parseSchoolBusRow(row []string, reportMonth string, reportYear int) *School
     
     // Look for year and make in subsequent columns
     for i := 2; i < len(row) && i < 5; i++ {
-        if year := parseInt(row[i]); year > 2000 && year < 2100 {
+        if year := parseMileageInt(row[i]); year > 2000 && year < 2100 {
             record.BusYear = year
         } else if strings.Contains(strings.ToUpper(row[i]), "CHEV") {
-            record.BusMake = cleanText(row[i])
+            record.BusMake = cleanMileageText(row[i])
         } else if strings.HasPrefix(strings.ToUpper(row[i]), "SC") {
-            record.LicensePlate = cleanText(row[i])
+            record.LicensePlate = cleanMileageText(row[i])
         }
     }
     
@@ -578,7 +358,7 @@ func parseSchoolBusRow(row []string, reportMonth string, reportYear int) *School
         // Try to find miles in the last 3 columns
         for i := len(row) - 3; i < len(row); i++ {
             if i >= 0 && i < len(row) {
-                miles := parseInt(row[i])
+                miles := parseMileageInt(row[i])
                 if miles > 0 {
                     if record.BeginningMiles == 0 {
                         record.BeginningMiles = miles
@@ -605,7 +385,7 @@ func parseProgramStaffRow(row []string, reportMonth string, reportYear int) *Pro
     
     // Look for program type in first column
     programType := ""
-    firstCell := strings.ToUpper(cleanText(row[0]))
+    firstCell := strings.ToUpper(cleanMileageText(row[0]))
     
     if strings.Contains(firstCell, "HS") {
         programType = "HS"
@@ -628,7 +408,7 @@ func parseProgramStaffRow(row []string, reportMonth string, reportYear int) *Pro
     // Look for staff counts in the row
     counts := []int{}
     for i := 1; i < len(row); i++ {
-        if count := parseInt(row[i]); count > 0 {
+        if count := parseMileageInt(row[i]); count > 0 {
             counts = append(counts, count)
         }
     }
@@ -756,7 +536,7 @@ func insertProgramStaff(records []ProgramStaffRecord) (int, error) {
 }
 
 // Helper functions
-func cleanText(s string) string {
+func cleanMileageText(s string) string {
     // Remove strikethrough markers (~~text~~)
     s = regexp.MustCompile(`~~(.+?)~~`).ReplaceAllString(s, "$1")
     // Remove extra spaces and trim
@@ -765,24 +545,19 @@ func cleanText(s string) string {
     return s
 }
 
-func parseInt(s string) int {
-    s = cleanText(s)
+func parseMileageInt(s string) int {
+    s = cleanMileageText(s)
     // Remove commas from numbers
     s = strings.ReplaceAll(s, ",", "")
     val, _ := strconv.Atoi(s)
     return val
 }
 
-func isEmptyRow(row []string) bool {
+func isEmptyMileageRow(row []string) bool {
     for _, cell := range row {
-        if cleanText(cell) != "" && cleanText(cell) != "-" {
+        if cleanMileageText(cell) != "" && cleanMileageText(cell) != "-" {
             return false
         }
     }
     return true
-}
-
-// Update the main import handler to use this new function
-func (handler *ImportHandler) processFile(file multipart.File, filename string) (int, error) {
-    return processEnhancedMileageExcelFile(file, filename)
 }
