@@ -104,6 +104,71 @@ func createTables() error {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
+		// ECSE Tables
+		`CREATE TABLE IF NOT EXISTS ecse_students (
+		    student_id VARCHAR(50) PRIMARY KEY,
+		    first_name VARCHAR(100) NOT NULL,
+		    last_name VARCHAR(100) NOT NULL,
+		    date_of_birth DATE,
+		    grade VARCHAR(20),
+		    enrollment_status VARCHAR(50) DEFAULT 'Active',
+		    iep_status VARCHAR(50),
+		    primary_disability VARCHAR(100),
+		    service_minutes INTEGER DEFAULT 0,
+		    transportation_required BOOLEAN DEFAULT false,
+		    bus_route VARCHAR(50),
+		    parent_name VARCHAR(200),
+		    parent_phone VARCHAR(20),
+		    parent_email VARCHAR(100),
+		    address VARCHAR(200),
+		    city VARCHAR(100),
+		    state VARCHAR(2),
+		    zip_code VARCHAR(10),
+		    notes TEXT,
+		    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		
+		`CREATE TABLE IF NOT EXISTS ecse_services (
+		    id SERIAL PRIMARY KEY,
+		    student_id VARCHAR(50) NOT NULL,
+		    service_type VARCHAR(100) NOT NULL,
+		    frequency VARCHAR(50),
+		    duration INTEGER DEFAULT 0,
+		    provider VARCHAR(100),
+		    start_date DATE,
+		    end_date DATE,
+		    goals TEXT,
+		    progress TEXT,
+		    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		    FOREIGN KEY (student_id) REFERENCES ecse_students(student_id) ON DELETE CASCADE
+		)`,
+		
+		`CREATE TABLE IF NOT EXISTS ecse_assessments (
+		    id SERIAL PRIMARY KEY,
+		    student_id VARCHAR(50) NOT NULL,
+		    assessment_type VARCHAR(100) NOT NULL,
+		    assessment_date DATE,
+		    score VARCHAR(50),
+		    evaluator VARCHAR(100),
+		    notes TEXT,
+		    next_review_date DATE,
+		    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		    FOREIGN KEY (student_id) REFERENCES ecse_students(student_id) ON DELETE CASCADE
+		)`,
+		
+		`CREATE TABLE IF NOT EXISTS ecse_attendance (
+		    id SERIAL PRIMARY KEY,
+		    student_id VARCHAR(50) NOT NULL,
+		    attendance_date DATE NOT NULL,
+		    status VARCHAR(20) NOT NULL CHECK (status IN ('Present', 'Absent', 'Tardy', 'Excused')),
+		    arrival_time TIME,
+		    departure_time TIME,
+		    notes TEXT,
+		    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		    FOREIGN KEY (student_id) REFERENCES ecse_students(student_id) ON DELETE CASCADE,
+		    UNIQUE(student_id, attendance_date)
+		)`,
 
 		// Students table
 		`CREATE TABLE IF NOT EXISTS students (
@@ -298,6 +363,13 @@ func createTables() error {
 		`CREATE INDEX IF NOT EXISTS idx_activities_driver ON activities(driver)`,
 		`CREATE INDEX IF NOT EXISTS idx_maintenance_records_vehicle ON maintenance_records(vehicle_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_maintenance_records_date ON maintenance_records(date)`,
+		// ECSE indexes for better performance
+		`CREATE INDEX IF NOT EXISTS idx_ecse_students_enrollment ON ecse_students(enrollment_status)`,
+		`CREATE INDEX IF NOT EXISTS idx_ecse_students_transportation ON ecse_students(transportation_required)`,
+		`CREATE INDEX IF NOT EXISTS idx_ecse_students_bus_route ON ecse_students(bus_route)`,
+		`CREATE INDEX IF NOT EXISTS idx_ecse_services_student ON ecse_services(student_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_ecse_assessments_student ON ecse_assessments(student_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_ecse_attendance_date ON ecse_attendance(attendance_date)`,
 	}
 
 	for _, index := range indexes {
