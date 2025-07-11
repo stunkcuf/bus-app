@@ -426,6 +426,419 @@ func saveLogHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/driver-dashboard", http.StatusSeeOther)
 	}
 }
+// importECSEHandler handles ECSE report imports
+func importECSEHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
+			"CSRFToken": generateCSRFToken(),
+		})
+		return
+	}
+
+	if r.Method == "POST" {
+		if !validateCSRF(r) {
+			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+			return
+		}
+
+		// Parse multipart form
+		err := r.ParseMultipartForm(10 << 20) // 10 MB
+		if err != nil {
+			renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
+				"Error":     "Failed to parse form",
+				"CSRFToken": generateCSRFToken(),
+			})
+			return
+		}
+
+		file, header, err := r.FormFile("excel_file")
+		if err != nil {
+			renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
+				"Error":     "Failed to get file",
+				"CSRFToken": generateCSRFToken(),
+			})
+			return
+		}
+		defer file.Close()
+
+		// Process ECSE Excel file
+		imported, err := processECSEExcelFile(file, header.Filename)
+		
+		if err != nil {
+			renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
+				"Error":     fmt.Sprintf("Import failed: %v", err),
+				"CSRFToken": generateCSRFToken(),
+			})
+			return
+		}
+
+		renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
+			"Success":   fmt.Sprintf("Successfully imported %d ECSE student records", imported),
+			"CSRFToken": generateCSRFToken(),
+		})
+	}
+}
+
+// viewECSEReportsHandler shows ECSE reports and data
+func viewECSEReportsHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	// Get query parameters for filtering
+	enrollmentStatus := r.URL.Query().Get("status")
+	transportationOnly := r.URL.Query().Get("transportation") == "true"
+	searchTerm := r.URL.Query().Get("search")
+
+	// Build query
+	query := `
+		SELECT 
+			s.student_id, s.first_name, s.last_name, s.date_of_birth::text,
+			s.grade, s.enrollment_status, s.iep_status, s.primary_disability,
+			s.service_minutes, s.transportation_required, s.bus_route,
+			s.parent_name, s.parent_phone, s.parent_email,
+			s.address, s.city, s.state, s.zip_code,
+			COUNT(DISTINCT srv.id) as service_count,
+			COUNT(DISTINCT a.id) as assessment_count
+		FROM ecse_students s
+		LEFT JOIN ecse_services srv ON s.student_id = srv.student_id
+		LEFT JOIN ecse_assessments a ON s.student_id = a.student_id
+		WHERE 1=1
+	`
+	
+	args := []interface{}{}
+	argCount := 0
+
+	if enrollmentStatus != "" && enrollmentStatus != "all" {
+		argCount++
+		query += fmt.Sprintf(" AND s.enrollment_status = $%d", argCount)
+		args = append(args, enrollmentStatus)
+	}
+
+	if transportationOnly {
+		query += " AND s.transportation_required = true"
+	}
+
+	if searchTerm != "" {
+		argCount++
+		query += fmt.Sprintf(" AND (LOWER(s.first_name) LIKE LOWER($%d) OR LOWER(s.last_name) LIKE LOWER($%d) OR s.student_id LIKE $%d)", argCount, argCount, argCount)
+		args = append(args, "%"+searchTerm+"%")
+	}
+
+	query += `
+		GROUP BY s.student_id, s.first_name, s.last_name, s.date_of_birth,
+			s.grade, s.enrollment_status, s.iep_status, s.primary_disability,
+			s.service_minutes, s.transportation_required, s.bus_route,
+			s.parent_name, s.parent_phone, s.parent_email,
+			s.address, s.city, s.state, s.zip_code
+		ORDER BY s.last_name, s.first_name
+	`
+
+	rows, err := db.Query(query, args...)
+	
+	var students []ECSEStudentView
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var student ECSEStudentView
+			var dob sql.NullString
+			
+			err := rows.Scan(
+				&student.StudentID, &student.FirstName, &student.LastName, &dob,
+				&student.Grade, &student.EnrollmentStatus, &student.IEPStatus, &student.PrimaryDisability,
+				&student.ServiceMinutes, &student.TransportationRequired, &student.BusRoute,
+				&student.ParentName, &student.ParentPhone, &student.ParentEmail,
+				&student.Address, &student.City, &student.State, &student.ZipCode,
+				&student.ServiceCount, &student.AssessmentCount,
+			)
+			
+			if err == nil {
+				if dob.Valid {
+					student.DateOfBirth = dob.String
+				}
+				students = append(students, student)
+			}
+		}
+	}
+
+	// Get summary statistics
+	stats := getECSEStatistics()
+
+	renderTemplate(w, r, "view_ecse_reports.html", map[string]interface{}{
+		"User":               user,
+		"Students":           students,
+		"Stats":              stats,
+		"EnrollmentStatus":   enrollmentStatus,
+		"TransportationOnly": transportationOnly,
+		"SearchTerm":         searchTerm,
+		"CSRFToken":          generateCSRFToken(),
+	})
+}
+
+// viewECSEStudentHandler shows detailed view of a single ECSE student
+func viewECSEStudentHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	studentID := strings.TrimPrefix(r.URL.Path, "/ecse-student/")
+	
+	// Get student details
+	var student ECSEStudent
+	err := db.QueryRow(`
+		SELECT student_id, first_name, last_name, date_of_birth::text, grade,
+			enrollment_status, iep_status, primary_disability, service_minutes,
+			transportation_required, bus_route, parent_name, parent_phone,
+			parent_email, address, city, state, zip_code, notes
+		FROM ecse_students
+		WHERE student_id = $1
+	`, studentID).Scan(
+		&student.StudentID, &student.FirstName, &student.LastName, &student.DateOfBirth,
+		&student.Grade, &student.EnrollmentStatus, &student.IEPStatus, &student.PrimaryDisability,
+		&student.ServiceMinutes, &student.TransportationRequired, &student.BusRoute,
+		&student.ParentName, &student.ParentPhone, &student.ParentEmail,
+		&student.Address, &student.City, &student.State, &student.ZipCode, &student.Notes,
+	)
+	
+	if err != nil {
+		http.Error(w, "Student not found", http.StatusNotFound)
+		return
+	}
+
+	// Get services
+	services := []ECSEService{}
+	rows, err := db.Query(`
+		SELECT id, service_type, frequency, duration, provider,
+			start_date::text, end_date::text, goals, progress
+		FROM ecse_services
+		WHERE student_id = $1
+		ORDER BY service_type
+	`, studentID)
+	
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var service ECSEService
+			rows.Scan(&service.ID, &service.ServiceType, &service.Frequency,
+				&service.Duration, &service.Provider, &service.StartDate,
+				&service.EndDate, &service.Goals, &service.Progress)
+			services = append(services, service)
+		}
+	}
+
+	// Get assessments
+	assessments := []ECSEAssessment{}
+	rows, err = db.Query(`
+		SELECT id, assessment_type, assessment_date::text, score,
+			evaluator, notes, next_review_date::text
+		FROM ecse_assessments
+		WHERE student_id = $1
+		ORDER BY assessment_date DESC
+	`, studentID)
+	
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var assessment ECSEAssessment
+			rows.Scan(&assessment.ID, &assessment.AssessmentType, &assessment.AssessmentDate,
+				&assessment.Score, &assessment.Evaluator, &assessment.Notes, &assessment.NextReviewDate)
+			assessments = append(assessments, assessment)
+		}
+	}
+
+	// Get recent attendance
+	attendance := []ECSEAttendanceRecord{}
+	rows, err = db.Query(`
+		SELECT attendance_date::text, status, arrival_time::text, departure_time::text, notes
+		FROM ecse_attendance
+		WHERE student_id = $1
+		ORDER BY attendance_date DESC
+		LIMIT 30
+	`, studentID)
+	
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var record ECSEAttendanceRecord
+			var arrival, departure sql.NullString
+			rows.Scan(&record.Date, &record.Status, &arrival, &departure, &record.Notes)
+			
+			if arrival.Valid {
+				record.ArrivalTime = arrival.String
+			}
+			if departure.Valid {
+				record.DepartureTime = departure.String
+			}
+			
+			attendance = append(attendance, record)
+		}
+	}
+
+	renderTemplate(w, r, "view_ecse_student.html", map[string]interface{}{
+		"User":        user,
+		"Student":     student,
+		"Services":    services,
+		"Assessments": assessments,
+		"Attendance":  attendance,
+		"CSRFToken":   generateCSRFToken(),
+	})
+}
+
+// exportECSEHandler exports ECSE data to CSV
+func exportECSEHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	// Set CSV headers
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", "attachment; filename=ecse_export_"+time.Now().Format("20060102")+".csv")
+
+	// Get filter parameters
+	enrollmentStatus := r.URL.Query().Get("status")
+	transportationOnly := r.URL.Query().Get("transportation") == "true"
+	searchTerm := r.URL.Query().Get("search")
+
+	// Build query (similar to view handler)
+	query := `
+		SELECT 
+			s.student_id, s.first_name, s.last_name, s.date_of_birth::text,
+			s.grade, s.enrollment_status, s.iep_status, s.primary_disability,
+			s.service_minutes, s.transportation_required, s.bus_route,
+			s.parent_name, s.parent_phone, s.parent_email,
+			s.address, s.city, s.state, s.zip_code
+		FROM ecse_students s
+		WHERE 1=1
+	`
+	
+	args := []interface{}{}
+	argCount := 0
+
+	if enrollmentStatus != "" && enrollmentStatus != "all" {
+		argCount++
+		query += fmt.Sprintf(" AND s.enrollment_status = $%d", argCount)
+		args = append(args, enrollmentStatus)
+	}
+
+	if transportationOnly {
+		query += " AND s.transportation_required = true"
+	}
+
+	if searchTerm != "" {
+		argCount++
+		query += fmt.Sprintf(" AND (LOWER(s.first_name) LIKE LOWER($%d) OR LOWER(s.last_name) LIKE LOWER($%d) OR s.student_id LIKE $%d)", argCount, argCount, argCount)
+		args = append(args, "%"+searchTerm+"%")
+	}
+
+	query += " ORDER BY s.last_name, s.first_name"
+
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		http.Error(w, "Failed to export data", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	// Write CSV header
+	fmt.Fprintf(w, "Student ID,First Name,Last Name,Date of Birth,Grade,Status,IEP Status,Primary Disability,")
+	fmt.Fprintf(w, "Service Minutes,Transportation Required,Bus Route,Parent Name,Parent Phone,Parent Email,")
+	fmt.Fprintf(w, "Address,City,State,Zip Code\n")
+
+	// Write data rows
+	for rows.Next() {
+		var s struct {
+			StudentID              string
+			FirstName              string
+			LastName               string
+			DateOfBirth            sql.NullString
+			Grade                  string
+			EnrollmentStatus       string
+			IEPStatus              sql.NullString
+			PrimaryDisability      sql.NullString
+			ServiceMinutes         int
+			TransportationRequired bool
+			BusRoute               sql.NullString
+			ParentName             sql.NullString
+			ParentPhone            sql.NullString
+			ParentEmail            sql.NullString
+			Address                sql.NullString
+			City                   sql.NullString
+			State                  sql.NullString
+			ZipCode                sql.NullString
+		}
+		
+		err := rows.Scan(&s.StudentID, &s.FirstName, &s.LastName, &s.DateOfBirth,
+			&s.Grade, &s.EnrollmentStatus, &s.IEPStatus, &s.PrimaryDisability,
+			&s.ServiceMinutes, &s.TransportationRequired, &s.BusRoute,
+			&s.ParentName, &s.ParentPhone, &s.ParentEmail,
+			&s.Address, &s.City, &s.State, &s.ZipCode)
+		
+		if err != nil {
+			continue
+		}
+		
+		// Write CSV row
+		fmt.Fprintf(w, "%s,%s,%s,%s,%s,%s,%s,%s,%d,%t,%s,%s,%s,%s,%s,%s,%s,%s\n",
+			s.StudentID, s.FirstName, s.LastName, 
+			s.DateOfBirth.String, s.Grade, s.EnrollmentStatus,
+			s.IEPStatus.String, s.PrimaryDisability.String,
+			s.ServiceMinutes, s.TransportationRequired, s.BusRoute.String,
+			s.ParentName.String, s.ParentPhone.String, s.ParentEmail.String,
+			s.Address.String, s.City.String, s.State.String, s.ZipCode.String)
+	}
+}
+
+// Helper function to get ECSE statistics
+func getECSEStatistics() map[string]interface{} {
+	stats := make(map[string]interface{})
+	
+	// Total students
+	var totalStudents int
+	db.QueryRow("SELECT COUNT(*) FROM ecse_students").Scan(&totalStudents)
+	stats["TotalStudents"] = totalStudents
+	
+	// Active students
+	var activeStudents int
+	db.QueryRow("SELECT COUNT(*) FROM ecse_students WHERE enrollment_status = 'Active'").Scan(&activeStudents)
+	stats["ActiveStudents"] = activeStudents
+	
+	// Students requiring transportation
+	var transportationStudents int
+	db.QueryRow("SELECT COUNT(*) FROM ecse_students WHERE transportation_required = true").Scan(&transportationStudents)
+	stats["TransportationStudents"] = transportationStudents
+	
+	// Students with IEP
+	var iepStudents int
+	db.QueryRow("SELECT COUNT(*) FROM ecse_students WHERE iep_status IS NOT NULL AND iep_status != ''").Scan(&iepStudents)
+	stats["IEPStudents"] = iepStudents
+	
+	// Total services
+	var totalServices int
+	db.QueryRow("SELECT COUNT(*) FROM ecse_services").Scan(&totalServices)
+	stats["TotalServices"] = totalServices
+	
+	// Service types breakdown
+	serviceTypes := make(map[string]int)
+	rows, err := db.Query("SELECT service_type, COUNT(*) FROM ecse_services GROUP BY service_type")
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var serviceType string
+			var count int
+			rows.Scan(&serviceType, &count)
+			serviceTypes[serviceType] = count
+		}
+	}
+	stats["ServiceTypes"] = serviceTypes
+	
+	return stats
+}
 
 // fleetHandler shows the bus fleet
 func fleetHandler(w http.ResponseWriter, r *http.Request) {
