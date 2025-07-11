@@ -235,7 +235,7 @@
           <div class="stat-value text-success">{{.Data.Stats.ActiveStudents}}</div>
           <div class="stat-label">Active Students</div>
           <div class="progress mt-2" style="height: 5px;">
-            <div class="progress-bar bg-success" style="width: {{if .Data.Stats.TotalStudents}}{{printf "%.0f" (mul (div (float64 .Data.Stats.ActiveStudents) (float64 .Data.Stats.TotalStudents)) 100)}}{{else}}0{{end}}%"></div>
+            <div class="progress-bar bg-success" style="width: {{if .Data.Stats.TotalStudents}}{{printf "%.0f" (mul (div .Data.Stats.ActiveStudents .Data.Stats.TotalStudents) 100)}}{{else}}0{{end}}%"></div>
           </div>
         </div>
       </div>
@@ -245,7 +245,7 @@
           <div class="stat-value text-info">{{.Data.Stats.IEPStudents}}</div>
           <div class="stat-label">Students with IEP</div>
           <div class="progress mt-2" style="height: 5px;">
-            <div class="progress-bar bg-info" style="width: {{if .Data.Stats.TotalStudents}}{{printf "%.0f" (mul (div (float64 .Data.Stats.IEPStudents) (float64 .Data.Stats.TotalStudents)) 100)}}{{else}}0{{end}}%"></div>
+            <div class="progress-bar bg-info" style="width: {{if .Data.Stats.TotalStudents}}{{printf "%.0f" (mul (div .Data.Stats.IEPStudents .Data.Stats.TotalStudents) 100)}}{{else}}0{{end}}%"></div>
           </div>
         </div>
       </div>
@@ -255,7 +255,7 @@
           <div class="stat-value text-warning">{{.Data.Stats.TransportationStudents}}</div>
           <div class="stat-label">Need Transportation</div>
           <div class="progress mt-2" style="height: 5px;">
-            <div class="progress-bar bg-warning" style="width: {{if .Data.Stats.TotalStudents}}{{printf "%.0f" (mul (div (float64 .Data.Stats.TransportationStudents) (float64 .Data.Stats.TotalStudents)) 100)}}{{else}}0{{end}}%"></div>
+            <div class="progress-bar bg-warning" style="width: {{if .Data.Stats.TotalStudents}}{{printf "%.0f" (mul (div .Data.Stats.TransportationStudents .Data.Stats.TotalStudents) 100)}}{{else}}0{{end}}%"></div>
           </div>
         </div>
       </div>
