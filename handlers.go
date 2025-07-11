@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -1488,39 +1487,27 @@ func importMileageHandler(w http.ResponseWriter, r *http.Request) {
 		defer file.Close()
 
 		// Process Excel file
-		processExcelFile(file, header.Filename)
+		imported, err := processEnhancedMileageExcelFile(file, header.Filename)
+		
+		if err != nil {
+			renderTemplate(w, r, "import_mileage.html", map[string]interface{}{
+				"Error":     fmt.Sprintf("Import failed: %v", err),
+				"CSRFToken": generateCSRFToken(),
+			})
+			return
+		}
 
-		http.Redirect(w, r, "/view-mileage-reports", http.StatusSeeOther)
+		renderTemplate(w, r, "import_mileage.html", map[string]interface{}{
+			"Success":   fmt.Sprintf("Successfully imported %d mileage records", imported),
+			"CSRFToken": generateCSRFToken(),
+		})
 	}
 }
 
 // viewMileageReportsHandler shows mileage reports
 func viewMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
-	// Load mileage reports from database
-	reports := []MileageReport{}
-	rows, err := db.Query(`
-		SELECT report_month, report_year, vehicle_year, make_model, license_plate,
-			   vehicle_id, location, beginning_miles, ending_miles, total_miles, status
-		FROM mileage_reports
-		ORDER BY report_year DESC, report_month DESC, vehicle_id
-	`)
-	
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var report MileageReport
-			rows.Scan(&report.ReportMonth, &report.ReportYear, &report.VehicleYear,
-				&report.MakeModel, &report.LicensePlate, &report.VehicleID,
-				&report.Location, &report.BeginningMiles, &report.EndingMiles,
-				&report.TotalMiles, &report.Status)
-			reports = append(reports, report)
-		}
-	}
-
-	renderTemplate(w, r, "view_mileage_reports.html", map[string]interface{}{
-		"Reports":   reports,
-		"CSRFToken": generateCSRFToken(),
-	})
+	// Use the enhanced mileage reports handler from database.go
+	viewEnhancedMileageReportsHandler(w, r)
 }
 
 // driverProfileHandler shows driver profile
@@ -1804,79 +1791,6 @@ func getRouteStudentsOrderedByDropoff(routeID string) []Student {
 	}
 	
 	return students
-}
-
-func processExcelFile(file io.Reader, filename string) error {
-	// Read file into memory
-	data, err := io.ReadAll(file)
-	if err != nil {
-		return err
-	}
-
-	// Open Excel file
-	f, err := excelize.OpenReader(strings.NewReader(string(data)))
-	if err != nil {
-		return err
-	}
-
-	// Process each sheet
-	for _, sheetName := range f.GetSheetList() {
-		rows, err := f.GetRows(sheetName)
-		if err != nil {
-			continue
-		}
-
-		// Skip header row
-		if len(rows) <= 1 {
-			continue
-		}
-
-		// Process data rows
-		for i := 1; i < len(rows); i++ {
-			row := rows[i]
-			if len(row) < 10 {
-				continue
-			}
-
-			// Parse row data based on sheet type
-			if strings.Contains(sheetName, "Agency") {
-				processAgencyVehicleRow(row)
-			} else if strings.Contains(sheetName, "Bus") {
-				processSchoolBusRow(row)
-			}
-		}
-	}
-
-	return nil
-}
-
-func processAgencyVehicleRow(row []string) {
-	// Extract data from row
-	reportMonth := row[0]
-	reportYear := parseIntOrDefault(row[1], 0)
-	vehicleYear := parseIntOrDefault(row[2], 0)
-	makeModel := row[3]
-	licensePlate := row[4]
-	vehicleID := row[5]
-	location := row[6]
-	beginningMiles := parseIntOrDefault(row[7], 0)
-	endingMiles := parseIntOrDefault(row[8], 0)
-	totalMiles := parseIntOrDefault(row[9], 0)
-
-	// Insert into database
-	db.Exec(`
-		INSERT INTO mileage_reports (report_month, report_year, vehicle_year, make_model,
-			license_plate, vehicle_id, location, beginning_miles, ending_miles, total_miles, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-		ON CONFLICT (report_month, report_year, vehicle_id) DO UPDATE
-		SET beginning_miles = $8, ending_miles = $9, total_miles = $10
-	`, reportMonth, reportYear, vehicleYear, makeModel, licensePlate, vehicleID,
-		location, beginningMiles, endingMiles, totalMiles, "active")
-}
-
-func processSchoolBusRow(row []string) {
-	// Similar to processAgencyVehicleRow but for school buses
-	processAgencyVehicleRow(row)
 }
 
 // getUser gets the current user from session
