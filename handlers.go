@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
-	"github.com/xuri/excelize/v2"
 	_ "github.com/lib/pq"
 )
 
