@@ -561,18 +561,61 @@ func viewECSEReportsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Get summary statistics
-	stats := getECSEStatistics()
-
-	renderTemplate(w, r, "view_ecse_reports.html", map[string]interface{}{
-		"User":               user,
-		"Students":           students,
-		"Stats":              stats,
-		"EnrollmentStatus":   enrollmentStatus,
-		"TransportationOnly": transportationOnly,
-		"SearchTerm":         searchTerm,
-		"CSRFToken":          generateCSRFToken(),
-	})
+// getECSEStatisticsWithPercentages returns ECSE statistics including calculated percentages
+func getECSEStatisticsWithPercentages() map[string]interface{} {
+	stats := make(map[string]interface{})
+	
+	// Total students
+	var totalStudents int
+	db.QueryRow("SELECT COUNT(*) FROM ecse_students").Scan(&totalStudents)
+	stats["TotalStudents"] = totalStudents
+	
+	// Active students
+	var activeStudents int
+	db.QueryRow("SELECT COUNT(*) FROM ecse_students WHERE enrollment_status = 'Active'").Scan(&activeStudents)
+	stats["ActiveStudents"] = activeStudents
+	
+	// Students requiring transportation
+	var transportationStudents int
+	db.QueryRow("SELECT COUNT(*) FROM ecse_students WHERE transportation_required = true").Scan(&transportationStudents)
+	stats["TransportationStudents"] = transportationStudents
+	
+	// Students with IEP
+	var iepStudents int
+	db.QueryRow("SELECT COUNT(*) FROM ecse_students WHERE iep_status IS NOT NULL AND iep_status != ''").Scan(&iepStudents)
+	stats["IEPStudents"] = iepStudents
+	
+	// Total services
+	var totalServices int
+	db.QueryRow("SELECT COUNT(*) FROM ecse_services").Scan(&totalServices)
+	stats["TotalServices"] = totalServices
+	
+	// Service types breakdown
+	serviceTypes := make(map[string]int)
+	rows, err := db.Query("SELECT service_type, COUNT(*) FROM ecse_services GROUP BY service_type")
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var serviceType string
+			var count int
+			rows.Scan(&serviceType, &count)
+			serviceTypes[serviceType] = count
+		}
+	}
+	stats["ServiceTypes"] = serviceTypes
+	
+	// Calculate percentages
+	if totalStudents > 0 {
+		stats["ActivePercent"] = int((float64(activeStudents) / float64(totalStudents)) * 100)
+		stats["IEPPercent"] = int((float64(iepStudents) / float64(totalStudents)) * 100)
+		stats["TransportationPercent"] = int((float64(transportationStudents) / float64(totalStudents)) * 100)
+	} else {
+		stats["ActivePercent"] = 0
+		stats["IEPPercent"] = 0
+		stats["TransportationPercent"] = 0
+	}
+	
+	return stats
 }
 
 // viewECSEStudentHandler shows detailed view of a single ECSE student
