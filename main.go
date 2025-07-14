@@ -51,11 +51,27 @@ var cache = &DataCache{
 var templates *template.Template
 
 func init() {
+	// FIXED: Added mul and other mathematical functions
 	funcMap := template.FuncMap{
 		"json": jsonMarshal,
 		"add":  func(a, b int) int { return a + b },
+		"sub":  func(a, b int) int { return a - b },
+		"mul":  func(a, b interface{}) float64 {
+			return toFloat64(a) * toFloat64(b)
+		},
+		"div": func(a, b interface{}) float64 {
+			bVal := toFloat64(b)
+			if bVal == 0 {
+				return 0
+			}
+			return toFloat64(a) / bVal
+		},
 		"len":  getLength,
 		"printf": fmt.Sprintf,
+		"formatFloat": func(f interface{}, decimals int) string {
+			format := fmt.Sprintf("%%.%df", decimals)
+			return fmt.Sprintf(format, toFloat64(f))
+		},
 	}
 
 	var err error
@@ -66,6 +82,30 @@ func init() {
 	
 	// Start session cleanup in security.go
 	go periodicSessionCleanup()
+}
+
+// Helper function to convert interface{} to float64
+func toFloat64(v interface{}) float64 {
+	switch x := v.(type) {
+	case int:
+		return float64(x)
+	case int32:
+		return float64(x)
+	case int64:
+		return float64(x)
+	case uint:
+		return float64(x)
+	case uint32:
+		return float64(x)
+	case uint64:
+		return float64(x)
+	case float32:
+		return float64(x)
+	case float64:
+		return x
+	default:
+		return 0
+	}
 }
 
 // Template helper functions
