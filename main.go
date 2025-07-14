@@ -51,12 +51,19 @@ var cache = &DataCache{
 var templates *template.Template
 
 func init() {
-	// FIXED: Added mul and other mathematical functions
+	// Complete function map with all required functions including mul
 	funcMap := template.FuncMap{
+		// JSON marshaling
 		"json": jsonMarshal,
-		"add":  func(a, b int) int { return a + b },
-		"sub":  func(a, b int) int { return a - b },
-		"mul":  func(a, b interface{}) float64 {
+		
+		// Mathematical operations
+		"add": func(a, b interface{}) float64 {
+			return toFloat64(a) + toFloat64(b)
+		},
+		"sub": func(a, b interface{}) float64 {
+			return toFloat64(a) - toFloat64(b)
+		},
+		"mul": func(a, b interface{}) float64 {
 			return toFloat64(a) * toFloat64(b)
 		},
 		"div": func(a, b interface{}) float64 {
@@ -66,11 +73,61 @@ func init() {
 			}
 			return toFloat64(a) / bVal
 		},
-		"len":  getLength,
+		"mod": func(a, b interface{}) int {
+			return toInt(a) % toInt(b)
+		},
+		
+		// Comparison functions
+		"eq": func(a, b interface{}) bool {
+			return a == b
+		},
+		"ne": func(a, b interface{}) bool {
+			return a != b
+		},
+		"lt": func(a, b interface{}) bool {
+			return toFloat64(a) < toFloat64(b)
+		},
+		"le": func(a, b interface{}) bool {
+			return toFloat64(a) <= toFloat64(b)
+		},
+		"gt": func(a, b interface{}) bool {
+			return toFloat64(a) > toFloat64(b)
+		},
+		"ge": func(a, b interface{}) bool {
+			return toFloat64(a) >= toFloat64(b)
+		},
+		
+		// Utility functions
+		"len":    getLength,
 		"printf": fmt.Sprintf,
+		
+		// Number formatting
 		"formatFloat": func(f interface{}, decimals int) string {
 			format := fmt.Sprintf("%%.%df", decimals)
 			return fmt.Sprintf(format, toFloat64(f))
+		},
+		"formatCurrency": func(amount interface{}) string {
+			return fmt.Sprintf("$%.2f", toFloat64(amount))
+		},
+		"formatPercent": func(value interface{}) string {
+			return fmt.Sprintf("%.0f%%", toFloat64(value))
+		},
+		
+		// Date formatting
+		"formatDate": func(date string) string {
+			t, err := time.Parse("2006-01-02", date)
+			if err != nil {
+				return date
+			}
+			return t.Format("Jan 2, 2006")
+		},
+		
+		// String functions
+		"hasPrefix": func(s, prefix string) bool {
+			return len(s) >= len(prefix) && s[:len(prefix)] == prefix
+		},
+		"hasSuffix": func(s, suffix string) bool {
+			return len(s) >= len(suffix) && s[len(s)-len(suffix):] == suffix
 		},
 	}
 
@@ -103,6 +160,39 @@ func toFloat64(v interface{}) float64 {
 		return float64(x)
 	case float64:
 		return x
+	case string:
+		// Handle percentage strings like "75%" 
+		if len(x) > 0 && x[len(x)-1] == '%' {
+			var val float64
+			if _, err := fmt.Sscanf(x[:len(x)-1], "%f", &val); err == nil {
+				return val
+			}
+		}
+		return 0
+	default:
+		return 0
+	}
+}
+
+// Helper function to convert interface{} to int
+func toInt(v interface{}) int {
+	switch x := v.(type) {
+	case int:
+		return x
+	case int32:
+		return int(x)
+	case int64:
+		return int(x)
+	case uint:
+		return int(x)
+	case uint32:
+		return int(x)
+	case uint64:
+		return int(x)
+	case float32:
+		return int(x)
+	case float64:
+		return int(x)
 	default:
 		return 0
 	}
@@ -125,6 +215,22 @@ func getLength(v interface{}) int {
 	case []*Bus:
 		return len(s)
 	case []Bus:
+		return len(s)
+	case []User:
+		return len(s)
+	case []Student:
+		return len(s)
+	case []Route:
+		return len(s)
+	case []*Route:
+		return len(s)
+	case []Vehicle:
+		return len(s)
+	case []ECSEStudentView:
+		return len(s)
+	case map[string]interface{}:
+		return len(s)
+	case map[string]int:
 		return len(s)
 	default:
 		return 0
@@ -197,6 +303,7 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/manage-users", withRecovery(requireAuth(requireRole("manager")(requireDatabase(manageUsersHandler)))))
 	mux.HandleFunc("/edit-user", withRecovery(requireAuth(requireRole("manager")(requireDatabase(editUserHandler)))))
 	mux.HandleFunc("/delete-user", withRecovery(requireAuth(requireRole("manager")(requireDatabase(deleteUserHandler)))))
+	
 	// ECSE Management Routes
 	mux.HandleFunc("/import-ecse", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importECSEHandler)))))
 	mux.HandleFunc("/view-ecse-reports", withRecovery(requireAuth(requireRole("manager")(requireDatabase(viewECSEReportsHandler)))))
@@ -282,41 +389,60 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 
 // ============= HELPER FUNCTIONS =============
 
-func getCSRFToken(r *http.Request) string {
-	cookie, _ := r.Cookie(SessionCookieName)
-	if cookie != nil {
-		if session, _ := GetSecureSession(cookie.Value); session != nil {
-			return session.CSRFToken
-		}
+// getSessionCSRFToken gets the CSRF token from the current session
+func getSessionCSRFToken(r *http.Request) string {
+	cookie, err := r.Cookie(SessionCookieName)
+	if err != nil {
+		return ""
 	}
-	return ""
+	
+	session, err := GetSecureSession(cookie.Value)
+	if err != nil {
+		return ""
+	}
+	
+	return session.CSRFToken
 }
 
+// validateCSRF validates the CSRF token - FIXED for multipart forms
 func validateCSRF(r *http.Request) bool {
 	// Get session cookie
 	cookie, err := r.Cookie(SessionCookieName)
 	if err != nil {
-		// No session cookie = no CSRF validation needed
-		// This happens on login/register pages
-		return true
+		// No session cookie = no authenticated user
+		log.Printf("CSRF validation failed: no session cookie")
+		return false
 	}
 	
 	// Get session
 	session, err := GetSecureSession(cookie.Value)
 	if err != nil {
 		// Invalid session = fail validation
+		log.Printf("CSRF validation failed: invalid session")
 		return false
 	}
 	
-	// Compare tokens
+	// Get submitted token from form or header
 	submittedToken := r.FormValue("csrf_token")
 	if submittedToken == "" {
 		// Also check header for AJAX requests
 		submittedToken = r.Header.Get("X-CSRF-Token")
 	}
 	
-	return session.CSRFToken == submittedToken
+	// Debug logging
+	if submittedToken == "" {
+		log.Printf("CSRF validation failed: no token submitted")
+		return false
+	}
+	
+	if session.CSRFToken != submittedToken {
+		log.Printf("CSRF validation failed: token mismatch - expected: %s, got: %s", session.CSRFToken, submittedToken)
+		return false
+	}
+	
+	return true
 }
+
 // Graceful shutdown
 func gracefulShutdown(server *http.Server) {
 	// Wait for interrupt signal
