@@ -16,6 +16,7 @@ import (
 // loginHandler handles user login
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
+		// For login page, generate a temporary token since no session exists
 		csrfToken, _ := GenerateSecureToken()
 		renderTemplate(w, r, "login.html", LoginFormData{
 			CSRFToken: csrfToken,
@@ -27,8 +28,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		username := r.FormValue("username")
 		password := r.FormValue("password")
 
-		// REMOVED CSRF validation on login - no session exists yet to validate against
-		// CSRF protection is for authenticated sessions, not login attempts
+		// NO CSRF validation on login - no session exists yet
 
 		// Authenticate user
 		user, err := authenticateUser(username, password)
@@ -37,7 +37,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Create session - adjusted for 3 return values
+		// Create session with CSRF token
 		sessionID, _, err := CreateSecureSession(user.Username, user.Role)
 		if err != nil {
 			renderLoginError(w, r, "Failed to create session")
@@ -79,7 +79,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		password := r.FormValue("password")
 		role := r.FormValue("role")
 
-		// REMOVED CSRF validation on registration - no session exists yet
+		// NO CSRF validation on registration - no session exists yet
 
 		// Validate input
 		if username == "" || password == "" {
@@ -123,7 +123,6 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(SessionCookieName)
 	if err == nil {
-		// FIXED: Use ClearSession function instead of undefined secureSessions
 		ClearSession(cookie.Value)
 	}
 
@@ -153,7 +152,7 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 	data := DashboardData{
 		User:      user,
 		Role:      user.Role,
-		CSRFToken: generateCSRFToken(),
+		CSRFToken: getSessionCSRFToken(r), // Use session CSRF token
 	}
 
 	if user.Role == "manager" {
@@ -161,7 +160,7 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 		data.Users = loadUsers()
 		data.Buses = loadBuses()
 		
-		// FIX: Convert []Route to []*Route
+		// Convert []Route to []*Route
 		routes, _ := loadRoutes()
 		routePtrs := make([]*Route, len(routes))
 		for i := range routes {
@@ -176,7 +175,6 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 		data.PendingUsers = countPendingUsers()
 	}
 
-	// Use renderTemplate instead of executeTemplate for CSP nonce support
 	renderTemplate(w, r, "dashboard.html", data)
 }
 
@@ -195,7 +193,7 @@ func approveUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 	renderTemplate(w, r, "approve_users.html", map[string]interface{}{
 		"Users":     users,
-		"CSRFToken": generateCSRFToken(),
+		"CSRFToken": getSessionCSRFToken(r),
 	})
 }
 
@@ -223,7 +221,7 @@ func manageUsersHandler(w http.ResponseWriter, r *http.Request) {
 	users := loadUsers()
 	renderTemplate(w, r, "manage_users.html", map[string]interface{}{
 		"Users":     users,
-		"CSRFToken": generateCSRFToken(),
+		"CSRFToken": getSessionCSRFToken(r),
 	})
 }
 
@@ -239,7 +237,7 @@ func editUserHandler(w http.ResponseWriter, r *http.Request) {
 
 		renderTemplate(w, r, "edit_user.html", map[string]interface{}{
 			"User":      user,
-			"CSRFToken": generateCSRFToken(),
+			"CSRFToken": getSessionCSRFToken(r),
 		})
 		return
 	}
@@ -280,7 +278,7 @@ func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// driverDashboardHandler serves the driver dashboard - FIXED VERSION
+// driverDashboardHandler serves the driver dashboard
 func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "driver" {
@@ -360,7 +358,7 @@ func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		"Date":       date,
 		"Period":     period,
 		"Today":      time.Now().Format("2006-01-02"),
-		"CSRFToken":  generateCSRFToken(),
+		"CSRFToken":  getSessionCSRFToken(r),
 	}
 
 	renderTemplate(w, r, "driver_dashboard.html", data)
@@ -424,27 +422,38 @@ func saveLogHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/driver-dashboard", http.StatusSeeOther)
 	}
 }
-// importECSEHandler handles ECSE report imports
+
+// importECSEHandler handles ECSE report imports - FIXED with proper CSRF handling
 func importECSEHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
 	if r.Method == "GET" {
 		renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
-			"CSRFToken": generateCSRFToken(),
+			"CSRFToken": getSessionCSRFToken(r),
 		})
 		return
 	}
 
 	if r.Method == "POST" {
-		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
-
-		// Parse multipart form
+		// IMPORTANT: Parse multipart form FIRST
 		err := r.ParseMultipartForm(10 << 20) // 10 MB
 		if err != nil {
 			renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
 				"Error":     "Failed to parse form",
-				"CSRFToken": generateCSRFToken(),
+				"CSRFToken": getSessionCSRFToken(r),
+			})
+			return
+		}
+
+		// NOW validate CSRF after parsing the multipart form
+		if !validateCSRF(r) {
+			renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
+				"Error":     "Invalid CSRF token. Please try again.",
+				"CSRFToken": getSessionCSRFToken(r),
 			})
 			return
 		}
@@ -453,7 +462,7 @@ func importECSEHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
 				"Error":     "Failed to get file",
-				"CSRFToken": generateCSRFToken(),
+				"CSRFToken": getSessionCSRFToken(r),
 			})
 			return
 		}
@@ -465,19 +474,19 @@ func importECSEHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
 				"Error":     fmt.Sprintf("Import failed: %v", err),
-				"CSRFToken": generateCSRFToken(),
+				"CSRFToken": getSessionCSRFToken(r),
 			})
 			return
 		}
 
 		renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
 			"Success":   fmt.Sprintf("Successfully imported %d ECSE student records", imported),
-			"CSRFToken": generateCSRFToken(),
+			"CSRFToken": getSessionCSRFToken(r),
 		})
 	}
 }
 
-// viewECSEReportsHandler shows ECSE reports and data - MODIFIED VERSION
+// viewECSEReportsHandler shows ECSE reports and data
 func viewECSEReportsHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
@@ -561,7 +570,7 @@ func viewECSEReportsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Get summary statistics WITH PERCENTAGES - MODIFIED
+	// Get summary statistics WITH PERCENTAGES
 	stats := getECSEStatisticsWithPercentages()
 
 	renderTemplate(w, r, "view_ecse_reports.html", map[string]interface{}{
@@ -571,7 +580,7 @@ func viewECSEReportsHandler(w http.ResponseWriter, r *http.Request) {
 		"EnrollmentStatus":   enrollmentStatus,
 		"TransportationOnly": transportationOnly,
 		"SearchTerm":         searchTerm,
-		"CSRFToken":          generateCSRFToken(),
+		"CSRFToken":          getSessionCSRFToken(r),
 	})
 }
 
@@ -682,7 +691,7 @@ func viewECSEStudentHandler(w http.ResponseWriter, r *http.Request) {
 		"Services":    services,
 		"Assessments": assessments,
 		"Attendance":  attendance,
-		"CSRFToken":   generateCSRFToken(),
+		"CSRFToken":   getSessionCSRFToken(r),
 	})
 }
 
@@ -792,63 +801,6 @@ func exportECSEHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// NEW FUNCTION - getECSEStatisticsWithPercentages returns ECSE statistics including calculated percentages
-func getECSEStatisticsWithPercentages() map[string]interface{} {
-	stats := make(map[string]interface{})
-	
-	// Total students
-	var totalStudents int
-	db.QueryRow("SELECT COUNT(*) FROM ecse_students").Scan(&totalStudents)
-	stats["TotalStudents"] = totalStudents
-	
-	// Active students
-	var activeStudents int
-	db.QueryRow("SELECT COUNT(*) FROM ecse_students WHERE enrollment_status = 'Active'").Scan(&activeStudents)
-	stats["ActiveStudents"] = activeStudents
-	
-	// Students requiring transportation
-	var transportationStudents int
-	db.QueryRow("SELECT COUNT(*) FROM ecse_students WHERE transportation_required = true").Scan(&transportationStudents)
-	stats["TransportationStudents"] = transportationStudents
-	
-	// Students with IEP
-	var iepStudents int
-	db.QueryRow("SELECT COUNT(*) FROM ecse_students WHERE iep_status IS NOT NULL AND iep_status != ''").Scan(&iepStudents)
-	stats["IEPStudents"] = iepStudents
-	
-	// Total services
-	var totalServices int
-	db.QueryRow("SELECT COUNT(*) FROM ecse_services").Scan(&totalServices)
-	stats["TotalServices"] = totalServices
-	
-	// Service types breakdown
-	serviceTypes := make(map[string]int)
-	rows, err := db.Query("SELECT service_type, COUNT(*) FROM ecse_services GROUP BY service_type")
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var serviceType string
-			var count int
-			rows.Scan(&serviceType, &count)
-			serviceTypes[serviceType] = count
-		}
-	}
-	stats["ServiceTypes"] = serviceTypes
-	
-	// Calculate percentages
-	if totalStudents > 0 {
-		stats["ActivePercent"] = int((float64(activeStudents) / float64(totalStudents)) * 100)
-		stats["IEPPercent"] = int((float64(iepStudents) / float64(totalStudents)) * 100)
-		stats["TransportationPercent"] = int((float64(transportationStudents) / float64(totalStudents)) * 100)
-	} else {
-		stats["ActivePercent"] = 0
-		stats["IEPPercent"] = 0
-		stats["TransportationPercent"] = 0
-	}
-	
-	return stats
-}
-
 // fleetHandler shows the bus fleet
 func fleetHandler(w http.ResponseWriter, r *http.Request) {
 	if !isLoggedIn(r) {
@@ -891,7 +843,7 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 		"Buses":           buses,
 		"MaintenanceLogs": maintenanceLogs,
 		"Today":           time.Now().Format("2006-01-02"),
-		"CSRFToken":       generateCSRFToken(),
+		"CSRFToken":       getSessionCSRFToken(r),
 	}
 	renderTemplate(w, r, "fleet.html", data)
 }
@@ -916,21 +868,24 @@ func companyFleetHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, r, "company_fleet.html", CompanyFleetData{
 		User:      getUserFromSession(r),
 		Vehicles:  vehicles,
-		CSRFToken: generateCSRFToken(),
+		CSRFToken: getSessionCSRFToken(r),
 	})
 }
 
-// updateVehicleStatusHandler updates vehicle status - FIXED VERSION
+// updateVehicleStatusHandler updates vehicle status
 func updateVehicleStatusHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
+		// For AJAX requests, parse form data first
+		r.ParseForm()
+		
 		if !validateCSRF(r) {
 			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
 			return
 		}
 
 		vehicleID := r.FormValue("vehicle_id")
-		statusType := r.FormValue("status_type")  // Changed from "field"
-		newStatus := r.FormValue("new_status")    // Changed from "value"
+		statusType := r.FormValue("status_type")
+		newStatus := r.FormValue("new_status")
 
 		// Map status types to database columns
 		fieldMap := map[string]string{
@@ -1016,20 +971,20 @@ func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	// Create data map for template - use same template as vehicle maintenance
 	data := map[string]interface{}{
 		"VehicleID":          busID,
-		"IsBus":              true,  // This is always a bus
+		"IsBus":              true,
 		"MaintenanceRecords": records,
 		"TotalRecords":       totalRecords,
 		"TotalCost":          totalCost,
 		"AverageCost":        averageCost,
 		"RecentCount":        recentCount,
 		"Today":              time.Now().Format("2006-01-02"),
-		"CSRFToken":          generateCSRFToken(),
+		"CSRFToken":          getSessionCSRFToken(r),
 	}
 
 	renderTemplate(w, r, "vehicle_maintenance.html", data)
 }
 
-// vehicleMaintenanceHandler shows maintenance for any vehicle - FIXED VERSION
+// vehicleMaintenanceHandler shows maintenance for any vehicle
 func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	vehicleID := strings.TrimPrefix(r.URL.Path, "/vehicle-maintenance/")
 	
@@ -1037,7 +992,6 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	var isBus bool
 	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM buses WHERE bus_id = $1)", vehicleID).Scan(&isBus)
 	if err != nil {
-		// If not in buses table, check if it looks like a bus ID (numeric)
 		isBus = false
 	}
 
@@ -1114,7 +1068,7 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 		"AverageCost":        averageCost,
 		"RecentCount":        recentCount,
 		"Today":              time.Now().Format("2006-01-02"),
-		"CSRFToken":          generateCSRFToken(),
+		"CSRFToken":          getSessionCSRFToken(r),
 	}
 
 	renderTemplate(w, r, "vehicle_maintenance.html", data)
@@ -1123,6 +1077,9 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 // saveMaintenanceRecordHandler saves a maintenance record
 func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
+		// Parse form data
+		r.ParseForm()
+		
 		if !validateCSRF(r) {
 			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
 			return
@@ -1154,7 +1111,7 @@ func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// assignRoutesHandler shows route assignment page - FIXED VERSION
+// assignRoutesHandler shows route assignment page
 func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
@@ -1194,20 +1151,20 @@ func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
 	availableRoutes := []*Route{}
 	routesWithStatus := []*RouteWithStatus{}
 	
-	// FIX: Process routes correctly
+	// Process routes correctly
 	for i := range allRoutes {
-		route := &allRoutes[i]  // Take address to get pointer
+		route := &allRoutes[i]
 		isAssigned := assignedRouteIDs[route.RouteID]
 		
 		// Add to routesWithStatus for display
 		routesWithStatus = append(routesWithStatus, &RouteWithStatus{
-			Route:      *route,  // Dereference the pointer to get the value
+			Route:      *route,
 			IsAssigned: isAssigned,
 		})
 		
 		// Add to availableRoutes if not assigned
 		if !isAssigned {
-			availableRoutes = append(availableRoutes, route) // route is now a pointer
+			availableRoutes = append(availableRoutes, route)
 		}
 	}
 
@@ -1242,7 +1199,7 @@ func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
 		"TotalRoutes":           len(allRoutes),
 		"AvailableDriversCount": availableDriversCount,
 		"AvailableBusesCount":   len(availableBuses),
-		"CSRFToken":             generateCSRFToken(),
+		"CSRFToken":             getSessionCSRFToken(r),
 	}
 
 	renderTemplate(w, r, "assign_routes.html", data)
@@ -1376,7 +1333,7 @@ func studentsHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, r, "students.html", StudentData{
 		User:      user,
 		Students:  students,
-		CSRFToken: generateCSRFToken(),
+		CSRFToken: getSessionCSRFToken(r),
 	})
 }
 
@@ -1467,31 +1424,47 @@ func removeStudentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// importMileageHandler handles mileage report imports
+// importMileageHandler handles mileage report imports - FIXED
 func importMileageHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
 	if r.Method == "GET" {
 		renderTemplate(w, r, "import_mileage.html", map[string]interface{}{
-			"CSRFToken": generateCSRFToken(),
+			"CSRFToken": getSessionCSRFToken(r),
 		})
 		return
 	}
 
 	if r.Method == "POST" {
-		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		// Parse multipart form FIRST
+		err := r.ParseMultipartForm(10 << 20) // 10 MB
+		if err != nil {
+			renderTemplate(w, r, "import_mileage.html", map[string]interface{}{
+				"Error":     "Failed to parse form",
+				"CSRFToken": getSessionCSRFToken(r),
+			})
 			return
 		}
 
-		// Parse multipart form
-		err := r.ParseMultipartForm(10 << 20) // 10 MB
-		if err != nil {
-			http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		// THEN validate CSRF
+		if !validateCSRF(r) {
+			renderTemplate(w, r, "import_mileage.html", map[string]interface{}{
+				"Error":     "Invalid CSRF token. Please try again.",
+				"CSRFToken": getSessionCSRFToken(r),
+			})
 			return
 		}
 
 		file, header, err := r.FormFile("file")
 		if err != nil {
-			http.Error(w, "Failed to get file", http.StatusBadRequest)
+			renderTemplate(w, r, "import_mileage.html", map[string]interface{}{
+				"Error":     "Failed to get file",
+				"CSRFToken": getSessionCSRFToken(r),
+			})
 			return
 		}
 		defer file.Close()
@@ -1502,14 +1475,14 @@ func importMileageHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			renderTemplate(w, r, "import_mileage.html", map[string]interface{}{
 				"Error":     fmt.Sprintf("Import failed: %v", err),
-				"CSRFToken": generateCSRFToken(),
+				"CSRFToken": getSessionCSRFToken(r),
 			})
 			return
 		}
 
 		renderTemplate(w, r, "import_mileage.html", map[string]interface{}{
 			"Success":   fmt.Sprintf("Successfully imported %d mileage records", imported),
-			"CSRFToken": generateCSRFToken(),
+			"CSRFToken": getSessionCSRFToken(r),
 		})
 	}
 }
@@ -1549,7 +1522,7 @@ func driverProfileHandler(w http.ResponseWriter, r *http.Request) {
 		"Logs":       logs,
 		"TotalMiles": totalMiles,
 		"LogCount":   len(logs),
-		"CSRFToken":  generateCSRFToken(),
+		"CSRFToken":  getSessionCSRFToken(r),
 	})
 }
 
@@ -1724,7 +1697,7 @@ func getRouteStudents(routeID string) []Student {
 	return students
 }
 
-// NEW HELPER FUNCTIONS FROM FIXES
+// Helper functions for data retrieval
 
 func getBusByID(busID string) *Bus {
 	var bus Bus
@@ -1821,4 +1794,61 @@ func isLoggedIn(r *http.Request) bool {
 	}
 
 	return session != nil
+}
+
+// getECSEStatisticsWithPercentages returns ECSE statistics including calculated percentages
+func getECSEStatisticsWithPercentages() map[string]interface{} {
+	stats := make(map[string]interface{})
+	
+	// Total students
+	var totalStudents int
+	db.QueryRow("SELECT COUNT(*) FROM ecse_students").Scan(&totalStudents)
+	stats["TotalStudents"] = totalStudents
+	
+	// Active students
+	var activeStudents int
+	db.QueryRow("SELECT COUNT(*) FROM ecse_students WHERE enrollment_status = 'Active'").Scan(&activeStudents)
+	stats["ActiveStudents"] = activeStudents
+	
+	// Students requiring transportation
+	var transportationStudents int
+	db.QueryRow("SELECT COUNT(*) FROM ecse_students WHERE transportation_required = true").Scan(&transportationStudents)
+	stats["TransportationStudents"] = transportationStudents
+	
+	// Students with IEP
+	var iepStudents int
+	db.QueryRow("SELECT COUNT(*) FROM ecse_students WHERE iep_status IS NOT NULL AND iep_status != ''").Scan(&iepStudents)
+	stats["IEPStudents"] = iepStudents
+	
+	// Total services
+	var totalServices int
+	db.QueryRow("SELECT COUNT(*) FROM ecse_services").Scan(&totalServices)
+	stats["TotalServices"] = totalServices
+	
+	// Service types breakdown
+	serviceTypes := make(map[string]int)
+	rows, err := db.Query("SELECT service_type, COUNT(*) FROM ecse_services GROUP BY service_type")
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var serviceType string
+			var count int
+			rows.Scan(&serviceType, &count)
+			serviceTypes[serviceType] = count
+		}
+	}
+	stats["ServiceTypes"] = serviceTypes
+	
+	// Calculate percentages
+	if totalStudents > 0 {
+		stats["ActivePercent"] = int((float64(activeStudents) / float64(totalStudents)) * 100)
+		stats["IEPPercent"] = int((float64(iepStudents) / float64(totalStudents)) * 100)
+		stats["TransportationPercent"] = int((float64(transportationStudents) / float64(totalStudents)) * 100)
+	} else {
+		stats["ActivePercent"] = 0
+		stats["IEPPercent"] = 0
+		stats["TransportationPercent"] = 0
+	}
+	
+	return stats
 }
