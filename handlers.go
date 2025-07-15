@@ -1790,7 +1790,247 @@ func viewMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
 	// Use the enhanced mileage reports handler from database.go
 	viewEnhancedMileageReportsHandler(w, r)
 }
+// Add this function to your handlers.go or database.go file
 
+// viewEnhancedMileageReportsHandler displays mileage reports with comprehensive data
+func viewEnhancedMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	// Get filter parameters
+	month := r.URL.Query().Get("month")
+	year := r.URL.Query().Get("year")
+	reportType := r.URL.Query().Get("type")
+	
+	// Set defaults if not provided
+	if month == "" {
+		month = time.Now().Format("January")
+	}
+	if year == "" {
+		year = fmt.Sprintf("%d", time.Now().Year())
+	}
+	if reportType == "" {
+		reportType = "all"
+	}
+	
+	yearInt, _ := strconv.Atoi(year)
+	
+	// Fetch data based on report type
+	agencyVehicles := []AgencyVehicleRecord{}
+	schoolBuses := []SchoolBusRecord{}
+	
+	if reportType == "all" || reportType == "agency" {
+		agencyVehicles, _ = getAgencyVehicleReports(month, year)
+	}
+	
+	if reportType == "all" || reportType == "school" {
+		schoolBuses, _ = getSchoolBusReports(month, year)
+	}
+	
+	// Calculate statistics
+	totalVehicles := len(agencyVehicles) + len(schoolBuses)
+	totalMiles := 0
+	estimatedCost := 0.0
+	costPerMile := 0.55 // IRS standard mileage rate
+	
+	// Calculate totals from agency vehicles
+	for _, v := range agencyVehicles {
+		totalMiles += v.TotalMiles
+	}
+	
+	// Calculate totals from school buses
+	for _, b := range schoolBuses {
+		totalMiles += b.TotalMiles
+	}
+	
+	estimatedCost = float64(totalMiles) * costPerMile
+	
+	// Calculate other metrics
+	averageMPG := 15.0 // Default estimate
+	fuelEfficiency := 85.0 // Default efficiency percentage
+	percentChange := 0.0 // Would calculate vs previous month
+	
+	// Get driver and route statistics
+	driverStats := calculateDriverStatistics(month, yearInt)
+	routeStats := calculateRouteStatistics(month, yearInt)
+	
+	// Calculate costs by type
+	agencyVehicleCost := 0.0
+	schoolBusCost := 0.0
+	
+	for _, v := range agencyVehicles {
+		agencyVehicleCost += float64(v.TotalMiles) * costPerMile
+	}
+	
+	for _, b := range schoolBuses {
+		schoolBusCost += float64(b.TotalMiles) * costPerMile
+	}
+	
+	// Additional efficiency metrics
+	milesPerStudent := 0.0
+	costPerStudent := 0.0
+	vehicleUtilization := 0.0
+	routeOptimization := 0.0
+	
+	if totalVehicles > 0 {
+		vehicleUtilization = 85.0 // Calculate based on active vs total
+	}
+	
+	// Prepare template data
+	data := map[string]interface{}{
+		"User":               user,
+		"ReportMonth":        month,
+		"ReportYear":         yearInt,
+		"ReportType":         reportType,
+		"CurrentDate":        time.Now().Format("January 2, 2006"),
+		
+		// Vehicle data
+		"AgencyVehicles":     agencyVehicles,
+		"SchoolBuses":        schoolBuses,
+		
+		// Summary statistics
+		"TotalVehicles":      totalVehicles,
+		"TotalMiles":         totalMiles,
+		"EstimatedCost":      estimatedCost,
+		"CostPerMile":        costPerMile,
+		"AverageMPG":         averageMPG,
+		"FuelEfficiency":     fuelEfficiency,
+		"PercentChange":      percentChange,
+		
+		// Driver and route stats
+		"DriverStats":        driverStats,
+		"RouteStats":         routeStats,
+		
+		// Cost breakdown
+		"AgencyVehicleCost":  agencyVehicleCost,
+		"SchoolBusCost":      schoolBusCost,
+		"TotalFuelCost":      estimatedCost,
+		
+		// Efficiency metrics
+		"MilesPerStudent":    milesPerStudent,
+		"CostPerStudent":     costPerStudent,
+		"VehicleUtilization": vehicleUtilization,
+		"RouteOptimization":  routeOptimization,
+		
+		"CSRFToken":          getSessionCSRFToken(r),
+	}
+	
+	renderTemplate(w, r, "mileage_reports.html", data)
+}
+
+// Helper functions to retrieve mileage data
+
+func getAgencyVehicleReports(month, year string) ([]AgencyVehicleRecord, error) {
+	records := []AgencyVehicleRecord{}
+	
+	query := `
+		SELECT report_month, report_year, vehicle_year, make_model, license_plate,
+		       vehicle_id, location, beginning_miles, ending_miles, total_miles,
+		       COALESCE(status, 'active') as status, COALESCE(notes, '') as notes
+		FROM agency_vehicle_mileage
+		WHERE report_month = $1 AND report_year = $2
+		ORDER BY vehicle_id
+	`
+	
+	yearInt, _ := strconv.Atoi(year)
+	rows, err := db.Query(query, month, yearInt)
+	if err != nil {
+		return records, err
+	}
+	defer rows.Close()
+	
+	for rows.Next() {
+		var record AgencyVehicleRecord
+		err := rows.Scan(
+			&record.ReportMonth, &record.ReportYear, &record.VehicleYear,
+			&record.MakeModel, &record.LicensePlate, &record.VehicleID,
+			&record.Location, &record.BeginningMiles, &record.EndingMiles,
+			&record.TotalMiles, &record.Status, &record.Notes,
+		)
+		if err == nil {
+			records = append(records, record)
+		}
+	}
+	
+	return records, nil
+}
+
+func getSchoolBusReports(month, year string) ([]SchoolBusRecord, error) {
+	records := []SchoolBusRecord{}
+	
+	query := `
+		SELECT report_month, report_year, bus_year, bus_make, license_plate,
+		       bus_id, location, beginning_miles, ending_miles, total_miles,
+		       COALESCE(status, 'active') as status, COALESCE(notes, '') as notes
+		FROM school_bus_mileage
+		WHERE report_month = $1 AND report_year = $2
+		ORDER BY bus_id
+	`
+	
+	yearInt, _ := strconv.Atoi(year)
+	rows, err := db.Query(query, month, yearInt)
+	if err != nil {
+		return records, err
+	}
+	defer rows.Close()
+	
+	for rows.Next() {
+		var record SchoolBusRecord
+		err := rows.Scan(
+			&record.ReportMonth, &record.ReportYear, &record.BusYear,
+			&record.BusMake, &record.LicensePlate, &record.BusID,
+			&record.Location, &record.BeginningMiles, &record.EndingMiles,
+			&record.TotalMiles, &record.Status, &record.Notes,
+		)
+		if err == nil {
+			records = append(records, record)
+		}
+	}
+	
+	return records, nil
+}
+
+// getDriverLogsByDateRange retrieves driver logs within a date range
+func getDriverLogsByDateRange(driver, startDate, endDate string) ([]DriverLog, error) {
+	logs := []DriverLog{}
+	
+	query := `
+		SELECT id, driver, bus_id, route_id, date, period,
+		       departure_time, arrival_time, mileage, attendance
+		FROM driver_logs
+		WHERE driver = $1 AND date BETWEEN $2 AND $3
+		ORDER BY date, period
+	`
+	
+	rows, err := db.Query(query, driver, startDate, endDate)
+	if err != nil {
+		return logs, err
+	}
+	defer rows.Close()
+	
+	for rows.Next() {
+		var log DriverLog
+		var attendanceJSON sql.NullString
+		
+		err := rows.Scan(
+			&log.ID, &log.Driver, &log.BusID, &log.RouteID,
+			&log.Date, &log.Period, &log.Departure, &log.Arrival,
+			&log.Mileage, &attendanceJSON,
+		)
+		
+		if err == nil {
+			if attendanceJSON.Valid && attendanceJSON.String != "" {
+				json.Unmarshal([]byte(attendanceJSON.String), &log.Attendance)
+			}
+			logs = append(logs, log)
+		}
+	}
+	
+	return logs, nil
+}
 // driverProfileHandler shows driver profile
 func driverProfileHandler(w http.ResponseWriter, r *http.Request) {
 	driverUsername := strings.TrimPrefix(r.URL.Path, "/driver/")
