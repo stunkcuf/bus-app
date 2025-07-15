@@ -1302,7 +1302,7 @@ func getProgramStaffReports(month, year string) ([]ProgramStaffRecord, error) {
 	return records, err
 }
 
-// Get available report months/years
+// Get available report periods
 func getAvailableReports() ([]string, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database not initialized")
@@ -1564,6 +1564,9 @@ func getComprehensiveActivityLog(startDate, endDate string) ([]map[string]interf
 		activities = append(activities, activity)
 	}
 	
+	return activities, nil
+}
+
 // processECSEExcelFile processes an ECSE Excel file import
 func processECSEExcelFile(file io.Reader, filename string) (int, error) {
 	// Read the Excel file
