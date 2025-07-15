@@ -100,9 +100,9 @@ func processTransportationSheet(f *excelize.File, sheetName string) (int, error)
 
 	// Import students
 	imported := 0
-	for _, studentData := range students {
+	for i, studentData := range students {
 		student := ECSEStudent{
-			StudentID:              generateStudentID(studentData.Name, schoolDistrict),
+			StudentID:              fmt.Sprintf("ECSE-%s-%s-%04d", getDistrictCode(schoolDistrict), time.Now().Format("0102"), i+1),
 			FirstName:              studentData.FirstName,
 			LastName:               studentData.LastName,
 			Grade:                  "ECSE", // Default grade for ECSE students
@@ -356,9 +356,33 @@ func generateStudentID(name, district string) string {
 		districtCode = districtCode[:3]
 	}
 	
-	// Create a unique ID
-	timestamp := time.Now().Unix() % 100000
-	return fmt.Sprintf("ECSE-%s-%05d", strings.ToUpper(districtCode), timestamp)
+	// Create a unique ID with timestamp and random component
+	timestamp := time.Now().UnixNano() % 1000000
+	return fmt.Sprintf("ECSE-%s-%06d", strings.ToUpper(districtCode), timestamp)
+}
+
+// getDistrictCode extracts a short code from district name
+func getDistrictCode(district string) string {
+	// Remove common suffixes
+	district = strings.TrimSuffix(district, " School District")
+	district = strings.TrimSuffix(district, "-SD")
+	
+	// Create initials
+	districtCode := ""
+	for _, word := range strings.Fields(district) {
+		if len(word) > 0 {
+			districtCode += string(word[0])
+		}
+	}
+	
+	// Ensure we have at least 3 characters
+	if len(districtCode) < 3 && len(district) >= 3 {
+		districtCode = strings.ToUpper(district[:3])
+	} else if len(districtCode) > 3 {
+		districtCode = districtCode[:3]
+	}
+	
+	return strings.ToUpper(districtCode)
 }
 
 // saveECSEStudent saves a student to the database
@@ -367,6 +391,7 @@ func saveECSEStudent(student ECSEStudent) error {
 		return fmt.Errorf("database not initialized")
 	}
 
+	// Use sql.NullString for nullable fields
 	_, err := db.Exec(`
 		INSERT INTO ecse_students (
 			student_id, first_name, last_name, date_of_birth, grade,
@@ -374,7 +399,10 @@ func saveECSEStudent(student ECSEStudent) error {
 			transportation_required, bus_route, parent_name, parent_phone,
 			parent_email, address, city, state, zip_code, notes, created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
+			$1, $2, $3, NULLIF($4, ''), $5, $6, NULLIF($7, ''), NULLIF($8, ''), $9, $10, 
+			NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''), NULLIF($14, ''), 
+			NULLIF($15, ''), NULLIF($16, ''), NULLIF($17, ''), NULLIF($18, ''), 
+			NULLIF($19, ''), $20, $21
 		)
 		ON CONFLICT (student_id) DO UPDATE SET
 			first_name = EXCLUDED.first_name,
