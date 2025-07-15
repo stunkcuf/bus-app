@@ -220,8 +220,8 @@
     <!-- Print Header -->
     <div class="print-header">
       <h2>Fleet Mileage Report</h2>
-      <p>{{.ReportMonth}} {{.ReportYear}}</p>
-      <p>Generated: {{.CurrentDate}}</p>
+      <p>{{.Data.ReportMonth}} {{.Data.ReportYear}}</p>
+      <p>Generated: {{.Data.CurrentDate}}</p>
     </div>
 
     <!-- Header -->
@@ -256,18 +256,18 @@
         <div class="col-md-3">
           <label class="form-label">Report Period</label>
           <select class="form-select" name="month" id="monthSelect">
-            <option value="January" {{if eq .ReportMonth "January"}}selected{{end}}>January</option>
-            <option value="February" {{if eq .ReportMonth "February"}}selected{{end}}>February</option>
-            <option value="March" {{if eq .ReportMonth "March"}}selected{{end}}>March</option>
-            <option value="April" {{if eq .ReportMonth "April"}}selected{{end}}>April</option>
-            <option value="May" {{if eq .ReportMonth "May"}}selected{{end}}>May</option>
-            <option value="June" {{if eq .ReportMonth "June"}}selected{{end}}>June</option>
-            <option value="July" {{if eq .ReportMonth "July"}}selected{{end}}>July</option>
-            <option value="August" {{if eq .ReportMonth "August"}}selected{{end}}>August</option>
-            <option value="September" {{if eq .ReportMonth "September"}}selected{{end}}>September</option>
-            <option value="October" {{if eq .ReportMonth "October"}}selected{{end}}>October</option>
-            <option value="November" {{if eq .ReportMonth "November"}}selected{{end}}>November</option>
-            <option value="December" {{if eq .ReportMonth "December"}}selected{{end}}>December</option>
+            <option value="January" {{if eq .Data.ReportMonth "January"}}selected{{end}}>January</option>
+            <option value="February" {{if eq .Data.ReportMonth "February"}}selected{{end}}>February</option>
+            <option value="March" {{if eq .Data.ReportMonth "March"}}selected{{end}}>March</option>
+            <option value="April" {{if eq .Data.ReportMonth "April"}}selected{{end}}>April</option>
+            <option value="May" {{if eq .Data.ReportMonth "May"}}selected{{end}}>May</option>
+            <option value="June" {{if eq .Data.ReportMonth "June"}}selected{{end}}>June</option>
+            <option value="July" {{if eq .Data.ReportMonth "July"}}selected{{end}}>July</option>
+            <option value="August" {{if eq .Data.ReportMonth "August"}}selected{{end}}>August</option>
+            <option value="September" {{if eq .Data.ReportMonth "September"}}selected{{end}}>September</option>
+            <option value="October" {{if eq .Data.ReportMonth "October"}}selected{{end}}>October</option>
+            <option value="November" {{if eq .Data.ReportMonth "November"}}selected{{end}}>November</option>
+            <option value="December" {{if eq .Data.ReportMonth "December"}}selected{{end}}>December</option>
           </select>
         </div>
         
@@ -275,7 +275,7 @@
           <label class="form-label">Year</label>
           <select class="form-select" name="year" id="yearSelect">
             {{range $i := seq 2020 2030}}
-            <option value="{{$i}}" {{if eq $.ReportYear (printf "%d" $i)}}selected{{end}}>{{$i}}</option>
+            <option value="{{$i}}" {{if eq $.Data.ReportYear $i}}selected{{end}}>{{$i}}</option>
             {{end}}
           </select>
         </div>
@@ -283,9 +283,9 @@
         <div class="col-md-3">
           <label class="form-label">Report Type</label>
           <select class="form-select" name="type">
-            <option value="all" {{if eq .ReportType "all"}}selected{{end}}>All Vehicles</option>
-            <option value="agency" {{if eq .ReportType "agency"}}selected{{end}}>Agency Vehicles</option>
-            <option value="school" {{if eq .ReportType "school"}}selected{{end}}>School Buses</option>
+            <option value="all" {{if eq .Data.ReportType "all"}}selected{{end}}>All Vehicles</option>
+            <option value="agency" {{if eq .Data.ReportType "agency"}}selected{{end}}>Agency Vehicles</option>
+            <option value="school" {{if eq .Data.ReportType "school"}}selected{{end}}>School Buses</option>
           </select>
         </div>
         
@@ -308,7 +308,7 @@
     <!-- Summary Statistics -->
     <div class="summary-grid">
       <div class="summary-card">
-        <div class="summary-value text-primary">{{.TotalVehicles}}</div>
+        <div class="summary-value text-primary">{{.Data.TotalVehicles}}</div>
         <div class="summary-label">Total Vehicles</div>
         <div class="efficiency-bar">
           <div class="efficiency-fill" style="width: 100%"></div>
@@ -316,21 +316,21 @@
       </div>
       
       <div class="summary-card">
-        <div class="summary-value text-success">{{formatNumber .TotalMiles}}</div>
+        <div class="summary-value text-success">{{formatNumber .Data.TotalMiles}}</div>
         <div class="summary-label">Total Miles Driven</div>
-        <small class="text-muted">{{.PercentChange}}% vs last month</small>
+        <small class="text-muted">{{.Data.PercentChange}}% vs last month</small>
       </div>
       
       <div class="summary-card">
-        <div class="summary-value text-warning">${{formatCurrency .EstimatedCost}}</div>
+        <div class="summary-value text-warning">${{formatCurrency .Data.EstimatedCost}}</div>
         <div class="summary-label">Estimated Fuel Cost</div>
-        <small class="text-muted">@ ${{.CostPerMile}}/mile</small>
+        <small class="text-muted">@ ${{.Data.CostPerMile}}/mile</small>
       </div>
       
       <div class="summary-card">
-        <div class="summary-value text-info">{{.AverageMPG}}</div>
+        <div class="summary-value text-info">{{.Data.AverageMPG}}</div>
         <div class="summary-label">Fleet Average MPG</div>
-        <small class="text-muted">{{.FuelEfficiency}}% efficiency</small>
+        <small class="text-muted">{{.Data.FuelEfficiency}}% efficiency</small>
       </div>
     </div>
 
@@ -363,7 +363,7 @@
       <!-- Vehicle Details Tab -->
       <div class="tab-pane fade show active" id="vehicles">
         <div class="report-table">
-          {{if or .AgencyVehicles .SchoolBuses}}
+          {{if or .Data.AgencyVehicles .Data.SchoolBuses}}
           <table class="table table-hover mb-0">
             <thead>
               <tr>
@@ -380,13 +380,13 @@
               </tr>
             </thead>
             <tbody>
-              {{if .AgencyVehicles}}
+              {{if .Data.AgencyVehicles}}
               <tr class="table-section-header">
                 <td colspan="10">
                   <i class="bi bi-building me-2"></i>Agency Vehicles
                 </td>
               </tr>
-              {{range .AgencyVehicles}}
+              {{range .Data.AgencyVehicles}}
               <tr>
                 <td><strong>{{.VehicleID}}</strong></td>
                 <td>{{.VehicleYear}} {{.MakeModel}}</td>
@@ -395,8 +395,8 @@
                 <td>{{formatNumber .BeginningMiles}}</td>
                 <td>{{formatNumber .EndingMiles}}</td>
                 <td><strong>{{formatNumber .TotalMiles}}</strong></td>
-                <td class="cost-per-mile">${{$.CostPerMile}}</td>
-                <td><strong>${{formatCurrency (multiply .TotalMiles $.CostPerMile)}}</strong></td>
+                <td class="cost-per-mile">${{$.Data.CostPerMile}}</td>
+                <td><strong>${{formatCurrency (multiply .TotalMiles $.Data.CostPerMile)}}</strong></td>
                 <td>
                   {{if eq .Status "active"}}
                     <span class="status-badge status-active">Active</span>
@@ -408,13 +408,13 @@
               {{end}}
               {{end}}
               
-              {{if .SchoolBuses}}
+              {{if .Data.SchoolBuses}}
               <tr class="table-section-header">
                 <td colspan="10">
                   <i class="bi bi-bus-front me-2"></i>School Buses
                 </td>
               </tr>
-              {{range .SchoolBuses}}
+              {{range .Data.SchoolBuses}}
               <tr>
                 <td><strong>{{.BusID}}</strong></td>
                 <td>{{if .BusYear}}{{.BusYear}} {{end}}{{.BusMake}}</td>
@@ -423,8 +423,8 @@
                 <td>{{formatNumber .BeginningMiles}}</td>
                 <td>{{formatNumber .EndingMiles}}</td>
                 <td><strong>{{formatNumber .TotalMiles}}</strong></td>
-                <td class="cost-per-mile">${{$.CostPerMile}}</td>
-                <td><strong>${{formatCurrency (multiply .TotalMiles $.CostPerMile)}}</strong></td>
+                <td class="cost-per-mile">${{$.Data.CostPerMile}}</td>
+                <td><strong>${{formatCurrency (multiply .TotalMiles $.Data.CostPerMile)}}</strong></td>
                 <td>
                   {{if eq .Status "active"}}
                     <span class="status-badge status-active">Active</span>
@@ -439,9 +439,9 @@
             <tfoot>
               <tr class="table-light">
                 <th colspan="6">Totals</th>
-                <th>{{formatNumber .TotalMiles}}</th>
+                <th>{{formatNumber .Data.TotalMiles}}</th>
                 <th>-</th>
-                <th>${{formatCurrency .EstimatedCost}}</th>
+                <th>${{formatCurrency .Data.EstimatedCost}}</th>
                 <th>-</th>
               </tr>
             </tfoot>
@@ -449,7 +449,7 @@
           {{else}}
           <div class="text-center py-5 text-muted">
             <i class="bi bi-inbox fs-1"></i>
-            <p class="mt-3">No mileage data for {{.ReportMonth}} {{.ReportYear}}</p>
+            <p class="mt-3">No mileage data for {{.Data.ReportMonth}} {{.Data.ReportYear}}</p>
             <a href="/import-mileage" class="btn btn-primary">
               <i class="bi bi-upload me-2"></i>Import Data
             </a>
@@ -461,7 +461,7 @@
       <!-- Driver Summary Tab -->
       <div class="tab-pane fade" id="drivers">
         <div class="report-table">
-          {{if .DriverStats}}
+          {{if .Data.DriverStats}}
           <table class="table table-hover mb-0">
             <thead>
               <tr>
@@ -475,7 +475,7 @@
               </tr>
             </thead>
             <tbody>
-              {{range .DriverStats}}
+              {{range .Data.DriverStats}}
               <tr>
                 <td><strong>{{.DriverName}}</strong></td>
                 <td>{{.TotalTrips}}</td>
@@ -510,7 +510,7 @@
       <!-- Route Analysis Tab -->
       <div class="tab-pane fade" id="routes">
         <div class="report-table">
-          {{if .RouteStats}}
+          {{if .Data.RouteStats}}
           <table class="table table-hover mb-0">
             <thead>
               <tr>
@@ -523,7 +523,7 @@
               </tr>
             </thead>
             <tbody>
-              {{range .RouteStats}}
+              {{range .Data.RouteStats}}
               <tr>
                 <td><strong>{{.RouteName}}</strong></td>
                 <td>{{.TotalRuns}}</td>
@@ -559,15 +559,15 @@
               <table class="table">
                 <tr>
                   <td>Agency Vehicles</td>
-                  <td class="text-end">${{formatCurrency .AgencyVehicleCost}}</td>
+                  <td class="text-end">${{formatCurrency .Data.AgencyVehicleCost}}</td>
                 </tr>
                 <tr>
                   <td>School Buses</td>
-                  <td class="text-end">${{formatCurrency .SchoolBusCost}}</td>
+                  <td class="text-end">${{formatCurrency .Data.SchoolBusCost}}</td>
                 </tr>
                 <tr class="fw-bold">
                   <td>Total Fuel Cost</td>
-                  <td class="text-end">${{formatCurrency .TotalFuelCost}}</td>
+                  <td class="text-end">${{formatCurrency .Data.TotalFuelCost}}</td>
                 </tr>
               </table>
             </div>
@@ -579,19 +579,19 @@
               <table class="table">
                 <tr>
                   <td>Miles per Student</td>
-                  <td class="text-end">{{.MilesPerStudent}}</td>
+                  <td class="text-end">{{.Data.MilesPerStudent}}</td>
                 </tr>
                 <tr>
                   <td>Cost per Student</td>
-                  <td class="text-end">${{formatCurrency .CostPerStudent}}</td>
+                  <td class="text-end">${{formatCurrency .Data.CostPerStudent}}</td>
                 </tr>
                 <tr>
                   <td>Vehicle Utilization</td>
-                  <td class="text-end">{{.VehicleUtilization}}%</td>
+                  <td class="text-end">{{.Data.VehicleUtilization}}%</td>
                 </tr>
                 <tr>
                   <td>Route Optimization</td>
-                  <td class="text-end">{{.RouteOptimization}}%</td>
+                  <td class="text-end">{{.Data.RouteOptimization}}%</td>
                 </tr>
               </table>
             </div>
