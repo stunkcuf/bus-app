@@ -4,14 +4,17 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/jmoiron/sqlx"
+	"github.com/xuri/excelize/v2"
 )
 
 var db *sqlx.DB
@@ -1562,17 +1565,177 @@ func getComprehensiveActivityLog(startDate, endDate string) ([]map[string]interf
 	}
 	
 // processECSEExcelFile processes an ECSE Excel file import
-func processECSEExcelFile(file interface{}, filename string) (int, error) {
-	// This is a placeholder - implement actual Excel processing logic
-	// using the excelize library
-	return 0, fmt.Errorf("ECSE Excel import not yet implemented")
+func processECSEExcelFile(file io.Reader, filename string) (int, error) {
+	// Read the Excel file
+	f, err := excelize.OpenReader(file)
+	if err != nil {
+		return 0, fmt.Errorf("failed to open Excel file: %w", err)
+	}
+	defer f.Close()
+
+	// Get the first sheet
+	sheets := f.GetSheetList()
+	if len(sheets) == 0 {
+		return 0, fmt.Errorf("no sheets found in Excel file")
+	}
+
+	rows, err := f.GetRows(sheets[0])
+	if err != nil {
+		return 0, fmt.Errorf("failed to get rows: %w", err)
+	}
+
+	if len(rows) < 2 {
+		return 0, fmt.Errorf("file has no data rows")
+	}
+
+	// Skip header row and process data
+	imported := 0
+	for i := 1; i < len(rows); i++ {
+		row := rows[i]
+		if len(row) < 10 { // Ensure minimum columns
+			continue
+		}
+
+		// Parse date of birth
+		var dob *time.Time
+		if row[3] != "" {
+			if parsedDOB, err := time.Parse("1/2/2006", row[3]); err == nil {
+				dob = &parsedDOB
+			}
+		}
+
+		// Parse boolean values
+		transportRequired := strings.ToLower(row[9]) == "yes" || strings.ToLower(row[9]) == "true"
+		
+		// Parse service minutes
+		serviceMinutes := 0
+		if row[8] != "" {
+			if mins, err := strconv.Atoi(row[8]); err == nil {
+				serviceMinutes = mins
+			}
+		}
+
+		// Insert or update student record
+		_, err := db.Exec(`
+			INSERT INTO ecse_students (
+				student_id, first_name, last_name, date_of_birth, grade,
+				enrollment_status, iep_status, primary_disability, service_minutes,
+				transportation_required, bus_route, parent_name, parent_phone,
+				parent_email, address, city, state, zip_code, notes
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+			ON CONFLICT (student_id) DO UPDATE SET
+				first_name = EXCLUDED.first_name,
+				last_name = EXCLUDED.last_name,
+				date_of_birth = EXCLUDED.date_of_birth,
+				grade = EXCLUDED.grade,
+				enrollment_status = EXCLUDED.enrollment_status,
+				iep_status = EXCLUDED.iep_status,
+				primary_disability = EXCLUDED.primary_disability,
+				service_minutes = EXCLUDED.service_minutes,
+				transportation_required = EXCLUDED.transportation_required,
+				bus_route = EXCLUDED.bus_route,
+				parent_name = EXCLUDED.parent_name,
+				parent_phone = EXCLUDED.parent_phone,
+				parent_email = EXCLUDED.parent_email,
+				address = EXCLUDED.address,
+				city = EXCLUDED.city,
+				state = EXCLUDED.state,
+				zip_code = EXCLUDED.zip_code,
+				notes = EXCLUDED.notes,
+				updated_at = CURRENT_TIMESTAMP
+		`, row[0], row[1], row[2], dob, row[4], row[5], row[6], row[7], serviceMinutes,
+			transportRequired, row[10], row[11], row[12], row[13], row[14], row[15], row[16], row[17], row[18])
+
+		if err != nil {
+			log.Printf("Error importing student %s: %v", row[0], err)
+			continue
+		}
+		imported++
+	}
+
+	return imported, nil
 }
 
 // processEnhancedMileageExcelFile processes a mileage Excel file import
-func processEnhancedMileageExcelFile(file interface{}, filename string) (int, error) {
-	// This is a placeholder - implement actual Excel processing logic
-	// using the excelize library to import into all_vehicle_mileage table
-	return 0, fmt.Errorf("Mileage Excel import not yet implemented")
+func processEnhancedMileageExcelFile(file io.Reader, filename string) (int, error) {
+	// Read the Excel file
+	f, err := excelize.OpenReader(file)
+	if err != nil {
+		return 0, fmt.Errorf("failed to open Excel file: %w", err)
+	}
+	defer f.Close()
+
+	// Get all sheets
+	sheets := f.GetSheetList()
+	if len(sheets) == 0 {
+		return 0, fmt.Errorf("no sheets found in Excel file")
+	}
+
+	totalImported := 0
+
+	// Process each sheet
+	for _, sheet := range sheets {
+		rows, err := f.GetRows(sheet)
+		if err != nil {
+			log.Printf("Error reading sheet %s: %v", sheet, err)
+			continue
+		}
+
+		if len(rows) < 2 {
+			continue // Skip empty sheets
+		}
+
+		// Determine sheet type based on headers or sheet name
+		vehicleType := "agency"
+		if strings.Contains(strings.ToLower(sheet), "bus") {
+			vehicleType = "bus"
+		}
+
+		// Skip header row and process data
+		for i := 1; i < len(rows); i++ {
+			row := rows[i]
+			if len(row) < 12 { // Ensure minimum columns
+				continue
+			}
+
+			// Parse numeric values
+			reportYear, _ := strconv.Atoi(row[1])
+			vehicleYear, _ := strconv.Atoi(row[2])
+			beginningMiles, _ := strconv.Atoi(row[7])
+			endingMiles, _ := strconv.Atoi(row[8])
+			totalMiles, _ := strconv.Atoi(row[9])
+
+			// Insert into all_vehicle_mileage table
+			_, err := db.Exec(`
+				INSERT INTO all_vehicle_mileage (
+					report_month, report_year, vehicle_year, make_model, license_plate,
+					vehicle_id, location, beginning_miles, ending_miles, total_miles,
+					status, notes, vehicle_type
+				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+				ON CONFLICT (report_month, report_year, vehicle_id) DO UPDATE SET
+					vehicle_year = EXCLUDED.vehicle_year,
+					make_model = EXCLUDED.make_model,
+					license_plate = EXCLUDED.license_plate,
+					location = EXCLUDED.location,
+					beginning_miles = EXCLUDED.beginning_miles,
+					ending_miles = EXCLUDED.ending_miles,
+					total_miles = EXCLUDED.total_miles,
+					status = EXCLUDED.status,
+					notes = EXCLUDED.notes,
+					vehicle_type = EXCLUDED.vehicle_type,
+					updated_at = CURRENT_TIMESTAMP
+			`, row[0], reportYear, vehicleYear, row[3], row[4], row[5], row[6],
+				beginningMiles, endingMiles, totalMiles, row[10], row[11], vehicleType)
+
+			if err != nil {
+				log.Printf("Error importing vehicle %s: %v", row[5], err)
+				continue
+			}
+			totalImported++
+		}
+	}
+
+	return totalImported, nil
 }
 
 // getUserFromSession gets the user from the current session
