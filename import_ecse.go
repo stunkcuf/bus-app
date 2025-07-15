@@ -11,22 +11,6 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// TransportationRoute represents a route from the Excel file
-type TransportationRoute struct {
-	Center               string
-	Driver               string
-	TotalStudents        int
-	ECSEStudents         int
-	CostPerMile          float64
-	MilesPerRoute        float64
-	CostPerRoute         float64
-	RoutePercentage      int
-	DistrictResponsibility string
-	DistrictCostPerRoute float64
-	NumberOfRoutes       int
-	TotalDistrictCost    float64
-}
-
 // processECSEExcelFile processes transportation Excel files with student lists
 func processECSEExcelFile(file multipart.File, filename string) (int, error) {
 	// Read Excel file
@@ -154,6 +138,22 @@ func containsTransportHeaders(row []string) bool {
 	}
 	
 	return foundCount >= 3
+}
+
+// TransportationRoute represents a route from the Excel file
+type TransportationRoute struct {
+	Center               string
+	Driver               string
+	TotalStudents        int
+	ECSEStudents         int
+	CostPerMile          float64
+	MilesPerRoute        float64
+	CostPerRoute         float64
+	RoutePercentage      int
+	DistrictResponsibility string
+	DistrictCostPerRoute float64
+	NumberOfRoutes       int
+	TotalDistrictCost    float64
 }
 
 // parseTransportationRoutes extracts route data from the table
@@ -361,7 +361,7 @@ func generateStudentID(name, district string) string {
 	return fmt.Sprintf("ECSE-%s-%05d", strings.ToUpper(districtCode), timestamp)
 }
 
-// saveECSEStudent saves a student to the database (reuse from previous implementation)
+// saveECSEStudent saves a student to the database
 func saveECSEStudent(student ECSEStudent) error {
 	if db == nil {
 		return fmt.Errorf("database not initialized")
