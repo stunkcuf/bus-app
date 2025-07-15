@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
+	"github.com/xuri/excelize/v2"
 	_ "github.com/lib/pq"
 )
 
@@ -277,188 +279,301 @@ func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/manage-users", http.StatusSeeOther)
 	}
 }
-// Add these handler functions to handlers.go
 
 // exportMileageHandler exports mileage data to Excel
 func exportMileageHandler(w http.ResponseWriter, r *http.Request) {
-    user := getUserFromSession(r)
-    if user == nil || user.Role != "manager" {
-        http.Redirect(w, r, "/", http.StatusFound)
-        return
-    }
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
 
-    // Get filter parameters
-    month := r.URL.Query().Get("month")
-    year := r.URL.Query().Get("year")
-    reportType := r.URL.Query().Get("type")
-    
-    if month == "" || year == "" {
-        now := time.Now()
-        month = now.Format("January")
-        year = fmt.Sprintf("%d", now.Year())
-    }
-    
-    yearInt, _ := strconv.Atoi(year)
-    
-    // Create Excel file
-    f := excelize.NewFile()
-    
-    // Summary Sheet
-    summarySheet := "Summary"
-    f.SetSheetName("Sheet1", summarySheet)
-    
-    // Add headers
-    headers := []string{"Metric", "Value"}
-    for i, header := range headers {
-        cell := fmt.Sprintf("%s1", string(rune('A'+i)))
-        f.SetCellValue(summarySheet, cell, header)
-    }
-    
-    // Calculate summary statistics
-    stats := calculateMileageStatistics(month, yearInt)
-    
-    summaryData := [][]interface{}{
-        {"Report Period", fmt.Sprintf("%s %d", month, yearInt)},
-        {"Total Vehicles", stats.TotalVehicles},
-        {"Total Miles Driven", stats.TotalMiles},
-        {"Estimated Fuel Cost", fmt.Sprintf("$%.2f", stats.EstimatedCost)},
-        {"Average Miles per Vehicle", stats.AvgMilesPerVehicle},
-        {"Cost per Mile", fmt.Sprintf("$%.2f", stats.CostPerMile)},
-        {"Vehicle Utilization", fmt.Sprintf("%.1f%%", stats.VehicleUtilization)},
-    }
-    
-    for i, row := range summaryData {
-        for j, value := range row {
-            cell := fmt.Sprintf("%s%d", string(rune('A'+j)), i+2)
-            f.SetCellValue(summarySheet, cell, value)
-        }
-    }
-    
-    // Vehicle Details Sheet
-    if reportType == "all" || reportType == "agency" {
-        sheetName := "Agency Vehicles"
-        f.NewSheet(sheetName)
-        
-        // Headers
-        headers := []string{"Vehicle ID", "Year", "Make/Model", "License", "Location", 
-                          "Beginning Miles", "Ending Miles", "Total Miles", "Status"}
-        for i, header := range headers {
-            cell := fmt.Sprintf("%s1", string(rune('A'+i)))
-            f.SetCellValue(sheetName, cell, header)
-        }
-        
-        // Get data
-        vehicles, _ := getAgencyVehicleReports(month, year)
-        for i, v := range vehicles {
-            row := i + 2
-            f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), v.VehicleID)
-            f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), v.VehicleYear)
-            f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), v.MakeModel)
-            f.SetCellValue(sheetName, fmt.Sprintf("D%d", row), v.LicensePlate)
-            f.SetCellValue(sheetName, fmt.Sprintf("E%d", row), v.Location)
-            f.SetCellValue(sheetName, fmt.Sprintf("F%d", row), v.BeginningMiles)
-            f.SetCellValue(sheetName, fmt.Sprintf("G%d", row), v.EndingMiles)
-            f.SetCellValue(sheetName, fmt.Sprintf("H%d", row), v.TotalMiles)
-            f.SetCellValue(sheetName, fmt.Sprintf("I%d", row), v.Status)
-        }
-    }
-    
-    // Set response headers
-    w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=mileage_report_%s_%s.xlsx", month, year))
-    
-    // Write file
-    if err := f.Write(w); err != nil {
-        http.Error(w, "Failed to generate Excel file", http.StatusInternalServerError)
-        return
-    }
+	// Get filter parameters
+	month := r.URL.Query().Get("month")
+	year := r.URL.Query().Get("year")
+	reportType := r.URL.Query().Get("type")
+	
+	if month == "" || year == "" {
+		now := time.Now()
+		month = now.Format("January")
+		year = fmt.Sprintf("%d", now.Year())
+	}
+	
+	yearInt, _ := strconv.Atoi(year)
+	
+	// Create Excel file
+	f := excelize.NewFile()
+	
+	// Summary Sheet
+	summarySheet := "Summary"
+	f.SetSheetName("Sheet1", summarySheet)
+	
+	// Add headers
+	headers := []string{"Metric", "Value"}
+	for i, header := range headers {
+		cell := fmt.Sprintf("%s1", string(rune('A'+i)))
+		f.SetCellValue(summarySheet, cell, header)
+	}
+	
+	// Calculate summary statistics
+	stats := calculateMileageStatistics(month, yearInt)
+	
+	summaryData := [][]interface{}{
+		{"Report Period", fmt.Sprintf("%s %d", month, yearInt)},
+		{"Total Vehicles", stats.TotalVehicles},
+		{"Total Miles Driven", stats.TotalMiles},
+		{"Estimated Fuel Cost", fmt.Sprintf("$%.2f", stats.EstimatedCost)},
+		{"Average Miles per Vehicle", stats.AvgMilesPerVehicle},
+		{"Cost per Mile", fmt.Sprintf("$%.2f", stats.CostPerMile)},
+		{"Vehicle Utilization", fmt.Sprintf("%.1f%%", stats.VehicleUtilization)},
+	}
+	
+	for i, row := range summaryData {
+		for j, value := range row {
+			cell := fmt.Sprintf("%s%d", string(rune('A'+j)), i+2)
+			f.SetCellValue(summarySheet, cell, value)
+		}
+	}
+	
+	// Vehicle Details Sheet
+	if reportType == "all" || reportType == "agency" {
+		sheetName := "Agency Vehicles"
+		f.NewSheet(sheetName)
+		
+		// Headers
+		headers := []string{"Vehicle ID", "Year", "Make/Model", "License", "Location", 
+						  "Beginning Miles", "Ending Miles", "Total Miles", "Status"}
+		for i, header := range headers {
+			cell := fmt.Sprintf("%s1", string(rune('A'+i)))
+			f.SetCellValue(sheetName, cell, header)
+		}
+		
+		// Get data
+		vehicles, _ := getAgencyVehicleReports(month, year)
+		for i, v := range vehicles {
+			row := i + 2
+			f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), v.VehicleID)
+			f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), v.VehicleYear)
+			f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), v.MakeModel)
+			f.SetCellValue(sheetName, fmt.Sprintf("D%d", row), v.LicensePlate)
+			f.SetCellValue(sheetName, fmt.Sprintf("E%d", row), v.Location)
+			f.SetCellValue(sheetName, fmt.Sprintf("F%d", row), v.BeginningMiles)
+			f.SetCellValue(sheetName, fmt.Sprintf("G%d", row), v.EndingMiles)
+			f.SetCellValue(sheetName, fmt.Sprintf("H%d", row), v.TotalMiles)
+			f.SetCellValue(sheetName, fmt.Sprintf("I%d", row), v.Status)
+		}
+	}
+	
+	// Set response headers
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=mileage_report_%s_%s.xlsx", month, year))
+	
+	// Write file
+	if err := f.Write(w); err != nil {
+		http.Error(w, "Failed to generate Excel file", http.StatusInternalServerError)
+		return
+	}
 }
 
 // calculateMileageStatistics calculates comprehensive mileage statistics
 func calculateMileageStatistics(month string, year int) *MileageStatistics {
-    stats := &MileageStatistics{
-        CostPerMile: 0.55, // Default IRS rate, should be configurable
-    }
-    
-    // Get all vehicle data
-    agencyVehicles, _ := getAgencyVehicleReports(month, fmt.Sprintf("%d", year))
-    schoolBuses, _ := getSchoolBusReports(month, fmt.Sprintf("%d", year))
-    
-    // Calculate totals
-    stats.TotalVehicles = len(agencyVehicles) + len(schoolBuses)
-    
-    for _, v := range agencyVehicles {
-        stats.TotalMiles += v.TotalMiles
-        if v.Status == "active" {
-            stats.ActiveVehicles++
-        }
-    }
-    
-    for _, b := range schoolBuses {
-        stats.TotalMiles += b.TotalMiles
-        if b.Status == "active" {
-            stats.ActiveVehicles++
-        }
-    }
-    
-    // Calculate derived statistics
-    stats.EstimatedCost = float64(stats.TotalMiles) * stats.CostPerMile
-    
-    if stats.TotalVehicles > 0 {
-        stats.AvgMilesPerVehicle = stats.TotalMiles / stats.TotalVehicles
-        stats.VehicleUtilization = (float64(stats.ActiveVehicles) / float64(stats.TotalVehicles)) * 100
-    }
-    
-    // Get driver statistics
-    stats.DriverStats = calculateDriverStatistics(month, year)
-    stats.RouteStats = calculateRouteStatistics(month, year)
-    
-    return stats
+	stats := &MileageStatistics{
+		CostPerMile: 0.55, // Default IRS rate, should be configurable
+	}
+	
+	// Get all vehicle data
+	agencyVehicles, _ := getAgencyVehicleReports(month, fmt.Sprintf("%d", year))
+	schoolBuses, _ := getSchoolBusReports(month, fmt.Sprintf("%d", year))
+	
+	// Calculate totals
+	stats.TotalVehicles = len(agencyVehicles) + len(schoolBuses)
+	
+	for _, v := range agencyVehicles {
+		stats.TotalMiles += v.TotalMiles
+		if v.Status == "active" {
+			stats.ActiveVehicles++
+		}
+	}
+	
+	for _, b := range schoolBuses {
+		stats.TotalMiles += b.TotalMiles
+		if b.Status == "active" {
+			stats.ActiveVehicles++
+		}
+	}
+	
+	// Calculate derived statistics
+	stats.EstimatedCost = float64(stats.TotalMiles) * stats.CostPerMile
+	
+	if stats.TotalVehicles > 0 {
+		stats.AvgMilesPerVehicle = stats.TotalMiles / stats.TotalVehicles
+		stats.VehicleUtilization = (float64(stats.ActiveVehicles) / float64(stats.TotalVehicles)) * 100
+	}
+	
+	// Get driver statistics
+	stats.DriverStats = calculateDriverStatistics(month, year)
+	stats.RouteStats = calculateRouteStatistics(month, year)
+	
+	return stats
 }
 
 // calculateDriverStatistics aggregates driver performance data
 func calculateDriverStatistics(month string, year int) []DriverStatistic {
-    var stats []DriverStatistic
-    
-    // Get all drivers
-    drivers := loadDrivers()
-    
-    for _, driver := range drivers {
-        stat := DriverStatistic{
-            DriverName: driver.Username,
-        }
-        
-        // Get driver logs for the month
-        startDate := fmt.Sprintf("%d-%02d-01", year, monthToNumber(month))
-        endDate := fmt.Sprintf("%d-%02d-31", year, monthToNumber(month))
-        
-        logs, _ := getDriverLogsByDateRange(driver.Username, startDate, endDate)
-        
-        stat.TotalTrips = len(logs)
-        
-        for _, log := range logs {
-            stat.TotalMiles += int(log.Mileage)
-            
-            // Calculate attendance
-            presentCount := 0
-            for _, attendance := range log.Attendance {
-                if attendance.Present {
-                    presentCount++
-                }
-            }
-            stat.StudentsTransported += presentCount
-        }
-        
-        if stat.TotalTrips > 0 {
-            stat.AvgMilesPerTrip = stat.TotalMiles / stat.TotalTrips
-            stat.AttendanceRate = 95.0 // This should be calculated from actual data
-            stat.EfficiencyScore = calculateEfficiencyScore(stat)
-        }
-        
-        stats = append(stats, stat)
-    }
-    
-    return stats
+	var stats []DriverStatistic
+	
+	// Get all drivers
+	drivers := loadDrivers()
+	
+	for _, driver := range drivers {
+		stat := DriverStatistic{
+			DriverName: driver.Username,
+		}
+		
+		// Get driver logs for the month
+		startDate := fmt.Sprintf("%d-%02d-01", year, monthToNumber(month))
+		endDate := fmt.Sprintf("%d-%02d-31", year, monthToNumber(month))
+		
+		logs, _ := getDriverLogsByDateRange(driver.Username, startDate, endDate)
+		
+		stat.TotalTrips = len(logs)
+		
+		for _, log := range logs {
+			stat.TotalMiles += int(log.Mileage)
+			
+			// Calculate attendance
+			presentCount := 0
+			for _, attendance := range log.Attendance {
+				if attendance.Present {
+					presentCount++
+				}
+			}
+			stat.StudentsTransported += presentCount
+		}
+		
+		if stat.TotalTrips > 0 {
+			stat.AvgMilesPerTrip = stat.TotalMiles / stat.TotalTrips
+			stat.AttendanceRate = 95.0 // This should be calculated from actual data
+			stat.EfficiencyScore = calculateEfficiencyScore(stat)
+		}
+		
+		stats = append(stats, stat)
+	}
+	
+	return stats
+}
+
+// calculateRouteStatistics calculates route performance metrics
+func calculateRouteStatistics(month string, year int) []RouteStatistic {
+	var stats []RouteStatistic
+	
+	// Get all routes
+	routes, _ := loadRoutes()
+	
+	for _, route := range routes {
+		stat := RouteStatistic{
+			RouteName: route.RouteName,
+		}
+		
+		// Get logs for this route
+		startDate := fmt.Sprintf("%d-%02d-01", year, monthToNumber(month))
+		endDate := fmt.Sprintf("%d-%02d-31", year, monthToNumber(month))
+		
+		// Query driver logs for this route
+		rows, err := db.Query(`
+			SELECT mileage, attendance 
+			FROM driver_logs 
+			WHERE route_id = $1 AND date BETWEEN $2 AND $3
+		`, route.RouteID, startDate, endDate)
+		
+		if err == nil {
+			defer rows.Close()
+			
+			totalStudents := 0
+			for rows.Next() {
+				var mileage float64
+				var attendanceJSON []byte
+				
+				if err := rows.Scan(&mileage, &attendanceJSON); err == nil {
+					stat.TotalMiles += int(mileage)
+					stat.TotalRuns++
+					
+					// Count students
+					var attendance []StudentAttendance
+					if json.Unmarshal(attendanceJSON, &attendance) == nil {
+						for _, a := range attendance {
+							if a.Present {
+								totalStudents++
+							}
+						}
+					}
+				}
+			}
+			
+			if stat.TotalRuns > 0 {
+				stat.AvgStudents = totalStudents / stat.TotalRuns
+				stat.Efficiency = 85.0 // Calculate based on actual metrics
+				if stat.AvgStudents > 0 {
+					stat.CostPerStudent = (float64(stat.TotalMiles) * 0.55) / float64(totalStudents)
+				}
+			}
+		}
+		
+		stats = append(stats, stat)
+	}
+	
+	return stats
+}
+
+// monthToNumber converts month name to number
+func monthToNumber(month string) int {
+	months := map[string]int{
+		"January":   1,
+		"February":  2,
+		"March":     3,
+		"April":     4,
+		"May":       5,
+		"June":      6,
+		"July":      7,
+		"August":    8,
+		"September": 9,
+		"October":   10,
+		"November":  11,
+		"December":  12,
+	}
+	
+	if num, ok := months[month]; ok {
+		return num
+	}
+	return 1 // Default to January
+}
+
+// calculateEfficiencyScore calculates driver efficiency based on metrics
+func calculateEfficiencyScore(stat DriverStatistic) int {
+	score := 100
+	
+	// Deduct points for low attendance rate
+	if stat.AttendanceRate < 90 {
+		score -= 10
+	}
+	
+	// Deduct points for excessive miles per trip
+	if stat.AvgMilesPerTrip > 50 {
+		score -= 5
+	}
+	
+	// Bonus points for high student transport
+	if stat.StudentsTransported > 100 {
+		score += 5
+	}
+	
+	// Keep score within bounds
+	if score > 100 {
+		score = 100
+	} else if score < 0 {
+		score = 0
+	}
+	
+	return score
 }
 
 // driverDashboardHandler serves the driver dashboard
