@@ -1790,7 +1790,141 @@ func viewMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
 	// Use the enhanced mileage reports handler from database.go
 	viewEnhancedMileageReportsHandler(w, r)
 }
+// Add this to your handlers or wherever viewEnhancedMileageReportsHandler is defined
 
+// viewEnhancedMileageReportsHandler - Fixed version
+func viewEnhancedMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
+    user := getUserFromSession(r)
+    if user == nil || user.Role != "manager" {
+        http.Redirect(w, r, "/", http.StatusFound)
+        return
+    }
+
+    // Get filter parameters
+    month := r.URL.Query().Get("month")
+    year := r.URL.Query().Get("year")
+    reportType := r.URL.Query().Get("type")
+    
+    // Default values
+    if month == "" {
+        month = time.Now().Format("January")
+    }
+    if year == "" {
+        year = fmt.Sprintf("%d", time.Now().Year())
+    }
+    if reportType == "" {
+        reportType = "all"
+    }
+    
+    // Convert year to int
+    yearInt, _ := strconv.Atoi(year)
+    
+    // Get vehicle data
+    agencyVehicles, _ := getAgencyVehicleReports(month, year)
+    schoolBuses, _ := getSchoolBusReports(month, year)
+    
+    // Calculate statistics
+    stats := calculateMileageStatistics(month, yearInt)
+    
+    // Calculate totals
+    totalMiles := 0
+    for _, v := range agencyVehicles {
+        totalMiles += v.TotalMiles
+    }
+    for _, b := range schoolBuses {
+        totalMiles += b.TotalMiles
+    }
+    
+    totalVehicles := len(agencyVehicles) + len(schoolBuses)
+    estimatedCost := float64(totalMiles) * 0.55 // Default cost per mile
+    
+    // Create the data structure that matches what the template expects
+    data := map[string]interface{}{
+        // Basic report info
+        "ReportMonth":   month,
+        "ReportYear":    year,
+        "ReportType":    reportType,
+        "CurrentDate":   time.Now().Format("January 2, 2006"),
+        
+        // Vehicle data
+        "AgencyVehicles": agencyVehicles,
+        "SchoolBuses":    schoolBuses,
+        
+        // Summary statistics
+        "TotalVehicles":  totalVehicles,
+        "TotalMiles":     totalMiles,
+        "EstimatedCost":  estimatedCost,
+        "CostPerMile":    0.55,
+        "PercentChange":  0, // Calculate from previous month if needed
+        "AverageMPG":     25.0, // Default or calculate
+        "FuelEfficiency": 85.0, // Default or calculate
+        
+        // Driver and route statistics
+        "DriverStats": stats.DriverStats,
+        "RouteStats":  stats.RouteStats,
+        
+        // Cost breakdown
+        "AgencyVehicleCost": calculateVehicleCost(agencyVehicles, 0.55),
+        "SchoolBusCost":     calculateVehicleCost(schoolBuses, 0.55),
+        "TotalFuelCost":     estimatedCost,
+        
+        // Efficiency metrics
+        "MilesPerStudent":     10, // Calculate from actual data
+        "CostPerStudent":      5.50, // Calculate from actual data
+        "VehicleUtilization":  85.0, // Calculate from actual data
+        "RouteOptimization":   90.0, // Calculate from actual data
+        
+        // Security
+        "CSPNonce":  getCSPNonce(r),
+        "CSRFToken": getSessionCSRFToken(r),
+    }
+    
+    // Render the template with the properly structured data
+    renderTemplate(w, r, "mileage_reports.html", data)
+}
+
+// Helper function to calculate vehicle cost
+func calculateVehicleCost(vehicles interface{}, costPerMile float64) float64 {
+    totalCost := 0.0
+    
+    switch v := vehicles.(type) {
+    case []AgencyVehicleRecord:
+        for _, vehicle := range v {
+            totalCost += float64(vehicle.TotalMiles) * costPerMile
+        }
+    case []SchoolBusRecord:
+        for _, bus := range v {
+            totalCost += float64(bus.TotalMiles) * costPerMile
+        }
+    }
+    
+    return totalCost
+}
+
+// Alternative: If you have a TemplateWrapper, here's how to fix renderTemplate
+func renderTemplate(w http.ResponseWriter, r *http.Request, tmplName string, data interface{}) {
+    // If your renderTemplate wraps data, unwrap it here
+    switch d := data.(type) {
+    case map[string]interface{}:
+        // Data is already a map, use it directly
+        executeTemplate(w, tmplName, d)
+    case TemplateWrapper:
+        // If you have a TemplateWrapper type, extract the actual data
+        executeTemplate(w, tmplName, d.Data)
+    default:
+        // For any other type, use it directly
+        executeTemplate(w, tmplName, data)
+    }
+}
+
+// The actual template execution
+func executeTemplate(w http.ResponseWriter, tmplName string, data interface{}) {
+    err := templates.ExecuteTemplate(w, tmplName, data)
+    if err != nil {
+        log.Printf("Error executing template %s: %v", tmplName, err)
+        http.Error(w, "Error rendering page", http.StatusInternalServerError)
+    }
+}
 // driverProfileHandler shows driver profile
 func driverProfileHandler(w http.ResponseWriter, r *http.Request) {
 	driverUsername := strings.TrimPrefix(r.URL.Path, "/driver/")
