@@ -330,6 +330,8 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/add-route", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addRouteHandler)))))
 	mux.HandleFunc("/edit-route", withRecovery(requireAuth(requireRole("manager")(requireDatabase(editRouteHandler)))))
 	mux.HandleFunc("/delete-route", withRecovery(requireAuth(requireRole("manager")(requireDatabase(deleteRouteHandler)))))
+	mux.HandleFunc("/view-mileage-reports", requireAuth(viewEnhancedMileageReportsHandler))
+	mux.HandleFunc("/export-mileage", requireAuth(exportMileageHandler))
 	
 	// Mileage reports
 	mux.HandleFunc("/import-mileage", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importMileageHandler)))))
