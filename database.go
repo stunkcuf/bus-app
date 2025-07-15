@@ -1335,37 +1335,3 @@ func getAvailableReports() ([]string, error) {
 	
 	return reports, err
 }
-
-// getUserFromSession gets the user from the current session
-func getUserFromSession(r *http.Request) *User {
-	cookie, err := r.Cookie(SessionCookieName)
-	if err != nil {
-		return nil
-	}
-	
-	session, err := GetSecureSession(cookie.Value)
-	if err != nil || session == nil {
-		return nil
-	}
-	
-	return &User{
-		Username: session.Username,
-		Role:     session.Role,
-		Status:   "active",
-	}
-}
-
-// getSessionCSRFToken gets the CSRF token from the session
-func getSessionCSRFToken(r *http.Request) string {
-	cookie, err := r.Cookie(SessionCookieName)
-	if err != nil {
-		return ""
-	}
-	
-	session, err := GetSecureSession(cookie.Value)
-	if err != nil || session == nil {
-		return ""
-	}
-	
-	return session.CSRFToken
-}
