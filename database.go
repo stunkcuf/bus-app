@@ -1390,8 +1390,6 @@ func loadDriverLogsFromDB() ([]DriverLog, error) {
 	
 	return logs, err
 }
-
-// loadUsers loads all users from the database
 func loadUsers() []User {
 	if db == nil {
 		return []User{}
@@ -1481,8 +1479,6 @@ func loadRouteAssignments() ([]RouteAssignment, error) {
 	
 	return assignments, err
 }
-
-// getComprehensiveActivityLog gets all activities across all tables for reporting
 func getComprehensiveActivityLog(startDate, endDate string) ([]map[string]interface{}, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database not initialized")
