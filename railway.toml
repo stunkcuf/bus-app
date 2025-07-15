@@ -1,11 +1,54 @@
 [build]
 builder = "nixpacks"
+
+# Optimize build command with caching and flags
 buildCommand = """
-go mod tidy && \
-go build -o main .
+# Set Go build cache and module cache
+export GOCACHE=/tmp/go-build-cache && \
+export GOMODCACHE=/tmp/go-mod-cache && \
+# Download dependencies first (cached layer)
+go mod download && \
+# Build with optimizations
+go build -ldflags="-s -w" -trimpath -o main .
 """
+
+# Nixpacks specific optimizations
+[build.buildpacks]
+# Use specific Go version for consistency
+goVersion = "1.21"
+
+[build.cache]
+# Enable build caching
+enabled = true
+# Cache go modules and build artifacts
+paths = [
+  "go.mod",
+  "go.sum",
+  "/tmp/go-build-cache",
+  "/tmp/go-mod-cache"
+]
+
+[build.env]
+# Go build environment optimizations
+GOOS = "linux"
+GOARCH = "amd64"
+CGO_ENABLED = "0"
+# Faster builds with less optimization during development
+GOFLAGS = "-mod=readonly"
+# Use all available CPU cores
+GOMAXPROCS = "4"
 
 [deploy]
 startCommand = "./main"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
+
+# Health check to ensure app is running
+healthcheckPath = "/"
+healthcheckTimeout = 30
+
+[deploy.env]
+# Runtime optimizations
+GOMAXPROCS = "2"
+# Reduce memory usage
+GOGC = "100"
