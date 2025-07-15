@@ -339,6 +339,26 @@ func createTables() error {
 			notes TEXT,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
+		
+		// Unified all_vehicle_mileage table
+		`CREATE TABLE IF NOT EXISTS all_vehicle_mileage (
+			report_month VARCHAR(50) NOT NULL,
+			report_year INTEGER NOT NULL,
+			vehicle_year INTEGER,
+			make_model VARCHAR(100),
+			license_plate VARCHAR(50),
+			vehicle_id VARCHAR(50) NOT NULL,
+			location VARCHAR(100),
+			beginning_miles INTEGER DEFAULT 0,
+			ending_miles INTEGER DEFAULT 0,
+			total_miles INTEGER DEFAULT 0,
+			status VARCHAR(50),
+			notes TEXT,
+			vehicle_type VARCHAR(20) NOT NULL CHECK (vehicle_type IN ('agency', 'bus')),
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (report_month, report_year, vehicle_id)
+		)`,
 	}
 
 	// Execute each table creation
@@ -370,6 +390,9 @@ func createTables() error {
 		`CREATE INDEX IF NOT EXISTS idx_ecse_services_student ON ecse_services(student_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_ecse_assessments_student ON ecse_assessments(student_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_ecse_attendance_date ON ecse_attendance(attendance_date)`,
+		// All vehicle mileage indexes
+		`CREATE INDEX IF NOT EXISTS idx_all_vehicle_mileage_type ON all_vehicle_mileage(vehicle_type)`,
+		`CREATE INDEX IF NOT EXISTS idx_all_vehicle_mileage_month_year ON all_vehicle_mileage(report_month, report_year)`,
 	}
 
 	for _, index := range indexes {
@@ -1081,40 +1104,155 @@ func viewEnhancedMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, r, "mileage_reports.html", templateData)
 }
 
-// Get agency vehicle reports
+// Get agency vehicle reports - Updated to use all_vehicle_mileage table
 func getAgencyVehicleReports(month, year string) ([]AgencyVehicleRecord, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
+	records := []AgencyVehicleRecord{}
+	
+	// Updated to use your actual table name: all_vehicle_mileage
+	query := `
+		SELECT 
+			COALESCE(report_month, '') as report_month,
+			COALESCE(report_year, 0) as report_year,
+			COALESCE(vehicle_year, 0) as vehicle_year,
+			COALESCE(make_model, '') as make_model,
+			COALESCE(license_plate, '') as license_plate,
+			COALESCE(vehicle_id, '') as vehicle_id,
+			COALESCE(location, '') as location,
+			COALESCE(beginning_miles, 0) as beginning_miles,
+			COALESCE(ending_miles, 0) as ending_miles,
+			COALESCE(total_miles, 0) as total_miles,
+			COALESCE(status, 'active') as status,
+			COALESCE(notes, '') as notes
+		FROM all_vehicle_mileage
+		WHERE report_month = $1 AND report_year = $2
+		  AND vehicle_type = 'agency'  -- Assuming there's a vehicle_type column
+		ORDER BY vehicle_id
+	`
 	
 	yearInt, _ := strconv.Atoi(year)
+	rows, err := db.Query(query, month, yearInt)
+	if err != nil {
+		log.Printf("Error querying agency vehicles: %v", err)
+		return records, err
+	}
+	defer rows.Close()
 	
-	var records []AgencyVehicleRecord
-	err := db.Select(&records, `
-		SELECT * FROM agency_vehicles 
-		WHERE report_month = $1 AND report_year = $2 
-		ORDER BY vehicle_id
-	`, month, yearInt)
+	for rows.Next() {
+		var record AgencyVehicleRecord
+		err := rows.Scan(
+			&record.ReportMonth, &record.ReportYear, &record.VehicleYear,
+			&record.MakeModel, &record.LicensePlate, &record.VehicleID,
+			&record.Location, &record.BeginningMiles, &record.EndingMiles,
+			&record.TotalMiles, &record.Status, &record.Notes,
+		)
+		if err != nil {
+			log.Printf("Error scanning agency vehicle record: %v", err)
+			continue
+		}
+		records = append(records, record)
+	}
 	
-	return records, err
+	return records, nil
 }
 
-// Get school bus reports
+// Get school bus reports - Updated to use all_vehicle_mileage table
 func getSchoolBusReports(month, year string) ([]SchoolBusRecord, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
+	records := []SchoolBusRecord{}
+	
+	// Updated to use your actual table name: all_vehicle_mileage
+	query := `
+		SELECT 
+			COALESCE(report_month, '') as report_month,
+			COALESCE(report_year, 0) as report_year,
+			COALESCE(vehicle_year, 0) as bus_year,
+			COALESCE(make_model, '') as bus_make,
+			COALESCE(license_plate, '') as license_plate,
+			COALESCE(vehicle_id, '') as bus_id,
+			COALESCE(location, '') as location,
+			COALESCE(beginning_miles, 0) as beginning_miles,
+			COALESCE(ending_miles, 0) as ending_miles,
+			COALESCE(total_miles, 0) as total_miles,
+			COALESCE(status, 'active') as status,
+			COALESCE(notes, '') as notes
+		FROM all_vehicle_mileage
+		WHERE report_month = $1 AND report_year = $2
+		  AND vehicle_type = 'bus'  -- Assuming there's a vehicle_type column
+		ORDER BY vehicle_id
+	`
 	
 	yearInt, _ := strconv.Atoi(year)
+	rows, err := db.Query(query, month, yearInt)
+	if err != nil {
+		log.Printf("Error querying school buses: %v", err)
+		return records, err
+	}
+	defer rows.Close()
 	
-	var records []SchoolBusRecord
-	err := db.Select(&records, `
-		SELECT * FROM school_buses 
-		WHERE report_month = $1 AND report_year = $2 
-		ORDER BY bus_id
-	`, month, yearInt)
+	for rows.Next() {
+		var record SchoolBusRecord
+		err := rows.Scan(
+			&record.ReportMonth, &record.ReportYear, &record.BusYear,
+			&record.BusMake, &record.LicensePlate, &record.BusID,
+			&record.Location, &record.BeginningMiles, &record.EndingMiles,
+			&record.TotalMiles, &record.Status, &record.Notes,
+		)
+		if err != nil {
+			log.Printf("Error scanning school bus record: %v", err)
+			continue
+		}
+		records = append(records, record)
+	}
 	
-	return records, err
+	return records, nil
+}
+
+// Alternative: Get all vehicles regardless of type
+func getAllVehicleReports(month, year string) ([]AgencyVehicleRecord, error) {
+	records := []AgencyVehicleRecord{}
+	
+	query := `
+		SELECT 
+			COALESCE(report_month, '') as report_month,
+			COALESCE(report_year, 0) as report_year,
+			COALESCE(vehicle_year, 0) as vehicle_year,
+			COALESCE(make_model, '') as make_model,
+			COALESCE(license_plate, '') as license_plate,
+			COALESCE(vehicle_id, '') as vehicle_id,
+			COALESCE(location, '') as location,
+			COALESCE(beginning_miles, 0) as beginning_miles,
+			COALESCE(ending_miles, 0) as ending_miles,
+			COALESCE(total_miles, 0) as total_miles,
+			COALESCE(status, 'active') as status,
+			COALESCE(notes, '') as notes
+		FROM all_vehicle_mileage
+		WHERE report_month = $1 AND report_year = $2
+		ORDER BY vehicle_id
+	`
+	
+	yearInt, _ := strconv.Atoi(year)
+	rows, err := db.Query(query, month, yearInt)
+	if err != nil {
+		log.Printf("Error querying all vehicles: %v", err)
+		return records, err
+	}
+	defer rows.Close()
+	
+	for rows.Next() {
+		var record AgencyVehicleRecord
+		err := rows.Scan(
+			&record.ReportMonth, &record.ReportYear, &record.VehicleYear,
+			&record.MakeModel, &record.LicensePlate, &record.VehicleID,
+			&record.Location, &record.BeginningMiles, &record.EndingMiles,
+			&record.TotalMiles, &record.Status, &record.Notes,
+		)
+		if err != nil {
+			log.Printf("Error scanning vehicle record: %v", err)
+			continue
+		}
+		records = append(records, record)
+	}
+	
+	return records, nil
 }
 
 // Get program staff reports
