@@ -249,7 +249,41 @@ type Vehicle struct {
 	CreatedAt        time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"` // Add this field
 }
+// Add these to models.go
 
+type MileageStatistics struct {
+    TotalVehicles      int
+    ActiveVehicles     int
+    TotalMiles         int
+    EstimatedCost      float64
+    CostPerMile        float64
+    AvgMilesPerVehicle int
+    VehicleUtilization float64
+    PercentChange      float64
+    AverageMPG         float64
+    FuelEfficiency     float64
+    DriverStats        []DriverStatistic
+    RouteStats         []RouteStatistic
+}
+
+type DriverStatistic struct {
+    DriverName          string
+    TotalTrips          int
+    TotalMiles          int
+    AvgMilesPerTrip     int
+    StudentsTransported int
+    AttendanceRate      float64
+    EfficiencyScore     int
+}
+
+type RouteStatistic struct {
+    RouteName      string
+    TotalRuns      int
+    TotalMiles     int
+    AvgStudents    int
+    Efficiency     float64
+    CostPerStudent float64
+}
 // Activity represents a special activity or trip
 type Activity struct {
 	Date       string  `db:"date"`
