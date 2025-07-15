@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -55,6 +56,55 @@ func init() {
 	funcMap := template.FuncMap{
 		// JSON marshaling
 		"json": jsonMarshal,
+		
+		// ADDED: seq function for generating number sequences (needed for year dropdowns)
+		"seq": func(start, end int) []int {
+			var result []int
+			for i := start; i <= end; i++ {
+				result = append(result, i)
+			}
+			return result
+		},
+		
+		// ADDED: formatNumber for formatting numbers with commas
+		"formatNumber": func(n interface{}) string {
+			var num int
+			switch v := n.(type) {
+			case int:
+				num = v
+			case int64:
+				num = int(v)
+			case float64:
+				num = int(v)
+			default:
+				return fmt.Sprintf("%v", n)
+			}
+			
+			// Format with commas
+			str := fmt.Sprintf("%d", num)
+			if num < 0 {
+				return str // Handle negative numbers simply for now
+			}
+			if num < 1000 {
+				return str
+			}
+			
+			// Add commas every 3 digits from the right
+			var result []string
+			for i := len(str); i > 0; i -= 3 {
+				start := i - 3
+				if start < 0 {
+					start = 0
+				}
+				result = append([]string{str[start:i]}, result...)
+			}
+			return strings.Join(result, ",")
+		},
+		
+		// ADDED: multiply function (handles interface{} types)
+		"multiply": func(a, b interface{}) float64 {
+			return toFloat64(a) * toFloat64(b)
+		},
 		
 		// Mathematical operations
 		"add": func(a, b interface{}) float64 {
@@ -107,7 +157,41 @@ func init() {
 			return fmt.Sprintf(format, toFloat64(f))
 		},
 		"formatCurrency": func(amount interface{}) string {
-			return fmt.Sprintf("$%.2f", toFloat64(amount))
+			// UPDATED: Better currency formatting with commas
+			f := toFloat64(amount)
+			
+			// Format with 2 decimal places
+			str := fmt.Sprintf("%.2f", f)
+			parts := strings.Split(str, ".")
+			
+			// Handle the integer part
+			intPart := parts[0]
+			negative := false
+			if strings.HasPrefix(intPart, "-") {
+				negative = true
+				intPart = intPart[1:]
+			}
+			
+			// Add commas to integer part
+			var result []string
+			for i := len(intPart); i > 0; i -= 3 {
+				start := i - 3
+				if start < 0 {
+					start = 0
+				}
+				result = append([]string{intPart[start:i]}, result...)
+			}
+			
+			formattedInt := strings.Join(result, ",")
+			if negative {
+				formattedInt = "-" + formattedInt
+			}
+			
+			// Combine with decimal part
+			if len(parts) > 1 {
+				return formattedInt + "." + parts[1]
+			}
+			return formattedInt + ".00"
 		},
 		"formatPercent": func(value interface{}) string {
 			return fmt.Sprintf("%.0f%%", toFloat64(value))
@@ -167,6 +251,11 @@ func toFloat64(v interface{}) float64 {
 			if _, err := fmt.Sscanf(x[:len(x)-1], "%f", &val); err == nil {
 				return val
 			}
+		}
+		// Try to parse as float
+		var val float64
+		if _, err := fmt.Sscanf(x, "%f", &val); err == nil {
+			return val
 		}
 		return 0
 	default:
@@ -330,12 +419,11 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/add-route", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addRouteHandler)))))
 	mux.HandleFunc("/edit-route", withRecovery(requireAuth(requireRole("manager")(requireDatabase(editRouteHandler)))))
 	mux.HandleFunc("/delete-route", withRecovery(requireAuth(requireRole("manager")(requireDatabase(deleteRouteHandler)))))
-	mux.HandleFunc("/view-mileage-reports", requireAuth(viewEnhancedMileageReportsHandler))
-	mux.HandleFunc("/export-mileage", requireAuth(exportMileageHandler))
 	
-	// Mileage reports
+	// Mileage reports - FIXED: removed duplicate route
 	mux.HandleFunc("/import-mileage", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importMileageHandler)))))
 	mux.HandleFunc("/view-mileage-reports", withRecovery(requireAuth(requireRole("manager")(requireDatabase(viewMileageReportsHandler)))))
+	mux.HandleFunc("/export-mileage", withRecovery(requireAuth(requireRole("manager")(requireDatabase(exportMileageHandler)))))
 	
 	// Driver profile
 	mux.HandleFunc("/driver/", withRecovery(requireAuth(requireRole("manager")(requireDatabase(driverProfileHandler)))))
