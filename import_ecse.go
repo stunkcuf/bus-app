@@ -81,12 +81,18 @@ func processTransportationSheet(f *excelize.File, sheetName string) (int, error)
 	for i, row := range rows {
 		if containsTransportHeaders(row) {
 			headerRowIndex = i
+			log.Printf("Found header row at index %d", i)
 			break
 		}
 	}
 
 	if headerRowIndex == -1 {
 		log.Printf("No transportation table found in sheet '%s'", sheetName)
+		// Log first 10 rows to debug
+		log.Printf("First 10 rows of sheet:")
+		for i := 0; i < len(rows) && i < 10; i++ {
+			log.Printf("Row %d: %v", i, rows[i])
+		}
 		return 0, nil
 	}
 
@@ -95,7 +101,22 @@ func processTransportationSheet(f *excelize.File, sheetName string) (int, error)
 	log.Printf("Found %d routes", len(routes))
 
 	// Find student names section (usually after the table)
-	students := extractStudentNames(rows, headerRowIndex + len(routes) + 2)
+	// Calculate where student section might start
+	studentsStartIndex := headerRowIndex + len(routes) + 2
+	
+	// Look for student section more intelligently
+	for i := studentsStartIndex; i < len(rows) && i < studentsStartIndex + 10; i++ {
+		if i < len(rows) && len(rows[i]) > 0 {
+			firstCell := strings.TrimSpace(rows[i][0])
+			if isProgramHeader(firstCell) || looksLikeStudentName(firstCell) {
+				studentsStartIndex = i
+				log.Printf("Found student section starting at row %d", i)
+				break
+			}
+		}
+	}
+	
+	students := extractStudentNames(rows, studentsStartIndex)
 	log.Printf("Found %d students total", len(students))
 
 	// Import students
@@ -188,6 +209,9 @@ func parseTransportationRoutes(rows [][]string, headerIndex int) []Transportatio
 			fmt.Sscanf(row[3], "%d", &route.ECSEStudents)
 		}
 		
+		// Log the route for debugging
+		log.Printf("Route: %s, Driver: %s, ECSE Students: %d", route.Center, route.Driver, route.ECSEStudents)
+		
 		routes = append(routes, route)
 	}
 	
@@ -222,6 +246,7 @@ func extractStudentNames(rows [][]string, startIndex int) []StudentInfo {
 		firstCell := strings.TrimSpace(row[0])
 		if isProgramHeader(firstCell) {
 			currentProgram = firstCell
+			log.Printf("Found program: %s", currentProgram)
 			continue
 		}
 		
@@ -233,7 +258,7 @@ func extractStudentNames(rows [][]string, startIndex int) []StudentInfo {
 				studentInfo.Program = currentProgram
 				
 				// Determine if student has transportation based on program
-				studentInfo.HasTransportation = !strings.Contains(currentProgram, "NO TRANSPORT")
+				studentInfo.HasTransportation = !strings.Contains(strings.ToUpper(currentProgram), "NO TRANSPORT")
 				studentInfo.Route = currentProgram
 				
 				students = append(students, studentInfo)
@@ -249,12 +274,27 @@ func isProgramHeader(text string) bool {
 	// Common program patterns
 	programPatterns := []string{
 		"VICTORY SQUARE", "HCSR", "AWDC", "CWEL", "VS-", "RH-D",
+		"PROGRAM", "CENTER", "ROUTE",
 	}
 	
 	text = strings.ToUpper(text)
+	
+	// Check if it matches any pattern
 	for _, pattern := range programPatterns {
 		if strings.Contains(text, pattern) {
 			return true
+		}
+	}
+	
+	// Also check if it's a short code that might be a program (e.g., "VS 2", "HCSR 3")
+	if len(text) <= 20 && !looksLikeStudentName(text) && strings.Contains(text, " ") {
+		// Check if it has a number at the end (common for program codes)
+		parts := strings.Fields(text)
+		if len(parts) >= 2 {
+			lastPart := parts[len(parts)-1]
+			if _, err := fmt.Sscanf(lastPart, "%d", new(int)); err == nil {
+				return true
+			}
 		}
 	}
 	
@@ -391,7 +431,7 @@ func saveECSEStudent(student ECSEStudent) error {
 		return fmt.Errorf("database not initialized")
 	}
 
-	// Use sql.NullString for nullable fields
+	// Use CAST to handle date type properly
 	_, err := db.Exec(`
 		INSERT INTO ecse_students (
 			student_id, first_name, last_name, date_of_birth, grade,
@@ -399,10 +439,15 @@ func saveECSEStudent(student ECSEStudent) error {
 			transportation_required, bus_route, parent_name, parent_phone,
 			parent_email, address, city, state, zip_code, notes, created_at, updated_at
 		) VALUES (
-			$1, $2, $3, NULLIF($4, ''), $5, $6, NULLIF($7, ''), NULLIF($8, ''), $9, $10, 
+			$1, $2, $3, 
+			CASE WHEN $4 = '' THEN NULL ELSE $4::DATE END, 
+			$5, $6, 
+			NULLIF($7, ''), NULLIF($8, ''), 
+			$9, $10, 
 			NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''), NULLIF($14, ''), 
 			NULLIF($15, ''), NULLIF($16, ''), NULLIF($17, ''), NULLIF($18, ''), 
-			NULLIF($19, ''), $20, $21
+			NULLIF($19, ''), 
+			$20, $21
 		)
 		ON CONFLICT (student_id) DO UPDATE SET
 			first_name = EXCLUDED.first_name,
