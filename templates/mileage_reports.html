@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mileage Reports - Fleet Management System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style nonce="{{.CSPNonce}}">
+    :root {
+      --grad-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --grad-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      --grad-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --grad-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --grad-danger: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
+    }
+    
+    body {
+      background-color: #f8f9fa;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    
+    .page-header {
+      background: var(--grad-primary);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 15px;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
+    
+    .page-header .btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      transition: all 0.3s ease;
+    }
+    
+    .page-header .btn:hover {
+      background: rgba(255,255,255,0.3);
+      transform: translateY(-2px);
+      color: white;
+    }
+    
+    .summary-card {
+      background: white;
+      border-radius: 15px;
+      padding: 1.5rem;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+      margin-bottom: 1.5rem;
+      transition: all 0.3s ease;
+    }
+    
+    .summary-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    
+    .summary-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    
+    .summary-label {
+      color: #6c757d;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .filter-card {
+      background: white;
+      border-radius: 15px;
+      padding: 1.5rem;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+      margin-bottom: 2rem;
+    }
+    
+    .report-table {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .report-table table {
+      margin-bottom: 0;
+    }
+    
+    .report-table th {
+      background: #f8f9fa;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid #dee2e6;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    .table-section-header {
+      background: linear-gradient(45deg, #e9ecef, #f8f9fa);
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+    
+    .table-section-header td {
+      padding: 1rem;
+      border-bottom: 2px solid #dee2e6;
+    }
+    
+    .status-badge {
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      font-weight: 500;
+      font-size: 0.8rem;
+    }
+    
+    .status-active {
+      background: rgba(17, 153, 142, 0.1);
+      color: #11998e;
+    }
+    
+    .status-inactive {
+      background: rgba(255, 107, 107, 0.1);
+      color: #ff6b6b;
+    }
+    
+    .cost-per-mile {
+      font-weight: 600;
+      color: #fa709a;
+    }
+    
+    .efficiency-bar {
+      height: 8px;
+      background: #e9ecef;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+    
+    .efficiency-fill {
+      height: 100%;
+      background: var(--grad-success);
+      transition: width 0.3s ease;
+    }
+    
+    .btn-export {
+      background: var(--grad-success);
+      color: white;
+      border: none;
+      padding: 0.5rem 1.5rem;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    
+    .btn-export:hover {
+      background: var(--grad-success);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(17, 153, 142, 0.3);
+      color: white;
+    }
+    
+    .nav-tabs {
+      border-bottom: 2px solid #e9ecef;
+      margin-bottom: 2rem;
+    }
+    
+    .nav-tabs .nav-link {
+      color: #6c757d;
+      font-weight: 500;
+      border: none;
+      padding: 1rem 1.5rem;
+      transition: all 0.3s ease;
+    }
+    
+    .nav-tabs .nav-link:hover {
+      color: #667eea;
+      background: rgba(102, 126, 234, 0.05);
+    }
+    
+    .nav-tabs .nav-link.active {
+      color: #667eea;
+      background: white;
+      border-bottom: 3px solid #667eea;
+    }
+    
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .print-header {
+      display: none;
+    }
+    
+    @media print {
+      .page-header, .filter-card, .btn-export, .nav-tabs {
+        display: none !important;
+      }
+      
+      .print-header {
+        display: block;
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+      
+      .summary-card {
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid py-4">
+    <!-- Print Header -->
+    <div class="print-header">
+      <h2>Fleet Mileage Report</h2>
+      <p>{{.ReportMonth}} {{.ReportYear}}</p>
+      <p>Generated: {{.CurrentDate}}</p>
+    </div>
+
+    <!-- Header -->
+    <header class="page-header">
+      <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+          <h1 class="fs-3 mb-1">
+            <i class="bi bi-speedometer2 me-2"></i>Mileage Reports
+          </h1>
+          <p class="mb-0 opacity-75">Fleet mileage tracking and cost analysis</p>
+        </div>
+        <nav class="btn-group btn-group-sm" role="group">
+          <a href="/import-mileage" class="btn">
+            <i class="bi bi-upload me-1"></i>Import Data
+          </a>
+          <button type="button" class="btn" onclick="exportReport()">
+            <i class="bi bi-download me-1"></i>Export
+          </button>
+          <button type="button" class="btn" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i>Print
+          </button>
+          <a href="/manager-dashboard" class="btn">
+            <i class="bi bi-arrow-left me-1"></i>Dashboard
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Filters -->
+    <div class="filter-card">
+      <form method="GET" class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Report Period</label>
+          <select class="form-select" name="month" id="monthSelect">
+            <option value="January" {{if eq .ReportMonth "January"}}selected{{end}}>January</option>
+            <option value="February" {{if eq .ReportMonth "February"}}selected{{end}}>February</option>
+            <option value="March" {{if eq .ReportMonth "March"}}selected{{end}}>March</option>
+            <option value="April" {{if eq .ReportMonth "April"}}selected{{end}}>April</option>
+            <option value="May" {{if eq .ReportMonth "May"}}selected{{end}}>May</option>
+            <option value="June" {{if eq .ReportMonth "June"}}selected{{end}}>June</option>
+            <option value="July" {{if eq .ReportMonth "July"}}selected{{end}}>July</option>
+            <option value="August" {{if eq .ReportMonth "August"}}selected{{end}}>August</option>
+            <option value="September" {{if eq .ReportMonth "September"}}selected{{end}}>September</option>
+            <option value="October" {{if eq .ReportMonth "October"}}selected{{end}}>October</option>
+            <option value="November" {{if eq .ReportMonth "November"}}selected{{end}}>November</option>
+            <option value="December" {{if eq .ReportMonth "December"}}selected{{end}}>December</option>
+          </select>
+        </div>
+        
+        <div class="col-md-2">
+          <label class="form-label">Year</label>
+          <select class="form-select" name="year" id="yearSelect">
+            {{range $i := seq 2020 2030}}
+            <option value="{{$i}}" {{if eq $.ReportYear (printf "%d" $i)}}selected{{end}}>{{$i}}</option>
+            {{end}}
+          </select>
+        </div>
+        
+        <div class="col-md-3">
+          <label class="form-label">Report Type</label>
+          <select class="form-select" name="type">
+            <option value="all" {{if eq .ReportType "all"}}selected{{end}}>All Vehicles</option>
+            <option value="agency" {{if eq .ReportType "agency"}}selected{{end}}>Agency Vehicles</option>
+            <option value="school" {{if eq .ReportType "school"}}selected{{end}}>School Buses</option>
+          </select>
+        </div>
+        
+        <div class="col-md-2">
+          <label class="form-label">&nbsp;</label>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-funnel me-2"></i>Apply Filters
+          </button>
+        </div>
+        
+        <div class="col-md-2">
+          <label class="form-label">&nbsp;</label>
+          <button type="button" class="btn btn-export w-100" onclick="exportReport()">
+            <i class="bi bi-file-earmark-excel me-2"></i>Export Excel
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-value text-primary">{{.TotalVehicles}}</div>
+        <div class="summary-label">Total Vehicles</div>
+        <div class="efficiency-bar">
+          <div class="efficiency-fill" style="width: 100%"></div>
+        </div>
+      </div>
+      
+      <div class="summary-card">
+        <div class="summary-value text-success">{{formatNumber .TotalMiles}}</div>
+        <div class="summary-label">Total Miles Driven</div>
+        <small class="text-muted">{{.PercentChange}}% vs last month</small>
+      </div>
+      
+      <div class="summary-card">
+        <div class="summary-value text-warning">${{formatCurrency .EstimatedCost}}</div>
+        <div class="summary-label">Estimated Fuel Cost</div>
+        <small class="text-muted">@ ${{.CostPerMile}}/mile</small>
+      </div>
+      
+      <div class="summary-card">
+        <div class="summary-value text-info">{{.AverageMPG}}</div>
+        <div class="summary-label">Fleet Average MPG</div>
+        <small class="text-muted">{{.FuelEfficiency}}% efficiency</small>
+      </div>
+    </div>
+
+    <!-- Report Tabs -->
+    <ul class="nav nav-tabs" role="tablist">
+      <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#vehicles">
+          <i class="bi bi-truck me-2"></i>Vehicle Details
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#drivers">
+          <i class="bi bi-people me-2"></i>Driver Summary
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#routes">
+          <i class="bi bi-map me-2"></i>Route Analysis
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#costs">
+          <i class="bi bi-currency-dollar me-2"></i>Cost Breakdown
+        </a>
+      </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <!-- Vehicle Details Tab -->
+      <div class="tab-pane fade show active" id="vehicles">
+        <div class="report-table">
+          {{if or .Data.AgencyVehicles .Data.SchoolBuses}}
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Vehicle ID</th>
+                <th>Year/Make/Model</th>
+                <th>License</th>
+                <th>Location</th>
+                <th>Start Miles</th>
+                <th>End Miles</th>
+                <th>Total Miles</th>
+                <th>Cost/Mile</th>
+                <th>Est. Cost</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{if .Data.AgencyVehicles}}
+              <tr class="table-section-header">
+                <td colspan="10">
+                  <i class="bi bi-building me-2"></i>Agency Vehicles
+                </td>
+              </tr>
+              {{range .Data.AgencyVehicles}}
+              <tr>
+                <td><strong>{{.VehicleID}}</strong></td>
+                <td>{{.VehicleYear}} {{.MakeModel}}</td>
+                <td>{{.LicensePlate}}</td>
+                <td>{{.Location}}</td>
+                <td>{{formatNumber .BeginningMiles}}</td>
+                <td>{{formatNumber .EndingMiles}}</td>
+                <td><strong>{{formatNumber .TotalMiles}}</strong></td>
+                <td class="cost-per-mile">${{$.CostPerMile}}</td>
+                <td><strong>${{formatCurrency (multiply .TotalMiles $.CostPerMile)}}</strong></td>
+                <td>
+                  {{if eq .Status "active"}}
+                    <span class="status-badge status-active">Active</span>
+                  {{else}}
+                    <span class="status-badge status-inactive">{{.Status}}</span>
+                  {{end}}
+                </td>
+              </tr>
+              {{end}}
+              {{end}}
+              
+              {{if .Data.SchoolBuses}}
+              <tr class="table-section-header">
+                <td colspan="10">
+                  <i class="bi bi-bus-front me-2"></i>School Buses
+                </td>
+              </tr>
+              {{range .Data.SchoolBuses}}
+              <tr>
+                <td><strong>{{.BusID}}</strong></td>
+                <td>{{if .BusYear}}{{.BusYear}} {{end}}{{.BusMake}}</td>
+                <td>{{.LicensePlate}}</td>
+                <td>{{.Location}}</td>
+                <td>{{formatNumber .BeginningMiles}}</td>
+                <td>{{formatNumber .EndingMiles}}</td>
+                <td><strong>{{formatNumber .TotalMiles}}</strong></td>
+                <td class="cost-per-mile">${{$.CostPerMile}}</td>
+                <td><strong>${{formatCurrency (multiply .TotalMiles $.CostPerMile)}}</strong></td>
+                <td>
+                  {{if eq .Status "active"}}
+                    <span class="status-badge status-active">Active</span>
+                  {{else}}
+                    <span class="status-badge status-inactive">{{.Status}}</span>
+                  {{end}}
+                </td>
+              </tr>
+              {{end}}
+              {{end}}
+            </tbody>
+            <tfoot>
+              <tr class="table-light">
+                <th colspan="6">Totals</th>
+                <th>{{formatNumber .TotalMiles}}</th>
+                <th>-</th>
+                <th>${{formatCurrency .EstimatedCost}}</th>
+                <th>-</th>
+              </tr>
+            </tfoot>
+          </table>
+          {{else}}
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-inbox fs-1"></i>
+            <p class="mt-3">No mileage data for {{.ReportMonth}} {{.ReportYear}}</p>
+            <a href="/import-mileage" class="btn btn-primary">
+              <i class="bi bi-upload me-2"></i>Import Data
+            </a>
+          </div>
+          {{end}}
+        </div>
+      </div>
+
+      <!-- Driver Summary Tab -->
+      <div class="tab-pane fade" id="drivers">
+        <div class="report-table">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Driver</th>
+                <th>Total Trips</th>
+                <th>Total Miles</th>
+                <th>Avg Miles/Trip</th>
+                <th>Students Transported</th>
+                <th>Attendance Rate</th>
+                <th>Efficiency Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{range .DriverStats}}
+              <tr>
+                <td><strong>{{.DriverName}}</strong></td>
+                <td>{{.TotalTrips}}</td>
+                <td>{{formatNumber .TotalMiles}}</td>
+                <td>{{.AvgMilesPerTrip}}</td>
+                <td>{{.StudentsTransported}}</td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <span class="me-2">{{.AttendanceRate}}%</span>
+                    <div class="efficiency-bar flex-grow-1" style="width: 100px;">
+                      <div class="efficiency-fill" style="width: {{.AttendanceRate}}%"></div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge bg-{{if gt .EfficiencyScore 90}}success{{else if gt .EfficiencyScore 70}}warning{{else}}danger{{end}}">
+                    {{.EfficiencyScore}}%
+                  </span>
+                </td>
+              </tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Route Analysis Tab -->
+      <div class="tab-pane fade" id="routes">
+        <div class="report-table">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Route</th>
+                <th>Total Runs</th>
+                <th>Total Miles</th>
+                <th>Avg Students</th>
+                <th>Efficiency</th>
+                <th>Cost/Student</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{range .RouteStats}}
+              <tr>
+                <td><strong>{{.RouteName}}</strong></td>
+                <td>{{.TotalRuns}}</td>
+                <td>{{formatNumber .TotalMiles}}</td>
+                <td>{{.AvgStudents}}</td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <span class="me-2">{{.Efficiency}}%</span>
+                    <div class="efficiency-bar flex-grow-1" style="width: 100px;">
+                      <div class="efficiency-fill" style="width: {{.Efficiency}}%"></div>
+                    </div>
+                  </div>
+                </td>
+                <td>${{formatCurrency .CostPerStudent}}</td>
+              </tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Cost Breakdown Tab -->
+      <div class="tab-pane fade" id="costs">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="summary-card">
+              <h5 class="mb-3">Cost by Vehicle Type</h5>
+              <table class="table">
+                <tr>
+                  <td>Agency Vehicles</td>
+                  <td class="text-end">${{formatCurrency .AgencyVehicleCost}}</td>
+                </tr>
+                <tr>
+                  <td>School Buses</td>
+                  <td class="text-end">${{formatCurrency .SchoolBusCost}}</td>
+                </tr>
+                <tr class="fw-bold">
+                  <td>Total Fuel Cost</td>
+                  <td class="text-end">${{formatCurrency .TotalFuelCost}}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+          
+          <div class="col-md-6">
+            <div class="summary-card">
+              <h5 class="mb-3">Efficiency Metrics</h5>
+              <table class="table">
+                <tr>
+                  <td>Miles per Student</td>
+                  <td class="text-end">{{.MilesPerStudent}}</td>
+                </tr>
+                <tr>
+                  <td>Cost per Student</td>
+                  <td class="text-end">${{formatCurrency .CostPerStudent}}</td>
+                </tr>
+                <tr>
+                  <td>Vehicle Utilization</td>
+                  <td class="text-end">{{.VehicleUtilization}}%</td>
+                </tr>
+                <tr>
+                  <td>Route Optimization</td>
+                  <td class="text-end">{{.RouteOptimization}}%</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script nonce="{{.CSPNonce}}">
+    function exportReport() {
+      const params = new URLSearchParams(window.location.search);
+      params.append('export', 'excel');
+      window.location.href = '/export-mileage?' + params.toString();
+    }
+    
+    // Auto-refresh data when filters change
+    document.getElementById('monthSelect').addEventListener('change', function() {
+      document.querySelector('form').submit();
+    });
+    
+    document.getElementById('yearSelect').addEventListener('change', function() {
+      document.querySelector('form').submit();
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+        window.print();
+      }
+      
+      if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        e.preventDefault();
+        exportReport();
+      }
+    });
+  </script>
+</body>
+</html>
