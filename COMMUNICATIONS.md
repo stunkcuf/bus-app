@@ -1,115 +1,136 @@
-# Communications
+# Project Coordination Dashboard
 
-## Overview
-This document outlines communication channels, guidelines, and processes for the project team.
+## 🎯 OVERALL GOAL
+**[DEFINE YOUR PROJECT GOAL HERE]**
+*Example: Build a full-stack web application with user authentication, data management, and real-time features*
 
-## Communication Channels
+## 📋 PROJECT REQUIREMENTS
 
-### Primary Channels
-- **Project Repository**: GitHub Issues and Pull Requests for technical discussions
-- **Team Chat**: [Add your team chat platform - Slack, Discord, Teams, etc.]
-- **Email**: [Add team email list or primary contact]
-- **Video Meetings**: [Add meeting platform - Zoom, Google Meet, etc.]
+### Core Features to Build
+- [ ] **Feature 1**: [Description of what needs to be built]
+- [ ] **Feature 2**: [Description of what needs to be built]
+- [ ] **Feature 3**: [Description of what needs to be built]
 
-### Emergency Contact
-- **On-call contact**: [Add emergency contact information]
-- **Escalation path**: [Add escalation procedures]
+### Technical Specifications
+- [ ] **Frontend**: [Requirements - React, Vue, etc.]
+- [ ] **Backend**: [Requirements - API design, database schema]
+- [ ] **Infrastructure**: [Requirements - deployment, hosting, etc.]
 
-## Communication Guidelines
-
-### Response Times
-- **Urgent issues**: 2-4 hours during business hours
-- **General questions**: 24-48 hours
-- **Code reviews**: 48 hours
-- **Documentation updates**: 1 week
-
-### Best Practices
-- Use clear, descriptive subject lines
-- Tag relevant team members when needed
-- Keep discussions in appropriate channels
-- Document important decisions in this repository
-- Follow up on action items within agreed timeframes
-
-## Meeting Schedule
-
-### Regular Meetings
-- **Team Standup**: [Day/Time - add your schedule]
-- **Sprint Planning**: [Day/Time - add your schedule]
-- **Retrospectives**: [Day/Time - add your schedule]
-- **Architecture Reviews**: [Day/Time - add your schedule]
-
-### Meeting Guidelines
-- Prepare agenda in advance
-- Share relevant materials beforehand
-- Take notes and share action items
-- Record decisions in appropriate documentation
-
-## Project Updates
-
-### Status Reports
-- **Frequency**: [Weekly/Bi-weekly/Monthly]
-- **Format**: [Add preferred format]
-- **Distribution**: [Add distribution list]
-
-### Change Notifications
-- Major feature releases
-- Breaking changes
-- Security updates
-- Infrastructure changes
-
-## Documentation Standards
-
-### Technical Communication
-- Use clear, concise language
-- Include code examples when relevant
-- Link to related documentation
-- Update documentation with code changes
-
-### Issue Tracking
-- Use descriptive titles
-- Provide reproduction steps for bugs
-- Include environment information
-- Tag with appropriate labels
-
-## Contact Information
-
-### Team Members
-| Name | Role | Contact | Timezone |
-|------|------|---------|----------|
-| [Name] | [Role] | [Email/Handle] | [Timezone] |
-| [Name] | [Role] | [Email/Handle] | [Timezone] |
-
-### External Contacts
-- **Infrastructure Support**: [Contact info]
-- **Security Team**: [Contact info]
-- **Product Owner**: [Contact info]
-
-## Escalation Procedures
-
-### Technical Issues
-1. Check existing documentation
-2. Search previous issues/discussions
-3. Ask in team chat
-4. Create GitHub issue if needed
-5. Escalate to team lead if urgent
-
-### Process Issues
-1. Discuss with immediate team
-2. Bring to next team meeting
-3. Escalate to project manager
-4. Involve stakeholders if necessary
-
-## Communication History
-
-### Important Decisions
-- [Date]: [Decision summary and link to discussion]
-- [Date]: [Decision summary and link to discussion]
-
-### Meeting Notes Archive
-- [Link to meeting notes folder/wiki]
-- [Link to recorded sessions if applicable]
+### Quality Requirements
+- [ ] **Testing**: [Unit tests, integration tests, etc.]
+- [ ] **Documentation**: [API docs, user guides, etc.]
+- [ ] **Performance**: [Speed, scalability requirements]
 
 ---
 
-**Last Updated**: [Current Date]  
-**Next Review**: [Date for next review]
+## 🤖 TERMINAL ASSIGNMENTS
+
+### Terminal 1: Frontend Development
+**Current Status**: `[IDLE/WORKING/BLOCKED]`
+**Primary Responsibilities**:
+- User interface development
+- Frontend architecture
+- Component design and implementation
+- Client-side state management
+
+**Current Tasks**:
+- [ ] [Current task description]
+- [ ] [Next planned task]
+
+---
+
+### Terminal 2: Backend Development  
+**Current Status**: `[IDLE/WORKING/BLOCKED]`
+**Primary Responsibilities**:
+- API development
+- Database design and implementation
+- Server-side logic
+- Authentication and security
+
+**Current Tasks**:
+- [ ] [Current task description]
+- [ ] [Next planned task]
+
+---
+
+### Terminal 3: DevOps & Integration
+**Current Status**: `[IDLE/WORKING/BLOCKED]`
+**Primary Responsibilities**:
+- Deployment pipeline
+- Infrastructure setup
+- Testing automation
+- Integration between frontend and backend
+
+**Current Tasks**:
+- [ ] [Current task description]
+- [ ] [Next planned task]
+
+---
+
+## 📊 PROGRESS TRACKING
+
+### Completed Features
+- ✅ [Completed item 1] - *Completed by Terminal X on [date]*
+- ✅ [Completed item 2] - *Completed by Terminal Y on [date]*
+
+### In Progress
+- 🔄 [Current work item 1] - *Terminal X - Started [date]*
+- 🔄 [Current work item 2] - *Terminal Y - Started [date]*
+
+### Blocked/Waiting
+- ⏸️ [Blocked item] - *Waiting for: [dependency/resource]*
+
+---
+
+## 📝 ACTION LOG
+
+### Today - [Current Date]
+- **[Time]** - Terminal 1: [Action taken - file created, feature implemented, etc.]
+- **[Time]** - Terminal 2: [Action taken]
+- **[Time]** - Terminal 3: [Action taken]
+
+### [Previous Date]
+- **[Time]** - Terminal X: [Historical action]
+- **[Time]** - Terminal Y: [Historical action]
+
+---
+
+## 🔄 INTER-TERMINAL COMMUNICATION
+
+### Handoffs Needed
+- [ ] **From Terminal X to Terminal Y**: [What needs to be passed/coordinated]
+- [ ] **From Terminal Y to Terminal Z**: [What needs to be passed/coordinated]
+
+### Shared Resources
+- **Database Schema**: [Current status/location]
+- **API Endpoints**: [Documentation location]
+- **Shared Components**: [Location/status]
+
+### Dependencies
+- **Terminal 2 waiting for**: [What Terminal 2 needs from others]
+- **Terminal 1 waiting for**: [What Terminal 1 needs from others]
+- **Terminal 3 waiting for**: [What Terminal 3 needs from others]
+
+---
+
+## ⚠️ COORDINATION RULES
+
+1. **Before starting new work**: Check this file for current assignments
+2. **After completing tasks**: Update your status and action log
+3. **When blocked**: Update status and document what you're waiting for
+4. **When making changes that affect others**: Add to handoffs section
+5. **Communication protocol**: Use this file as single source of truth
+
+---
+
+## 🚨 IMMEDIATE PRIORITIES
+*Update this section with urgent items that need attention*
+
+1. **Priority 1**: [Urgent task/blocker]
+2. **Priority 2**: [Important next step]
+3. **Priority 3**: [Critical coordination needed]
+
+---
+
+**Last Updated**: [Auto-update timestamp]  
+**Next Review**: [When to check coordination again]
