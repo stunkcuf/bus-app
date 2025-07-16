@@ -65,6 +65,14 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+// renderLoginError renders the login page with an error message
+func renderLoginError(w http.ResponseWriter, r *http.Request, errorMsg string) {
+	csrfToken, _ := GenerateSecureToken()
+	renderTemplate(w, r, "login.html", LoginFormData{
+		Error:     errorMsg,
+		CSRFToken: csrfToken,
+	})
+}
 
 // registerHandler handles user registration
 func registerHandler(w http.ResponseWriter, r *http.Request) {
