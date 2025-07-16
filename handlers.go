@@ -158,32 +158,52 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load data based on role
-	data := DashboardData{
-		User:      user,
-		Role:      user.Role,
-		CSRFToken: getSessionCSRFToken(r), // Use session CSRF token
+	// Debug logging
+	log.Printf("Dashboard accessed by user: %s with role: %s", user.Username, user.Role)
+
+	// Ensure managers go to manager dashboard
+	if user.Role != "manager" {
+		log.Printf("Non-manager user %s trying to access manager dashboard, redirecting", user.Username)
+		http.Redirect(w, r, "/driver-dashboard", http.StatusSeeOther)
+		return
 	}
 
-	if user.Role == "manager" {
-		// Load manager-specific data
-		data.Users = loadUsers()
-		data.Buses = loadBuses()
-		
-		// Convert []Route to []*Route
-		routes, _ := loadRoutes()
-		routePtrs := make([]*Route, len(routes))
-		for i := range routes {
-			routePtrs[i] = &routes[i]
-		}
-		data.Routes = routePtrs
-		
-		data.DriverSummaries = loadDriverSummaries()
-		data.RouteStats = loadRouteStats()
-		activities, _ := loadActivities()
-		data.Activities = activities
-		data.PendingUsers = countPendingUsers()
+	// Load manager-specific data
+	users := loadUsers()
+	buses := loadBuses()
+	
+	// Convert []Route to []*Route
+	routes, _ := loadRoutes()
+	routePtrs := make([]*Route, len(routes))
+	for i := range routes {
+		routePtrs[i] = &routes[i]
 	}
+	
+	driverSummaries := loadDriverSummaries()
+	routeStats := loadRouteStats()
+	activities, _ := loadActivities()
+	pendingUsers := countPendingUsers()
+
+	// Create the data structure that matches what the template expects
+	data := map[string]interface{}{
+		"Data": map[string]interface{}{
+			"User":            user,
+			"Role":            user.Role,
+			"Users":           users,
+			"Buses":           buses,
+			"Routes":          routePtrs,
+			"DriverSummaries": driverSummaries,
+			"RouteStats":      routeStats,
+			"Activities":      activities,
+			"PendingUsers":    pendingUsers,
+			"CSRFToken":       getSessionCSRFToken(r),
+		},
+		"CSPNonce": getCSPNonce(r),
+	}
+
+	// Debug log the data structure
+	log.Printf("Rendering dashboard for manager %s with %d users, %d buses, %d routes", 
+		user.Username, len(users), len(buses), len(routes))
 
 	renderTemplate(w, r, "dashboard.html", data)
 }
@@ -587,8 +607,15 @@ func calculateEfficiencyScore(stat DriverStatistic) int {
 // driverDashboardHandler serves the driver dashboard
 func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
-	if user == nil || user.Role != "driver" {
+	if user == nil {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	// Ensure drivers go to driver dashboard
+	if user.Role != "driver" {
+		log.Printf("Non-driver user %s trying to access driver dashboard, redirecting", user.Username)
+		http.Redirect(w, r, "/manager-dashboard", http.StatusSeeOther)
 		return
 	}
 
@@ -653,18 +680,22 @@ func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	// Get recent logs
 	recentLogs := getDriverLogs(user.Username, 7)
 
+	// Create data structure for driver dashboard template
 	data := map[string]interface{}{
-		"User":       user,
-		"Assignment": assignment,
-		"Bus":        bus,
-		"Route":      route,
-		"Students":   students,
-		"DriverLog":  driverLogPtr,
-		"RecentLogs": recentLogs,
-		"Date":       date,
-		"Period":     period,
-		"Today":      time.Now().Format("2006-01-02"),
-		"CSRFToken":  getSessionCSRFToken(r),
+		"Data": map[string]interface{}{
+			"User":       user,
+			"Assignment": assignment,
+			"Bus":        bus,
+			"Route":      route,
+			"Students":   students,
+			"DriverLog":  driverLogPtr,
+			"RecentLogs": recentLogs,
+			"Date":       date,
+			"Period":     period,
+			"Today":      time.Now().Format("2006-01-02"),
+			"CSRFToken":  getSessionCSRFToken(r),
+		},
+		"CSPNonce": getCSPNonce(r),
 	}
 
 	renderTemplate(w, r, "driver_dashboard.html", data)
@@ -2165,4 +2196,37 @@ func getCSPNonce(r *http.Request) string {
 		return nonce
 	}
 	return ""
+}
+
+// Add these missing helper functions if they don't exist elsewhere
+func getDriverLogsByDateRange(driver, startDate, endDate string) ([]DriverLog, error) {
+	logs := []DriverLog{}
+	rows, err := db.Query(`
+		SELECT id, driver, bus_id, route_id, date, period, departure_time, arrival_time, mileage, attendance
+		FROM driver_logs
+		WHERE driver = $1 AND date BETWEEN $2 AND $3
+		ORDER BY date DESC, period DESC
+	`, driver, startDate, endDate)
+	
+	if err != nil {
+		return logs, err
+	}
+	defer rows.Close()
+	
+	for rows.Next() {
+		var log DriverLog
+		var attendanceJSON sql.NullString
+		err := rows.Scan(&log.ID, &log.Driver, &log.BusID, &log.RouteID, &log.Date, 
+			&log.Period, &log.Departure, &log.Arrival, &log.Mileage, &attendanceJSON)
+		
+		if err == nil {
+			// Parse attendance JSON
+			if attendanceJSON.Valid && attendanceJSON.String != "" {
+				json.Unmarshal([]byte(attendanceJSON.String), &log.Attendance)
+			}
+			logs = append(logs, log)
+		}
+	}
+	
+	return logs, nil
 }
