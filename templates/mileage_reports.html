@@ -136,7 +136,7 @@
 <body>
   <div class="container-fluid py-4">
     <!-- Store CSRF Token -->
-    <input type="hidden" id="csrfToken" value="{{.Data.CSRFToken}}">
+    <input type="hidden" id="csrfToken" value="{{.CSRFToken}}">
 
     <!-- Header -->
     <header class="page-header">
@@ -214,32 +214,33 @@
     </div>
 
     <!-- Summary Statistics (Only show if we have data) -->
-    {{if .Data}}
+    {{if .TotalVehicles}}
     <div class="summary-grid">
       <div class="summary-card">
-        <div class="summary-value text-primary">{{if .Data.TotalVehicles}}{{.Data.TotalVehicles}}{{else}}0{{end}}</div>
+        <div class="summary-value text-primary">{{.TotalVehicles}}</div>
         <div class="summary-label">Total Vehicles</div>
       </div>
       
       <div class="summary-card">
-        <div class="summary-value text-success">{{if .Data.TotalMiles}}{{formatNumber .Data.TotalMiles}}{{else}}0{{end}}</div>
+        <div class="summary-value text-success">{{formatNumber .TotalMiles}}</div>
         <div class="summary-label">Total Miles Driven</div>
       </div>
       
       <div class="summary-card">
-        <div class="summary-value text-warning">${{if .Data.EstimatedCost}}{{formatCurrency .Data.EstimatedCost}}{{else}}0.00{{end}}</div>
+        <div class="summary-value text-warning">${{formatCurrency .EstimatedCost}}</div>
         <div class="summary-label">Estimated Fuel Cost</div>
       </div>
       
       <div class="summary-card">
-        <div class="summary-value text-info">{{if .Data.CostPerMile}}${{.Data.CostPerMile}}{{else}}$0.55{{end}}</div>
+        <div class="summary-value text-info">${{if .CostPerMile}}{{.CostPerMile}}{{else}}0.55{{end}}</div>
         <div class="summary-label">Cost Per Mile</div>
       </div>
     </div>
+    {{end}}
 
     <!-- Vehicle Details Table -->
     <div class="report-table">
-      {{if or .Data.AgencyVehicles .Data.SchoolBuses}}
+      {{if or .AgencyVehicles .SchoolBuses}}
       <table class="table table-hover mb-0">
         <thead>
           <tr>
@@ -254,13 +255,13 @@
           </tr>
         </thead>
         <tbody>
-          {{if .Data.AgencyVehicles}}
+          {{if .AgencyVehicles}}
           <tr class="table-section-header">
             <td colspan="8">
               <i class="bi bi-building me-2"></i>Agency Vehicles
             </td>
           </tr>
-          {{range .Data.AgencyVehicles}}
+          {{range .AgencyVehicles}}
           <tr>
             <td><strong>{{.VehicleID}}</strong></td>
             <td>{{.VehicleYear}} {{.MakeModel}}</td>
@@ -280,13 +281,13 @@
           {{end}}
           {{end}}
           
-          {{if .Data.SchoolBuses}}
+          {{if .SchoolBuses}}
           <tr class="table-section-header">
             <td colspan="8">
               <i class="bi bi-bus-front me-2"></i>School Buses
             </td>
           </tr>
-          {{range .Data.SchoolBuses}}
+          {{range .SchoolBuses}}
           <tr>
             <td><strong>{{.BusID}}</strong></td>
             <td>{{if .BusYear}}{{.BusYear}} {{end}}{{.BusMake}}</td>
@@ -317,13 +318,6 @@
       </div>
       {{end}}
     </div>
-    {{else}}
-    <!-- No data at all -->
-    <div class="alert alert-info" role="alert">
-      <i class="bi bi-info-circle me-2"></i>
-      No mileage data available. Please import data or check your filters.
-    </div>
-    {{end}}
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
