@@ -244,7 +244,7 @@ func loadStudentsFromDB() ([]Student, error) {
 
 // Save functions
 
-func saveBusMaintenanceLog(log BusMaintenanceLog) error {
+func saveBusMaintenanceLog(busLog BusMaintenanceLog) error {
 	if db == nil {
 		return fmt.Errorf("database not initialized")
 	}
@@ -254,28 +254,28 @@ func saveBusMaintenanceLog(log BusMaintenanceLog) error {
 		VALUES (:bus_id, :date, :category, :notes, :mileage, :cost)
 	`
 
-	_, err := db.NamedExec(query, log)
+	_, err := db.NamedExec(query, busLog)
 	if err != nil {
 		return fmt.Errorf("failed to save bus maintenance log: %w", err)
 	}
 
 	// Update last service mileage if applicable
-	if log.Category == "oil_change" && log.Mileage > 0 {
-		if err := updateLastServiceMileage(log.BusID, "oil_change", log.Mileage); err != nil {
+	if busLog.Category == "oil_change" && busLog.Mileage > 0 {
+		if err := updateLastServiceMileage(busLog.BusID, "oil_change", busLog.Mileage); err != nil {
 			log.Printf("Warning: failed to update last oil change mileage: %v", err)
 		}
-	} else if log.Category == "tire_service" && log.Mileage > 0 {
-		if err := updateLastServiceMileage(log.BusID, "tire_service", log.Mileage); err != nil {
+	} else if busLog.Category == "tire_service" && busLog.Mileage > 0 {
+		if err := updateLastServiceMileage(busLog.BusID, "tire_service", busLog.Mileage); err != nil {
 			log.Printf("Warning: failed to update last tire service mileage: %v", err)
 		}
 	}
 
 	// Update vehicle status based on new mileage
-	if log.Mileage > 0 {
-		if err := updateVehicleMileage(log.BusID, log.Mileage); err != nil {
+	if busLog.Mileage > 0 {
+		if err := updateVehicleMileage(busLog.BusID, busLog.Mileage); err != nil {
 			log.Printf("Warning: failed to update vehicle mileage: %v", err)
 		}
-		if err := updateMaintenanceStatusBasedOnMileage(log.BusID); err != nil {
+		if err := updateMaintenanceStatusBasedOnMileage(busLog.BusID); err != nil {
 			log.Printf("Warning: failed to update maintenance status: %v", err)
 		}
 	}
@@ -286,7 +286,7 @@ func saveBusMaintenanceLog(log BusMaintenanceLog) error {
 	return nil
 }
 
-func saveVehicleMaintenanceLog(log VehicleMaintenanceLog) error {
+func saveVehicleMaintenanceLog(vehicleLog VehicleMaintenanceLog) error {
 	if db == nil {
 		return fmt.Errorf("database not initialized")
 	}
@@ -296,28 +296,28 @@ func saveVehicleMaintenanceLog(log VehicleMaintenanceLog) error {
 		VALUES (:vehicle_id, :date, :category, :notes, :mileage, :cost)
 	`
 
-	_, err := db.NamedExec(query, log)
+	_, err := db.NamedExec(query, vehicleLog)
 	if err != nil {
 		return fmt.Errorf("failed to save vehicle maintenance log: %w", err)
 	}
 
 	// Update last service mileage if applicable
-	if log.Category == "oil_change" && log.Mileage > 0 {
-		if err := updateLastServiceMileage(log.VehicleID, "oil_change", log.Mileage); err != nil {
+	if vehicleLog.Category == "oil_change" && vehicleLog.Mileage > 0 {
+		if err := updateLastServiceMileage(vehicleLog.VehicleID, "oil_change", vehicleLog.Mileage); err != nil {
 			log.Printf("Warning: failed to update last oil change mileage: %v", err)
 		}
-	} else if log.Category == "tire_service" && log.Mileage > 0 {
-		if err := updateLastServiceMileage(log.VehicleID, "tire_service", log.Mileage); err != nil {
+	} else if vehicleLog.Category == "tire_service" && vehicleLog.Mileage > 0 {
+		if err := updateLastServiceMileage(vehicleLog.VehicleID, "tire_service", vehicleLog.Mileage); err != nil {
 			log.Printf("Warning: failed to update last tire service mileage: %v", err)
 		}
 	}
 
 	// Update vehicle status based on new mileage
-	if log.Mileage > 0 {
-		if err := updateVehicleMileage(log.VehicleID, log.Mileage); err != nil {
+	if vehicleLog.Mileage > 0 {
+		if err := updateVehicleMileage(vehicleLog.VehicleID, vehicleLog.Mileage); err != nil {
 			log.Printf("Warning: failed to update vehicle mileage: %v", err)
 		}
-		if err := updateMaintenanceStatusBasedOnMileage(log.VehicleID); err != nil {
+		if err := updateMaintenanceStatusBasedOnMileage(vehicleLog.VehicleID); err != nil {
 			log.Printf("Warning: failed to update maintenance status: %v", err)
 		}
 	}
