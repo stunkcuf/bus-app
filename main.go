@@ -378,10 +378,20 @@ func setupRoutes() *http.ServeMux {
 	// Driver routes
 	setupDriverRoutes(mux)
 	
+	// API routes (accessible by both managers and drivers)
+	setupAPIRoutes(mux)
+	
 	// Common protected routes
 	mux.HandleFunc("/dashboard", withRecovery(requireAuth(requireDatabase(dashboardHandler))))
 
 	return mux
+}
+
+// setupAPIRoutes configures API endpoints
+func setupAPIRoutes(mux *http.ServeMux) {
+	// Maintenance API routes
+	mux.HandleFunc("/api/check-maintenance", withRecovery(requireAuth(requireDatabase(checkMaintenanceDueHandler))))
+	mux.HandleFunc("/api/debug-maintenance", withRecovery(requireAuth(requireRole("manager")(requireDatabase(debugMaintenanceRecordsHandler)))))
 }
 
 // setupManagerRoutes configures manager-specific routes
@@ -402,15 +412,15 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	// Dashboard
 	mux.HandleFunc("/manager-dashboard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(dashboardHandler)))))
 	
-	// Fleet management
-	mux.HandleFunc("/fleet", withRecovery(requireAuth(requireRole("manager")(requireDatabase(fleetHandler)))))
-	mux.HandleFunc("/company-fleet", withRecovery(requireAuth(requireRole("manager")(requireDatabase(companyFleetHandler)))))
-	mux.HandleFunc("/update-vehicle-status", withRecovery(requireAuth(requireRole("manager")(requireDatabase(updateVehicleStatusHandler)))))
+	// Fleet management - Available to both managers and drivers with proper permissions
+	mux.HandleFunc("/fleet", withRecovery(requireAuth(requireDatabase(fleetHandler))))
+	mux.HandleFunc("/company-fleet", withRecovery(requireAuth(requireDatabase(companyFleetHandler))))
+	mux.HandleFunc("/update-vehicle-status", withRecovery(requireAuth(requireDatabase(updateVehicleStatusHandler))))
 	
-	// Maintenance
-	mux.HandleFunc("/bus-maintenance/", withRecovery(requireAuth(requireRole("manager")(requireDatabase(busMaintenanceHandler)))))
-	mux.HandleFunc("/vehicle-maintenance/", withRecovery(requireAuth(requireRole("manager")(requireDatabase(vehicleMaintenanceHandler)))))
-	mux.HandleFunc("/save-maintenance-record", withRecovery(requireAuth(requireRole("manager")(requireDatabase(saveMaintenanceRecordHandler)))))
+	// Maintenance - Available to both managers and drivers
+	mux.HandleFunc("/bus-maintenance/", withRecovery(requireAuth(requireDatabase(busMaintenanceHandler))))
+	mux.HandleFunc("/vehicle-maintenance/", withRecovery(requireAuth(requireDatabase(vehicleMaintenanceHandler))))
+	mux.HandleFunc("/save-maintenance-record", withRecovery(requireAuth(requireDatabase(saveMaintenanceRecordHandler))))
 	
 	// Route management
 	mux.HandleFunc("/assign-routes", withRecovery(requireAuth(requireRole("manager")(requireDatabase(assignRoutesHandler)))))
@@ -420,7 +430,7 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/edit-route", withRecovery(requireAuth(requireRole("manager")(requireDatabase(editRouteHandler)))))
 	mux.HandleFunc("/delete-route", withRecovery(requireAuth(requireRole("manager")(requireDatabase(deleteRouteHandler)))))
 	
-	// Mileage reports - FIXED: removed duplicate route
+	// Mileage reports
 	mux.HandleFunc("/import-mileage", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importMileageHandler)))))
 	mux.HandleFunc("/view-mileage-reports", withRecovery(requireAuth(requireRole("manager")(requireDatabase(viewMileageReportsHandler)))))
 	mux.HandleFunc("/export-mileage", withRecovery(requireAuth(requireRole("manager")(requireDatabase(exportMileageHandler)))))
