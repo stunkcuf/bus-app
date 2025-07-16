@@ -407,7 +407,8 @@ func createTables() error {
 	return nil
 }
 
-// runMigrations runs any pending database migrations
+// In your runMigrations() function in database.go, replace the all_vehicle_mileage migrations with this:
+
 func runMigrations() error {
 	// Add any new columns that might not exist
 	migrations := []string{
@@ -432,23 +433,11 @@ func runMigrations() error {
 		// Add maintenance_date to service_records if missing
 		`ALTER TABLE service_records ADD COLUMN IF NOT EXISTS maintenance_date DATE`,
 		
-		// Add missing columns to all_vehicle_mileage table if it exists
-		`ALTER TABLE all_vehicle_mileage ADD COLUMN IF NOT EXISTS id SERIAL`,
-		`ALTER TABLE all_vehicle_mileage ADD COLUMN IF NOT EXISTS vehicle_year INTEGER`,
-		`ALTER TABLE all_vehicle_mileage ADD COLUMN IF NOT EXISTS make_model VARCHAR(100)`,
-		`ALTER TABLE all_vehicle_mileage ADD COLUMN IF NOT EXISTS license_plate VARCHAR(50)`,
-		`ALTER TABLE all_vehicle_mileage ADD COLUMN IF NOT EXISTS location VARCHAR(100)`,
-		`ALTER TABLE all_vehicle_mileage ADD COLUMN IF NOT EXISTS beginning_miles INTEGER DEFAULT 0`,
-		`ALTER TABLE all_vehicle_mileage ADD COLUMN IF NOT EXISTS ending_miles INTEGER DEFAULT 0`,
-		`ALTER TABLE all_vehicle_mileage ADD COLUMN IF NOT EXISTS total_miles INTEGER DEFAULT 0`,
-		`ALTER TABLE all_vehicle_mileage ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active'`,
-		`ALTER TABLE all_vehicle_mileage ADD COLUMN IF NOT EXISTS notes TEXT`,
-		`ALTER TABLE all_vehicle_mileage ADD COLUMN IF NOT EXISTS vehicle_type VARCHAR(20) DEFAULT 'agency'`,
-		`ALTER TABLE all_vehicle_mileage ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`,
-		`ALTER TABLE all_vehicle_mileage ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`,
+		// REMOVED: all_vehicle_mileage column additions - table already has all columns
+		// The table was created with all columns in createTables(), so these are not needed
 		
-		// Add constraint if not exists (more complex, needs checking)
-		`DO $ 
+		// Add constraint if not exists (fixed syntax)
+		`DO $$ 
 		BEGIN
 			IF NOT EXISTS (
 				SELECT 1 FROM pg_constraint 
@@ -458,7 +447,7 @@ func runMigrations() error {
 				ADD CONSTRAINT all_vehicle_mileage_vehicle_type_check 
 				CHECK (vehicle_type IN ('agency', 'bus'));
 			END IF;
-		END $;`,
+		END $$;`,
 	}
 
 	for _, migration := range migrations {
