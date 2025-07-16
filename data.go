@@ -891,7 +891,7 @@ func saveDriverLogs(logs []DriverLog) error {
 }
 
 // =============================================================================
-// MAINTENANCE LOG FUNCTIONS WITH ERROR HANDLING
+// MAINTENANCE LOG FUNCTIONS WITH ERROR HANDLING - FIXED VERSION
 // =============================================================================
 
 // DEPRECATED: Use loadMaintenanceLogsFromDB instead
@@ -952,33 +952,48 @@ func loadMaintenanceLogsFromDB() ([]BusMaintenanceLog, error) {
 	return logs, nil
 }
 
-// Get maintenance logs for specific vehicle (bus or vehicle)
+// FIXED VERSION - Get maintenance logs for specific vehicle
 func getMaintenanceLogsForVehicle(vehicleID string) ([]BusMaintenanceLog, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database connection not available")
 	}
 	
-	// First try bus_maintenance_logs
-	logs, err := getBusMaintenanceLogs(vehicleID)
+	var logs []BusMaintenanceLog
+	
+	// Query for both bus maintenance logs and general maintenance records
+	query := `
+		SELECT 
+			id,
+			vehicle_id as bus_id,
+			date::text,
+			category,
+			notes,
+			mileage,
+			COALESCE(cost, 0) as cost,
+			created_at
+		FROM (
+			-- Bus maintenance logs
+			SELECT id, bus_id as vehicle_id, date, category, notes, mileage, cost, created_at
+			FROM bus_maintenance_logs
+			WHERE bus_id = $1
+			
+			UNION ALL
+			
+			-- Vehicle maintenance records
+			SELECT id, vehicle_id, date, category, notes, mileage, cost, created_at
+			FROM maintenance_records
+			WHERE vehicle_id = $1
+		) combined_logs
+		ORDER BY date DESC, created_at DESC
+	`
+	
+	err := db.Select(&logs, query, vehicleID)
 	if err != nil {
-		log.Printf("Error getting bus maintenance logs: %v", err)
+		log.Printf("Error getting maintenance logs for vehicle %s: %v", vehicleID, err)
+		return logs, err
 	}
 	
-	// Then try maintenance_records table
-	additionalLogs, err := getVehicleMaintenanceLogs(vehicleID)
-	if err != nil {
-		log.Printf("Error getting vehicle maintenance logs: %v", err)
-	} else {
-		logs = append(logs, additionalLogs...)
-	}
-	
-	// Also check service_records for legacy data
-	legacyLogs, err := getLegacyServiceRecords(vehicleID)
-	if err != nil {
-		log.Printf("Error getting legacy service records: %v", err)
-	} else {
-		logs = append(logs, legacyLogs...)
-	}
+	log.Printf("Retrieved %d maintenance records for vehicle %s", len(logs), vehicleID)
 	
 	return logs, nil
 }
