@@ -1141,22 +1141,15 @@ func viewEnhancedMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
 	// Get available months/years
 	availableReports, _ := getAvailableReports()
 	
-	templateData := struct {
-		User             *User
-		ReportMonth      string
-		ReportYear       string
-		ReportType       string
-		Data             MileageReportData
-		AvailableReports []string
-		CSRFToken        string
-	}{
-		User:             user,
-		ReportMonth:      reportMonth,
-		ReportYear:       reportYear,
-		ReportType:       reportType,
-		Data:             data,
-		AvailableReports: availableReports,
-		CSRFToken: getSessionCSRFToken(r),
+	// Use a map for template data instead of struct
+	templateData := map[string]interface{}{
+		"User":             user,
+		"ReportMonth":      reportMonth,
+		"ReportYear":       reportYear,
+		"ReportType":       reportType,
+		"Data":             data,
+		"AvailableReports": availableReports,
+		"CSRFToken":        getSessionCSRFToken(r),
 	}
 	
 	renderTemplate(w, r, "mileage_reports.html", templateData)
@@ -1177,16 +1170,16 @@ func getAgencyVehicleReports(month, year string) ([]AgencyVehicleRecord, error) 
 		SELECT 
 			report_month,
 			report_year,
-			vehicle_year,
-			make_model,
-			license_plate,
+			COALESCE(vehicle_year, 0) as vehicle_year,
+			COALESCE(make_model, '') as make_model,
+			COALESCE(license_plate, '') as license_plate,
 			vehicle_id,
-			location,
-			beginning_miles,
-			ending_miles,
-			total_miles,
-			status,
-			notes
+			COALESCE(location, '') as location,
+			COALESCE(beginning_miles, 0) as beginning_miles,
+			COALESCE(ending_miles, 0) as ending_miles,
+			COALESCE(total_miles, 0) as total_miles,
+			COALESCE(status, 'active') as status,
+			COALESCE(notes, '') as notes
 		FROM all_vehicle_mileage
 		WHERE report_month = $1 AND report_year = $2
 		  AND vehicle_type = 'agency'
@@ -1194,10 +1187,25 @@ func getAgencyVehicleReports(month, year string) ([]AgencyVehicleRecord, error) 
 	`, month, yearInt)
 	
 	// If no records or table doesn't exist, try the legacy table
-	if (err != nil || len(records) == 0) && err != sql.ErrNoRows {
-		log.Printf("Falling back to agency_vehicles table: %v", err)
+	if err != nil || len(records) == 0 {
+		if err != nil {
+			log.Printf("Falling back to agency_vehicles table: %v", err)
+		}
 		err = db.Select(&records, `
-			SELECT * FROM agency_vehicles 
+			SELECT 
+				report_month,
+				report_year,
+				COALESCE(vehicle_year, 0) as vehicle_year,
+				COALESCE(make_model, '') as make_model,
+				COALESCE(license_plate, '') as license_plate,
+				vehicle_id,
+				COALESCE(location, '') as location,
+				COALESCE(beginning_miles, 0) as beginning_miles,
+				COALESCE(ending_miles, 0) as ending_miles,
+				COALESCE(total_miles, 0) as total_miles,
+				COALESCE(status, 'active') as status,
+				COALESCE(notes, '') as notes
+			FROM agency_vehicles 
 			WHERE report_month = $1 AND report_year = $2 
 			ORDER BY vehicle_id
 		`, month, yearInt)
@@ -1221,16 +1229,16 @@ func getSchoolBusReports(month, year string) ([]SchoolBusRecord, error) {
 		SELECT 
 			report_month,
 			report_year,
-			vehicle_year as bus_year,
-			make_model as bus_make,
-			license_plate,
+			COALESCE(vehicle_year, 0) as bus_year,
+			COALESCE(make_model, '') as bus_make,
+			COALESCE(license_plate, '') as license_plate,
 			vehicle_id as bus_id,
-			location,
-			beginning_miles,
-			ending_miles,
-			total_miles,
-			status,
-			notes
+			COALESCE(location, '') as location,
+			COALESCE(beginning_miles, 0) as beginning_miles,
+			COALESCE(ending_miles, 0) as ending_miles,
+			COALESCE(total_miles, 0) as total_miles,
+			COALESCE(status, 'active') as status,
+			COALESCE(notes, '') as notes
 		FROM all_vehicle_mileage
 		WHERE report_month = $1 AND report_year = $2
 		  AND vehicle_type = 'bus'
@@ -1238,10 +1246,25 @@ func getSchoolBusReports(month, year string) ([]SchoolBusRecord, error) {
 	`, month, yearInt)
 	
 	// If no records or table doesn't exist, try the legacy table
-	if (err != nil || len(records) == 0) && err != sql.ErrNoRows {
-		log.Printf("Falling back to school_buses table: %v", err)
+	if err != nil || len(records) == 0 {
+		if err != nil {
+			log.Printf("Falling back to school_buses table: %v", err)
+		}
 		err = db.Select(&records, `
-			SELECT * FROM school_buses 
+			SELECT 
+				report_month,
+				report_year,
+				COALESCE(bus_year, 0) as bus_year,
+				COALESCE(bus_make, '') as bus_make,
+				COALESCE(license_plate, '') as license_plate,
+				bus_id,
+				COALESCE(location, '') as location,
+				COALESCE(beginning_miles, 0) as beginning_miles,
+				COALESCE(ending_miles, 0) as ending_miles,
+				COALESCE(total_miles, 0) as total_miles,
+				COALESCE(status, 'active') as status,
+				COALESCE(notes, '') as notes
+			FROM school_buses 
 			WHERE report_month = $1 AND report_year = $2 
 			ORDER BY bus_id
 		`, month, yearInt)
