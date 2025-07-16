@@ -215,3 +215,71 @@ type MileageReport struct {
 	Utilization float64   `json:"utilization" db:"utilization"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 }
+
+// Import-specific structs for mileage reports
+// AgencyVehicleRecord represents a record from the Agency Vehicle Report
+type AgencyVehicleRecord struct {
+	Unit        string
+	VehicleNo   string
+	Driver      string
+	Month       string
+	Year        int
+	BeginMiles  int
+	EndMiles    int
+	TotalMiles  int
+	DailyMiles  string
+	Utilization float64
+}
+
+// SchoolBusRecord represents a record from the School Bus Report
+type SchoolBusRecord struct {
+	Unit        string
+	VehicleNo   string
+	Driver      string
+	Month       string
+	Year        int
+	BeginMiles  int
+	EndMiles    int
+	TotalMiles  int
+	DailyMiles  string
+	Utilization float64
+}
+
+// ProgramStaffRecord represents a record from the Program Staff Report
+type ProgramStaffRecord struct {
+	Unit        string
+	VehicleNo   string
+	Driver      string
+	Month       string
+	Year        int
+	BeginMiles  int
+	EndMiles    int
+	TotalMiles  int
+	DailyMiles  string
+	Utilization float64
+}
+
+// ECSE-specific view structs
+type ECSEStudentView struct {
+	StudentID              string    `json:"student_id" db:"student_id"`
+	FirstName              string    `json:"first_name" db:"first_name"`
+	LastName               string    `json:"last_name" db:"last_name"`
+	DateOfBirth            string    `json:"date_of_birth" db:"date_of_birth"`
+	Grade                  string    `json:"grade" db:"grade"`
+	EnrollmentStatus       string    `json:"enrollment_status" db:"enrollment_status"`
+	IEPStatus              string    `json:"iep_status" db:"iep_status"`
+	PrimaryDisability      string    `json:"primary_disability" db:"primary_disability"`
+	ServiceMinutes         int       `json:"service_minutes" db:"service_minutes"`
+	TransportationRequired bool      `json:"transportation_required" db:"transportation_required"`
+	BusRoute               string    `json:"bus_route" db:"bus_route"`
+	ParentName             string    `json:"parent_name" db:"parent_name"`
+	ParentPhone            string    `json:"parent_phone" db:"parent_phone"`
+	ParentEmail            string    `json:"parent_email" db:"parent_email"`
+	Address                string    `json:"address" db:"address"`
+	LastAssessmentDate     string    `json:"last_assessment_date" db:"last_assessment_date"`
+	NextAssessmentDate     string    `json:"next_assessment_date" db:"next_assessment_date"`
+	Notes                  string    `json:"notes" db:"notes"`
+	Active                 bool      `json:"active" db:"active"`
+	CreatedAt              time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt              time.Time `json:"updated_at" db:"updated_at"`
+}
