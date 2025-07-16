@@ -1,0 +1,229 @@
+Product Requirements Document (PRD)
+Fleet Management System - School Transportation & Vehicle Tracking
+Version 1.0
+Date: January 2025
+Status: Active Development
+
+1. Executive Summary
+The Fleet Management System is a comprehensive web-based platform designed to streamline school transportation operations, vehicle maintenance, and student attendance tracking. The system serves school districts and transportation departments by providing tools for managing bus fleets, tracking driver assignments, monitoring student ridership, and maintaining detailed vehicle service records.
+Key Value Propositions:
+
+Operational Efficiency: Streamlined route assignments and driver management
+Safety & Compliance: Comprehensive maintenance tracking and student attendance monitoring
+Cost Management: Detailed mileage tracking and fuel cost analysis
+Special Education Support: Dedicated ECSE (Early Childhood Special Education) student tracking
+Data-Driven Insights: Comprehensive reporting and analytics capabilities
+
+
+2. Product Overview
+2.1 Problem Statement
+School districts face significant challenges in managing their transportation operations:
+
+Manual tracking of student attendance on buses is error-prone and time-consuming
+Vehicle maintenance schedules are difficult to monitor across large fleets
+Route optimization and driver assignments lack centralized management
+Special education student transportation requires additional compliance tracking
+Mileage and cost reporting for budgeting purposes is often incomplete or inaccurate
+
+2.2 Solution
+A unified digital platform that integrates all aspects of school transportation management, from driver assignments to vehicle maintenance, with special attention to student safety and regulatory compliance.
+2.3 Success Metrics
+
+Adoption Rate: 90% of drivers actively using the system within 3 months
+Efficiency Gain: 30% reduction in time spent on administrative tasks
+Maintenance Compliance: 100% of vehicles maintained on schedule
+Data Accuracy: 95% accuracy in attendance and mileage reporting
+User Satisfaction: 4.5/5 average user rating
+
+
+3. User Personas
+3.1 Transportation Manager (Maria)
+Role: Oversees entire transportation department
+Goals:
+
+Monitor fleet status and driver assignments
+Ensure regulatory compliance
+Manage budgets and operational costs
+Approve new driver registrations
+
+Pain Points:
+
+Lack of real-time visibility into fleet operations
+Manual data compilation for reports
+Difficulty tracking maintenance schedules
+
+3.2 School Bus Driver (James)
+Role: Transports students safely to/from school
+Goals:
+
+Efficiently manage daily routes
+Track student attendance accurately
+Access student/guardian contact information
+Log daily mileage and trip details
+
+Pain Points:
+
+Paper-based attendance tracking
+No centralized student information access
+Manual trip logging processes
+
+3.3 Maintenance Coordinator (Robert)
+Role: Manages vehicle maintenance and repairs
+Goals:
+
+Track maintenance schedules for all vehicles
+Monitor vehicle health indicators
+Manage service history and costs
+Coordinate with external service providers
+
+Pain Points:
+
+Scattered maintenance records
+Reactive rather than preventive maintenance
+Difficulty tracking costs across fleet
+
+
+4. Core Features & Requirements
+4.1 User Management & Authentication
+Features:
+
+User Registration & Login
+
+Self-service driver registration with manager approval workflow
+Secure authentication with CSRF protection
+Role-based access control (Manager, Driver)
+Password reset functionality
+
+
+
+Requirements:
+
+ Username must be 3-20 characters, alphanumeric only
+ Passwords minimum 6 characters
+ Session management with secure cookies
+ Manager approval required for new driver accounts
+ Audit trail for user actions
+
+4.2 Fleet & Vehicle Management
+Features:
+
+Vehicle Inventory
+
+Comprehensive vehicle database (buses and other fleet vehicles)
+Real-time status tracking (Active, Maintenance, Out of Service)
+Vehicle details (ID, model, capacity, year, license plate)
+
+
+Maintenance Tracking
+
+Oil change status indicators
+Tire condition monitoring
+Service history logs with categories (oil change, tire service, inspection, repair)
+Mileage-based maintenance alerts
+Cost tracking per service
+
+
+
+Requirements:
+
+ Support for both bus fleet and general company vehicles
+ Visual status indicators using color coding
+ Maintenance records must include date, category, mileage, and notes
+ Historical maintenance data retention
+ Export capabilities for maintenance reports
+
+4.3 Student Management
+Features:
+
+Student Roster
+
+Complete student profiles with guardian information
+Multiple phone numbers (primary and alternate)
+Pickup/dropoff time scheduling
+Multiple location support per student
+Active/inactive status management
+
+
+Route Assignment
+
+Automatic ordering by pickup/dropoff times
+Position-based student organization
+Route-specific student lists
+
+
+
+Requirements:
+
+ Unique student ID generation
+ Support for multiple pickup/dropoff locations
+ Guardian contact information mandatory
+ Time-based route optimization
+ Privacy protection for student data
+
+4.4 Route Management
+Features:
+
+Route Creation & Configuration
+
+Named routes with descriptions
+Route ID assignment
+Active route tracking
+
+
+Assignment Management
+
+Driver-Bus-Route triple assignment
+Real-time availability checking
+Prevent double assignments
+Visual assignment dashboard
+
+
+
+Requirements:
+
+ Routes must have unique identifiers
+ Only one driver per bus per route
+ Validation to prevent conflicts
+ Historical assignment tracking
+ Route modification restrictions when assigned
+
+4.5 Daily Operations & Attendance
+Features:
+
+Driver Dashboard
+
+Daily route log entry
+Student attendance tracking
+Actual pickup times recording
+Mileage logging
+Morning/afternoon route differentiation
+
+
+Trip Management
+
+Departure and arrival time tracking
+Per-student attendance marking
+Actual vs. scheduled time comparison
+Trip notes and observations
+
+
+
+Requirements:
+
+ Mobile-responsive interface for tablet use
+ Offline capability with sync
+ Time stamp validation
+ Mileage validation (ending > beginning)
+ Historical log access
+
+4.6 Special Education (ECSE) Support
+Features:
+
+ECSE Student Tracking
+
+Comprehensive student profiles
+IEP status monitoring
+Service tracking (speech, OT, PT)
+Transportation requirements
+Assessment history
+Attendance
