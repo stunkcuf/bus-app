@@ -10,7 +10,312 @@ import (
 	"time"
 )
 
-// Maintenance-related handlers
+// loginHandler handles the login page and authentication
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		data := map[string]interface{}{
+			"CSRFToken": generateCSRFToken(),
+		}
+		renderTemplate(w, r, "login.html", data)
+		return
+	}
+
+	if r.Method == "POST" {
+		username := r.FormValue("username")
+		password := r.FormValue("password")
+		
+		if !rateLimiter.Allow(getClientIP(r)) {
+			http.Error(w, "Too many login attempts. Please try again later.", http.StatusTooManyRequests)
+			return
+		}
+		
+		user, err := authenticateUser(username, password)
+		if err != nil {
+			data := map[string]interface{}{
+				"Error":     "Invalid username or password",
+				"CSRFToken": generateCSRFToken(),
+			}
+			renderTemplate(w, r, "login.html", data)
+			return
+		}
+		
+		if user.Status != "active" {
+			data := map[string]interface{}{
+				"Error":     "Your account is pending approval",
+				"CSRFToken": generateCSRFToken(),
+			}
+			renderTemplate(w, r, "login.html", data)
+			return
+		}
+		
+		sessionToken := generateSessionToken()
+		storeSession(sessionToken, user)
+		
+		http.SetCookie(w, &http.Cookie{
+			Name:     "session_token",
+			Value:    sessionToken,
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteStrictMode,
+			MaxAge:   86400,
+		})
+		
+		if user.Role == "manager" {
+			http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
+		} else {
+			http.Redirect(w, r, "/driver-dashboard", http.StatusFound)
+		}
+	}
+}
+
+// logoutHandler handles user logout
+func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	cookie, err := r.Cookie("session_token")
+	if err == nil {
+		deleteSession(cookie.Value)
+	}
+	
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   -1,
+	})
+	
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+// registerHandler handles user registration
+func registerHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		data := map[string]interface{}{
+			"CSRFToken": generateCSRFToken(),
+		}
+		renderTemplate(w, r, "register.html", data)
+		return
+	}
+	
+	if r.Method == "POST" {
+		username := r.FormValue("username")
+		password := r.FormValue("password")
+		confirmPassword := r.FormValue("confirm_password")
+		
+		if password != confirmPassword {
+			data := map[string]interface{}{
+				"Error":     "Passwords do not match",
+				"CSRFToken": generateCSRFToken(),
+			}
+			renderTemplate(w, r, "register.html", data)
+			return
+		}
+		
+		err := createUser(username, password, "driver", "pending")
+		if err != nil {
+			data := map[string]interface{}{
+				"Error":     "Username already exists",
+				"CSRFToken": generateCSRFToken(),
+			}
+			renderTemplate(w, r, "register.html", data)
+			return
+		}
+		
+		data := map[string]interface{}{
+			"Success":   true,
+			"CSRFToken": generateCSRFToken(),
+		}
+		renderTemplate(w, r, "register.html", data)
+	}
+}
+
+// managerDashboardHandler shows the manager dashboard with maintenance overview
+func managerDashboardHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	// Get various statistics
+	buses, _ := dataCache.getBuses()
+	vehicles, _ := dataCache.getVehicles()
+	users, _ := dataCache.getUsers()
+	routes, _ := dataCache.getRoutes()
+
+	// Count vehicles needing maintenance
+	maintenanceNeeded := 0
+	
+	// Check buses
+	for _, bus := range buses {
+		if bus.OilStatus == "needs_service" || bus.OilStatus == "overdue" ||
+			bus.TireStatus == "worn" || bus.TireStatus == "replace" {
+			maintenanceNeeded++
+		}
+	}
+	
+	// Check vehicles
+	for _, vehicle := range vehicles {
+		if vehicle.OilStatus == "needs_service" || vehicle.OilStatus == "overdue" ||
+			vehicle.TireStatus == "worn" || vehicle.TireStatus == "replace" {
+			maintenanceNeeded++
+		}
+	}
+
+	// Get pending users
+	pendingUsers := 0
+	for _, u := range users {
+		if u.Status == "pending" {
+			pendingUsers++
+		}
+	}
+
+	data := map[string]interface{}{
+		"User":              user,
+		"CSRFToken":         getSessionCSRFToken(r),
+		"TotalBuses":        len(buses),
+		"TotalVehicles":     len(vehicles),
+		"TotalDrivers":      len(users) - 1, // Exclude manager
+		"TotalRoutes":       len(routes),
+		"MaintenanceNeeded": maintenanceNeeded,
+		"PendingUsers":      pendingUsers,
+	}
+
+	renderTemplate(w, r, "manager_dashboard.html", data)
+}
+
+// driverDashboardHandler with maintenance alerts
+func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	// Get driver's assignments
+	assignments, err := getDriverAssignments(user.Username)
+	if err != nil {
+		log.Printf("Error loading assignments: %v", err)
+	}
+
+	// Check for maintenance alerts on assigned buses
+	var maintenanceAlerts []MaintenanceAlert
+	for _, assignment := range assignments {
+		alerts, err := checkMaintenanceDue(assignment.BusID)
+		if err != nil {
+			log.Printf("Error checking maintenance for bus %s: %v", assignment.BusID, err)
+			continue
+		}
+		maintenanceAlerts = append(maintenanceAlerts, alerts...)
+	}
+
+	// Get students for assigned routes
+	studentsMap := make(map[string][]Student)
+	for _, assignment := range assignments {
+		students, err := getStudentsByRoute(assignment.RouteID)
+		if err != nil {
+			log.Printf("Error loading students for route %s: %v", assignment.RouteID, err)
+			continue
+		}
+		studentsMap[assignment.RouteID] = students
+	}
+
+	// Check for success message
+	success := r.URL.Query().Get("success") == "true"
+
+	data := map[string]interface{}{
+		"User":               user,
+		"CSRFToken":          getSessionCSRFToken(r),
+		"Assignments":        assignments,
+		"StudentsMap":        studentsMap,
+		"MaintenanceAlerts":  maintenanceAlerts,
+		"Success":            success,
+		"CurrentDate":        time.Now().Format("2006-01-02"),
+	}
+
+	renderTemplate(w, r, "driver_dashboard.html", data)
+}
+
+// fleetHandler shows the fleet overview with maintenance alerts
+func fleetHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	buses, err := dataCache.getBuses()
+	if err != nil {
+		log.Printf("Error loading buses: %v", err)
+		http.Error(w, "Failed to load fleet data", http.StatusInternalServerError)
+		return
+	}
+
+	// Get maintenance alerts for all buses
+	allAlerts := make(map[string][]MaintenanceAlert)
+	for _, bus := range buses {
+		alerts, err := checkMaintenanceDue(bus.BusID)
+		if err != nil {
+			log.Printf("Error checking maintenance for bus %s: %v", bus.BusID, err)
+			continue
+		}
+		if len(alerts) > 0 {
+			allAlerts[bus.BusID] = alerts
+		}
+	}
+
+	data := map[string]interface{}{
+		"User":               user,
+		"CSRFToken":          getSessionCSRFToken(r),
+		"Buses":              buses,
+		"MaintenanceAlerts":  allAlerts,
+	}
+
+	renderTemplate(w, r, "fleet.html", data)
+}
+
+// companyFleetHandler shows company vehicles with maintenance alerts
+func companyFleetHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	vehicles, err := dataCache.getVehicles()
+	if err != nil {
+		log.Printf("Error loading vehicles: %v", err)
+		http.Error(w, "Failed to load vehicle data", http.StatusInternalServerError)
+		return
+	}
+
+	// Get maintenance alerts for all vehicles
+	allAlerts := make(map[string][]MaintenanceAlert)
+	for _, vehicle := range vehicles {
+		alerts, err := checkMaintenanceDue(vehicle.VehicleID)
+		if err != nil {
+			log.Printf("Error checking maintenance for vehicle %s: %v", vehicle.VehicleID, err)
+			continue
+		}
+		if len(alerts) > 0 {
+			allAlerts[vehicle.VehicleID] = alerts
+		}
+	}
+
+	data := map[string]interface{}{
+		"User":              user,
+		"CSRFToken":         getSessionCSRFToken(r),
+		"Vehicles":          vehicles,
+		"MaintenanceAlerts": allAlerts,
+	}
+
+	renderTemplate(w, r, "company_fleet.html", data)
+}
 
 // busMaintenanceHandler shows maintenance history for a bus
 func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
@@ -234,79 +539,81 @@ func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// checkMaintenanceDueHandler API endpoint to check maintenance status
-func checkMaintenanceDueHandler(w http.ResponseWriter, r *http.Request) {
+// updateVehicleStatusHandler handles status updates with validation
+func updateVehicleStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	user := getUserFromSession(r)
 	if user == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized"})
 		return
 	}
 
-	vehicleID := r.URL.Query().Get("vehicle_id")
-	if vehicleID == "" {
-		http.Error(w, "Vehicle ID required", http.StatusBadRequest)
+	// Parse JSON request
+	var req struct {
+		VehicleID   string `json:"vehicle_id"`
+		VehicleType string `json:"vehicle_type"`
+		FieldName   string `json:"field_name"`
+		FieldValue  string `json:"field_value"`
+		CSRFToken   string `json:"csrf_token"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid request"})
 		return
 	}
 
-	alerts, err := checkMaintenanceDue(vehicleID)
+	// Validate CSRF token
+	sessionToken := getSessionCSRFToken(r)
+	if req.CSRFToken != sessionToken {
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid CSRF token"})
+		return
+	}
+
+	// Update based on vehicle type
+	var err error
+	if req.VehicleType == "bus" {
+		err = updateBusField(req.VehicleID, req.FieldName, req.FieldValue)
+	} else {
+		err = updateVehicleField(req.VehicleID, req.FieldName, req.FieldValue)
+	}
+
 	if err != nil {
-		log.Printf("Error checking maintenance: %v", err)
-		http.Error(w, "Failed to check maintenance", http.StatusInternalServerError)
+		log.Printf("Error updating %s %s: %v", req.VehicleType, req.VehicleID, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to update"})
 		return
 	}
 
+	// If status was updated, check if we need to update maintenance status
+	if req.FieldName == "status" || req.FieldName == "oil_status" || req.FieldName == "tire_status" {
+		if err := updateMaintenanceStatusBasedOnMileage(req.VehicleID); err != nil {
+			log.Printf("Warning: failed to update maintenance status: %v", err)
+		}
+	}
+
+	// Invalidate cache
+	if req.VehicleType == "bus" {
+		dataCache.invalidateBuses()
+	} else {
+		dataCache.invalidateVehicles()
+	}
+
+	// Return updated status
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(alerts)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Updated successfully",
+	})
 }
 
-// debugMaintenanceRecordsHandler helps debug maintenance records
-func debugMaintenanceRecordsHandler(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	vehicleID := r.URL.Query().Get("vehicle_id")
-	if vehicleID == "" {
-		http.Error(w, "Vehicle ID required", http.StatusBadRequest)
-		return
-	}
-
-	// Get maintenance logs
-	logs, err := getMaintenanceLogsForVehicle(vehicleID)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Error: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// Get vehicle info
-	currentMileage, lastOilChange, lastTireService, err := getVehicleMaintenanceInfo(vehicleID)
-	if err != nil {
-		log.Printf("Error getting vehicle info: %v", err)
-	}
-
-	// Check maintenance alerts
-	alerts, err := checkMaintenanceDue(vehicleID)
-	if err != nil {
-		log.Printf("Error checking alerts: %v", err)
-	}
-
-	debug := map[string]interface{}{
-		"vehicle_id":        vehicleID,
-		"maintenance_logs":  logs,
-		"current_mileage":   currentMileage,
-		"last_oil_change":   lastOilChange,
-		"last_tire_service": lastTireService,
-		"alerts":            alerts,
-		"log_count":         len(logs),
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(debug)
-}
-
-// Updated saveLogHandler with mileage validation
+// saveLogHandler with mileage validation
 func saveLogHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -446,156 +753,112 @@ func saveLogHandler(w http.ResponseWriter, r *http.Request) {
 	// Redirect to driver dashboard with success
 	http.Redirect(w, r, "/driver-dashboard?success=true", http.StatusSeeOther)
 }
-// Additional handlers for fleet management with maintenance features
 
-// fleetHandler shows the fleet overview with maintenance alerts
-func fleetHandler(w http.ResponseWriter, r *http.Request) {
+// checkMaintenanceDueHandler API endpoint to check maintenance status
+func checkMaintenanceDueHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil {
-		http.Redirect(w, r, "/", http.StatusFound)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	buses, err := dataCache.getBuses()
+	vehicleID := r.URL.Query().Get("vehicle_id")
+	if vehicleID == "" {
+		http.Error(w, "Vehicle ID required", http.StatusBadRequest)
+		return
+	}
+
+	alerts, err := checkMaintenanceDue(vehicleID)
 	if err != nil {
-		log.Printf("Error loading buses: %v", err)
-		http.Error(w, "Failed to load fleet data", http.StatusInternalServerError)
+		log.Printf("Error checking maintenance: %v", err)
+		http.Error(w, "Failed to check maintenance", http.StatusInternalServerError)
 		return
 	}
 
-	// Get maintenance alerts for all buses
-	allAlerts := make(map[string][]MaintenanceAlert)
-	for _, bus := range buses {
-		alerts, err := checkMaintenanceDue(bus.BusID)
-		if err != nil {
-			log.Printf("Error checking maintenance for bus %s: %v", bus.BusID, err)
-			continue
-		}
-		if len(alerts) > 0 {
-			allAlerts[bus.BusID] = alerts
-		}
-	}
-
-	data := map[string]interface{}{
-		"User":               user,
-		"CSRFToken":          getSessionCSRFToken(r),
-		"Buses":              buses,
-		"MaintenanceAlerts":  allAlerts,
-	}
-
-	renderTemplate(w, r, "fleet.html", data)
-}
-
-// companyFleetHandler shows company vehicles with maintenance alerts
-func companyFleetHandler(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	vehicles, err := dataCache.getVehicles()
-	if err != nil {
-		log.Printf("Error loading vehicles: %v", err)
-		http.Error(w, "Failed to load vehicle data", http.StatusInternalServerError)
-		return
-	}
-
-	// Get maintenance alerts for all vehicles
-	allAlerts := make(map[string][]MaintenanceAlert)
-	for _, vehicle := range vehicles {
-		alerts, err := checkMaintenanceDue(vehicle.VehicleID)
-		if err != nil {
-			log.Printf("Error checking maintenance for vehicle %s: %v", vehicle.VehicleID, err)
-			continue
-		}
-		if len(alerts) > 0 {
-			allAlerts[vehicle.VehicleID] = alerts
-		}
-	}
-
-	data := map[string]interface{}{
-		"User":              user,
-		"CSRFToken":         getSessionCSRFToken(r),
-		"Vehicles":          vehicles,
-		"MaintenanceAlerts": allAlerts,
-	}
-
-	renderTemplate(w, r, "company_fleet.html", data)
-}
-
-// updateVehicleStatusHandler handles status updates with validation
-func updateVehicleStatusHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	user := getUserFromSession(r)
-	if user == nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized"})
-		return
-	}
-
-	// Parse JSON request
-	var req struct {
-		VehicleID   string `json:"vehicle_id"`
-		VehicleType string `json:"vehicle_type"`
-		FieldName   string `json:"field_name"`
-		FieldValue  string `json:"field_value"`
-		CSRFToken   string `json:"csrf_token"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid request"})
-		return
-	}
-
-	// Validate CSRF token
-	sessionToken := getSessionCSRFToken(r)
-	if req.CSRFToken != sessionToken {
-		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid CSRF token"})
-		return
-	}
-
-	// Update based on vehicle type
-	var err error
-	if req.VehicleType == "bus" {
-		err = updateBusField(req.VehicleID, req.FieldName, req.FieldValue)
-	} else {
-		err = updateVehicleField(req.VehicleID, req.FieldName, req.FieldValue)
-	}
-
-	if err != nil {
-		log.Printf("Error updating %s %s: %v", req.VehicleType, req.VehicleID, err)
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to update"})
-		return
-	}
-
-	// If status was updated, check if we need to update maintenance status
-	if req.FieldName == "status" || req.FieldName == "oil_status" || req.FieldName == "tire_status" {
-		if err := updateMaintenanceStatusBasedOnMileage(req.VehicleID); err != nil {
-			log.Printf("Warning: failed to update maintenance status: %v", err)
-		}
-	}
-
-	// Invalidate cache
-	if req.VehicleType == "bus" {
-		dataCache.invalidateBuses()
-	} else {
-		dataCache.invalidateVehicles()
-	}
-
-	// Return updated status
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": "Updated successfully",
-	})
+	json.NewEncoder(w).Encode(alerts)
+}
+
+// debugMaintenanceRecordsHandler helps debug maintenance records
+func debugMaintenanceRecordsHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	vehicleID := r.URL.Query().Get("vehicle_id")
+	if vehicleID == "" {
+		http.Error(w, "Vehicle ID required", http.StatusBadRequest)
+		return
+	}
+
+	// Get maintenance logs
+	logs, err := getMaintenanceLogsForVehicle(vehicleID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Get vehicle info
+	currentMileage, lastOilChange, lastTireService, err := getVehicleMaintenanceInfo(vehicleID)
+	if err != nil {
+		log.Printf("Error getting vehicle info: %v", err)
+	}
+
+	// Check maintenance alerts
+	alerts, err := checkMaintenanceDue(vehicleID)
+	if err != nil {
+		log.Printf("Error checking alerts: %v", err)
+	}
+
+	debug := map[string]interface{}{
+		"vehicle_id":        vehicleID,
+		"maintenance_logs":  logs,
+		"current_mileage":   currentMileage,
+		"last_oil_change":   lastOilChange,
+		"last_tire_service": lastTireService,
+		"alerts":            alerts,
+		"log_count":         len(logs),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(debug)
+}
+
+// Helper functions
+func getDriverAssignments(username string) ([]RouteAssignment, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	query := `
+		SELECT ra.driver, ra.bus_id, ra.route_id, r.route_name, ra.assigned_date
+		FROM route_assignments ra
+		JOIN routes r ON ra.route_id = r.route_id
+		WHERE ra.driver = $1
+		ORDER BY r.route_name
+	`
+
+	var assignments []RouteAssignment
+	err := db.Select(&assignments, query, username)
+	return assignments, err
+}
+
+func getStudentsByRoute(routeID string) ([]Student, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	query := `
+		SELECT * FROM students 
+		WHERE route_id = $1 AND active = true 
+		ORDER BY position_number, pickup_time
+	`
+
+	var students []Student
+	err := db.Select(&students, query, routeID)
+	return students, err
 }
 
 // Helper functions for updating vehicle fields
@@ -641,144 +904,8 @@ func updateVehicleField(vehicleID, fieldName, fieldValue string) error {
 	return err
 }
 
-// driverDashboardHandler with maintenance alerts
-func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	// Get driver's assignments
-	assignments, err := getDriverAssignments(user.Username)
-	if err != nil {
-		log.Printf("Error loading assignments: %v", err)
-	}
-
-	// Check for maintenance alerts on assigned buses
-	var maintenanceAlerts []MaintenanceAlert
-	for _, assignment := range assignments {
-		alerts, err := checkMaintenanceDue(assignment.BusID)
-		if err != nil {
-			log.Printf("Error checking maintenance for bus %s: %v", assignment.BusID, err)
-			continue
-		}
-		maintenanceAlerts = append(maintenanceAlerts, alerts...)
-	}
-
-	// Get students for assigned routes
-	studentsMap := make(map[string][]Student)
-	for _, assignment := range assignments {
-		students, err := getStudentsByRoute(assignment.RouteID)
-		if err != nil {
-			log.Printf("Error loading students for route %s: %v", assignment.RouteID, err)
-			continue
-		}
-		studentsMap[assignment.RouteID] = students
-	}
-
-	// Check for success message
-	success := r.URL.Query().Get("success") == "true"
-
-	data := map[string]interface{}{
-		"User":               user,
-		"CSRFToken":          getSessionCSRFToken(r),
-		"Assignments":        assignments,
-		"StudentsMap":        studentsMap,
-		"MaintenanceAlerts":  maintenanceAlerts,
-		"Success":            success,
-		"CurrentDate":        time.Now().Format("2006-01-02"),
-	}
-
-	renderTemplate(w, r, "driver_dashboard.html", data)
-}
-
-// Helper functions
-func getDriverAssignments(username string) ([]RouteAssignment, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-
-	query := `
-		SELECT ra.driver, ra.bus_id, ra.route_id, r.route_name, ra.assigned_date
-		FROM route_assignments ra
-		JOIN routes r ON ra.route_id = r.route_id
-		WHERE ra.driver = $1
-		ORDER BY r.route_name
-	`
-
-	var assignments []RouteAssignment
-	err := db.Select(&assignments, query, username)
-	return assignments, err
-}
-
-func getStudentsByRoute(routeID string) ([]Student, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-
-	query := `
-		SELECT * FROM students 
-		WHERE route_id = $1 AND active = true 
-		ORDER BY position_number, pickup_time
-	`
-
-	var students []Student
-	err := db.Select(&students, query, routeID)
-	return students, err
-}
-
-// managerDashboardHandler with maintenance overview
-func managerDashboardHandler(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	// Get various statistics
-	buses, _ := dataCache.getBuses()
-	vehicles, _ := dataCache.getVehicles()
-	users, _ := dataCache.getUsers()
-	routes, _ := dataCache.getRoutes()
-
-	// Count vehicles needing maintenance
-	maintenanceNeeded := 0
-	
-	// Check buses
-	for _, bus := range buses {
-		if bus.OilStatus == "needs_service" || bus.OilStatus == "overdue" ||
-			bus.TireStatus == "worn" || bus.TireStatus == "replace" {
-			maintenanceNeeded++
-		}
-	}
-	
-	// Check vehicles
-	for _, vehicle := range vehicles {
-		if vehicle.OilStatus == "needs_service" || vehicle.OilStatus == "overdue" ||
-			vehicle.TireStatus == "worn" || vehicle.TireStatus == "replace" {
-			maintenanceNeeded++
-		}
-	}
-
-	// Get pending users
-	pendingUsers := 0
-	for _, u := range users {
-		if u.Status == "pending" {
-			pendingUsers++
-		}
-	}
-
-	data := map[string]interface{}{
-		"User":              user,
-		"CSRFToken":         getSessionCSRFToken(r),
-		"TotalBuses":        len(buses),
-		"TotalVehicles":     len(vehicles),
-		"TotalDrivers":      len(users) - 1, // Exclude manager
-		"TotalRoutes":       len(routes),
-		"MaintenanceNeeded": maintenanceNeeded,
-		"PendingUsers":      pendingUsers,
-	}
-
-	renderTemplate(w, r, "manager_dashboard.html", data)
+// Health check endpoint
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
 }
