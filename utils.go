@@ -32,27 +32,44 @@ func renderTemplate(w http.ResponseWriter, r *http.Request, name string, data in
 		nonce = n
 	}
 	
-	// Create a wrapper that includes both nonce and original data
-	type TemplateWrapper struct {
-		CSPNonce string      // This will be available as {{.CSPNonce}} in templates
-		Data     interface{} // This will be available as {{.Data}} in templates
+	// Check if data is a map, if so add CSPNonce to it
+	if mapData, ok := data.(map[string]interface{}); ok {
+		mapData["CSPNonce"] = nonce
+		executeTemplate(w, name, mapData)
+		return
 	}
 	
-	wrapper := TemplateWrapper{
-		CSPNonce: nonce,
-		Data:     data,
+	// For struct data, we need to use reflection to add CSPNonce
+	// For now, just pass the data directly with CSPNonce in a wrapper
+	// that preserves the original structure
+	type TemplateData struct {
+		CSPNonce string
 	}
 	
-	executeTemplate(w, name, wrapper)
-}
-
-// renderLoginError renders login page with error (CSP-aware)
-func renderLoginError(w http.ResponseWriter, r *http.Request, errorMsg string) {
-	csrfToken, _ := GenerateSecureToken()
-	renderTemplate(w, r, "login.html", LoginFormData{
-		Error:     errorMsg,
-		CSRFToken: csrfToken,
-	})
+	// Create a map to hold all the data
+	templateData := make(map[string]interface{})
+	
+	// Use reflection to convert struct to map
+	if data != nil {
+		dataType := reflect.TypeOf(data)
+		dataValue := reflect.ValueOf(data)
+		
+		if dataType.Kind() == reflect.Struct {
+			for i := 0; i < dataType.NumField(); i++ {
+				field := dataType.Field(i)
+				value := dataValue.Field(i).Interface()
+				templateData[field.Name] = value
+			}
+		} else {
+			// If it's not a struct, just add it as Data
+			templateData["Data"] = data
+		}
+	}
+	
+	// Add CSPNonce
+	templateData["CSPNonce"] = nonce
+	
+	executeTemplate(w, name, templateData)
 }
 
 // formatDate formats a date string for display
