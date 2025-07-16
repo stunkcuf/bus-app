@@ -1,1894 +1,329 @@
-// data.go - PostgreSQL-only data loading and saving functions with proper error handling
 package main
 
 import (
-	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"time"
 )
 
-// =============================================================================
-// USER FUNCTIONS WITH ERROR HANDLING
-// =============================================================================
-
-// DEPRECATED: Use loadUsersFromDB instead
-func loadUsers() []User {
-	users, err := loadUsersFromDB()
-	if err != nil {
-		log.Printf("Error loading users: %v", err)
-		return []User{}
-	}
-	return users
+// Define maintenance schedules
+var maintenanceSchedules = []MaintenanceSchedule{
+	{
+		ItemName:      "Oil & Filter Change",
+		Interval:      5000,
+		WarningMiles:  500,
+		CriticalMiles: 1000,
+	},
+	{
+		ItemName:      "Tire Rotation",
+		Interval:      10000,
+		WarningMiles:  1000,
+		CriticalMiles: 2000,
+	},
+	{
+		ItemName:      "Air Filter",
+		Interval:      15000,
+		WarningMiles:  1000,
+		CriticalMiles: 3000,
+	},
+	{
+		ItemName:      "Brake Inspection",
+		Interval:      20000,
+		WarningMiles:  2000,
+		CriticalMiles: 5000,
+	},
 }
 
-func loadUsersFromDB() ([]User, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
-	// Try to load with status and registration_date first
-	rows, err := db.Query(`
-		SELECT username, password, role, 
-		       COALESCE(status, 'active') as status,
-		       COALESCE(registration_date::text, created_at::text, '') as registration_date
-		FROM users 
-		ORDER BY username
-	`)
-	
+// CheckMaintenanceDue checks if maintenance is due for a vehicle
+func checkMaintenanceDue(vehicleID string) ([]MaintenanceAlert, error) {
+	// Get current maintenance info
+	currentMileage, lastOilChange, lastTireService, err := getVehicleMaintenanceInfo(vehicleID)
 	if err != nil {
-		// Fallback to original query if new columns don't exist
-		log.Printf("Loading users without new columns, trying basic query: %v", err)
-		rows, err = db.Query("SELECT username, password, role FROM users ORDER BY username")
-		if err != nil {
-			return nil, fmt.Errorf("failed to load users from DB: %w", err)
-		}
-		defer rows.Close()
+		return nil, fmt.Errorf("failed to get vehicle info: %w", err)
+	}
 
-		var users []User
-		for rows.Next() {
-			var user User
-			if err := rows.Scan(&user.Username, &user.Password, &user.Role); err != nil {
-				log.Printf("Error scanning user: %v", err)
-				continue
-			}
-			// Set defaults for missing fields
-			user.Status = "active"
-			user.RegistrationDate = ""
-			users = append(users, user)
-		}
-		return users, nil
-	}
-	defer rows.Close()
+	var alerts []MaintenanceAlert
 
-	var users []User
-	for rows.Next() {
-		var user User
-		var status, regDate sql.NullString
-		
-		if err := rows.Scan(&user.Username, &user.Password, &user.Role, 
-			&status, &regDate); err != nil {
-			log.Printf("Error scanning user with full fields: %v", err)
-			// Try simpler scan
-			if err := rows.Scan(&user.Username, &user.Password, &user.Role); err != nil {
-				log.Printf("Error scanning basic user fields: %v", err)
-				continue
-			}
-			user.Status = "active"
-			user.RegistrationDate = ""
-		} else {
-			// Use the scanned values
-			if status.Valid {
-				user.Status = status.String
-			} else {
-				user.Status = "active"
-			}
-			
-			if regDate.Valid {
-				user.RegistrationDate = regDate.String
-			} else {
-				user.RegistrationDate = ""
-			}
+	// Check oil change
+	oilMilesSince := currentMileage - lastOilChange
+	if oilMilesSince >= 5000 {
+		alert := MaintenanceAlert{
+			VehicleID:    vehicleID,
+			AlertType:    "maintenance",
+			ItemName:     "Oil & Filter Change",
+			Severity:     "overdue",
+			MilesOverdue: oilMilesSince - 5000,
+			Message:      fmt.Sprintf("Oil change overdue by %d miles", oilMilesSince-5000),
 		}
-		
-		users = append(users, user)
+		alerts = append(alerts, alert)
+	} else if oilMilesSince >= 4500 {
+		alert := MaintenanceAlert{
+			VehicleID: vehicleID,
+			AlertType: "maintenance",
+			ItemName:  "Oil & Filter Change",
+			Severity:  "due",
+			Message:   fmt.Sprintf("Oil change due in %d miles", 5000-oilMilesSince),
+		}
+		alerts = append(alerts, alert)
 	}
-	
-	if err = rows.Err(); err != nil {
-		return users, fmt.Errorf("error iterating users: %w", err)
+
+	// Check tire service
+	tireMilesSince := currentMileage - lastTireService
+	if tireMilesSince >= 40000 {
+		alert := MaintenanceAlert{
+			VehicleID:    vehicleID,
+			AlertType:    "maintenance",
+			ItemName:     "Tire Service",
+			Severity:     "overdue",
+			MilesOverdue: tireMilesSince - 40000,
+			Message:      fmt.Sprintf("Tire service overdue by %d miles", tireMilesSince-40000),
+		}
+		alerts = append(alerts, alert)
+	} else if tireMilesSince >= 35000 {
+		alert := MaintenanceAlert{
+			VehicleID: vehicleID,
+			AlertType: "maintenance",
+			ItemName:  "Tire Service",
+			Severity:  "warning",
+			Message:   fmt.Sprintf("Tire service due in %d miles", 40000-tireMilesSince),
+		}
+		alerts = append(alerts, alert)
 	}
-	
-	return users, nil
+
+	return alerts, nil
 }
 
-func updateUser(user User) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	// Ensure status is set
-	if user.Status == "" {
-		user.Status = "active"
-	}
-	
-	// First, check if updated_at column exists
-	var columnExists bool
-	err := db.QueryRow(`
-		SELECT EXISTS (
-			SELECT 1 FROM information_schema.columns 
-			WHERE table_name = 'users' 
-			AND column_name = 'updated_at'
-		)
-	`).Scan(&columnExists)
-	
+// ValidateMileageEntry validates a new mileage entry
+func validateMileageEntry(vehicleID string, newMileage float64) MileageValidation {
+	// Get last recorded mileage
+	lastMileage, err := getLastMileageForVehicle(vehicleID)
 	if err != nil {
-		// If we can't check, just try without updated_at
-		columnExists = false
+		log.Printf("Error getting last mileage: %v", err)
+		// Continue with validation if we can't get last mileage
 	}
-	
-	// Update based on whether updated_at exists
-	if columnExists {
-		_, err = db.Exec(`
-			UPDATE users 
-			SET password = $2, 
-			    role = $3, 
-			    status = $4,
-			    updated_at = CURRENT_TIMESTAMP
-			WHERE username = $1
-		`, user.Username, user.Password, user.Role, user.Status)
+
+	// Check if mileage is going backwards
+	if lastMileage > 0 && newMileage < lastMileage {
+		return MileageValidation{
+			Valid: false,
+			Error: fmt.Sprintf("Mileage cannot go backwards. Previous: %.0f, New: %.0f", lastMileage, newMileage),
+		}
+	}
+
+	// Check for unrealistic jumps
+	if lastMileage > 0 {
+		mileageDiff := newMileage - lastMileage
+		
+		// Warning for large jumps (>1000 miles)
+		if mileageDiff > 1000 {
+			return MileageValidation{
+				Valid:   true,
+				Warning: fmt.Sprintf("Large mileage increase detected: %.0f miles. Please verify this is correct.", mileageDiff),
+			}
+		}
+		
+		// Warning for suspicious daily mileage (>500 miles in one day)
+		if mileageDiff > 500 {
+			return MileageValidation{
+				Valid:   true,
+				Warning: fmt.Sprintf("High daily mileage: %.0f miles. This is unusual for a school bus route.", mileageDiff),
+			}
+		}
+	}
+
+	return MileageValidation{Valid: true}
+}
+
+// UpdateMaintenanceStatusBasedOnMileage updates oil and tire status based on current mileage
+func updateMaintenanceStatusBasedOnMileage(vehicleID string) error {
+	// Get maintenance info
+	currentMileage, lastOilChange, lastTireService, err := getVehicleMaintenanceInfo(vehicleID)
+	if err != nil {
+		return fmt.Errorf("failed to get maintenance info: %w", err)
+	}
+
+	// Calculate miles since last service
+	oilMilesSince := currentMileage - lastOilChange
+	tireMilesSince := currentMileage - lastTireService
+
+	// Determine oil status
+	var oilStatus string
+	if oilMilesSince >= 5000 {
+		oilStatus = "overdue"
+	} else if oilMilesSince >= 4500 {
+		oilStatus = "needs_service"
 	} else {
-		// Update without updated_at column
-		_, err = db.Exec(`
-			UPDATE users 
-			SET password = $2, 
-			    role = $3, 
-			    status = $4
-			WHERE username = $1
-		`, user.Username, user.Password, user.Role, user.Status)
+		oilStatus = "good"
 	}
-	
-	if err != nil {
-		return fmt.Errorf("failed to update user %s: %w", user.Username, err)
+
+	// Determine tire status
+	var tireStatus string
+	if tireMilesSince >= 40000 {
+		tireStatus = "replace"
+	} else if tireMilesSince >= 35000 {
+		tireStatus = "worn"
+	} else {
+		tireStatus = "good"
 	}
-	
-	return nil
+
+	// Update the status in the database
+	return updateVehicleMaintenanceStatus(vehicleID, oilStatus, tireStatus)
 }
 
-func saveUser(user User) error {
+// Load functions for caching
+
+func loadBusesFromDB() ([]Bus, error) {
 	if db == nil {
-		return fmt.Errorf("database connection not available")
+		return nil, fmt.Errorf("database not initialized")
 	}
-	
-	// Set default status if not provided
-	if user.Status == "" {
-		user.Status = "active"
-	}
-	
-	_, err := db.Exec(`
-		INSERT INTO users (username, password, role, status) 
-		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (username) 
-		DO UPDATE SET 
-			password = $2, 
-			role = $3, 
-			status = $4
-	`, user.Username, user.Password, user.Role, user.Status)
-	
-	return err
-}
 
-func saveUsers(users []User) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	tx, err := db.Begin()
+	var buses []Bus
+	err := db.Select(&buses, "SELECT * FROM buses ORDER BY bus_id")
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return nil, fmt.Errorf("failed to load buses: %w", err)
 	}
-	
-	success := false
-	defer func() {
-		if !success {
-			tx.Rollback()
-		}
-	}()
-	
-	for _, user := range users {
-		// Set default status if not provided
-		if user.Status == "" {
-			user.Status = "active"
-		}
-		
-		_, err := tx.Exec(`
-			INSERT INTO users (username, password, role, status) 
-			VALUES ($1, $2, $3, $4)
-			ON CONFLICT (username) 
-			DO UPDATE SET 
-				password = $2, 
-				role = $3, 
-				status = $4
-		`, user.Username, user.Password, user.Role, user.Status)
-		
-		if err != nil {
-			return fmt.Errorf("failed to save user %s: %w", user.Username, err)
-		}
-	}
-	
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-	
-	success = true
-	return nil
-}
 
-func deleteUser(username string) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	_, err := db.Exec("DELETE FROM users WHERE username = $1", username)
-	return err
-}
-
-// =============================================================================
-// BUS FUNCTIONS WITH ERROR HANDLING
-// =============================================================================
-
-// DEPRECATED: Use loadBusesFromDB instead
-func loadBuses() []*Bus {
-	buses, err := loadBusesFromDB()
-	if err != nil {
-		log.Printf("Error loading buses: %v", err)
-		return []*Bus{}
-	}
-	return buses
-}
-
-func loadBusesFromDB() ([]*Bus, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
-	rows, err := db.Query(`
-		SELECT bus_id, status, model, capacity, oil_status, tire_status, maintenance_notes,
-		       COALESCE(current_mileage, 0) as current_mileage
-		FROM buses ORDER BY bus_id
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load buses from DB: %w", err)
-	}
-	defer rows.Close()
-
-	var buses []*Bus
-	for rows.Next() {
-		bus := &Bus{}
-		if err := rows.Scan(&bus.BusID, &bus.Status, &bus.Model, &bus.Capacity, 
-			&bus.OilStatus, &bus.TireStatus, &bus.MaintenanceNotes, &bus.CurrentMileage); err != nil {
-			log.Printf("Error scanning bus: %v", err)
-			continue
-		}
-		buses = append(buses, bus)
-	}
-	
-	if err = rows.Err(); err != nil {
-		return buses, fmt.Errorf("error iterating buses: %w", err)
-	}
-	
 	return buses, nil
-}
-
-func saveBus(bus *Bus) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	_, err := db.Exec(`
-		INSERT INTO buses (bus_id, status, model, capacity, oil_status, tire_status, maintenance_notes, current_mileage) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		ON CONFLICT (bus_id) 
-		DO UPDATE SET 
-			status = $2, model = $3, capacity = $4, 
-			oil_status = $5, tire_status = $6, maintenance_notes = $7,
-			current_mileage = $8, updated_at = CURRENT_TIMESTAMP
-	`, bus.BusID, bus.Status, bus.Model, bus.Capacity,
-	   bus.OilStatus, bus.TireStatus, bus.MaintenanceNotes, bus.CurrentMileage)
-	
-	return err
-}
-
-func saveBuses(buses []*Bus) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	
-	success := false
-	defer func() {
-		if !success {
-			tx.Rollback()
-		}
-	}()
-
-	for _, bus := range buses {
-		_, err := tx.Exec(`
-			UPDATE buses 
-			SET status = $2, model = $3, capacity = $4, 
-				oil_status = $5, tire_status = $6, maintenance_notes = $7,
-				current_mileage = $8, updated_at = CURRENT_TIMESTAMP
-			WHERE bus_id = $1
-		`, bus.BusID, bus.Status, bus.Model, bus.Capacity,
-		   bus.OilStatus, bus.TireStatus, bus.MaintenanceNotes, bus.CurrentMileage)
-		
-		if err != nil {
-			return fmt.Errorf("failed to update bus %s: %w", bus.BusID, err)
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-	
-	success = true
-	return nil
-}
-
-func deleteBus(busID string) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	_, err := db.Exec("DELETE FROM buses WHERE bus_id = $1", busID)
-	return err
-}
-
-// =============================================================================
-// ROUTE FUNCTIONS WITH ERROR HANDLING
-// =============================================================================
-
-// DEPRECATED: Use loadRoutesFromDB instead
-func loadRoutes() ([]Route, error) {
-	return loadRoutesFromDB()
-}
-
-func loadRoutesFromDB() ([]Route, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
-	rows, err := db.Query(`
-		SELECT route_id, route_name, description, positions 
-		FROM routes ORDER BY route_id
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load routes from DB: %w", err)
-	}
-	defer rows.Close()
-
-	var routes []Route
-	for rows.Next() {
-		var route Route
-		var positionsJSON []byte
-		if err := rows.Scan(&route.RouteID, &route.RouteName, &route.Description, &positionsJSON); err != nil {
-			log.Printf("Error scanning route: %v", err)
-			continue
-		}
-		
-		if len(positionsJSON) > 0 {
-			if err := json.Unmarshal(positionsJSON, &route.Positions); err != nil {
-				log.Printf("Error unmarshaling positions for route %s: %v", route.RouteID, err)
-			}
-		}
-		
-		routes = append(routes, route)
-	}
-	
-	if err = rows.Err(); err != nil {
-		return routes, fmt.Errorf("error iterating routes: %w", err)
-	}
-	
-	return routes, nil
-}
-
-func saveRoute(route Route) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	positionsJSON, err := json.Marshal(route.Positions)
-	if err != nil {
-		return fmt.Errorf("failed to marshal positions: %w", err)
-	}
-	
-	_, err = db.Exec(`
-		INSERT INTO routes (route_id, route_name, description, positions) 
-		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (route_id) 
-		DO UPDATE SET 
-			route_name = $2, description = $3, positions = $4,
-			updated_at = CURRENT_TIMESTAMP
-	`, route.RouteID, route.RouteName, route.Description, positionsJSON)
-	
-	return err
-}
-
-func saveRoutes(routes []Route) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	
-	success := false
-	defer func() {
-		if !success {
-			tx.Rollback()
-		}
-	}()
-	
-	for _, route := range routes {
-		positionsJSON, err := json.Marshal(route.Positions)
-		if err != nil {
-			return fmt.Errorf("failed to marshal positions: %w", err)
-		}
-		
-		_, err = tx.Exec(`
-			UPDATE routes 
-			SET route_name = $2, description = $3, positions = $4,
-				updated_at = CURRENT_TIMESTAMP
-			WHERE route_id = $1
-		`, route.RouteID, route.RouteName, route.Description, positionsJSON)
-		
-		if err != nil {
-			return fmt.Errorf("failed to update route %s: %w", route.RouteID, err)
-		}
-	}
-	
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-	
-	success = true
-	return nil
-}
-
-func deleteRoute(routeID string) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	_, err := db.Exec("DELETE FROM routes WHERE route_id = $1", routeID)
-	return err
-}
-
-// =============================================================================
-// STUDENT FUNCTIONS WITH ERROR HANDLING
-// =============================================================================
-
-// DEPRECATED: Use loadStudentsFromDB instead
-func loadStudents() []Student {
-	students, err := loadStudentsFromDB()
-	if err != nil {
-		log.Printf("Error loading students: %v", err)
-		return []Student{}
-	}
-	return students
-}
-
-func loadStudentsFromDB() ([]Student, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
-	rows, err := db.Query(`
-		SELECT student_id, name, locations, phone_number, alt_phone_number, 
-			guardian, pickup_time, dropoff_time, position_number, route_id, driver, active
-		FROM students ORDER BY student_id
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load students from DB: %w", err)
-	}
-	defer rows.Close()
-
-	var students []Student
-	for rows.Next() {
-		var student Student
-		var locationsJSON []byte
-		var pickupTime, dropoffTime sql.NullTime
-		
-		if err := rows.Scan(&student.StudentID, &student.Name, &locationsJSON,
-			&student.PhoneNumber, &student.AltPhoneNumber, &student.Guardian,
-			&pickupTime, &dropoffTime, &student.PositionNumber,
-			&student.RouteID, &student.Driver, &student.Active); err != nil {
-			log.Printf("Error scanning student: %v", err)
-			continue
-		}
-		
-		if pickupTime.Valid {
-			student.PickupTime = pickupTime.Time.Format("15:04")
-		}
-		if dropoffTime.Valid {
-			student.DropoffTime = dropoffTime.Time.Format("15:04")
-		}
-		
-		if len(locationsJSON) > 0 {
-			if err := json.Unmarshal(locationsJSON, &student.Locations); err != nil {
-				log.Printf("Error unmarshaling locations for student %s: %v", student.StudentID, err)
-			}
-		}
-		
-		students = append(students, student)
-	}
-	
-	if err = rows.Err(); err != nil {
-		return students, fmt.Errorf("error iterating students: %w", err)
-	}
-	
-	return students, nil
-}
-
-func saveStudent(student Student) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	locationsJSON, err := json.Marshal(student.Locations)
-	if err != nil {
-		return fmt.Errorf("failed to marshal locations: %w", err)
-	}
-	
-	log.Printf("DEBUG: Saving student %s with %d locations: %s", 
-		student.StudentID, len(student.Locations), string(locationsJSON))
-	
-	// Handle NULL times
-	var pickupTime, dropoffTime interface{}
-	if student.PickupTime != "" {
-		pickupTime = student.PickupTime
-	} else {
-		pickupTime = nil
-	}
-	if student.DropoffTime != "" {
-		dropoffTime = student.DropoffTime
-	} else {
-		dropoffTime = nil
-	}
-	
-	_, err = db.Exec(`
-		INSERT INTO students (student_id, name, locations, phone_number, alt_phone_number,
-			guardian, pickup_time, dropoff_time, position_number, route_id, driver, active) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-		ON CONFLICT (student_id) 
-		DO UPDATE SET 
-			name = $2, locations = $3, phone_number = $4, alt_phone_number = $5,
-			guardian = $6, pickup_time = $7, dropoff_time = $8, position_number = $9,
-			route_id = $10, driver = $11, active = $12,
-			updated_at = CURRENT_TIMESTAMP
-	`, student.StudentID, student.Name, locationsJSON, student.PhoneNumber,
-		student.AltPhoneNumber, student.Guardian, pickupTime, dropoffTime,
-		student.PositionNumber, student.RouteID, student.Driver, student.Active)
-	
-	if err != nil {
-		log.Printf("ERROR: Failed to save student %s: %v", student.StudentID, err)
-		return fmt.Errorf("failed to save student %s: %w", student.StudentID, err)
-	}
-	
-	return nil
-}
-
-func deleteStudent(studentID string) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	_, err := db.Exec("DELETE FROM students WHERE student_id = $1", studentID)
-	return err
-}
-
-// =============================================================================
-// ROUTE ASSIGNMENT FUNCTIONS WITH ERROR HANDLING
-// =============================================================================
-
-func loadRouteAssignments() ([]RouteAssignment, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
-	rows, err := db.Query(`
-		SELECT driver, bus_id, route_id, route_name, assigned_date 
-		FROM route_assignments ORDER BY driver
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load route assignments from DB: %w", err)
-	}
-	defer rows.Close()
-
-	var assignments []RouteAssignment
-	for rows.Next() {
-		var assignment RouteAssignment
-		var assignedDate sql.NullTime
-		var routeName sql.NullString
-		
-		if err := rows.Scan(&assignment.Driver, &assignment.BusID, &assignment.RouteID,
-			&routeName, &assignedDate); err != nil {
-			log.Printf("Error scanning route assignment: %v", err)
-			continue
-		}
-		
-		// Handle nullable route name
-		if routeName.Valid {
-			assignment.RouteName = routeName.String
-		} else {
-			assignment.RouteName = ""
-			log.Printf("Warning: Route name is NULL for assignment: driver=%s, route_id=%s", 
-				assignment.Driver, assignment.RouteID)
-		}
-		
-		if assignedDate.Valid {
-			assignment.AssignedDate = assignedDate.Time.Format("2006-01-02")
-		}
-		
-		log.Printf("Loaded assignment: driver=%s, bus=%s, route=%s, route_name=%s", 
-			assignment.Driver, assignment.BusID, assignment.RouteID, assignment.RouteName)
-		
-		assignments = append(assignments, assignment)
-	}
-	
-	if err = rows.Err(); err != nil {
-		return assignments, fmt.Errorf("error iterating route assignments: %w", err)
-	}
-	
-	log.Printf("Total route assignments loaded: %d", len(assignments))
-	return assignments, nil
-}
-
-func deleteRouteAssignment(driver string) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	_, err := db.Exec("DELETE FROM route_assignments WHERE driver = $1", driver)
-	return err
-}
-
-// =============================================================================
-// DRIVER LOG FUNCTIONS WITH ERROR HANDLING
-// =============================================================================
-
-// DEPRECATED: Use loadDriverLogsFromDB instead
-func loadDriverLogs() ([]DriverLog, error) {
-	return loadDriverLogsFromDB()
-}
-
-func loadDriverLogsFromDB() ([]DriverLog, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
-	rows, err := db.Query(`
-		SELECT driver, bus_id, route_id, date, period, departure_time, 
-			arrival_time, mileage, attendance 
-		FROM driver_logs ORDER BY date DESC, driver
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load driver logs from DB: %w", err)
-	}
-	defer rows.Close()
-
-	var logs []DriverLog
-	for rows.Next() {
-		var driverLog DriverLog
-		var attendanceJSON []byte
-		var date sql.NullTime
-		var departureTime, arrivalTime sql.NullString
-		
-		if err := rows.Scan(&driverLog.Driver, &driverLog.BusID, &driverLog.RouteID,
-			&date, &driverLog.Period, &departureTime,
-			&arrivalTime, &driverLog.Mileage, &attendanceJSON); err != nil {
-			log.Printf("Error scanning driver log: %v", err)
-			continue
-		}
-		
-		if date.Valid {
-			driverLog.Date = date.Time.Format("2006-01-02")
-		}
-		if departureTime.Valid {
-			driverLog.Departure = departureTime.String
-		}
-		if arrivalTime.Valid {
-			driverLog.Arrival = arrivalTime.String
-		}
-		
-		if len(attendanceJSON) > 0 {
-			if err := json.Unmarshal(attendanceJSON, &driverLog.Attendance); err != nil {
-				log.Printf("Error unmarshaling attendance: %v", err)
-			}
-		}
-		
-		logs = append(logs, driverLog)
-	}
-	
-	if err = rows.Err(); err != nil {
-		return logs, fmt.Errorf("error iterating driver logs: %w", err)
-	}
-	
-	return logs, nil
-}
-
-// Load driver logs for a specific driver with limit
-func loadDriverLogsForDriver(driver string, limit int) ([]DriverLog, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
-	query := `
-		SELECT driver, bus_id, route_id, date, period, departure_time, 
-			arrival_time, mileage, attendance 
-		FROM driver_logs 
-		WHERE driver = $1
-		ORDER BY date DESC, period DESC
-		LIMIT $2
-	`
-	
-	rows, err := db.Query(query, driver, limit)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load driver logs: %w", err)
-	}
-	defer rows.Close()
-
-	var logs []DriverLog
-	for rows.Next() {
-		var driverLog DriverLog
-		var attendanceJSON []byte
-		var date sql.NullTime
-		var departureTime, arrivalTime sql.NullString
-		
-		if err := rows.Scan(&driverLog.Driver, &driverLog.BusID, &driverLog.RouteID,
-			&date, &driverLog.Period, &departureTime,
-			&arrivalTime, &driverLog.Mileage, &attendanceJSON); err != nil {
-			log.Printf("Error scanning driver log: %v", err)
-			continue
-		}
-		
-		if date.Valid {
-			driverLog.Date = date.Time.Format("2006-01-02")
-		}
-		if departureTime.Valid {
-			driverLog.Departure = departureTime.String
-		}
-		if arrivalTime.Valid {
-			driverLog.Arrival = arrivalTime.String
-		}
-		
-		if len(attendanceJSON) > 0 {
-			if err := json.Unmarshal(attendanceJSON, &driverLog.Attendance); err != nil {
-				log.Printf("Error unmarshaling attendance: %v", err)
-			}
-		}
-		
-		logs = append(logs, driverLog)
-	}
-	
-	return logs, nil
-}
-
-// Get driver logs by date range
-func getDriverLogsByDateRange(driver string, startDate, endDate string) ([]DriverLog, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
-	query := `
-		SELECT driver, bus_id, route_id, date, period, departure_time, 
-			arrival_time, mileage, attendance 
-		FROM driver_logs 
-		WHERE driver = $1 AND date BETWEEN $2 AND $3
-		ORDER BY date DESC, period DESC
-	`
-	
-	rows, err := db.Query(query, driver, startDate, endDate)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load driver logs by date range: %w", err)
-	}
-	defer rows.Close()
-
-	var logs []DriverLog
-	for rows.Next() {
-		var driverLog DriverLog
-		var attendanceJSON []byte
-		var date sql.NullTime
-		var departureTime, arrivalTime sql.NullString
-		
-		if err := rows.Scan(&driverLog.Driver, &driverLog.BusID, &driverLog.RouteID,
-			&date, &driverLog.Period, &departureTime,
-			&arrivalTime, &driverLog.Mileage, &attendanceJSON); err != nil {
-			log.Printf("Error scanning driver log: %v", err)
-			continue
-		}
-		
-		if date.Valid {
-			driverLog.Date = date.Time.Format("2006-01-02")
-		}
-		if departureTime.Valid {
-			driverLog.Departure = departureTime.String
-		}
-		if arrivalTime.Valid {
-			driverLog.Arrival = arrivalTime.String
-		}
-		
-		if len(attendanceJSON) > 0 {
-			if err := json.Unmarshal(attendanceJSON, &driverLog.Attendance); err != nil {
-				log.Printf("Error unmarshaling attendance: %v", err)
-			}
-		}
-		
-		logs = append(logs, driverLog)
-	}
-	
-	return logs, nil
-}
-
-func saveDriverLog(driverLog DriverLog) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	attendanceJSON, err := json.Marshal(driverLog.Attendance)
-	if err != nil {
-		return fmt.Errorf("failed to marshal attendance: %w", err)
-	}
-	
-	_, err = db.Exec(`
-		INSERT INTO driver_logs (driver, bus_id, route_id, date, period, 
-			departure_time, arrival_time, mileage, attendance) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		ON CONFLICT (driver, date, period) 
-		DO UPDATE SET 
-			bus_id = $2, route_id = $3, departure_time = $6, 
-			arrival_time = $7, mileage = $8, attendance = $9
-	`, driverLog.Driver, driverLog.BusID, driverLog.RouteID, driverLog.Date,
-		driverLog.Period, driverLog.Departure, driverLog.Arrival, 
-		driverLog.Mileage, attendanceJSON)
-	
-	return err
-}
-
-func saveDriverLogs(logs []DriverLog) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	
-	success := false
-	defer func() {
-		if !success {
-			tx.Rollback()
-		}
-	}()
-	
-	for _, log := range logs {
-		if err := saveDriverLog(log); err != nil {
-			return fmt.Errorf("failed to save log for driver %s: %w", log.Driver, err)
-		}
-	}
-	
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-	
-	success = true
-	return nil
-}
-
-// =============================================================================
-// FIXED MAINTENANCE LOG FUNCTIONS
-// =============================================================================
-
-// DEPRECATED: Use loadMaintenanceLogsFromDB instead
-func loadMaintenanceLogs() []BusMaintenanceLog {
-	logs, err := loadMaintenanceLogsFromDB()
-	if err != nil {
-		log.Printf("Error loading maintenance logs: %v", err)
-		return []BusMaintenanceLog{}
-	}
-	return logs
-}
-
-func loadMaintenanceLogsFromDB() ([]BusMaintenanceLog, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
-	// Query from all maintenance tables
-	query := `
-		SELECT * FROM (
-			-- Bus maintenance logs
-			SELECT id, bus_id as vehicle_id, date::text, category, notes, mileage, 
-			       COALESCE(cost, 0) as cost, created_at
-			FROM bus_maintenance_logs
-			
-			UNION ALL
-			
-			-- Vehicle maintenance records
-			SELECT id, vehicle_id, date::text, 
-			       COALESCE(category, 'maintenance') as category, 
-			       COALESCE(notes, '') as notes, 
-			       COALESCE(mileage, 0) as mileage, 
-			       COALESCE(cost, 0) as cost, 
-			       created_at
-			FROM maintenance_records
-		) combined_logs
-		ORDER BY date DESC, created_at DESC
-		LIMIT 100
-	`
-	
-	var logs []BusMaintenanceLog
-	err := db.Select(&logs, query)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load maintenance logs: %w", err)
-	}
-	
-	// Set BusID from VehicleID for compatibility
-	for i := range logs {
-		if logs[i].BusID == "" && logs[i].VehicleID != "" {
-			logs[i].BusID = logs[i].VehicleID
-		}
-	}
-	
-	return logs, nil
-}
-
-// FIXED VERSION - Get maintenance logs for specific vehicle
-func getMaintenanceLogsForVehicle(vehicleID string) ([]BusMaintenanceLog, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
-	log.Printf("Getting maintenance logs for vehicle: %s", vehicleID)
-	
-	// Query from all possible maintenance tables
-	query := `
-		SELECT * FROM (
-			-- Bus maintenance logs
-			SELECT 
-				id,
-				bus_id as vehicle_id,
-				date::text,
-				category,
-				notes,
-				mileage,
-				COALESCE(cost, 0) as cost,
-				created_at
-			FROM bus_maintenance_logs
-			WHERE bus_id = $1
-			
-			UNION ALL
-			
-			-- Vehicle maintenance records
-			SELECT 
-				id,
-				vehicle_id,
-				date::text,
-				COALESCE(category, 'maintenance') as category,
-				COALESCE(notes, '') as notes,
-				COALESCE(mileage, 0) as mileage,
-				COALESCE(cost, 0) as cost,
-				created_at
-			FROM maintenance_records
-			WHERE vehicle_id = $1
-		) combined_logs
-		ORDER BY date DESC, created_at DESC
-	`
-	
-	var logs []BusMaintenanceLog
-	err := db.Select(&logs, query, vehicleID)
-	if err != nil {
-		log.Printf("Error getting maintenance logs for vehicle %s: %v", vehicleID, err)
-		return logs, err
-	}
-	
-	// Set BusID from VehicleID for compatibility
-	for i := range logs {
-		if logs[i].BusID == "" && logs[i].VehicleID != "" {
-			logs[i].BusID = logs[i].VehicleID
-		}
-		if logs[i].VehicleID == "" && logs[i].BusID != "" {
-			logs[i].VehicleID = logs[i].BusID
-		}
-	}
-	
-	log.Printf("Retrieved %d maintenance records for vehicle %s", len(logs), vehicleID)
-	
-	return logs, nil
-}
-
-// Get bus-specific maintenance logs
-func getBusMaintenanceLogs(busID string) ([]BusMaintenanceLog, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
-	rows, err := db.Query(`
-		SELECT id, bus_id, date, category, notes, mileage, cost, created_at
-		FROM bus_maintenance_logs 
-		WHERE bus_id = $1
-		ORDER BY date DESC
-	`, busID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load bus maintenance logs: %w", err)
-	}
-	defer rows.Close()
-
-	var logs []BusMaintenanceLog
-	for rows.Next() {
-		var maintenanceLog BusMaintenanceLog
-		var date sql.NullTime
-		var cost sql.NullFloat64
-		var createdAt sql.NullTime
-		
-		if err := rows.Scan(&maintenanceLog.ID, &maintenanceLog.BusID, &date,
-			&maintenanceLog.Category, &maintenanceLog.Notes, 
-			&maintenanceLog.Mileage, &cost, &createdAt); err != nil {
-			log.Printf("Error scanning maintenance log: %v", err)
-			continue
-		}
-		
-		if date.Valid {
-			maintenanceLog.Date = date.Time.Format("2006-01-02")
-		}
-		if cost.Valid {
-			maintenanceLog.Cost = cost.Float64
-		}
-		if createdAt.Valid {
-			maintenanceLog.CreatedAt = createdAt.Time
-		}
-		
-		logs = append(logs, maintenanceLog)
-	}
-	
-	return logs, nil
-}
-
-// Get vehicle maintenance logs from unified table
-func getVehicleMaintenanceLogs(vehicleID string) ([]BusMaintenanceLog, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
-	rows, err := db.Query(`
-		SELECT id, vehicle_id, date, category, notes, mileage, cost, created_at
-		FROM maintenance_records 
-		WHERE vehicle_id = $1
-		ORDER BY date DESC
-	`, vehicleID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load vehicle maintenance logs: %w", err)
-	}
-	defer rows.Close()
-
-	var logs []BusMaintenanceLog
-	for rows.Next() {
-		var maintenanceLog BusMaintenanceLog
-		var date sql.NullTime
-		var cost sql.NullFloat64
-		var createdAt sql.NullTime
-		
-		if err := rows.Scan(&maintenanceLog.ID, &maintenanceLog.VehicleID, &date,
-			&maintenanceLog.Category, &maintenanceLog.Notes, 
-			&maintenanceLog.Mileage, &cost, &createdAt); err != nil {
-			log.Printf("Error scanning vehicle maintenance log: %v", err)
-			continue
-		}
-		
-		// Use VehicleID as BusID for compatibility
-		maintenanceLog.BusID = maintenanceLog.VehicleID
-		
-		if date.Valid {
-			maintenanceLog.Date = date.Time.Format("2006-01-02")
-		}
-		if cost.Valid {
-			maintenanceLog.Cost = cost.Float64
-		}
-		if createdAt.Valid {
-			maintenanceLog.CreatedAt = createdAt.Time
-		}
-		
-		logs = append(logs, maintenanceLog)
-	}
-	
-	return logs, nil
-}
-
-func saveMaintenanceLog(log BusMaintenanceLog) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	// Validate mileage
-	validation, err := validateMileage(log.BusID, log.Mileage)
-	if err != nil {
-		return err
-	}
-	
-	if !validation.Valid {
-		return fmt.Errorf(validation.Error)
-	}
-	
-	// Save to bus_maintenance_logs
-	_, err = db.Exec(`
-		INSERT INTO bus_maintenance_logs (bus_id, date, category, notes, mileage, cost) 
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, log.BusID, log.Date, log.Category, log.Notes, log.Mileage, log.Cost)
-	
-	if err != nil {
-		return err
-	}
-	
-	// Update current mileage
-	err = updateVehicleMileage(log.BusID, log.Mileage)
-	if err != nil {
-		log.Printf("Error updating vehicle mileage: %v", err)
-	}
-	
-	// Update maintenance schedule if this was a service
-	if log.Category == "oil_change" || log.Category == "tire_service" {
-		err = updateMaintenanceSchedule(log.BusID, log.Category, log.Mileage, log.Date)
-		if err != nil {
-			log.Printf("Error updating maintenance schedule: %v", err)
-		}
-	}
-	
-	// Auto-update status based on validation result
-	if validation.ShouldUpdate {
-		if validation.NewOilStatus != "" {
-			updateVehicleStatus(log.BusID, "oil", validation.NewOilStatus)
-		}
-		if validation.NewTireStatus != "" {
-			updateVehicleStatus(log.BusID, "tire", validation.NewTireStatus)
-		}
-	}
-	
-	return nil
-}
-
-func saveMaintenanceLogs(logs []BusMaintenanceLog) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	
-	success := false
-	defer func() {
-		if !success {
-			tx.Rollback()
-		}
-	}()
-	
-	for _, log := range logs {
-		if err := saveMaintenanceLog(log); err != nil {
-			return fmt.Errorf("failed to save maintenance log: %w", err)
-		}
-	}
-	
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-	
-	success = true
-	return nil
-}
-
-// =============================================================================
-// VEHICLE FUNCTIONS WITH ERROR HANDLING
-// =============================================================================
-
-// DEPRECATED: Use loadVehiclesFromDB instead
-func loadVehicles() []Vehicle {
-	vehicles, err := loadVehiclesFromDB()
-	if err != nil {
-		log.Printf("Error loading vehicles: %v", err)
-		return []Vehicle{}
-	}
-	return vehicles
 }
 
 func loadVehiclesFromDB() ([]Vehicle, error) {
 	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
+		return nil, fmt.Errorf("database not initialized")
 	}
-	
-	rows, err := db.Query(`
-		SELECT vehicle_id, model, description, year, tire_size, license,
-			oil_status, tire_status, status, maintenance_notes, serial_number, base, 
-			service_interval, COALESCE(current_mileage, 0) as current_mileage
-		FROM vehicles ORDER BY vehicle_id
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load vehicles from DB: %w", err)
-	}
-	defer rows.Close()
 
 	var vehicles []Vehicle
-	for rows.Next() {
-		var vehicle Vehicle
-		if err := rows.Scan(&vehicle.VehicleID, &vehicle.Model, &vehicle.Description,
-			&vehicle.Year, &vehicle.TireSize, &vehicle.License, &vehicle.OilStatus,
-			&vehicle.TireStatus, &vehicle.Status, &vehicle.MaintenanceNotes,
-			&vehicle.SerialNumber, &vehicle.Base, &vehicle.ServiceInterval,
-			&vehicle.CurrentMileage); err != nil {
-			log.Printf("Error scanning vehicle: %v", err)
-			continue
-		}
-		vehicles = append(vehicles, vehicle)
+	err := db.Select(&vehicles, "SELECT * FROM vehicles ORDER BY vehicle_id")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load vehicles: %w", err)
 	}
-	
-	if err = rows.Err(); err != nil {
-		return vehicles, fmt.Errorf("error iterating vehicles: %w", err)
-	}
-	
+
 	return vehicles, nil
 }
 
-func saveVehicle(vehicle Vehicle) error {
+func loadRoutesFromDB() ([]Route, error) {
 	if db == nil {
-		return fmt.Errorf("database connection not available")
+		return nil, fmt.Errorf("database not initialized")
 	}
-	
-	_, err := db.Exec(`
-		INSERT INTO vehicles (vehicle_id, model, description, year, tire_size, license,
-			oil_status, tire_status, status, maintenance_notes, serial_number, base, 
-			service_interval, current_mileage) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-		ON CONFLICT (vehicle_id) 
-		DO UPDATE SET 
-			model = $2, description = $3, year = $4, tire_size = $5, 
-			license = $6, oil_status = $7, tire_status = $8, status = $9, 
-			maintenance_notes = $10, serial_number = $11, base = $12, 
-			service_interval = $13, current_mileage = $14, 
-			updated_at = CURRENT_TIMESTAMP
-	`, vehicle.VehicleID, vehicle.Model, vehicle.Description, vehicle.Year,
-		vehicle.TireSize, vehicle.License, vehicle.OilStatus, vehicle.TireStatus,
-		vehicle.Status, vehicle.MaintenanceNotes, vehicle.SerialNumber, 
-		vehicle.Base, vehicle.ServiceInterval, vehicle.CurrentMileage)
-	
-	return err
+
+	var routes []Route
+	err := db.Select(&routes, "SELECT * FROM routes ORDER BY route_id")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load routes: %w", err)
+	}
+
+	return routes, nil
 }
 
-func saveVehicles(vehicles []Vehicle) error {
+func loadUsersFromDB() ([]User, error) {
 	if db == nil {
-		return fmt.Errorf("database connection not available")
+		return nil, fmt.Errorf("database not initialized")
 	}
-	
-	tx, err := db.Begin()
+
+	var users []User
+	err := db.Select(&users, "SELECT * FROM users ORDER BY username")
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	
-	success := false
-	defer func() {
-		if !success {
-			tx.Rollback()
-		}
-	}()
-
-	for _, vehicle := range vehicles {
-		_, err := tx.Exec(`
-			UPDATE vehicles 
-			SET model = $2, description = $3, year = $4, tire_size = $5, 
-				license = $6, oil_status = $7, tire_status = $8, status = $9, 
-				maintenance_notes = $10, serial_number = $11, base = $12, 
-				service_interval = $13, current_mileage = $14,
-				updated_at = CURRENT_TIMESTAMP
-			WHERE vehicle_id = $1
-		`, vehicle.VehicleID, vehicle.Model, vehicle.Description, vehicle.Year,
-		   vehicle.TireSize, vehicle.License, vehicle.OilStatus, vehicle.TireStatus,
-		   vehicle.Status, vehicle.MaintenanceNotes, vehicle.SerialNumber, 
-		   vehicle.Base, vehicle.ServiceInterval, vehicle.CurrentMileage)
-		
-		if err != nil {
-			return fmt.Errorf("failed to update vehicle %s: %w", vehicle.VehicleID, err)
-		}
+		return nil, fmt.Errorf("failed to load users: %w", err)
 	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+	return users, nil
+}
+
+func loadStudentsFromDB() ([]Student, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
 	}
-	
-	success = true
+
+	var students []Student
+	err := db.Select(&students, "SELECT * FROM students WHERE active = true ORDER BY name")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load students: %w", err)
+	}
+
+	return students, nil
+}
+
+// Save functions
+
+func saveBusMaintenanceLog(log BusMaintenanceLog) error {
+	if db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	query := `
+		INSERT INTO bus_maintenance_logs (bus_id, date, category, notes, mileage, cost)
+		VALUES (:bus_id, :date, :category, :notes, :mileage, :cost)
+	`
+
+	_, err := db.NamedExec(query, log)
+	if err != nil {
+		return fmt.Errorf("failed to save bus maintenance log: %w", err)
+	}
+
+	// Update last service mileage if applicable
+	if log.Category == "oil_change" && log.Mileage > 0 {
+		if err := updateLastServiceMileage(log.BusID, "oil_change", log.Mileage); err != nil {
+			log.Printf("Warning: failed to update last oil change mileage: %v", err)
+		}
+	} else if log.Category == "tire_service" && log.Mileage > 0 {
+		if err := updateLastServiceMileage(log.BusID, "tire_service", log.Mileage); err != nil {
+			log.Printf("Warning: failed to update last tire service mileage: %v", err)
+		}
+	}
+
+	// Update vehicle status based on new mileage
+	if log.Mileage > 0 {
+		if err := updateVehicleMileage(log.BusID, log.Mileage); err != nil {
+			log.Printf("Warning: failed to update vehicle mileage: %v", err)
+		}
+		if err := updateMaintenanceStatusBasedOnMileage(log.BusID); err != nil {
+			log.Printf("Warning: failed to update maintenance status: %v", err)
+		}
+	}
+
+	// Invalidate cache
+	dataCache.invalidateBuses()
+
 	return nil
 }
 
-// =============================================================================
-// ACTIVITY FUNCTIONS WITH ERROR HANDLING
-// =============================================================================
-
-func loadActivities() ([]Activity, error) {
+func saveVehicleMaintenanceLog(log VehicleMaintenanceLog) error {
 	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
+		return fmt.Errorf("database not initialized")
 	}
-	
-	rows, err := db.Query(`
-		SELECT date, driver, trip_name, attendance, miles, notes 
-		FROM activities ORDER BY date DESC
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load activities from DB: %w", err)
-	}
-	defer rows.Close()
 
-	var activities []Activity
-	for rows.Next() {
-		var activity Activity
-		var date sql.NullTime
-		
-		if err := rows.Scan(&date, &activity.Driver, &activity.TripName,
-			&activity.Attendance, &activity.Miles, &activity.Notes); err != nil {
-			log.Printf("Error scanning activity: %v", err)
-			continue
-		}
-		
-		if date.Valid {
-			activity.Date = date.Time.Format("2006-01-02")
-		}
-		
-		activities = append(activities, activity)
-	}
-	
-	if err = rows.Err(); err != nil {
-		return activities, fmt.Errorf("error iterating activities: %w", err)
-	}
-	
-	return activities, nil
-}
-
-// Get activities for a specific driver
-func getDriverActivities(driver string, limit int) ([]Activity, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
 	query := `
-		SELECT date, driver, trip_name, attendance, miles, notes 
-		FROM activities 
-		WHERE driver = $1
-		ORDER BY date DESC
-		LIMIT $2
+		INSERT INTO vehicle_maintenance_logs (vehicle_id, date, category, notes, mileage, cost)
+		VALUES (:vehicle_id, :date, :category, :notes, :mileage, :cost)
 	`
-	
-	rows, err := db.Query(query, driver, limit)
+
+	_, err := db.NamedExec(query, log)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load driver activities: %w", err)
+		return fmt.Errorf("failed to save vehicle maintenance log: %w", err)
 	}
-	defer rows.Close()
 
-	var activities []Activity
-	for rows.Next() {
-		var activity Activity
-		var date sql.NullTime
-		
-		if err := rows.Scan(&date, &activity.Driver, &activity.TripName,
-			&activity.Attendance, &activity.Miles, &activity.Notes); err != nil {
-			log.Printf("Error scanning activity: %v", err)
-			continue
+	// Update last service mileage if applicable
+	if log.Category == "oil_change" && log.Mileage > 0 {
+		if err := updateLastServiceMileage(log.VehicleID, "oil_change", log.Mileage); err != nil {
+			log.Printf("Warning: failed to update last oil change mileage: %v", err)
 		}
-		
-		if date.Valid {
-			activity.Date = date.Time.Format("2006-01-02")
-		}
-		
-		activities = append(activities, activity)
-	}
-	
-	return activities, nil
-}
-
-// Get activities by date range
-func getActivitiesByDateRange(startDate, endDate string) ([]Activity, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
-	rows, err := db.Query(`
-		SELECT date, driver, trip_name, attendance, miles, notes 
-		FROM activities 
-		WHERE date BETWEEN $1 AND $2
-		ORDER BY date DESC
-	`, startDate, endDate)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load activities by date range: %w", err)
-	}
-	defer rows.Close()
-
-	var activities []Activity
-	for rows.Next() {
-		var activity Activity
-		var date sql.NullTime
-		
-		if err := rows.Scan(&date, &activity.Driver, &activity.TripName,
-			&activity.Attendance, &activity.Miles, &activity.Notes); err != nil {
-			log.Printf("Error scanning activity: %v", err)
-			continue
-		}
-		
-		if date.Valid {
-			activity.Date = date.Time.Format("2006-01-02")
-		}
-		
-		activities = append(activities, activity)
-	}
-	
-	return activities, nil
-}
-
-func saveActivity(activity Activity) error {
-	if db == nil {
-		return fmt.Errorf("database connection not available")
-	}
-	
-	_, err := db.Exec(`
-		INSERT INTO activities (date, driver, trip_name, attendance, miles, notes) 
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, activity.Date, activity.Driver, activity.TripName, 
-		activity.Attendance, activity.Miles, activity.Notes)
-	
-	return err
-}
-
-// =============================================================================
-// MILEAGE REPORT FUNCTIONS
-// =============================================================================
-
-// Get monthly mileage reports for all vehicles
-func getMonthlyMileageReports(month string, year int) ([]MileageReport, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
-	var reports []MileageReport
-	
-	// Query from agency_vehicles
-	query1 := `
-		SELECT report_month, report_year, vehicle_year, make_model, license_plate,
-		       vehicle_id, location, beginning_miles, ending_miles, total_miles, status
-		FROM agency_vehicles
-		WHERE report_month = $1 AND report_year = $2
-		ORDER BY vehicle_id
-	`
-	
-	rows, err := db.Query(query1, month, year)
-	if err != nil {
-		log.Printf("Error querying agency vehicles: %v", err)
-	} else {
-		defer rows.Close()
-		for rows.Next() {
-			var report MileageReport
-			err := rows.Scan(&report.ReportMonth, &report.ReportYear, &report.VehicleYear,
-				&report.MakeModel, &report.LicensePlate, &report.VehicleID,
-				&report.Location, &report.BeginningMiles, &report.EndingMiles,
-				&report.TotalMiles, &report.Status)
-			if err != nil {
-				log.Printf("Error scanning agency vehicle: %v", err)
-				continue
-			}
-			reports = append(reports, report)
+	} else if log.Category == "tire_service" && log.Mileage > 0 {
+		if err := updateLastServiceMileage(log.VehicleID, "tire_service", log.Mileage); err != nil {
+			log.Printf("Warning: failed to update last tire service mileage: %v", err)
 		}
 	}
-	
-	// Query from school_buses
-	query2 := `
-		SELECT report_month, report_year, bus_year, bus_make, license_plate,
-		       bus_id, location, beginning_miles, ending_miles, total_miles, status
-		FROM school_buses
-		WHERE report_month = $1 AND report_year = $2
-		ORDER BY bus_id
-	`
-	
-	rows, err = db.Query(query2, month, year)
-	if err != nil {
-		log.Printf("Error querying school buses: %v", err)
-	} else {
-		defer rows.Close()
-		for rows.Next() {
-			var report MileageReport
-			var busYear sql.NullInt64
-			var busMake sql.NullString
-			
-			err := rows.Scan(&report.ReportMonth, &report.ReportYear, &busYear,
-				&busMake, &report.LicensePlate, &report.VehicleID,
-				&report.Location, &report.BeginningMiles, &report.EndingMiles,
-				&report.TotalMiles, &report.Status)
-			if err != nil {
-				log.Printf("Error scanning school bus: %v", err)
-				continue
-			}
-			
-			if busYear.Valid {
-				report.VehicleYear = int(busYear.Int64)
-			}
-			if busMake.Valid {
-				report.MakeModel = busMake.String
-			}
-			
-			reports = append(reports, report)
+
+	// Update vehicle status based on new mileage
+	if log.Mileage > 0 {
+		if err := updateVehicleMileage(log.VehicleID, log.Mileage); err != nil {
+			log.Printf("Warning: failed to update vehicle mileage: %v", err)
+		}
+		if err := updateMaintenanceStatusBasedOnMileage(log.VehicleID); err != nil {
+			log.Printf("Warning: failed to update maintenance status: %v", err)
 		}
 	}
-	
-	return reports, nil
-}
 
-// Get available report periods
-func getAvailableReportPeriods() ([]string, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
-	query := `
-		SELECT DISTINCT report_month || ' ' || report_year::text as period
-		FROM (
-			SELECT report_month, report_year FROM agency_vehicles
-			UNION
-			SELECT report_month, report_year FROM school_buses
-		) combined
-		ORDER BY period DESC
-	`
-	
-	rows, err := db.Query(query)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get available report periods: %w", err)
-	}
-	defer rows.Close()
-	
-	var periods []string
-	for rows.Next() {
-		var period string
-		if err := rows.Scan(&period); err != nil {
-			log.Printf("Error scanning period: %v", err)
-			continue
-		}
-		periods = append(periods, period)
-	}
-	
-	return periods, nil
-}
+	// Invalidate cache
+	dataCache.invalidateVehicles()
 
-// =============================================================================
-// NEW MAINTENANCE VALIDATION AND UPDATE FUNCTIONS
-// =============================================================================
-
-// validateMileage validates mileage entry and determines status updates
-func validateMileage(vehicleID string, newMileage int) (*MileageValidationResult, error) {
-	result := &MileageValidationResult{
-		Valid:        true,
-		ShouldUpdate: false,
-	}
-	
-	// Get current mileage
-	var currentMileage int
-	err := db.QueryRow(`
-		SELECT COALESCE(current_mileage, 0) 
-		FROM buses 
-		WHERE bus_id = $1
-	`, vehicleID).Scan(&currentMileage)
-	
-	if err != nil && err != sql.ErrNoRows {
-		// Try vehicles table
-		err = db.QueryRow(`
-			SELECT COALESCE(current_mileage, 0) 
-			FROM vehicles 
-			WHERE vehicle_id = $1
-		`, vehicleID).Scan(&currentMileage)
-	}
-	
-	// Validate mileage doesn't go backwards
-	if newMileage < currentMileage {
-		result.Valid = false
-		result.Error = fmt.Sprintf("Mileage cannot go backwards. Previous: %d, New: %d", 
-			currentMileage, newMileage)
-		return result, nil
-	}
-	
-	// Warn about large jumps
-	mileageDiff := newMileage - currentMileage
-	if mileageDiff > 1000 {
-		result.Warning = fmt.Sprintf("Large mileage increase: %d miles. Please verify.", mileageDiff)
-	}
-	
-	// Check if we need to update oil status
-	lastOilChange, err := getLastServiceMileage(vehicleID, "oil_change")
-	if err == nil && lastOilChange > 0 {
-		milesSinceOil := newMileage - lastOilChange
-		
-		if milesSinceOil >= 5000 {
-			result.ShouldUpdate = true
-			result.NewOilStatus = "overdue"
-		} else if milesSinceOil >= 4500 {
-			result.ShouldUpdate = true
-			result.NewOilStatus = "needs_service"
-		}
-	}
-	
-	// Check if we need to update tire status
-	lastTireService, err := getLastServiceMileage(vehicleID, "tire_service")
-	if err == nil && lastTireService > 0 {
-		milesSinceTires := newMileage - lastTireService
-		
-		if milesSinceTires >= 40000 {
-			result.ShouldUpdate = true
-			result.NewTireStatus = "replace"
-		} else if milesSinceTires >= 35000 {
-			result.ShouldUpdate = true
-			result.NewTireStatus = "worn"
-		}
-	}
-	
-	return result, nil
-}
-
-// getLastServiceMileage gets the mileage of the last service of a specific type
-func getLastServiceMileage(vehicleID string, serviceType string) (int, error) {
-	var mileage int
-	err := db.QueryRow(`
-		SELECT COALESCE(mileage, 0)
-		FROM bus_maintenance_logs
-		WHERE bus_id = $1 AND category = $2
-		ORDER BY date DESC, created_at DESC
-		LIMIT 1
-	`, vehicleID, serviceType).Scan(&mileage)
-	
-	if err == sql.ErrNoRows {
-		// Try maintenance_records table
-		err = db.QueryRow(`
-			SELECT COALESCE(mileage, 0)
-			FROM maintenance_records
-			WHERE vehicle_id = $1 AND category = $2
-			ORDER BY date DESC, created_at DESC
-			LIMIT 1
-		`, vehicleID, serviceType).Scan(&mileage)
-	}
-	
-	if err == sql.ErrNoRows {
-		return 0, nil
-	}
-	
-	return mileage, err
-}
-
-// updateVehicleMileage updates the current mileage for a vehicle
-func updateVehicleMileage(vehicleID string, newMileage int) error {
-	// Try buses table first
-	result, err := db.Exec(`
-		UPDATE buses 
-		SET current_mileage = $1, updated_at = CURRENT_TIMESTAMP
-		WHERE bus_id = $2 AND (current_mileage IS NULL OR current_mileage < $1)
-	`, newMileage, vehicleID)
-	
-	if err != nil {
-		return err
-	}
-	
-	rowsAffected, _ := result.RowsAffected()
-	
-	// If no bus was updated, try vehicles table
-	if rowsAffected == 0 {
-		_, err = db.Exec(`
-			UPDATE vehicles 
-			SET current_mileage = $1, updated_at = CURRENT_TIMESTAMP
-			WHERE vehicle_id = $2 AND (current_mileage IS NULL OR current_mileage < $1)
-		`, newMileage, vehicleID)
-	}
-	
-	return err
-}
-
-// updateVehicleStatus updates oil or tire status
-func updateVehicleStatus(vehicleID string, statusType string, newStatus string) error {
-	var column string
-	switch statusType {
-	case "oil":
-		column = "oil_status"
-	case "tire":
-		column = "tire_status"
-	default:
-		return fmt.Errorf("invalid status type: %s", statusType)
-	}
-	
-	// Try buses table first
-	result, err := db.Exec(fmt.Sprintf(`
-		UPDATE buses 
-		SET %s = $1, updated_at = CURRENT_TIMESTAMP
-		WHERE bus_id = $2
-	`, column), newStatus, vehicleID)
-	
-	if err != nil {
-		return err
-	}
-	
-	rowsAffected, _ := result.RowsAffected()
-	
-	// If no bus was updated, try vehicles table
-	if rowsAffected == 0 {
-		_, err = db.Exec(fmt.Sprintf(`
-			UPDATE vehicles 
-			SET %s = $1, updated_at = CURRENT_TIMESTAMP
-			WHERE vehicle_id = $2
-		`, column), newStatus, vehicleID)
-	}
-	
-	return err
-}
-
-// checkMaintenanceDue checks if any maintenance is due for a vehicle
-func checkMaintenanceDue(vehicleID string) ([]MaintenanceAlert, error) {
-	var alerts []MaintenanceAlert
-	
-	// Get current mileage
-	var currentMileage int
-	err := db.QueryRow(`
-		SELECT COALESCE(current_mileage, 0) 
-		FROM buses 
-		WHERE bus_id = $1
-	`, vehicleID).Scan(&currentMileage)
-	
-	if err != nil && err != sql.ErrNoRows {
-		// Try vehicles table
-		err = db.QueryRow(`
-			SELECT COALESCE(current_mileage, 0) 
-			FROM vehicles 
-			WHERE vehicle_id = $1
-		`, vehicleID).Scan(&currentMileage)
-		
-		if err != nil {
-			return alerts, err
-		}
-	}
-	
-	// Check oil change
-	lastOilChange, _ := getLastServiceMileage(vehicleID, "oil_change")
-	if lastOilChange > 0 {
-		milesSinceOil := currentMileage - lastOilChange
-		dueMileage := lastOilChange + 5000
-		milesUntilDue := dueMileage - currentMileage
-		
-		if milesSinceOil >= 5000 {
-			alerts = append(alerts, MaintenanceAlert{
-				VehicleID:       vehicleID,
-				MaintenanceType: "Oil & Filter Change",
-				CurrentMileage:  currentMileage,
-				DueMileage:      dueMileage,
-				MilesUntilDue:   milesUntilDue,
-				IsOverdue:       true,
-				Severity:        "danger",
-				Message:         fmt.Sprintf("Oil change is %d miles overdue!", -milesUntilDue),
-			})
-		} else if milesSinceOil >= 4500 {
-			alerts = append(alerts, MaintenanceAlert{
-				VehicleID:       vehicleID,
-				MaintenanceType: "Oil & Filter Change",
-				CurrentMileage:  currentMileage,
-				DueMileage:      dueMileage,
-				MilesUntilDue:   milesUntilDue,
-				IsOverdue:       false,
-				Severity:        "warning",
-				Message:         fmt.Sprintf("Oil change due in %d miles", milesUntilDue),
-			})
-		}
-	}
-	
-	// Check tire service
-	lastTireService, _ := getLastServiceMileage(vehicleID, "tire_service")
-	if lastTireService > 0 {
-		milesSinceTires := currentMileage - lastTireService
-		dueMileage := lastTireService + 40000
-		milesUntilDue := dueMileage - currentMileage
-		
-		if milesSinceTires >= 40000 {
-			alerts = append(alerts, MaintenanceAlert{
-				VehicleID:       vehicleID,
-				MaintenanceType: "Tire Replacement",
-				CurrentMileage:  currentMileage,
-				DueMileage:      dueMileage,
-				MilesUntilDue:   milesUntilDue,
-				IsOverdue:       true,
-				Severity:        "danger",
-				Message:         "Tire replacement is overdue!",
-			})
-		} else if milesSinceTires >= 35000 {
-			alerts = append(alerts, MaintenanceAlert{
-				VehicleID:       vehicleID,
-				MaintenanceType: "Tire Inspection",
-				CurrentMileage:  currentMileage,
-				DueMileage:      dueMileage,
-				MilesUntilDue:   milesUntilDue,
-				IsOverdue:       false,
-				Severity:        "warning",
-				Message:         fmt.Sprintf("Tire inspection recommended in %d miles", milesUntilDue),
-			})
-		}
-	}
-	
-	return alerts, nil
-}
-
-// updateMaintenanceSchedule updates the maintenance schedule after a service
-func updateMaintenanceSchedule(vehicleID string, serviceType string, mileage int, date string) error {
-	// For now, this is handled by the validation functions
-	// In the future, you could store maintenance schedules in a separate table
 	return nil
-}
-
-// debugMaintenanceTables helps debug maintenance table issues
-func debugMaintenanceTables(vehicleID string) {
-	if db == nil {
-		log.Println("Database not initialized")
-		return
-	}
-	
-	log.Printf("\n=== Debugging maintenance tables for vehicle: %s ===", vehicleID)
-	
-	// Check bus_maintenance_logs
-	var count1 int
-	db.Get(&count1, "SELECT COUNT(*) FROM bus_maintenance_logs WHERE bus_id = $1", vehicleID)
-	log.Printf("Records in bus_maintenance_logs: %d", count1)
-	
-	// Check maintenance_records
-	var count2 int
-	db.Get(&count2, "SELECT COUNT(*) FROM maintenance_records WHERE vehicle_id = $1", vehicleID)
-	log.Printf("Records in maintenance_records: %d", count2)
-	
-	// Sample records
-	var sample BusMaintenanceLog
-	err := db.Get(&sample, `
-		SELECT bus_id, date::text, category, notes, mileage 
-		FROM bus_maintenance_logs 
-		WHERE bus_id = $1 
-		ORDER BY date DESC 
-		LIMIT 1
-	`, vehicleID)
-	
-	if err == nil {
-		log.Printf("Latest maintenance record: %+v", sample)
-	} else {
-		log.Printf("Error getting sample record: %v", err)
-	}
-	
-	// Check current mileage
-	var currentMileage int
-	err = db.Get(&currentMileage, `
-		SELECT COALESCE(current_mileage, 0) 
-		FROM buses 
-		WHERE bus_id = $1
-	`, vehicleID)
-	
-	if err == nil {
-		log.Printf("Current mileage in buses table: %d", currentMileage)
-	} else {
-		// Try vehicles table
-		err = db.Get(&currentMileage, `
-			SELECT COALESCE(current_mileage, 0) 
-			FROM vehicles 
-			WHERE vehicle_id = $1
-		`, vehicleID)
-		
-		if err == nil {
-			log.Printf("Current mileage in vehicles table: %d", currentMileage)
-		}
-	}
-	
-	log.Printf("=== End debug ===\n")
 }
