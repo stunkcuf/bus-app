@@ -65,6 +65,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+
 // renderLoginError renders the login page with an error message
 func renderLoginError(w http.ResponseWriter, r *http.Request, errorMsg string) {
 	csrfToken, _ := GenerateSecureToken()
@@ -1138,7 +1139,7 @@ func exportECSEHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// fleetHandler shows the bus fleet
+// fleetHandler shows the bus fleet - FIXED with proper data wrapping
 func fleetHandler(w http.ResponseWriter, r *http.Request) {
 	if !isLoggedIn(r) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -1175,17 +1176,21 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error loading maintenance logs: %v", err)
 	}
 
+	// FIXED: Wrap data in "Data" field to match template expectations
 	data := map[string]interface{}{
-		"User":            user,
-		"Buses":           buses,
-		"MaintenanceLogs": maintenanceLogs,
-		"Today":           time.Now().Format("2006-01-02"),
-		"CSRFToken":       getSessionCSRFToken(r),
+		"Data": map[string]interface{}{
+			"User":            user,
+			"Buses":           buses,
+			"MaintenanceLogs": maintenanceLogs,
+			"Today":           time.Now().Format("2006-01-02"),
+			"CSRFToken":       getSessionCSRFToken(r),
+		},
+		"CSPNonce": getCSPNonce(r),
 	}
 	renderTemplate(w, r, "fleet.html", data)
 }
 
-// companyFleetHandler shows company vehicles
+// companyFleetHandler shows company vehicles - FIXED with proper data wrapping
 func companyFleetHandler(w http.ResponseWriter, r *http.Request) {
 	vehicles := []Vehicle{}
 	rows, err := db.Query(`
@@ -1202,11 +1207,16 @@ func companyFleetHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	renderTemplate(w, r, "company_fleet.html", CompanyFleetData{
-		User:      getUserFromSession(r),
-		Vehicles:  vehicles,
-		CSRFToken: getSessionCSRFToken(r),
-	})
+	// FIXED: Wrap data in "Data" field to match template expectations
+	data := map[string]interface{}{
+		"Data": map[string]interface{}{
+			"User":      getUserFromSession(r),
+			"Vehicles":  vehicles,
+			"CSRFToken": getSessionCSRFToken(r),
+		},
+		"CSPNonce": getCSPNonce(r),
+	}
+	renderTemplate(w, r, "company_fleet.html", data)
 }
 
 // updateVehicleStatusHandler updates vehicle status
@@ -1655,7 +1665,7 @@ func deleteRouteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// studentsHandler shows student management page
+// studentsHandler shows student management page - FIXED with proper data wrapping
 func studentsHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "driver" {
@@ -1667,11 +1677,16 @@ func studentsHandler(w http.ResponseWriter, r *http.Request) {
 	assignment := getDriverAssignment(user.Username)
 	students := getRouteStudents(assignment.RouteID)
 
-	renderTemplate(w, r, "students.html", StudentData{
-		User:      user,
-		Students:  students,
-		CSRFToken: getSessionCSRFToken(r),
-	})
+	// FIXED: Wrap data in "Data" field to match template expectations
+	data := map[string]interface{}{
+		"Data": map[string]interface{}{
+			"User":      user,
+			"Students":  students,
+			"CSRFToken": getSessionCSRFToken(r),
+		},
+		"CSPNonce": getCSPNonce(r),
+	}
+	renderTemplate(w, r, "students.html", data)
 }
 
 // addStudentHandler adds a student
