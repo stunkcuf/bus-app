@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,2208 +8,777 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"golang.org/x/crypto/bcrypt"
-	"github.com/xuri/excelize/v2"
-	_ "github.com/lib/pq"
 )
 
-// loginHandler handles user login
-func loginHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		// For login page, generate a temporary token since no session exists
-		csrfToken, _ := GenerateSecureToken()
-		renderTemplate(w, r, "login.html", LoginFormData{
-			CSRFToken: csrfToken,
-		})
-		return
-	}
+// Maintenance-related handlers
 
-	if r.Method == "POST" {
-		username := r.FormValue("username")
-		password := r.FormValue("password")
-
-		// NO CSRF validation on login - no session exists yet
-
-		// Authenticate user
-		user, err := authenticateUser(username, password)
-		if err != nil {
-			renderLoginError(w, r, "Invalid username or password")
-			return
-		}
-
-		// Create session with CSRF token
-		sessionID, _, err := CreateSecureSession(user.Username, user.Role)
-		if err != nil {
-			renderLoginError(w, r, "Failed to create session")
-			return
-		}
-
-		// Set session cookie
-		http.SetCookie(w, &http.Cookie{
-			Name:     SessionCookieName,
-			Value:    sessionID,
-			Path:     "/",
-			HttpOnly: true,
-			Secure:   !isDevelopment(),
-			SameSite: http.SameSiteStrictMode,
-			MaxAge:   86400, // 24 hours
-		})
-
-		// Redirect based on role
-		if user.Role == "manager" {
-			http.Redirect(w, r, "/manager-dashboard", http.StatusSeeOther)
-		} else {
-			http.Redirect(w, r, "/driver-dashboard", http.StatusSeeOther)
-		}
-	}
-}
-
-// renderLoginError renders the login page with an error message
-func renderLoginError(w http.ResponseWriter, r *http.Request, errorMsg string) {
-	csrfToken, _ := GenerateSecureToken()
-	renderTemplate(w, r, "login.html", LoginFormData{
-		Error:     errorMsg,
-		CSRFToken: csrfToken,
-	})
-}
-
-// registerHandler handles user registration
-func registerHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		csrfToken, _ := GenerateSecureToken()
-		renderTemplate(w, r, "register.html", map[string]interface{}{
-			"CSRFToken": csrfToken,
-		})
-		return
-	}
-
-	if r.Method == "POST" {
-		username := r.FormValue("username")
-		password := r.FormValue("password")
-		role := r.FormValue("role")
-
-		// NO CSRF validation on registration - no session exists yet
-
-		// Validate input
-		if username == "" || password == "" {
-			http.Error(w, "All fields are required", http.StatusBadRequest)
-			return
-		}
-
-		// Default role to driver if not specified
-		if role == "" {
-			role = "driver"
-		}
-
-		// Hash password
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-		if err != nil {
-			http.Error(w, "Failed to process password", http.StatusInternalServerError)
-			return
-		}
-
-		// Create user
-		status := "pending"
-		if role == "manager" {
-			status = "active"
-		}
-
-		_, err = db.Exec(`
-			INSERT INTO users (username, password, role, status, registration_date, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6)
-		`, username, string(hashedPassword), role, status, time.Now().Format("2006-01-02"), time.Now())
-
-		if err != nil {
-			http.Error(w, "Username already exists", http.StatusBadRequest)
-			return
-		}
-
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-	}
-}
-
-// logoutHandler handles user logout
-func logoutHandler(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(SessionCookieName)
-	if err == nil {
-		ClearSession(cookie.Value)
-	}
-
-	// Clear cookie
-	http.SetCookie(w, &http.Cookie{
-		Name:     SessionCookieName,
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   !isDevelopment(),
-		SameSite: http.SameSiteStrictMode,
-	})
-
-	http.Redirect(w, r, "/", http.StatusSeeOther)
-}
-
-// dashboardHandler serves the manager dashboard
-func dashboardHandler(w http.ResponseWriter, r *http.Request) {
+// busMaintenanceHandler shows maintenance history for a bus
+func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
-	}
-
-	// Debug logging
-	log.Printf("Dashboard accessed by user: %s with role: %s", user.Username, user.Role)
-
-	// Ensure managers go to manager dashboard
-	if user.Role != "manager" {
-		log.Printf("Non-manager user %s trying to access manager dashboard, redirecting", user.Username)
-		http.Redirect(w, r, "/driver-dashboard", http.StatusSeeOther)
-		return
-	}
-
-	// Load manager-specific data
-	users := loadUsers()
-	buses := loadBuses()
-	
-	// Convert []Route to []*Route
-	routes, _ := loadRoutes()
-	routePtrs := make([]*Route, len(routes))
-	for i := range routes {
-		routePtrs[i] = &routes[i]
-	}
-	
-	driverSummaries := loadDriverSummaries()
-	routeStats := loadRouteStats()
-	activities, _ := loadActivities()
-	pendingUsers := countPendingUsers()
-
-	// Create the data structure that matches what the template expects
-	data := map[string]interface{}{
-		"Data": map[string]interface{}{
-			"User":            user,
-			"Role":            user.Role,
-			"Users":           users,
-			"Buses":           buses,
-			"Routes":          routePtrs,
-			"DriverSummaries": driverSummaries,
-			"RouteStats":      routeStats,
-			"Activities":      activities,
-			"PendingUsers":    pendingUsers,
-			"CSRFToken":       getSessionCSRFToken(r),
-		},
-		"CSPNonce": getCSPNonce(r),
-	}
-
-	// Debug log the data structure
-	log.Printf("Rendering dashboard for manager %s with %d users, %d buses, %d routes", 
-		user.Username, len(users), len(buses), len(routes))
-
-	renderTemplate(w, r, "dashboard.html", data)
-}
-
-// approveUsersHandler shows pending users for approval
-func approveUsersHandler(w http.ResponseWriter, r *http.Request) {
-	users := []User{}
-	rows, err := db.Query(`SELECT username, role, registration_date FROM users WHERE status = 'pending'`)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var user User
-			rows.Scan(&user.Username, &user.Role, &user.RegistrationDate)
-			users = append(users, user)
-		}
-	}
-
-	renderTemplate(w, r, "approve_users.html", map[string]interface{}{
-		"Users":     users,
-		"CSRFToken": getSessionCSRFToken(r),
-	})
-}
-
-// approveUserHandler approves a pending user
-func approveUserHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		username := r.FormValue("username")
-		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
-
-		_, err := db.Exec(`UPDATE users SET status = 'active' WHERE username = $1`, username)
-		if err != nil {
-			http.Error(w, "Failed to approve user", http.StatusInternalServerError)
-			return
-		}
-
-		http.Redirect(w, r, "/approve-users", http.StatusSeeOther)
-	}
-}
-
-// manageUsersHandler shows all users for management
-func manageUsersHandler(w http.ResponseWriter, r *http.Request) {
-	users := loadUsers()
-	renderTemplate(w, r, "manage_users.html", map[string]interface{}{
-		"Users":     users,
-		"CSRFToken": getSessionCSRFToken(r),
-	})
-}
-
-// editUserHandler handles user editing
-func editUserHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		username := r.URL.Query().Get("username")
-		user := getUserByUsername(username)
-		if user == nil {
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
-		}
-
-		renderTemplate(w, r, "edit_user.html", map[string]interface{}{
-			"User":      user,
-			"CSRFToken": getSessionCSRFToken(r),
-		})
-		return
-	}
-
-	if r.Method == "POST" {
-		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
-
-		username := r.FormValue("username")
-		newPassword := r.FormValue("password")
-		role := r.FormValue("role")
-
-		// Update user
-		if newPassword != "" {
-			hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
-			db.Exec(`UPDATE users SET password = $1, role = $2 WHERE username = $3`, hashedPassword, role, username)
-		} else {
-			db.Exec(`UPDATE users SET role = $1 WHERE username = $2`, role, username)
-		}
-
-		http.Redirect(w, r, "/manage-users", http.StatusSeeOther)
-	}
-}
-
-// deleteUserHandler deletes a user
-func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
-
-		username := r.FormValue("username")
-		db.Exec(`DELETE FROM users WHERE username = $1`, username)
-		http.Redirect(w, r, "/manage-users", http.StatusSeeOther)
-	}
-}
-
-// exportMileageHandler exports mileage data to Excel
-func exportMileageHandler(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
-	// Get filter parameters
-	month := r.URL.Query().Get("month")
-	year := r.URL.Query().Get("year")
-	reportType := r.URL.Query().Get("type")
-	
-	if month == "" || year == "" {
-		now := time.Now()
-		month = now.Format("January")
-		year = fmt.Sprintf("%d", now.Year())
-	}
-	
-	yearInt, _ := strconv.Atoi(year)
-	
-	// Create Excel file
-	f := excelize.NewFile()
-	
-	// Summary Sheet
-	summarySheet := "Summary"
-	f.SetSheetName("Sheet1", summarySheet)
-	
-	// Add headers
-	headers := []string{"Metric", "Value"}
-	for i, header := range headers {
-		cell := fmt.Sprintf("%s1", string(rune('A'+i)))
-		f.SetCellValue(summarySheet, cell, header)
-	}
-	
-	// Calculate summary statistics
-	stats := calculateMileageStatistics(month, yearInt)
-	
-	summaryData := [][]interface{}{
-		{"Report Period", fmt.Sprintf("%s %d", month, yearInt)},
-		{"Total Vehicles", stats.TotalVehicles},
-		{"Total Miles Driven", stats.TotalMiles},
-		{"Estimated Fuel Cost", fmt.Sprintf("$%.2f", stats.EstimatedCost)},
-		{"Average Miles per Vehicle", stats.AvgMilesPerVehicle},
-		{"Cost per Mile", fmt.Sprintf("$%.2f", stats.CostPerMile)},
-		{"Vehicle Utilization", fmt.Sprintf("%.1f%%", stats.VehicleUtilization)},
-	}
-	
-	for i, row := range summaryData {
-		for j, value := range row {
-			cell := fmt.Sprintf("%s%d", string(rune('A'+j)), i+2)
-			f.SetCellValue(summarySheet, cell, value)
-		}
-	}
-	
-	// Vehicle Details Sheet
-	if reportType == "all" || reportType == "agency" {
-		sheetName := "Agency Vehicles"
-		f.NewSheet(sheetName)
-		
-		// Headers
-		headers := []string{"Vehicle ID", "Year", "Make/Model", "License", "Location", 
-						  "Beginning Miles", "Ending Miles", "Total Miles", "Status"}
-		for i, header := range headers {
-			cell := fmt.Sprintf("%s1", string(rune('A'+i)))
-			f.SetCellValue(sheetName, cell, header)
-		}
-		
-		// Get data
-		vehicles, _ := getAgencyVehicleReports(month, year)
-		for i, v := range vehicles {
-			row := i + 2
-			f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), v.VehicleID)
-			f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), v.VehicleYear)
-			f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), v.MakeModel)
-			f.SetCellValue(sheetName, fmt.Sprintf("D%d", row), v.LicensePlate)
-			f.SetCellValue(sheetName, fmt.Sprintf("E%d", row), v.Location)
-			f.SetCellValue(sheetName, fmt.Sprintf("F%d", row), v.BeginningMiles)
-			f.SetCellValue(sheetName, fmt.Sprintf("G%d", row), v.EndingMiles)
-			f.SetCellValue(sheetName, fmt.Sprintf("H%d", row), v.TotalMiles)
-			f.SetCellValue(sheetName, fmt.Sprintf("I%d", row), v.Status)
-		}
-	}
-	
-	// Set response headers
-	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=mileage_report_%s_%s.xlsx", month, year))
-	
-	// Write file
-	if err := f.Write(w); err != nil {
-		http.Error(w, "Failed to generate Excel file", http.StatusInternalServerError)
+	busID := strings.TrimPrefix(r.URL.Path, "/bus-maintenance/")
+	if busID == "" {
+		http.Error(w, "Bus ID required", http.StatusBadRequest)
 		return
 	}
+
+	// Get maintenance logs using the fixed function
+	logs, err := getMaintenanceLogsForVehicle(busID)
+	if err != nil {
+		log.Printf("Error loading maintenance logs: %v", err)
+		logs = []CombinedMaintenanceLog{} // Show empty list instead of error
+	}
+
+	// Get bus details
+	buses, err := dataCache.getBuses()
+	if err != nil {
+		http.Error(w, "Failed to load bus data", http.StatusInternalServerError)
+		return
+	}
+
+	var bus *Bus
+	for _, b := range buses {
+		if b.BusID == busID {
+			bus = &b
+			break
+		}
+	}
+
+	if bus == nil {
+		http.Error(w, "Bus not found", http.StatusNotFound)
+		return
+	}
+
+	// Check for maintenance alerts
+	alerts, err := checkMaintenanceDue(busID)
+	if err != nil {
+		log.Printf("Error checking maintenance due: %v", err)
+		alerts = []MaintenanceAlert{}
+	}
+
+	data := map[string]interface{}{
+		"User":             user,
+		"CSRFToken":        getSessionCSRFToken(r),
+		"Bus":              bus,
+		"MaintenanceLogs":  logs,
+		"MaintenanceAlerts": alerts,
+	}
+
+	renderTemplate(w, r, "bus_maintenance.html", data)
 }
 
-// calculateMileageStatistics calculates comprehensive mileage statistics
-func calculateMileageStatistics(month string, year int) *MileageStatistics {
-	stats := &MileageStatistics{
-		CostPerMile: 0.55, // Default IRS rate, should be configurable
+// vehicleMaintenanceHandler shows maintenance history for a vehicle
+func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
 	}
-	
-	// Get all vehicle data
-	agencyVehicles, _ := getAgencyVehicleReports(month, fmt.Sprintf("%d", year))
-	schoolBuses, _ := getSchoolBusReports(month, fmt.Sprintf("%d", year))
-	
-	// Calculate totals
-	stats.TotalVehicles = len(agencyVehicles) + len(schoolBuses)
-	
-	for _, v := range agencyVehicles {
-		stats.TotalMiles += v.TotalMiles
-		if v.Status == "active" {
-			stats.ActiveVehicles++
+
+	vehicleID := strings.TrimPrefix(r.URL.Path, "/vehicle-maintenance/")
+	if vehicleID == "" {
+		http.Error(w, "Vehicle ID required", http.StatusBadRequest)
+		return
+	}
+
+	// Get maintenance logs using the fixed function
+	logs, err := getMaintenanceLogsForVehicle(vehicleID)
+	if err != nil {
+		log.Printf("Error loading maintenance logs: %v", err)
+		logs = []CombinedMaintenanceLog{}
+	}
+
+	// Get vehicle details
+	vehicles, err := dataCache.getVehicles()
+	if err != nil {
+		http.Error(w, "Failed to load vehicle data", http.StatusInternalServerError)
+		return
+	}
+
+	var vehicle *Vehicle
+	for _, v := range vehicles {
+		if v.VehicleID == vehicleID {
+			vehicle = &v
+			break
 		}
 	}
-	
-	for _, b := range schoolBuses {
-		stats.TotalMiles += b.TotalMiles
-		if b.Status == "active" {
-			stats.ActiveVehicles++
-		}
+
+	if vehicle == nil {
+		http.Error(w, "Vehicle not found", http.StatusNotFound)
+		return
 	}
-	
-	// Calculate derived statistics
-	stats.EstimatedCost = float64(stats.TotalMiles) * stats.CostPerMile
-	
-	if stats.TotalVehicles > 0 {
-		stats.AvgMilesPerVehicle = stats.TotalMiles / stats.TotalVehicles
-		stats.VehicleUtilization = (float64(stats.ActiveVehicles) / float64(stats.TotalVehicles)) * 100
+
+	// Check for maintenance alerts
+	alerts, err := checkMaintenanceDue(vehicleID)
+	if err != nil {
+		log.Printf("Error checking maintenance due: %v", err)
+		alerts = []MaintenanceAlert{}
 	}
-	
-	// Get driver statistics
-	stats.DriverStats = calculateDriverStatistics(month, year)
-	stats.RouteStats = calculateRouteStatistics(month, year)
-	
-	return stats
+
+	data := map[string]interface{}{
+		"User":              user,
+		"CSRFToken":         getSessionCSRFToken(r),
+		"Vehicle":           vehicle,
+		"MaintenanceLogs":   logs,
+		"MaintenanceAlerts": alerts,
+	}
+
+	renderTemplate(w, r, "vehicle_maintenance.html", data)
 }
 
-// calculateDriverStatistics aggregates driver performance data
-func calculateDriverStatistics(month string, year int) []DriverStatistic {
-	var stats []DriverStatistic
-	
-	// Get all drivers
-	drivers := loadDrivers()
-	
-	for _, driver := range drivers {
-		stat := DriverStatistic{
-			DriverName: driver.Username,
+// saveMaintenanceRecordHandler handles saving maintenance records
+func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	if !validateCSRF(r) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+
+	// Parse form
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	vehicleID := r.FormValue("vehicle_id")
+	vehicleType := r.FormValue("vehicle_type")
+	date := r.FormValue("date")
+	category := r.FormValue("category")
+	notes := r.FormValue("notes")
+	mileageStr := r.FormValue("mileage")
+	costStr := r.FormValue("cost")
+
+	// Validate required fields
+	if vehicleID == "" || date == "" || category == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	// Parse mileage
+	var mileage int
+	if mileageStr != "" {
+		mileage, err = strconv.Atoi(mileageStr)
+		if err != nil {
+			http.Error(w, "Invalid mileage", http.StatusBadRequest)
+			return
 		}
-		
-		// Get driver logs for the month
-		startDate := fmt.Sprintf("%d-%02d-01", year, monthToNumber(month))
-		endDate := fmt.Sprintf("%d-%02d-31", year, monthToNumber(month))
-		
-		logs, _ := getDriverLogsByDateRange(driver.Username, startDate, endDate)
-		
-		stat.TotalTrips = len(logs)
-		
-		for _, log := range logs {
-			stat.TotalMiles += int(log.Mileage)
+
+		// Validate mileage entry
+		validation := validateMileageEntry(vehicleID, float64(mileage))
+		if !validation.Valid {
+			http.Error(w, validation.Error, http.StatusBadRequest)
+			return
+		}
+		// Note: We could show warnings to the user here if needed
+	}
+
+	// Parse cost
+	var cost float64
+	if costStr != "" {
+		cost, err = strconv.ParseFloat(costStr, 64)
+		if err != nil {
+			http.Error(w, "Invalid cost", http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Save based on vehicle type
+	if vehicleType == "bus" {
+		log := BusMaintenanceLog{
+			BusID:    vehicleID,
+			Date:     date,
+			Category: category,
+			Notes:    notes,
+			Mileage:  mileage,
+			Cost:     cost,
+		}
+		err = saveBusMaintenanceLog(log)
+	} else {
+		log := VehicleMaintenanceLog{
+			VehicleID: vehicleID,
+			Date:      date,
+			Category:  category,
+			Notes:     notes,
+			Mileage:   mileage,
+			Cost:      cost,
+		}
+		err = saveVehicleMaintenanceLog(log)
+	}
+
+	if err != nil {
+		log.Printf("Error saving maintenance record: %v", err)
+		http.Error(w, "Failed to save maintenance record", http.StatusInternalServerError)
+		return
+	}
+
+	// Redirect back to maintenance page
+	if vehicleType == "bus" {
+		http.Redirect(w, r, "/bus-maintenance/"+vehicleID, http.StatusSeeOther)
+	} else {
+		http.Redirect(w, r, "/vehicle-maintenance/"+vehicleID, http.StatusSeeOther)
+	}
+}
+
+// checkMaintenanceDueHandler API endpoint to check maintenance status
+func checkMaintenanceDueHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	vehicleID := r.URL.Query().Get("vehicle_id")
+	if vehicleID == "" {
+		http.Error(w, "Vehicle ID required", http.StatusBadRequest)
+		return
+	}
+
+	alerts, err := checkMaintenanceDue(vehicleID)
+	if err != nil {
+		log.Printf("Error checking maintenance: %v", err)
+		http.Error(w, "Failed to check maintenance", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(alerts)
+}
+
+// debugMaintenanceRecordsHandler helps debug maintenance records
+func debugMaintenanceRecordsHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	vehicleID := r.URL.Query().Get("vehicle_id")
+	if vehicleID == "" {
+		http.Error(w, "Vehicle ID required", http.StatusBadRequest)
+		return
+	}
+
+	// Get maintenance logs
+	logs, err := getMaintenanceLogsForVehicle(vehicleID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Get vehicle info
+	currentMileage, lastOilChange, lastTireService, err := getVehicleMaintenanceInfo(vehicleID)
+	if err != nil {
+		log.Printf("Error getting vehicle info: %v", err)
+	}
+
+	// Check maintenance alerts
+	alerts, err := checkMaintenanceDue(vehicleID)
+	if err != nil {
+		log.Printf("Error checking alerts: %v", err)
+	}
+
+	debug := map[string]interface{}{
+		"vehicle_id":        vehicleID,
+		"maintenance_logs":  logs,
+		"current_mileage":   currentMileage,
+		"last_oil_change":   lastOilChange,
+		"last_tire_service": lastTireService,
+		"alerts":            alerts,
+		"log_count":         len(logs),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(debug)
+}
+
+// Updated saveLogHandler with mileage validation
+func saveLogHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	if !validateCSRF(r) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+
+	// Parse form
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	// Extract form values
+	busID := r.FormValue("bus_id")
+	routeID := r.FormValue("route_id")
+	date := r.FormValue("date")
+	period := r.FormValue("period")
+	departure := r.FormValue("departure_time")
+	arrival := r.FormValue("arrival_time")
+	beginMileageStr := r.FormValue("begin_mileage")
+	endMileageStr := r.FormValue("end_mileage")
+
+	// Validate required fields
+	if busID == "" || routeID == "" || date == "" || period == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	// Parse mileage
+	beginMileage, err := strconv.ParseFloat(beginMileageStr, 64)
+	if err != nil {
+		http.Error(w, "Invalid begin mileage", http.StatusBadRequest)
+		return
+	}
+
+	endMileage, err := strconv.ParseFloat(endMileageStr, 64)
+	if err != nil {
+		http.Error(w, "Invalid end mileage", http.StatusBadRequest)
+		return
+	}
+
+	// Validate mileage
+	if endMileage < beginMileage {
+		http.Error(w, "End mileage cannot be less than begin mileage", http.StatusBadRequest)
+		return
+	}
+
+	// Validate against vehicle's current mileage
+	validation := validateMileageEntry(busID, endMileage)
+	if !validation.Valid {
+		http.Error(w, validation.Error, http.StatusBadRequest)
+		return
+	}
+
+	// Build attendance JSON
+	var attendance []map[string]interface{}
+	for key, values := range r.Form {
+		if strings.HasPrefix(key, "present_") {
+			posStr := strings.TrimPrefix(key, "present_")
+			position, _ := strconv.Atoi(posStr)
+			pickupTime := r.FormValue("pickup_time_" + posStr)
 			
-			// Calculate attendance
-			presentCount := 0
-			for _, attendance := range log.Attendance {
-				if attendance.Present {
-					presentCount++
-				}
+			attendanceRecord := map[string]interface{}{
+				"position":    position,
+				"present":     values[0] == "true",
+				"pickup_time": pickupTime,
 			}
-			stat.StudentsTransported += presentCount
+			attendance = append(attendance, attendanceRecord)
 		}
-		
-		if stat.TotalTrips > 0 {
-			stat.AvgMilesPerTrip = stat.TotalMiles / stat.TotalTrips
-			stat.AttendanceRate = 95.0 // This should be calculated from actual data
-			stat.EfficiencyScore = calculateEfficiencyScore(stat)
-		}
-		
-		stats = append(stats, stat)
+	}
+
+	attendanceJSON, err := json.Marshal(attendance)
+	if err != nil {
+		http.Error(w, "Failed to process attendance", http.StatusInternalServerError)
+		return
+	}
+
+	// Create driver log
+	driverLog := DriverLog{
+		Driver:       user.Username,
+		BusID:        busID,
+		RouteID:      routeID,
+		Date:         date,
+		Period:       period,
+		Departure:    departure,
+		Arrival:      arrival,
+		BeginMileage: beginMileage,
+		EndMileage:   endMileage,
+		Attendance:   string(attendanceJSON),
+	}
+
+	// Save to database
+	query := `
+		INSERT INTO driver_logs (driver, bus_id, route_id, date, period, departure_time, arrival_time, begin_mileage, end_mileage, attendance)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+	`
+	
+	_, err = db.Exec(query, driverLog.Driver, driverLog.BusID, driverLog.RouteID, 
+		driverLog.Date, driverLog.Period, driverLog.Departure, driverLog.Arrival,
+		driverLog.BeginMileage, driverLog.EndMileage, driverLog.Attendance)
+	
+	if err != nil {
+		log.Printf("Error saving driver log: %v", err)
+		http.Error(w, "Failed to save log", http.StatusInternalServerError)
+		return
+	}
+
+	// Update vehicle mileage and check maintenance status
+	if err := updateVehicleMileage(busID, int(endMileage)); err != nil {
+		log.Printf("Warning: failed to update vehicle mileage: %v", err)
 	}
 	
-	return stats
+	if err := updateMaintenanceStatusBasedOnMileage(busID); err != nil {
+		log.Printf("Warning: failed to update maintenance status: %v", err)
+	}
+
+	// Check if we should show any maintenance alerts
+	alerts, err := checkMaintenanceDue(busID)
+	if err == nil && len(alerts) > 0 {
+		// Store alerts in session to show on next page
+		// Note: In a real app, you might want to use a flash message system
+		log.Printf("Vehicle %s has %d maintenance alerts", busID, len(alerts))
+	}
+
+	// Redirect to driver dashboard with success
+	http.Redirect(w, r, "/driver-dashboard?success=true", http.StatusSeeOther)
+}
+// Additional handlers for fleet management with maintenance features
+
+// fleetHandler shows the fleet overview with maintenance alerts
+func fleetHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	buses, err := dataCache.getBuses()
+	if err != nil {
+		log.Printf("Error loading buses: %v", err)
+		http.Error(w, "Failed to load fleet data", http.StatusInternalServerError)
+		return
+	}
+
+	// Get maintenance alerts for all buses
+	allAlerts := make(map[string][]MaintenanceAlert)
+	for _, bus := range buses {
+		alerts, err := checkMaintenanceDue(bus.BusID)
+		if err != nil {
+			log.Printf("Error checking maintenance for bus %s: %v", bus.BusID, err)
+			continue
+		}
+		if len(alerts) > 0 {
+			allAlerts[bus.BusID] = alerts
+		}
+	}
+
+	data := map[string]interface{}{
+		"User":               user,
+		"CSRFToken":          getSessionCSRFToken(r),
+		"Buses":              buses,
+		"MaintenanceAlerts":  allAlerts,
+	}
+
+	renderTemplate(w, r, "fleet.html", data)
 }
 
-// calculateRouteStatistics calculates route performance metrics
-func calculateRouteStatistics(month string, year int) []RouteStatistic {
-	var stats []RouteStatistic
-	
-	// Get all routes
-	routes, _ := loadRoutes()
-	
-	for _, route := range routes {
-		stat := RouteStatistic{
-			RouteName: route.RouteName,
+// companyFleetHandler shows company vehicles with maintenance alerts
+func companyFleetHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	vehicles, err := dataCache.getVehicles()
+	if err != nil {
+		log.Printf("Error loading vehicles: %v", err)
+		http.Error(w, "Failed to load vehicle data", http.StatusInternalServerError)
+		return
+	}
+
+	// Get maintenance alerts for all vehicles
+	allAlerts := make(map[string][]MaintenanceAlert)
+	for _, vehicle := range vehicles {
+		alerts, err := checkMaintenanceDue(vehicle.VehicleID)
+		if err != nil {
+			log.Printf("Error checking maintenance for vehicle %s: %v", vehicle.VehicleID, err)
+			continue
 		}
-		
-		// Get logs for this route
-		startDate := fmt.Sprintf("%d-%02d-01", year, monthToNumber(month))
-		endDate := fmt.Sprintf("%d-%02d-31", year, monthToNumber(month))
-		
-		// Query driver logs for this route
-		rows, err := db.Query(`
-			SELECT mileage, attendance 
-			FROM driver_logs 
-			WHERE route_id = $1 AND date BETWEEN $2 AND $3
-		`, route.RouteID, startDate, endDate)
-		
-		if err == nil {
-			defer rows.Close()
-			
-			totalStudents := 0
-			for rows.Next() {
-				var mileage float64
-				var attendanceJSON []byte
-				
-				if err := rows.Scan(&mileage, &attendanceJSON); err == nil {
-					stat.TotalMiles += int(mileage)
-					stat.TotalRuns++
-					
-					// Count students
-					var attendance []StudentAttendance
-					if json.Unmarshal(attendanceJSON, &attendance) == nil {
-						for _, a := range attendance {
-							if a.Present {
-								totalStudents++
-							}
-						}
-					}
-				}
-			}
-			
-			if stat.TotalRuns > 0 {
-				stat.AvgStudents = totalStudents / stat.TotalRuns
-				stat.Efficiency = 85.0 // Calculate based on actual metrics
-				if stat.AvgStudents > 0 {
-					stat.CostPerStudent = (float64(stat.TotalMiles) * 0.55) / float64(totalStudents)
-				}
-			}
+		if len(alerts) > 0 {
+			allAlerts[vehicle.VehicleID] = alerts
 		}
-		
-		stats = append(stats, stat)
 	}
-	
-	return stats
+
+	data := map[string]interface{}{
+		"User":              user,
+		"CSRFToken":         getSessionCSRFToken(r),
+		"Vehicles":          vehicles,
+		"MaintenanceAlerts": allAlerts,
+	}
+
+	renderTemplate(w, r, "company_fleet.html", data)
 }
 
-// monthToNumber converts month name to number
-func monthToNumber(month string) int {
-	months := map[string]int{
-		"January":   1,
-		"February":  2,
-		"March":     3,
-		"April":     4,
-		"May":       5,
-		"June":      6,
-		"July":      7,
-		"August":    8,
-		"September": 9,
-		"October":   10,
-		"November":  11,
-		"December":  12,
+// updateVehicleStatusHandler handles status updates with validation
+func updateVehicleStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
-	
-	if num, ok := months[month]; ok {
-		return num
+
+	user := getUserFromSession(r)
+	if user == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized"})
+		return
 	}
-	return 1 // Default to January
+
+	// Parse JSON request
+	var req struct {
+		VehicleID   string `json:"vehicle_id"`
+		VehicleType string `json:"vehicle_type"`
+		FieldName   string `json:"field_name"`
+		FieldValue  string `json:"field_value"`
+		CSRFToken   string `json:"csrf_token"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid request"})
+		return
+	}
+
+	// Validate CSRF token
+	sessionToken := getSessionCSRFToken(r)
+	if req.CSRFToken != sessionToken {
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid CSRF token"})
+		return
+	}
+
+	// Update based on vehicle type
+	var err error
+	if req.VehicleType == "bus" {
+		err = updateBusField(req.VehicleID, req.FieldName, req.FieldValue)
+	} else {
+		err = updateVehicleField(req.VehicleID, req.FieldName, req.FieldValue)
+	}
+
+	if err != nil {
+		log.Printf("Error updating %s %s: %v", req.VehicleType, req.VehicleID, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to update"})
+		return
+	}
+
+	// If status was updated, check if we need to update maintenance status
+	if req.FieldName == "status" || req.FieldName == "oil_status" || req.FieldName == "tire_status" {
+		if err := updateMaintenanceStatusBasedOnMileage(req.VehicleID); err != nil {
+			log.Printf("Warning: failed to update maintenance status: %v", err)
+		}
+	}
+
+	// Invalidate cache
+	if req.VehicleType == "bus" {
+		dataCache.invalidateBuses()
+	} else {
+		dataCache.invalidateVehicles()
+	}
+
+	// Return updated status
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Updated successfully",
+	})
 }
 
-// calculateEfficiencyScore calculates driver efficiency based on metrics
-func calculateEfficiencyScore(stat DriverStatistic) int {
-	score := 100
-	
-	// Deduct points for low attendance rate
-	if stat.AttendanceRate < 90 {
-		score -= 10
+// Helper functions for updating vehicle fields
+func updateBusField(busID, fieldName, fieldValue string) error {
+	if db == nil {
+		return fmt.Errorf("database not initialized")
 	}
-	
-	// Deduct points for excessive miles per trip
-	if stat.AvgMilesPerTrip > 50 {
-		score -= 5
+
+	allowedFields := map[string]bool{
+		"status":            true,
+		"oil_status":        true,
+		"tire_status":       true,
+		"maintenance_notes": true,
 	}
-	
-	// Bonus points for high student transport
-	if stat.StudentsTransported > 100 {
-		score += 5
+
+	if !allowedFields[fieldName] {
+		return fmt.Errorf("field update not allowed: %s", fieldName)
 	}
-	
-	// Keep score within bounds
-	if score > 100 {
-		score = 100
-	} else if score < 0 {
-		score = 0
-	}
-	
-	return score
+
+	query := fmt.Sprintf("UPDATE buses SET %s = $1, updated_at = CURRENT_TIMESTAMP WHERE bus_id = $2", fieldName)
+	_, err := db.Exec(query, fieldValue, busID)
+	return err
 }
 
-// driverDashboardHandler serves the driver dashboard
+func updateVehicleField(vehicleID, fieldName, fieldValue string) error {
+	if db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	allowedFields := map[string]bool{
+		"status":            true,
+		"oil_status":        true,
+		"tire_status":       true,
+		"maintenance_notes": true,
+	}
+
+	if !allowedFields[fieldName] {
+		return fmt.Errorf("field update not allowed: %s", fieldName)
+	}
+
+	query := fmt.Sprintf("UPDATE vehicles SET %s = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2", fieldName)
+	_, err := db.Exec(query, fieldValue, vehicleID)
+	return err
+}
+
+// driverDashboardHandler with maintenance alerts
 func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
-	// Ensure drivers go to driver dashboard
-	if user.Role != "driver" {
-		log.Printf("Non-driver user %s trying to access driver dashboard, redirecting", user.Username)
-		http.Redirect(w, r, "/manager-dashboard", http.StatusSeeOther)
-		return
+	// Get driver's assignments
+	assignments, err := getDriverAssignments(user.Username)
+	if err != nil {
+		log.Printf("Error loading assignments: %v", err)
 	}
 
-	// Get date and period from query params
-	date := r.URL.Query().Get("date")
-	if date == "" {
-		date = time.Now().Format("2006-01-02")
-	}
-	
-	period := r.URL.Query().Get("period")
-	if period == "" {
-		period = "morning"
-	}
-
-	// Get driver's assignment
-	assignment := getDriverAssignment(user.Username)
-	
-	// Get bus details if assigned
-	var bus *Bus
-	if assignment.BusID != "" {
-		bus = getBusByID(assignment.BusID)
-	}
-	
-	// Get route details if assigned
-	var route *Route
-	if assignment.RouteID != "" {
-		route = getRouteByID(assignment.RouteID)
-	}
-	
-	// Get students for the route ordered by pickup/dropoff time
-	students := []Student{}
-	if assignment.RouteID != "" {
-		if period == "morning" {
-			students = getRouteStudentsOrderedByPickup(assignment.RouteID)
-		} else {
-			students = getRouteStudentsOrderedByDropoff(assignment.RouteID)
+	// Check for maintenance alerts on assigned buses
+	var maintenanceAlerts []MaintenanceAlert
+	for _, assignment := range assignments {
+		alerts, err := checkMaintenanceDue(assignment.BusID)
+		if err != nil {
+			log.Printf("Error checking maintenance for bus %s: %v", assignment.BusID, err)
+			continue
 		}
+		maintenanceAlerts = append(maintenanceAlerts, alerts...)
 	}
-	
-	// Get driver's log for this date/period if exists
-	var driverLog DriverLog
-	var attendanceJSON sql.NullString
-	err := db.QueryRow(`
-		SELECT id, driver, bus_id, route_id, date, period, 
-		       departure_time, arrival_time, mileage, attendance
-		FROM driver_logs
-		WHERE driver = $1 AND date = $2 AND period = $3
-	`, user.Username, date, period).Scan(
-		&driverLog.ID, &driverLog.Driver, 
-		&driverLog.BusID, &driverLog.RouteID, &driverLog.Date, 
-		&driverLog.Period, &driverLog.Departure, &driverLog.Arrival, 
-		&driverLog.Mileage, &attendanceJSON)
-	
-	var driverLogPtr *DriverLog
-	if err == nil {
-		driverLogPtr = &driverLog
-		if attendanceJSON.Valid && attendanceJSON.String != "" {
-			json.Unmarshal([]byte(attendanceJSON.String), &driverLog.Attendance)
-		}
-	}
-	
-	// Get recent logs
-	recentLogs := getDriverLogs(user.Username, 7)
 
-	// Create data structure for driver dashboard template
+	// Get students for assigned routes
+	studentsMap := make(map[string][]Student)
+	for _, assignment := range assignments {
+		students, err := getStudentsByRoute(assignment.RouteID)
+		if err != nil {
+			log.Printf("Error loading students for route %s: %v", assignment.RouteID, err)
+			continue
+		}
+		studentsMap[assignment.RouteID] = students
+	}
+
+	// Check for success message
+	success := r.URL.Query().Get("success") == "true"
+
 	data := map[string]interface{}{
-		"Data": map[string]interface{}{
-			"User":       user,
-			"Assignment": assignment,
-			"Bus":        bus,
-			"Route":      route,
-			"Students":   students,
-			"DriverLog":  driverLogPtr,
-			"RecentLogs": recentLogs,
-			"Date":       date,
-			"Period":     period,
-			"Today":      time.Now().Format("2006-01-02"),
-			"CSRFToken":  getSessionCSRFToken(r),
-		},
-		"CSPNonce": getCSPNonce(r),
+		"User":               user,
+		"CSRFToken":          getSessionCSRFToken(r),
+		"Assignments":        assignments,
+		"StudentsMap":        studentsMap,
+		"MaintenanceAlerts":  maintenanceAlerts,
+		"Success":            success,
+		"CurrentDate":        time.Now().Format("2006-01-02"),
 	}
 
 	renderTemplate(w, r, "driver_dashboard.html", data)
 }
 
-// saveLogHandler saves a driver's log
-func saveLogHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
-
-		user := getUserFromSession(r)
-		if user == nil || user.Role != "driver" {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		// Parse form data
-		log := DriverLog{
-			Driver:    user.Username,
-			Date:      r.FormValue("date"),
-			Period:    r.FormValue("period"),
-			RouteID:   r.FormValue("route_id"),
-			BusID:     r.FormValue("bus_id"),
-			Departure: r.FormValue("departure"),
-			Arrival:   r.FormValue("arrival"),
-			Mileage:   parseFloatOrDefault(r.FormValue("mileage"), 0),
-		}
-
-		// Parse attendance
-		var attendance []StudentAttendance
-		for key, values := range r.Form {
-			if strings.HasPrefix(key, "present_") {
-				positionStr := strings.TrimPrefix(key, "present_")
-				position := parseIntOrDefault(positionStr, 0)
-				if position > 0 && len(values) > 0 {
-					attendance = append(attendance, StudentAttendance{
-						Position: position,
-						Present:  true,
-					})
-				}
-			}
-		}
-
-		// Save to database
-		attendanceJSON, _ := json.Marshal(attendance)
-		_, err := db.Exec(`
-			INSERT INTO driver_logs (driver, date, period, route_id, bus_id, departure_time, arrival_time, mileage, attendance)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-			ON CONFLICT (driver, date, period) DO UPDATE 
-			SET route_id = $4, bus_id = $5, departure_time = $6, arrival_time = $7, mileage = $8, attendance = $9
-		`, log.Driver, log.Date, log.Period, log.RouteID, log.BusID, log.Departure, log.Arrival, log.Mileage, string(attendanceJSON))
-
-		if err != nil {
-			http.Error(w, "Failed to save log", http.StatusInternalServerError)
-			return
-		}
-
-		http.Redirect(w, r, "/driver-dashboard", http.StatusSeeOther)
-	}
-}
-
-// importECSEHandler handles ECSE report imports - FIXED with proper CSRF handling
-func importECSEHandler(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	if r.Method == "GET" {
-		renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
-			"CSRFToken": getSessionCSRFToken(r),
-		})
-		return
-	}
-
-	if r.Method == "POST" {
-		// IMPORTANT: Parse multipart form FIRST
-		err := r.ParseMultipartForm(10 << 20) // 10 MB
-		if err != nil {
-			renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
-				"Error":     "Failed to parse form",
-				"CSRFToken": getSessionCSRFToken(r),
-			})
-			return
-		}
-
-		// NOW validate CSRF after parsing the multipart form
-		if !validateCSRF(r) {
-			renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
-				"Error":     "Invalid CSRF token. Please try again.",
-				"CSRFToken": getSessionCSRFToken(r),
-			})
-			return
-		}
-
-		file, header, err := r.FormFile("excel_file")
-		if err != nil {
-			renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
-				"Error":     "Failed to get file",
-				"CSRFToken": getSessionCSRFToken(r),
-			})
-			return
-		}
-		defer file.Close()
-
-		// Process ECSE Excel file
-		imported, err := processECSEExcelFile(file, header.Filename)
-		
-		if err != nil {
-			renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
-				"Error":     fmt.Sprintf("Import failed: %v", err),
-				"CSRFToken": getSessionCSRFToken(r),
-			})
-			return
-		}
-
-		renderTemplate(w, r, "import_ecse.html", map[string]interface{}{
-			"Success":   fmt.Sprintf("Successfully imported %d ECSE student records", imported),
-			"CSRFToken": getSessionCSRFToken(r),
-		})
-	}
-}
-
-// viewECSEReportsHandler shows ECSE reports and data
-func viewECSEReportsHandler(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	// Get query parameters for filtering
-	enrollmentStatus := r.URL.Query().Get("status")
-	transportationOnly := r.URL.Query().Get("transportation") == "true"
-	searchTerm := r.URL.Query().Get("search")
-
-	// Build query
-	query := `
-		SELECT 
-			s.student_id, s.first_name, s.last_name, s.date_of_birth::text,
-			s.grade, s.enrollment_status, s.iep_status, s.primary_disability,
-			s.service_minutes, s.transportation_required, s.bus_route,
-			s.parent_name, s.parent_phone, s.parent_email,
-			s.address, s.city, s.state, s.zip_code,
-			COUNT(DISTINCT srv.id) as service_count,
-			COUNT(DISTINCT a.id) as assessment_count
-		FROM ecse_students s
-		LEFT JOIN ecse_services srv ON s.student_id = srv.student_id
-		LEFT JOIN ecse_assessments a ON s.student_id = a.student_id
-		WHERE 1=1
-	`
-	
-	args := []interface{}{}
-	argCount := 0
-
-	if enrollmentStatus != "" && enrollmentStatus != "all" {
-		argCount++
-		query += fmt.Sprintf(" AND s.enrollment_status = $%d", argCount)
-		args = append(args, enrollmentStatus)
-	}
-
-	if transportationOnly {
-		query += " AND s.transportation_required = true"
-	}
-
-	if searchTerm != "" {
-		argCount++
-		query += fmt.Sprintf(" AND (LOWER(s.first_name) LIKE LOWER($%d) OR LOWER(s.last_name) LIKE LOWER($%d) OR s.student_id LIKE $%d)", argCount, argCount, argCount)
-		args = append(args, "%"+searchTerm+"%")
-	}
-
-	query += `
-		GROUP BY s.student_id, s.first_name, s.last_name, s.date_of_birth,
-			s.grade, s.enrollment_status, s.iep_status, s.primary_disability,
-			s.service_minutes, s.transportation_required, s.bus_route,
-			s.parent_name, s.parent_phone, s.parent_email,
-			s.address, s.city, s.state, s.zip_code
-		ORDER BY s.last_name, s.first_name
-	`
-
-	rows, err := db.Query(query, args...)
-	
-	var students []ECSEStudentView
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var student ECSEStudentView
-			var dob sql.NullString
-			
-			err := rows.Scan(
-				&student.StudentID, &student.FirstName, &student.LastName, &dob,
-				&student.Grade, &student.EnrollmentStatus, &student.IEPStatus, &student.PrimaryDisability,
-				&student.ServiceMinutes, &student.TransportationRequired, &student.BusRoute,
-				&student.ParentName, &student.ParentPhone, &student.ParentEmail,
-				&student.Address, &student.City, &student.State, &student.ZipCode,
-				&student.ServiceCount, &student.AssessmentCount,
-			)
-			
-			if err == nil {
-				if dob.Valid {
-					student.DateOfBirth = dob.String
-				}
-				students = append(students, student)
-			}
-		}
-	}
-
-	// Get summary statistics WITH PERCENTAGES
-	stats := getECSEStatisticsWithPercentages()
-
-	renderTemplate(w, r, "view_ecse_reports.html", map[string]interface{}{
-		"User":               user,
-		"Students":           students,
-		"Stats":              stats,
-		"EnrollmentStatus":   enrollmentStatus,
-		"TransportationOnly": transportationOnly,
-		"SearchTerm":         searchTerm,
-		"CSRFToken":          getSessionCSRFToken(r),
-	})
-}
-
-// viewECSEStudentHandler shows detailed view of a single ECSE student
-func viewECSEStudentHandler(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	studentID := strings.TrimPrefix(r.URL.Path, "/ecse-student/")
-	
-	// Get student details
-	var student ECSEStudent
-	err := db.QueryRow(`
-		SELECT student_id, first_name, last_name, date_of_birth::text, grade,
-			enrollment_status, iep_status, primary_disability, service_minutes,
-			transportation_required, bus_route, parent_name, parent_phone,
-			parent_email, address, city, state, zip_code, notes
-		FROM ecse_students
-		WHERE student_id = $1
-	`, studentID).Scan(
-		&student.StudentID, &student.FirstName, &student.LastName, &student.DateOfBirth,
-		&student.Grade, &student.EnrollmentStatus, &student.IEPStatus, &student.PrimaryDisability,
-		&student.ServiceMinutes, &student.TransportationRequired, &student.BusRoute,
-		&student.ParentName, &student.ParentPhone, &student.ParentEmail,
-		&student.Address, &student.City, &student.State, &student.ZipCode, &student.Notes,
-	)
-	
-	if err != nil {
-		http.Error(w, "Student not found", http.StatusNotFound)
-		return
-	}
-
-	// Get services
-	services := []ECSEService{}
-	rows, err := db.Query(`
-		SELECT id, service_type, frequency, duration, provider,
-			start_date::text, end_date::text, goals, progress
-		FROM ecse_services
-		WHERE student_id = $1
-		ORDER BY service_type
-	`, studentID)
-	
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var service ECSEService
-			rows.Scan(&service.ID, &service.ServiceType, &service.Frequency,
-				&service.Duration, &service.Provider, &service.StartDate,
-				&service.EndDate, &service.Goals, &service.Progress)
-			services = append(services, service)
-		}
-	}
-
-	// Get assessments
-	assessments := []ECSEAssessment{}
-	rows, err = db.Query(`
-		SELECT id, assessment_type, assessment_date::text, score,
-			evaluator, notes, next_review_date::text
-		FROM ecse_assessments
-		WHERE student_id = $1
-		ORDER BY assessment_date DESC
-	`, studentID)
-	
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var assessment ECSEAssessment
-			rows.Scan(&assessment.ID, &assessment.AssessmentType, &assessment.AssessmentDate,
-				&assessment.Score, &assessment.Evaluator, &assessment.Notes, &assessment.NextReviewDate)
-			assessments = append(assessments, assessment)
-		}
-	}
-
-	// Get recent attendance
-	attendance := []ECSEAttendanceRecord{}
-	rows, err = db.Query(`
-		SELECT attendance_date::text, status, arrival_time::text, departure_time::text, notes
-		FROM ecse_attendance
-		WHERE student_id = $1
-		ORDER BY attendance_date DESC
-		LIMIT 30
-	`, studentID)
-	
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var record ECSEAttendanceRecord
-			var arrival, departure sql.NullString
-			rows.Scan(&record.Date, &record.Status, &arrival, &departure, &record.Notes)
-			
-			if arrival.Valid {
-				record.ArrivalTime = arrival.String
-			}
-			if departure.Valid {
-				record.DepartureTime = departure.String
-			}
-			
-			attendance = append(attendance, record)
-		}
-	}
-
-	renderTemplate(w, r, "view_ecse_student.html", map[string]interface{}{
-		"User":        user,
-		"Student":     student,
-		"Services":    services,
-		"Assessments": assessments,
-		"Attendance":  attendance,
-		"CSRFToken":   getSessionCSRFToken(r),
-	})
-}
-
-// exportECSEHandler exports ECSE data to CSV
-func exportECSEHandler(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	// Set CSV headers
-	w.Header().Set("Content-Type", "text/csv")
-	w.Header().Set("Content-Disposition", "attachment; filename=ecse_export_"+time.Now().Format("20060102")+".csv")
-
-	// Get filter parameters
-	enrollmentStatus := r.URL.Query().Get("status")
-	transportationOnly := r.URL.Query().Get("transportation") == "true"
-	searchTerm := r.URL.Query().Get("search")
-
-	// Build query (similar to view handler)
-	query := `
-		SELECT 
-			s.student_id, s.first_name, s.last_name, s.date_of_birth::text,
-			s.grade, s.enrollment_status, s.iep_status, s.primary_disability,
-			s.service_minutes, s.transportation_required, s.bus_route,
-			s.parent_name, s.parent_phone, s.parent_email,
-			s.address, s.city, s.state, s.zip_code
-		FROM ecse_students s
-		WHERE 1=1
-	`
-	
-	args := []interface{}{}
-	argCount := 0
-
-	if enrollmentStatus != "" && enrollmentStatus != "all" {
-		argCount++
-		query += fmt.Sprintf(" AND s.enrollment_status = $%d", argCount)
-		args = append(args, enrollmentStatus)
-	}
-
-	if transportationOnly {
-		query += " AND s.transportation_required = true"
-	}
-
-	if searchTerm != "" {
-		argCount++
-		query += fmt.Sprintf(" AND (LOWER(s.first_name) LIKE LOWER($%d) OR LOWER(s.last_name) LIKE LOWER($%d) OR s.student_id LIKE $%d)", argCount, argCount, argCount)
-		args = append(args, "%"+searchTerm+"%")
-	}
-
-	query += " ORDER BY s.last_name, s.first_name"
-
-	rows, err := db.Query(query, args...)
-	if err != nil {
-		http.Error(w, "Failed to export data", http.StatusInternalServerError)
-		return
-	}
-	defer rows.Close()
-
-	// Write CSV header
-	fmt.Fprintf(w, "Student ID,First Name,Last Name,Date of Birth,Grade,Status,IEP Status,Primary Disability,")
-	fmt.Fprintf(w, "Service Minutes,Transportation Required,Bus Route,Parent Name,Parent Phone,Parent Email,")
-	fmt.Fprintf(w, "Address,City,State,Zip Code\n")
-
-	// Write data rows
-	for rows.Next() {
-		var s struct {
-			StudentID              string
-			FirstName              string
-			LastName               string
-			DateOfBirth            sql.NullString
-			Grade                  string
-			EnrollmentStatus       string
-			IEPStatus              sql.NullString
-			PrimaryDisability      sql.NullString
-			ServiceMinutes         int
-			TransportationRequired bool
-			BusRoute               sql.NullString
-			ParentName             sql.NullString
-			ParentPhone            sql.NullString
-			ParentEmail            sql.NullString
-			Address                sql.NullString
-			City                   sql.NullString
-			State                  sql.NullString
-			ZipCode                sql.NullString
-		}
-		
-		err := rows.Scan(&s.StudentID, &s.FirstName, &s.LastName, &s.DateOfBirth,
-			&s.Grade, &s.EnrollmentStatus, &s.IEPStatus, &s.PrimaryDisability,
-			&s.ServiceMinutes, &s.TransportationRequired, &s.BusRoute,
-			&s.ParentName, &s.ParentPhone, &s.ParentEmail,
-			&s.Address, &s.City, &s.State, &s.ZipCode)
-		
-		if err != nil {
-			continue
-		}
-		
-		// Write CSV row
-		fmt.Fprintf(w, "%s,%s,%s,%s,%s,%s,%s,%s,%d,%t,%s,%s,%s,%s,%s,%s,%s,%s\n",
-			s.StudentID, s.FirstName, s.LastName, 
-			s.DateOfBirth.String, s.Grade, s.EnrollmentStatus,
-			s.IEPStatus.String, s.PrimaryDisability.String,
-			s.ServiceMinutes, s.TransportationRequired, s.BusRoute.String,
-			s.ParentName.String, s.ParentPhone.String, s.ParentEmail.String,
-			s.Address.String, s.City.String, s.State.String, s.ZipCode.String)
-	}
-}
-
-// fleetHandler shows the bus fleet - FIXED with proper data wrapping
-func fleetHandler(w http.ResponseWriter, r *http.Request) {
-	if !isLoggedIn(r) {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
-	}
-
-	user := getUser(r)
-	if user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	buses := loadBuses()
-	
-	// Get recent maintenance logs
-	maintenanceLogs := []BusMaintenanceLog{}
-	rows, err := db.Query(`
-		SELECT bus_id, date, category, notes, mileage, created_at
-		FROM bus_maintenance_logs
-		ORDER BY date DESC
-		LIMIT 10
-	`)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var log BusMaintenanceLog
-			err := rows.Scan(&log.BusID, &log.Date, &log.Category, 
-				&log.Notes, &log.Mileage, &log.CreatedAt)
-			if err == nil {
-				maintenanceLogs = append(maintenanceLogs, log)
-			}
-		}
-	} else {
-		log.Printf("Error loading maintenance logs: %v", err)
-	}
-
-	// FIXED: Wrap data in "Data" field to match template expectations
-	data := map[string]interface{}{
-		"Data": map[string]interface{}{
-			"User":            user,
-			"Buses":           buses,
-			"MaintenanceLogs": maintenanceLogs,
-			"Today":           time.Now().Format("2006-01-02"),
-			"CSRFToken":       getSessionCSRFToken(r),
-		},
-		"CSPNonce": getCSPNonce(r),
-	}
-	renderTemplate(w, r, "fleet.html", data)
-}
-
-// companyFleetHandler shows company vehicles - FIXED with proper data wrapping
-func companyFleetHandler(w http.ResponseWriter, r *http.Request) {
-	vehicles := []Vehicle{}
-	rows, err := db.Query(`
-		SELECT vehicle_id, model, year, description, status, oil_status, tire_status, maintenance_notes
-		FROM vehicles
-		ORDER BY vehicle_id
-	`)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var v Vehicle
-			rows.Scan(&v.VehicleID, &v.Model, &v.Year, &v.Description, &v.Status, &v.OilStatus, &v.TireStatus, &v.MaintenanceNotes)
-			vehicles = append(vehicles, v)
-		}
-	}
-
-	// FIXED: Wrap data in "Data" field to match template expectations
-	data := map[string]interface{}{
-		"Data": map[string]interface{}{
-			"User":      getUserFromSession(r),
-			"Vehicles":  vehicles,
-			"CSRFToken": getSessionCSRFToken(r),
-		},
-		"CSPNonce": getCSPNonce(r),
-	}
-	renderTemplate(w, r, "company_fleet.html", data)
-}
-
-// updateVehicleStatusHandler updates vehicle status
-func updateVehicleStatusHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		// For AJAX requests, parse form data first
-		r.ParseForm()
-		
-		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
-
-		vehicleID := r.FormValue("vehicle_id")
-		statusType := r.FormValue("status_type")
-		newStatus := r.FormValue("new_status")
-
-		// Map status types to database columns
-		fieldMap := map[string]string{
-			"status": "status",
-			"oil":    "oil_status",
-			"tire":   "tire_status",
-		}
-
-		if dbField, ok := fieldMap[statusType]; ok {
-			// First try buses table (numeric IDs)
-			result, err := db.Exec(fmt.Sprintf("UPDATE buses SET %s = $1, updated_at = NOW() WHERE bus_id = $2", dbField), newStatus, vehicleID)
-			if err != nil {
-				log.Printf("Error updating bus: %v", err)
-			}
-			
-			rowsAffected, _ := result.RowsAffected()
-			
-			// If no bus was updated, try vehicles table
-			if rowsAffected == 0 {
-				_, err = db.Exec(fmt.Sprintf("UPDATE vehicles SET %s = $1, updated_at = NOW() WHERE vehicle_id = $2", dbField), newStatus, vehicleID)
-				if err != nil {
-					log.Printf("Error updating vehicle: %v", err)
-					http.Error(w, "Failed to update status", http.StatusInternalServerError)
-					return
-				}
-			}
-		}
-
-		// Return JSON response
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"status": "success",
-			"message": "Status updated successfully",
-		})
-	}
-}
-
-// busMaintenanceHandler shows maintenance history for a bus
-func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
-	busID := strings.TrimPrefix(r.URL.Path, "/bus-maintenance/")
-	
-	// Get maintenance records
-	records := []MaintenanceRecord{}
-	query := `
-		SELECT bus_id, date, category, mileage, 0 as cost, notes, created_at
-		FROM bus_maintenance_logs
-		WHERE bus_id = $1
-		ORDER BY date DESC
-	`
-	
-	rows, err := db.Query(query, busID)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var record MaintenanceRecord
-			rows.Scan(&record.VehicleID, &record.Date, &record.Category, 
-				&record.Mileage, &record.Cost, &record.Notes, &record.CreatedAt)
-			records = append(records, record)
-		}
-	}
-
-	// Calculate statistics
-	var totalCost float64
-	recentCount := 0
-	thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
-	
-	for _, record := range records {
-		totalCost += record.Cost
-		// Parse the date string to compare
-		if recordDate, err := time.Parse("2006-01-02", record.Date); err == nil {
-			if recordDate.After(thirtyDaysAgo) {
-				recentCount++
-			}
-		}
-	}
-
-	totalRecords := len(records)
-	averageCost := float64(0)
-	if totalRecords > 0 {
-		averageCost = totalCost / float64(totalRecords)
-	}
-
-	// Create data map for template - use same template as vehicle maintenance
-	data := map[string]interface{}{
-		"VehicleID":          busID,
-		"IsBus":              true,
-		"MaintenanceRecords": records,
-		"TotalRecords":       totalRecords,
-		"TotalCost":          totalCost,
-		"AverageCost":        averageCost,
-		"RecentCount":        recentCount,
-		"Today":              time.Now().Format("2006-01-02"),
-		"CSRFToken":          getSessionCSRFToken(r),
-	}
-
-	renderTemplate(w, r, "vehicle_maintenance.html", data)
-}
-
-// vehicleMaintenanceHandler shows maintenance for any vehicle
-func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
-	vehicleID := strings.TrimPrefix(r.URL.Path, "/vehicle-maintenance/")
-	
-	// Try to determine if it's a bus by checking buses table
-	var isBus bool
-	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM buses WHERE bus_id = $1)", vehicleID).Scan(&isBus)
-	if err != nil {
-		isBus = false
-	}
-
-	// Get maintenance records from appropriate table
-	records := []MaintenanceRecord{}
-	
-	if isBus {
-		// Query bus_maintenance_logs
-		query := `
-			SELECT bus_id, date, category, mileage, 
-			       COALESCE(cost, 0) as cost, notes, created_at
-			FROM bus_maintenance_logs
-			WHERE bus_id = $1
-			ORDER BY date DESC
-		`
-		rows, err := db.Query(query, vehicleID)
-		if err == nil {
-			defer rows.Close()
-			for rows.Next() {
-				var record MaintenanceRecord
-				rows.Scan(&record.VehicleID, &record.Date, &record.Category, 
-					&record.Mileage, &record.Cost, &record.Notes, &record.CreatedAt)
-				records = append(records, record)
-			}
-		}
-	} else {
-		// Query maintenance_records for other vehicles
-		query := `
-			SELECT vehicle_id, date, 'maintenance' as category, mileage, 
-			       COALESCE(cost, 0) as cost, work_description as notes, created_at
-			FROM maintenance_records
-			WHERE vehicle_id = $1
-			ORDER BY date DESC
-		`
-		rows, err := db.Query(query, vehicleID)
-		if err == nil {
-			defer rows.Close()
-			for rows.Next() {
-				var record MaintenanceRecord
-				rows.Scan(&record.VehicleID, &record.Date, &record.Category, 
-					&record.Mileage, &record.Cost, &record.Notes, &record.CreatedAt)
-				records = append(records, record)
-			}
-		}
-	}
-
-	// Calculate statistics
-	var totalCost float64
-	recentCount := 0
-	thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
-	
-	for _, record := range records {
-		totalCost += record.Cost
-		// Parse the date string to compare
-		if recordDate, err := time.Parse("2006-01-02", record.Date); err == nil {
-			if recordDate.After(thirtyDaysAgo) {
-				recentCount++
-			}
-		}
-	}
-
-	totalRecords := len(records)
-	averageCost := float64(0)
-	if totalRecords > 0 {
-		averageCost = totalCost / float64(totalRecords)
-	}
-
-	data := map[string]interface{}{
-		"VehicleID":          vehicleID,
-		"IsBus":              isBus,
-		"MaintenanceRecords": records,
-		"TotalRecords":       totalRecords,
-		"TotalCost":          totalCost,
-		"AverageCost":        averageCost,
-		"RecentCount":        recentCount,
-		"Today":              time.Now().Format("2006-01-02"),
-		"CSRFToken":          getSessionCSRFToken(r),
-	}
-
-	renderTemplate(w, r, "vehicle_maintenance.html", data)
-}
-
-// saveMaintenanceRecordHandler saves a maintenance record
-func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		// Parse form data
-		r.ParseForm()
-		
-		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
-
-		vehicleID := r.FormValue("vehicle_id")
-		date := r.FormValue("date")
-		category := r.FormValue("category")
-		mileage := parseIntOrDefault(r.FormValue("mileage"), 0)
-		notes := r.FormValue("notes")
-
-		// Save to bus_maintenance_logs table
-		_, err := db.Exec(`
-			INSERT INTO bus_maintenance_logs (bus_id, date, category, mileage, notes, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6)
-		`, vehicleID, date, category, mileage, notes, time.Now())
-
-		if err != nil {
-			http.Error(w, "Failed to save maintenance record", http.StatusInternalServerError)
-			return
-		}
-
-		// Return JSON response for AJAX requests
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"status": "success",
-			"message": "Maintenance record saved successfully",
-		})
-	}
-}
-
-// assignRoutesHandler shows route assignment page
-func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// Get all assignments
-	assignments, _ := loadRouteAssignments()
-	
-	// Get all drivers
-	drivers := loadDrivers()
-	
-	// Get all routes with assignment status
-	allRoutes, _ := loadRoutes()
-	
-	// Get all buses
-	allBuses := loadBuses()
-
-	// Create map of assigned bus IDs and route IDs
-	assignedBusIDs := make(map[string]bool)
-	assignedRouteIDs := make(map[string]bool)
-	for _, assignment := range assignments {
-		assignedBusIDs[assignment.BusID] = true
-		assignedRouteIDs[assignment.RouteID] = true
-	}
-
-	// Filter available buses (active and not assigned)
-	availableBuses := []*Bus{}
-	for _, bus := range allBuses {
-		if bus.Status == "active" && !assignedBusIDs[bus.BusID] {
-			availableBuses = append(availableBuses, bus)
-		}
-	}
-
-	// Filter available routes (not assigned)
-	availableRoutes := []*Route{}
-	routesWithStatus := []*RouteWithStatus{}
-	
-	// Process routes correctly
-	for i := range allRoutes {
-		route := &allRoutes[i]
-		isAssigned := assignedRouteIDs[route.RouteID]
-		
-		// Add to routesWithStatus for display
-		routesWithStatus = append(routesWithStatus, &RouteWithStatus{
-			Route:      *route,
-			IsAssigned: isAssigned,
-		})
-		
-		// Add to availableRoutes if not assigned
-		if !isAssigned {
-			availableRoutes = append(availableRoutes, route)
-		}
-	}
-
-	// Count available drivers (not assigned)
-	availableDriversCount := 0
-	assignedDrivers := make(map[string]bool)
-	for _, assignment := range assignments {
-		assignedDrivers[assignment.Driver] = true
-	}
-	for _, driver := range drivers {
-		if !assignedDrivers[driver.Username] {
-			availableDriversCount++
-		}
-	}
-
-	// Convert routes to pointers for data.Routes
-	routePtrs := make([]*Route, len(allRoutes))
-	for i := range allRoutes {
-		routePtrs[i] = &allRoutes[i]
-	}
-
-	data := map[string]interface{}{
-		"User":                  user,
-		"Assignments":           assignments,
-		"Drivers":               drivers,
-		"Routes":                routePtrs,
-		"RoutesWithStatus":      routesWithStatus,
-		"AvailableRoutes":       availableRoutes,
-		"Buses":                 allBuses,
-		"AvailableBuses":        availableBuses,
-		"TotalAssignments":      len(assignments),
-		"TotalRoutes":           len(allRoutes),
-		"AvailableDriversCount": availableDriversCount,
-		"AvailableBusesCount":   len(availableBuses),
-		"CSRFToken":             getSessionCSRFToken(r),
-	}
-
-	renderTemplate(w, r, "assign_routes.html", data)
-}
-
-// assignRouteHandler assigns a route to a driver
-func assignRouteHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
-
-		driver := r.FormValue("driver")
-		routeID := r.FormValue("route_id")
-		busID := r.FormValue("bus_id")
-
-		// Delete existing assignment for this driver
-		db.Exec(`DELETE FROM route_assignments WHERE driver = $1`, driver)
-
-		// Create new assignment
-		_, err := db.Exec(`
-			INSERT INTO route_assignments (driver, route_id, bus_id, assigned_date)
-			VALUES ($1, $2, $3, $4)
-		`, driver, routeID, busID, time.Now().Format("2006-01-02"))
-
-		if err != nil {
-			http.Error(w, "Failed to assign route", http.StatusInternalServerError)
-			return
-		}
-
-		http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
-	}
-}
-
-// unassignRouteHandler removes a route assignment
-func unassignRouteHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
-
-		driver := r.FormValue("driver")
-		db.Exec(`DELETE FROM route_assignments WHERE driver = $1`, driver)
-		http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
-	}
-}
-
-// addRouteHandler adds a new route
-func addRouteHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
-
-		routeName := r.FormValue("route_name")
-		description := r.FormValue("description")
-
-		// Generate route ID
-		routeID := fmt.Sprintf("ROUTE%03d", time.Now().Unix()%1000)
-
-		_, err := db.Exec(`
-			INSERT INTO routes (route_id, route_name, description)
-			VALUES ($1, $2, $3)
-		`, routeID, routeName, description)
-
-		if err != nil {
-			http.Error(w, "Failed to add route", http.StatusInternalServerError)
-			return
-		}
-
-		http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
-	}
-}
-
-// editRouteHandler edits a route
-func editRouteHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
-
-		routeID := r.FormValue("route_id")
-		routeName := r.FormValue("route_name")
-		description := r.FormValue("description")
-
-		db.Exec(`
-			UPDATE routes 
-			SET route_name = $1, description = $2
-			WHERE route_id = $3
-		`, routeName, description, routeID)
-
-		http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
-	}
-}
-
-// deleteRouteHandler deletes a route
-func deleteRouteHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
-
-		routeID := r.FormValue("route_id")
-		
-		// Delete route and related data
-		db.Exec(`DELETE FROM route_assignments WHERE route_id = $1`, routeID)
-		db.Exec(`DELETE FROM students WHERE route_id = $1`, routeID)
-		db.Exec(`DELETE FROM routes WHERE route_id = $1`, routeID)
-
-		http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
-	}
-}
-
-// studentsHandler shows student management page - FIXED with proper data wrapping
-func studentsHandler(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "driver" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// Get driver's route
-	assignment := getDriverAssignment(user.Username)
-	students := getRouteStudents(assignment.RouteID)
-
-	// FIXED: Wrap data in "Data" field to match template expectations
-	data := map[string]interface{}{
-		"Data": map[string]interface{}{
-			"User":      user,
-			"Students":  students,
-			"CSRFToken": getSessionCSRFToken(r),
-		},
-		"CSPNonce": getCSPNonce(r),
-	}
-	renderTemplate(w, r, "students.html", data)
-}
-
-// addStudentHandler adds a student
-func addStudentHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
-
-		user := getUserFromSession(r)
-		if user == nil || user.Role != "driver" {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		// Get driver's route
-		assignment := getDriverAssignment(user.Username)
-
-		// Create student
-		student := Student{
-			StudentID:      generateUniqueID("STU", int(time.Now().Unix()%1000)),
-			Name:           r.FormValue("name"),
-			PhoneNumber:    r.FormValue("phone_number"),
-			AltPhoneNumber: r.FormValue("alt_phone_number"),
-			Guardian:       r.FormValue("guardian"),
-			PickupTime:     r.FormValue("pickup_time"),
-			DropoffTime:    r.FormValue("dropoff_time"),
-			PositionNumber: parseIntOrDefault(r.FormValue("position_number"), 1),
-			RouteID:        assignment.RouteID,
-			Driver:         user.Username,
-			Active:         true,
-		}
-
-		// Save to database
-		_, err := db.Exec(`
-			INSERT INTO students (student_id, name, phone_number, alt_phone_number, guardian, 
-				pickup_time, dropoff_time, position_number, route_id, driver, active)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-		`, student.StudentID, student.Name, student.PhoneNumber, student.AltPhoneNumber,
-			student.Guardian, student.PickupTime, student.DropoffTime, student.PositionNumber,
-			student.RouteID, student.Driver, student.Active)
-
-		if err != nil {
-			http.Error(w, "Failed to add student", http.StatusInternalServerError)
-			return
-		}
-
-		http.Redirect(w, r, "/students", http.StatusSeeOther)
-	}
-}
-
-// editStudentHandler edits a student
-func editStudentHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
-
-		studentID := r.FormValue("student_id")
-		
-		db.Exec(`
-			UPDATE students 
-			SET name = $1, phone_number = $2, alt_phone_number = $3, guardian = $4,
-				pickup_time = $5, dropoff_time = $6, position_number = $7
-			WHERE student_id = $8
-		`, r.FormValue("name"), r.FormValue("phone_number"), r.FormValue("alt_phone_number"),
-			r.FormValue("guardian"), r.FormValue("pickup_time"), r.FormValue("dropoff_time"),
-			parseIntOrDefault(r.FormValue("position_number"), 1), studentID)
-
-		http.Redirect(w, r, "/students", http.StatusSeeOther)
-	}
-}
-
-// removeStudentHandler removes a student
-func removeStudentHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
-
-		studentID := r.FormValue("student_id")
-		db.Exec(`UPDATE students SET active = false WHERE student_id = $1`, studentID)
-		http.Redirect(w, r, "/students", http.StatusSeeOther)
-	}
-}
-
-// importMileageHandler handles mileage report imports - FIXED
-func importMileageHandler(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	if r.Method == "GET" {
-		renderTemplate(w, r, "import_mileage.html", map[string]interface{}{
-			"CSRFToken": getSessionCSRFToken(r),
-		})
-		return
-	}
-
-	if r.Method == "POST" {
-		// Parse multipart form FIRST
-		err := r.ParseMultipartForm(10 << 20) // 10 MB
-		if err != nil {
-			renderTemplate(w, r, "import_mileage.html", map[string]interface{}{
-				"Error":     "Failed to parse form",
-				"CSRFToken": getSessionCSRFToken(r),
-			})
-			return
-		}
-
-		// THEN validate CSRF
-		if !validateCSRF(r) {
-			renderTemplate(w, r, "import_mileage.html", map[string]interface{}{
-				"Error":     "Invalid CSRF token. Please try again.",
-				"CSRFToken": getSessionCSRFToken(r),
-			})
-			return
-		}
-
-		file, header, err := r.FormFile("file")
-		if err != nil {
-			renderTemplate(w, r, "import_mileage.html", map[string]interface{}{
-				"Error":     "Failed to get file",
-				"CSRFToken": getSessionCSRFToken(r),
-			})
-			return
-		}
-		defer file.Close()
-
-		// Process Excel file
-		imported, err := processEnhancedMileageExcelFile(file, header.Filename)
-		
-		if err != nil {
-			renderTemplate(w, r, "import_mileage.html", map[string]interface{}{
-				"Error":     fmt.Sprintf("Import failed: %v", err),
-				"CSRFToken": getSessionCSRFToken(r),
-			})
-			return
-		}
-
-		renderTemplate(w, r, "import_mileage.html", map[string]interface{}{
-			"Success":   fmt.Sprintf("Successfully imported %d mileage records", imported),
-			"CSRFToken": getSessionCSRFToken(r),
-		})
-	}
-}
-
-// viewMileageReportsHandler shows mileage reports
-func viewMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
-	// Use the enhanced mileage reports handler from database.go
-	viewEnhancedMileageReportsHandler(w, r)
-}
-
-// driverProfileHandler shows driver profile
-func driverProfileHandler(w http.ResponseWriter, r *http.Request) {
-	driverUsername := strings.TrimPrefix(r.URL.Path, "/driver/")
-	
-	// Get driver info
-	driver := getUserByUsername(driverUsername)
-	if driver == nil || driver.Role != "driver" {
-		http.Error(w, "Driver not found", http.StatusNotFound)
-		return
-	}
-
-	// Get driver's assignment
-	assignment := getDriverAssignment(driverUsername)
-	
-	// Get recent logs
-	logs := getDriverLogs(driverUsername, 30)
-	
-	// Calculate statistics
-	totalMiles := 0.0
-	for _, log := range logs {
-		totalMiles += log.Mileage
-	}
-
-	renderTemplate(w, r, "driver_profile.html", map[string]interface{}{
-		"Driver":     driver,
-		"Assignment": assignment,
-		"Logs":       logs,
-		"TotalMiles": totalMiles,
-		"LogCount":   len(logs),
-		"CSRFToken":  getSessionCSRFToken(r),
-	})
-}
-
 // Helper functions
-
-func authenticateUser(username, password string) (*User, error) {
-	var user User
-	err := db.QueryRow(`
-		SELECT username, password, role, status, registration_date 
-		FROM users 
-		WHERE username = $1 AND status = 'active'
-	`, username).Scan(&user.Username, &user.Password, &user.Role, &user.Status, &user.RegistrationDate)
-	
-	if err != nil {
-		return nil, err
+func getDriverAssignments(username string) ([]RouteAssignment, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
 	}
 
-	// Verify password
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-	if err != nil {
-		return nil, err
-	}
-
-	return &user, nil
-}
-
-func getUserByUsername(username string) *User {
-	var user User
-	err := db.QueryRow(`
-		SELECT username, role, status, registration_date 
-		FROM users 
-		WHERE username = $1
-	`, username).Scan(&user.Username, &user.Role, &user.Status, &user.RegistrationDate)
-	
-	if err != nil {
-		return nil
-	}
-	
-	return &user
-}
-
-func loadDrivers() []User {
-	drivers := []User{}
-	rows, err := db.Query(`SELECT username, role, status FROM users WHERE role = 'driver' AND status = 'active'`)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var driver User
-			rows.Scan(&driver.Username, &driver.Role, &driver.Status)
-			drivers = append(drivers, driver)
-		}
-	}
-	return drivers
-}
-
-func loadDriverSummaries() []*DriverSummary {
-	summaries := []*DriverSummary{}
-	rows, err := db.Query(`
-		SELECT ra.driver, ra.bus_id, ra.route_id, r.route_name,
-			   COALESCE(MAX(dl.created_at), NOW()) as last_activity,
-			   COALESCE(SUM(dl.mileage), 0) as total_miles
+	query := `
+		SELECT ra.driver, ra.bus_id, ra.route_id, r.route_name, ra.assigned_date
 		FROM route_assignments ra
-		LEFT JOIN routes r ON ra.route_id = r.route_id
-		LEFT JOIN driver_logs dl ON dl.driver = ra.driver
-		GROUP BY ra.driver, ra.bus_id, ra.route_id, r.route_name
-	`)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var s DriverSummary
-			rows.Scan(&s.Driver, &s.BusID, &s.RouteID, &s.RouteName, &s.LastActivity, &s.TotalMiles)
-			summaries = append(summaries, &s)
-		}
-	}
-	return summaries
-}
-
-func loadRouteStats() []*RouteStats {
-	stats := []*RouteStats{}
-	rows, err := db.Query(`
-		SELECT r.route_id, r.route_name,
-			   COUNT(DISTINCT ra.bus_id) as active_buses,
-			   COUNT(DISTINCT s.student_id) as total_students
-		FROM routes r
-		LEFT JOIN route_assignments ra ON r.route_id = ra.route_id
-		LEFT JOIN students s ON r.route_id = s.route_id AND s.active = true
-		GROUP BY r.route_id, r.route_name
-	`)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var s RouteStats
-			rows.Scan(&s.RouteID, &s.RouteName, &s.ActiveBuses, &s.TotalStudents)
-			stats = append(stats, &s)
-		}
-	}
-	return stats
-}
-
-func countPendingUsers() int {
-	var count int
-	db.QueryRow(`SELECT COUNT(*) FROM users WHERE status = 'pending'`).Scan(&count)
-	return count
-}
-
-func getDriverAssignment(driver string) *DriverAssignment {
-	var a DriverAssignment
-	err := db.QueryRow(`
-		SELECT ra.driver, ra.route_id, ra.bus_id, r.route_name
-		FROM route_assignments ra
-		LEFT JOIN routes r ON ra.route_id = r.route_id
+		JOIN routes r ON ra.route_id = r.route_id
 		WHERE ra.driver = $1
-	`, driver).Scan(&a.Driver, &a.RouteID, &a.BusID, &a.RouteName)
-	
-	if err != nil {
-		return &DriverAssignment{Driver: driver}
-	}
-	
-	return &a
+		ORDER BY r.route_name
+	`
+
+	var assignments []RouteAssignment
+	err := db.Select(&assignments, query, username)
+	return assignments, err
 }
 
-func getDriverLogs(driver string, days int) []DriverLog {
-	logs := []DriverLog{}
-	rows, err := db.Query(`
-		SELECT id, driver, bus_id, route_id, date, period, departure_time, arrival_time, mileage, attendance
-		FROM driver_logs
-		WHERE driver = $1 AND date >= $2
-		ORDER BY date DESC, period DESC
-	`, driver, time.Now().AddDate(0, 0, -days).Format("2006-01-02"))
+func getStudentsByRoute(routeID string) ([]Student, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	query := `
+		SELECT * FROM students 
+		WHERE route_id = $1 AND active = true 
+		ORDER BY position_number, pickup_time
+	`
+
+	var students []Student
+	err := db.Select(&students, query, routeID)
+	return students, err
+}
+
+// managerDashboardHandler with maintenance overview
+func managerDashboardHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	// Get various statistics
+	buses, _ := dataCache.getBuses()
+	vehicles, _ := dataCache.getVehicles()
+	users, _ := dataCache.getUsers()
+	routes, _ := dataCache.getRoutes()
+
+	// Count vehicles needing maintenance
+	maintenanceNeeded := 0
 	
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var log DriverLog
-			var attendanceJSON sql.NullString
-			rows.Scan(&log.ID, &log.Driver, &log.BusID, &log.RouteID, &log.Date, 
-				&log.Period, &log.Departure, &log.Arrival, &log.Mileage, &attendanceJSON)
-			
-			// Parse attendance JSON
-			if attendanceJSON.Valid && attendanceJSON.String != "" {
-				json.Unmarshal([]byte(attendanceJSON.String), &log.Attendance)
-			}
-			logs = append(logs, log)
+	// Check buses
+	for _, bus := range buses {
+		if bus.OilStatus == "needs_service" || bus.OilStatus == "overdue" ||
+			bus.TireStatus == "worn" || bus.TireStatus == "replace" {
+			maintenanceNeeded++
 		}
 	}
 	
-	return logs
-}
-
-func getRouteStudents(routeID string) []Student {
-	students := []Student{}
-	rows, err := db.Query(`
-		SELECT student_id, name, phone_number, alt_phone_number, guardian,
-			   pickup_time, dropoff_time, position_number, route_id, driver
-		FROM students
-		WHERE route_id = $1 AND active = true
-		ORDER BY position_number
-	`, routeID)
-	
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var s Student
-			rows.Scan(&s.StudentID, &s.Name, &s.PhoneNumber, &s.AltPhoneNumber,
-				&s.Guardian, &s.PickupTime, &s.DropoffTime, &s.PositionNumber,
-				&s.RouteID, &s.Driver)
-			s.Active = true
-			students = append(students, s)
+	// Check vehicles
+	for _, vehicle := range vehicles {
+		if vehicle.OilStatus == "needs_service" || vehicle.OilStatus == "overdue" ||
+			vehicle.TireStatus == "worn" || vehicle.TireStatus == "replace" {
+			maintenanceNeeded++
 		}
 	}
-	
-	return students
-}
 
-// Helper functions for data retrieval
-
-func getBusByID(busID string) *Bus {
-	var bus Bus
-	err := db.QueryRow(`
-		SELECT bus_id, model, capacity, status, oil_status, tire_status, maintenance_notes
-		FROM buses WHERE bus_id = $1
-	`, busID).Scan(&bus.BusID, &bus.Model, &bus.Capacity, &bus.Status, 
-		&bus.OilStatus, &bus.TireStatus, &bus.MaintenanceNotes)
-	
-	if err != nil {
-		return nil
-	}
-	return &bus
-}
-
-func getRouteByID(routeID string) *Route {
-	var route Route
-	err := db.QueryRow(`
-		SELECT route_id, route_name, description
-		FROM routes WHERE route_id = $1
-	`, routeID).Scan(&route.RouteID, &route.RouteName, &route.Description)
-	
-	if err != nil {
-		return nil
-	}
-	return &route
-}
-
-func getRouteStudentsOrderedByPickup(routeID string) []Student {
-	students := []Student{}
-	rows, err := db.Query(`
-		SELECT student_id, name, phone_number, alt_phone_number, guardian,
-			   pickup_time, dropoff_time, position_number, route_id, driver
-		FROM students
-		WHERE route_id = $1 AND active = true
-		ORDER BY pickup_time, position_number
-	`, routeID)
-	
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var s Student
-			rows.Scan(&s.StudentID, &s.Name, &s.PhoneNumber, &s.AltPhoneNumber,
-				&s.Guardian, &s.PickupTime, &s.DropoffTime, &s.PositionNumber,
-				&s.RouteID, &s.Driver)
-			s.Active = true
-			students = append(students, s)
+	// Get pending users
+	pendingUsers := 0
+	for _, u := range users {
+		if u.Status == "pending" {
+			pendingUsers++
 		}
 	}
-	
-	return students
-}
 
-func getRouteStudentsOrderedByDropoff(routeID string) []Student {
-	students := []Student{}
-	rows, err := db.Query(`
-		SELECT student_id, name, phone_number, alt_phone_number, guardian,
-			   pickup_time, dropoff_time, position_number, route_id, driver
-		FROM students
-		WHERE route_id = $1 AND active = true
-		ORDER BY dropoff_time, position_number
-	`, routeID)
-	
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var s Student
-			rows.Scan(&s.StudentID, &s.Name, &s.PhoneNumber, &s.AltPhoneNumber,
-				&s.Guardian, &s.PickupTime, &s.DropoffTime, &s.PositionNumber,
-				&s.RouteID, &s.Driver)
-			s.Active = true
-			students = append(students, s)
-		}
-	}
-	
-	return students
-}
-
-// getUser gets the current user from session
-func getUser(r *http.Request) *User {
-	return getUserFromSession(r)
-}
-
-// isLoggedIn checks if user has valid session
-func isLoggedIn(r *http.Request) bool {
-	cookie, err := r.Cookie(SessionCookieName)
-	if err != nil {
-		return false
+	data := map[string]interface{}{
+		"User":              user,
+		"CSRFToken":         getSessionCSRFToken(r),
+		"TotalBuses":        len(buses),
+		"TotalVehicles":     len(vehicles),
+		"TotalDrivers":      len(users) - 1, // Exclude manager
+		"TotalRoutes":       len(routes),
+		"MaintenanceNeeded": maintenanceNeeded,
+		"PendingUsers":      pendingUsers,
 	}
 
-	session, err := GetSecureSession(cookie.Value)
-	if err != nil {
-		return false
-	}
-
-	return session != nil
+	renderTemplate(w, r, "manager_dashboard.html", data)
 }
-
-// getECSEStatisticsWithPercentages returns ECSE statistics including calculated percentages
-func getECSEStatisticsWithPercentages() map[string]interface{} {
-	stats := make(map[string]interface{})
-	
-	// Total students
-	var totalStudents int
-	db.QueryRow("SELECT COUNT(*) FROM ecse_students").Scan(&totalStudents)
-	stats["TotalStudents"] = totalStudents
-	
-	// Active students
-	var activeStudents int
-	db.QueryRow("SELECT COUNT(*) FROM ecse_students WHERE enrollment_status = 'Active'").Scan(&activeStudents)
-	stats["ActiveStudents"] = activeStudents
-	
-	// Students requiring transportation
-	var transportationStudents int
-	db.QueryRow("SELECT COUNT(*) FROM ecse_students WHERE transportation_required = true").Scan(&transportationStudents)
-	stats["TransportationStudents"] = transportationStudents
-	
-	// Students with IEP
-	var iepStudents int
-	db.QueryRow("SELECT COUNT(*) FROM ecse_students WHERE iep_status IS NOT NULL AND iep_status != ''").Scan(&iepStudents)
-	stats["IEPStudents"] = iepStudents
-	
-	// Total services
-	var totalServices int
-	db.QueryRow("SELECT COUNT(*) FROM ecse_services").Scan(&totalServices)
-	stats["TotalServices"] = totalServices
-	
-	// Service types breakdown
-	serviceTypes := make(map[string]int)
-	rows, err := db.Query("SELECT service_type, COUNT(*) FROM ecse_services GROUP BY service_type")
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var serviceType string
-			var count int
-			rows.Scan(&serviceType, &count)
-			serviceTypes[serviceType] = count
-		}
-	}
-	stats["ServiceTypes"] = serviceTypes
-	
-	// Calculate percentages
-	if totalStudents > 0 {
-		stats["ActivePercent"] = int((float64(activeStudents) / float64(totalStudents)) * 100)
-		stats["IEPPercent"] = int((float64(iepStudents) / float64(totalStudents)) * 100)
-		stats["TransportationPercent"] = int((float64(transportationStudents) / float64(totalStudents)) * 100)
-	} else {
-		stats["ActivePercent"] = 0
-		stats["IEPPercent"] = 0
-		stats["TransportationPercent"] = 0
-	}
-	
-	return stats
-}
-
-// getCSPNonce gets the CSP nonce from the request context
-func getCSPNonce(r *http.Request) string {
-	if nonce, ok := r.Context().Value("csp-nonce").(string); ok {
-		return nonce
-	}
-	return ""
-}
-
-// Note: getDriverLogsByDateRange is already defined in data.go
