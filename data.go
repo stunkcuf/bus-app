@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 )
 
 // =============================================================================
@@ -252,7 +253,8 @@ func loadBusesFromDB() ([]*Bus, error) {
 	}
 	
 	rows, err := db.Query(`
-		SELECT bus_id, status, model, capacity, oil_status, tire_status, maintenance_notes 
+		SELECT bus_id, status, model, capacity, oil_status, tire_status, maintenance_notes,
+		       COALESCE(current_mileage, 0) as current_mileage
 		FROM buses ORDER BY bus_id
 	`)
 	if err != nil {
@@ -264,7 +266,7 @@ func loadBusesFromDB() ([]*Bus, error) {
 	for rows.Next() {
 		bus := &Bus{}
 		if err := rows.Scan(&bus.BusID, &bus.Status, &bus.Model, &bus.Capacity, 
-			&bus.OilStatus, &bus.TireStatus, &bus.MaintenanceNotes); err != nil {
+			&bus.OilStatus, &bus.TireStatus, &bus.MaintenanceNotes, &bus.CurrentMileage); err != nil {
 			log.Printf("Error scanning bus: %v", err)
 			continue
 		}
@@ -284,15 +286,15 @@ func saveBus(bus *Bus) error {
 	}
 	
 	_, err := db.Exec(`
-		INSERT INTO buses (bus_id, status, model, capacity, oil_status, tire_status, maintenance_notes) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO buses (bus_id, status, model, capacity, oil_status, tire_status, maintenance_notes, current_mileage) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (bus_id) 
 		DO UPDATE SET 
 			status = $2, model = $3, capacity = $4, 
 			oil_status = $5, tire_status = $6, maintenance_notes = $7,
-			updated_at = CURRENT_TIMESTAMP
+			current_mileage = $8, updated_at = CURRENT_TIMESTAMP
 	`, bus.BusID, bus.Status, bus.Model, bus.Capacity,
-	   bus.OilStatus, bus.TireStatus, bus.MaintenanceNotes)
+	   bus.OilStatus, bus.TireStatus, bus.MaintenanceNotes, bus.CurrentMileage)
 	
 	return err
 }
@@ -319,10 +321,10 @@ func saveBuses(buses []*Bus) error {
 			UPDATE buses 
 			SET status = $2, model = $3, capacity = $4, 
 				oil_status = $5, tire_status = $6, maintenance_notes = $7,
-				updated_at = CURRENT_TIMESTAMP
+				current_mileage = $8, updated_at = CURRENT_TIMESTAMP
 			WHERE bus_id = $1
 		`, bus.BusID, bus.Status, bus.Model, bus.Capacity,
-		   bus.OilStatus, bus.TireStatus, bus.MaintenanceNotes)
+		   bus.OilStatus, bus.TireStatus, bus.MaintenanceNotes, bus.CurrentMileage)
 		
 		if err != nil {
 			return fmt.Errorf("failed to update bus %s: %w", bus.BusID, err)
@@ -891,7 +893,7 @@ func saveDriverLogs(logs []DriverLog) error {
 }
 
 // =============================================================================
-// MAINTENANCE LOG FUNCTIONS WITH ERROR HANDLING - FIXED VERSION
+// FIXED MAINTENANCE LOG FUNCTIONS
 // =============================================================================
 
 // DEPRECATED: Use loadMaintenanceLogsFromDB instead
@@ -909,44 +911,40 @@ func loadMaintenanceLogsFromDB() ([]BusMaintenanceLog, error) {
 		return nil, fmt.Errorf("database connection not available")
 	}
 	
-	rows, err := db.Query(`
-		SELECT id, bus_id, date, category, notes, mileage, cost, created_at
-		FROM bus_maintenance_logs ORDER BY date DESC
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load maintenance logs from DB: %w", err)
-	}
-	defer rows.Close()
-
+	// Query from all maintenance tables
+	query := `
+		SELECT * FROM (
+			-- Bus maintenance logs
+			SELECT id, bus_id as vehicle_id, date::text, category, notes, mileage, 
+			       COALESCE(cost, 0) as cost, created_at
+			FROM bus_maintenance_logs
+			
+			UNION ALL
+			
+			-- Vehicle maintenance records
+			SELECT id, vehicle_id, date::text, 
+			       COALESCE(category, 'maintenance') as category, 
+			       COALESCE(notes, '') as notes, 
+			       COALESCE(mileage, 0) as mileage, 
+			       COALESCE(cost, 0) as cost, 
+			       created_at
+			FROM maintenance_records
+		) combined_logs
+		ORDER BY date DESC, created_at DESC
+		LIMIT 100
+	`
+	
 	var logs []BusMaintenanceLog
-	for rows.Next() {
-		var maintenanceLog BusMaintenanceLog
-		var date sql.NullTime
-		var cost sql.NullFloat64
-		var createdAt sql.NullTime
-		
-		if err := rows.Scan(&maintenanceLog.ID, &maintenanceLog.BusID, &date,
-			&maintenanceLog.Category, &maintenanceLog.Notes, 
-			&maintenanceLog.Mileage, &cost, &createdAt); err != nil {
-			log.Printf("Error scanning maintenance log: %v", err)
-			continue
-		}
-		
-		if date.Valid {
-			maintenanceLog.Date = date.Time.Format("2006-01-02")
-		}
-		if cost.Valid {
-			maintenanceLog.Cost = cost.Float64
-		}
-		if createdAt.Valid {
-			maintenanceLog.CreatedAt = createdAt.Time
-		}
-		
-		logs = append(logs, maintenanceLog)
+	err := db.Select(&logs, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load maintenance logs: %w", err)
 	}
 	
-	if err = rows.Err(); err != nil {
-		return logs, fmt.Errorf("error iterating maintenance logs: %w", err)
+	// Set BusID from VehicleID for compatibility
+	for i := range logs {
+		if logs[i].BusID == "" && logs[i].VehicleID != "" {
+			logs[i].BusID = logs[i].VehicleID
+		}
 	}
 	
 	return logs, nil
@@ -958,39 +956,57 @@ func getMaintenanceLogsForVehicle(vehicleID string) ([]BusMaintenanceLog, error)
 		return nil, fmt.Errorf("database connection not available")
 	}
 	
-	var logs []BusMaintenanceLog
+	log.Printf("Getting maintenance logs for vehicle: %s", vehicleID)
 	
-	// Query for both bus maintenance logs and general maintenance records
+	// Query from all possible maintenance tables
 	query := `
-		SELECT 
-			id,
-			vehicle_id as bus_id,
-			date::text,
-			category,
-			notes,
-			mileage,
-			COALESCE(cost, 0) as cost,
-			created_at
-		FROM (
+		SELECT * FROM (
 			-- Bus maintenance logs
-			SELECT id, bus_id as vehicle_id, date, category, notes, mileage, cost, created_at
+			SELECT 
+				id,
+				bus_id as vehicle_id,
+				date::text,
+				category,
+				notes,
+				mileage,
+				COALESCE(cost, 0) as cost,
+				created_at
 			FROM bus_maintenance_logs
 			WHERE bus_id = $1
 			
 			UNION ALL
 			
 			-- Vehicle maintenance records
-			SELECT id, vehicle_id, date, category, notes, mileage, cost, created_at
+			SELECT 
+				id,
+				vehicle_id,
+				date::text,
+				COALESCE(category, 'maintenance') as category,
+				COALESCE(notes, '') as notes,
+				COALESCE(mileage, 0) as mileage,
+				COALESCE(cost, 0) as cost,
+				created_at
 			FROM maintenance_records
 			WHERE vehicle_id = $1
 		) combined_logs
 		ORDER BY date DESC, created_at DESC
 	`
 	
+	var logs []BusMaintenanceLog
 	err := db.Select(&logs, query, vehicleID)
 	if err != nil {
 		log.Printf("Error getting maintenance logs for vehicle %s: %v", vehicleID, err)
 		return logs, err
+	}
+	
+	// Set BusID from VehicleID for compatibility
+	for i := range logs {
+		if logs[i].BusID == "" && logs[i].VehicleID != "" {
+			logs[i].BusID = logs[i].VehicleID
+		}
+		if logs[i].VehicleID == "" && logs[i].BusID != "" {
+			logs[i].VehicleID = logs[i].BusID
+		}
 	}
 	
 	log.Printf("Retrieved %d maintenance records for vehicle %s", len(logs), vehicleID)
@@ -1095,79 +1111,56 @@ func getVehicleMaintenanceLogs(vehicleID string) ([]BusMaintenanceLog, error) {
 	return logs, nil
 }
 
-// Get legacy service records
-func getLegacyServiceRecords(vehicleID string) ([]BusMaintenanceLog, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not available")
-	}
-	
-	rows, err := db.Query(`
-		SELECT id, COALESCE(vehicle_id, vehicle_number, unnamed_1), 
-		       maintenance_date, service_type, notes, created_at
-		FROM service_records 
-		WHERE vehicle_id = $1 OR vehicle_number = $1 OR unnamed_1 = $1
-		ORDER BY maintenance_date DESC
-	`, vehicleID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load legacy service records: %w", err)
-	}
-	defer rows.Close()
-
-	var logs []BusMaintenanceLog
-	for rows.Next() {
-		var maintenanceLog BusMaintenanceLog
-		var vehicleRef sql.NullString
-		var date sql.NullTime
-		var serviceType sql.NullString
-		var notes sql.NullString
-		var createdAt sql.NullTime
-		
-		if err := rows.Scan(&maintenanceLog.ID, &vehicleRef, &date,
-			&serviceType, &notes, &createdAt); err != nil {
-			log.Printf("Error scanning legacy service record: %v", err)
-			continue
-		}
-		
-		if vehicleRef.Valid {
-			maintenanceLog.BusID = vehicleRef.String
-			maintenanceLog.VehicleID = vehicleRef.String
-		}
-		
-		if date.Valid {
-			maintenanceLog.Date = date.Time.Format("2006-01-02")
-		}
-		
-		if serviceType.Valid {
-			maintenanceLog.Category = serviceType.String
-		} else {
-			maintenanceLog.Category = "service"
-		}
-		
-		if notes.Valid {
-			maintenanceLog.Notes = notes.String
-		}
-		
-		if createdAt.Valid {
-			maintenanceLog.CreatedAt = createdAt.Time
-		}
-		
-		logs = append(logs, maintenanceLog)
-	}
-	
-	return logs, nil
-}
-
 func saveMaintenanceLog(log BusMaintenanceLog) error {
 	if db == nil {
 		return fmt.Errorf("database connection not available")
 	}
 	
-	_, err := db.Exec(`
+	// Validate mileage
+	validation, err := validateMileage(log.BusID, log.Mileage)
+	if err != nil {
+		return err
+	}
+	
+	if !validation.Valid {
+		return fmt.Errorf(validation.Error)
+	}
+	
+	// Save to bus_maintenance_logs
+	_, err = db.Exec(`
 		INSERT INTO bus_maintenance_logs (bus_id, date, category, notes, mileage, cost) 
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`, log.BusID, log.Date, log.Category, log.Notes, log.Mileage, log.Cost)
 	
-	return err
+	if err != nil {
+		return err
+	}
+	
+	// Update current mileage
+	err = updateVehicleMileage(log.BusID, log.Mileage)
+	if err != nil {
+		log.Printf("Error updating vehicle mileage: %v", err)
+	}
+	
+	// Update maintenance schedule if this was a service
+	if log.Category == "oil_change" || log.Category == "tire_service" {
+		err = updateMaintenanceSchedule(log.BusID, log.Category, log.Mileage, log.Date)
+		if err != nil {
+			log.Printf("Error updating maintenance schedule: %v", err)
+		}
+	}
+	
+	// Auto-update status based on validation result
+	if validation.ShouldUpdate {
+		if validation.NewOilStatus != "" {
+			updateVehicleStatus(log.BusID, "oil", validation.NewOilStatus)
+		}
+		if validation.NewTireStatus != "" {
+			updateVehicleStatus(log.BusID, "tire", validation.NewTireStatus)
+		}
+	}
+	
+	return nil
 }
 
 func saveMaintenanceLogs(logs []BusMaintenanceLog) error {
@@ -1222,7 +1215,8 @@ func loadVehiclesFromDB() ([]Vehicle, error) {
 	
 	rows, err := db.Query(`
 		SELECT vehicle_id, model, description, year, tire_size, license,
-			oil_status, tire_status, status, maintenance_notes, serial_number, base, service_interval
+			oil_status, tire_status, status, maintenance_notes, serial_number, base, 
+			service_interval, COALESCE(current_mileage, 0) as current_mileage
 		FROM vehicles ORDER BY vehicle_id
 	`)
 	if err != nil {
@@ -1236,7 +1230,8 @@ func loadVehiclesFromDB() ([]Vehicle, error) {
 		if err := rows.Scan(&vehicle.VehicleID, &vehicle.Model, &vehicle.Description,
 			&vehicle.Year, &vehicle.TireSize, &vehicle.License, &vehicle.OilStatus,
 			&vehicle.TireStatus, &vehicle.Status, &vehicle.MaintenanceNotes,
-			&vehicle.SerialNumber, &vehicle.Base, &vehicle.ServiceInterval); err != nil {
+			&vehicle.SerialNumber, &vehicle.Base, &vehicle.ServiceInterval,
+			&vehicle.CurrentMileage); err != nil {
 			log.Printf("Error scanning vehicle: %v", err)
 			continue
 		}
@@ -1257,18 +1252,20 @@ func saveVehicle(vehicle Vehicle) error {
 	
 	_, err := db.Exec(`
 		INSERT INTO vehicles (vehicle_id, model, description, year, tire_size, license,
-			oil_status, tire_status, status, maintenance_notes, serial_number, base, service_interval) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+			oil_status, tire_status, status, maintenance_notes, serial_number, base, 
+			service_interval, current_mileage) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		ON CONFLICT (vehicle_id) 
 		DO UPDATE SET 
 			model = $2, description = $3, year = $4, tire_size = $5, 
 			license = $6, oil_status = $7, tire_status = $8, status = $9, 
 			maintenance_notes = $10, serial_number = $11, base = $12, 
-			service_interval = $13, updated_at = CURRENT_TIMESTAMP
+			service_interval = $13, current_mileage = $14, 
+			updated_at = CURRENT_TIMESTAMP
 	`, vehicle.VehicleID, vehicle.Model, vehicle.Description, vehicle.Year,
 		vehicle.TireSize, vehicle.License, vehicle.OilStatus, vehicle.TireStatus,
 		vehicle.Status, vehicle.MaintenanceNotes, vehicle.SerialNumber, 
-		vehicle.Base, vehicle.ServiceInterval)
+		vehicle.Base, vehicle.ServiceInterval, vehicle.CurrentMileage)
 	
 	return err
 }
@@ -1296,12 +1293,13 @@ func saveVehicles(vehicles []Vehicle) error {
 			SET model = $2, description = $3, year = $4, tire_size = $5, 
 				license = $6, oil_status = $7, tire_status = $8, status = $9, 
 				maintenance_notes = $10, serial_number = $11, base = $12, 
-				service_interval = $13
+				service_interval = $13, current_mileage = $14,
+				updated_at = CURRENT_TIMESTAMP
 			WHERE vehicle_id = $1
 		`, vehicle.VehicleID, vehicle.Model, vehicle.Description, vehicle.Year,
 		   vehicle.TireSize, vehicle.License, vehicle.OilStatus, vehicle.TireStatus,
 		   vehicle.Status, vehicle.MaintenanceNotes, vehicle.SerialNumber, 
-		   vehicle.Base, vehicle.ServiceInterval)
+		   vehicle.Base, vehicle.ServiceInterval, vehicle.CurrentMileage)
 		
 		if err != nil {
 			return fmt.Errorf("failed to update vehicle %s: %w", vehicle.VehicleID, err)
@@ -1567,4 +1565,330 @@ func getAvailableReportPeriods() ([]string, error) {
 	}
 	
 	return periods, nil
+}
+
+// =============================================================================
+// NEW MAINTENANCE VALIDATION AND UPDATE FUNCTIONS
+// =============================================================================
+
+// validateMileage validates mileage entry and determines status updates
+func validateMileage(vehicleID string, newMileage int) (*MileageValidationResult, error) {
+	result := &MileageValidationResult{
+		Valid:        true,
+		ShouldUpdate: false,
+	}
+	
+	// Get current mileage
+	var currentMileage int
+	err := db.QueryRow(`
+		SELECT COALESCE(current_mileage, 0) 
+		FROM buses 
+		WHERE bus_id = $1
+	`, vehicleID).Scan(&currentMileage)
+	
+	if err != nil && err != sql.ErrNoRows {
+		// Try vehicles table
+		err = db.QueryRow(`
+			SELECT COALESCE(current_mileage, 0) 
+			FROM vehicles 
+			WHERE vehicle_id = $1
+		`, vehicleID).Scan(&currentMileage)
+	}
+	
+	// Validate mileage doesn't go backwards
+	if newMileage < currentMileage {
+		result.Valid = false
+		result.Error = fmt.Sprintf("Mileage cannot go backwards. Previous: %d, New: %d", 
+			currentMileage, newMileage)
+		return result, nil
+	}
+	
+	// Warn about large jumps
+	mileageDiff := newMileage - currentMileage
+	if mileageDiff > 1000 {
+		result.Warning = fmt.Sprintf("Large mileage increase: %d miles. Please verify.", mileageDiff)
+	}
+	
+	// Check if we need to update oil status
+	lastOilChange, err := getLastServiceMileage(vehicleID, "oil_change")
+	if err == nil && lastOilChange > 0 {
+		milesSinceOil := newMileage - lastOilChange
+		
+		if milesSinceOil >= 5000 {
+			result.ShouldUpdate = true
+			result.NewOilStatus = "overdue"
+		} else if milesSinceOil >= 4500 {
+			result.ShouldUpdate = true
+			result.NewOilStatus = "needs_service"
+		}
+	}
+	
+	// Check if we need to update tire status
+	lastTireService, err := getLastServiceMileage(vehicleID, "tire_service")
+	if err == nil && lastTireService > 0 {
+		milesSinceTires := newMileage - lastTireService
+		
+		if milesSinceTires >= 40000 {
+			result.ShouldUpdate = true
+			result.NewTireStatus = "replace"
+		} else if milesSinceTires >= 35000 {
+			result.ShouldUpdate = true
+			result.NewTireStatus = "worn"
+		}
+	}
+	
+	return result, nil
+}
+
+// getLastServiceMileage gets the mileage of the last service of a specific type
+func getLastServiceMileage(vehicleID string, serviceType string) (int, error) {
+	var mileage int
+	err := db.QueryRow(`
+		SELECT COALESCE(mileage, 0)
+		FROM bus_maintenance_logs
+		WHERE bus_id = $1 AND category = $2
+		ORDER BY date DESC, created_at DESC
+		LIMIT 1
+	`, vehicleID, serviceType).Scan(&mileage)
+	
+	if err == sql.ErrNoRows {
+		// Try maintenance_records table
+		err = db.QueryRow(`
+			SELECT COALESCE(mileage, 0)
+			FROM maintenance_records
+			WHERE vehicle_id = $1 AND category = $2
+			ORDER BY date DESC, created_at DESC
+			LIMIT 1
+		`, vehicleID, serviceType).Scan(&mileage)
+	}
+	
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
+	
+	return mileage, err
+}
+
+// updateVehicleMileage updates the current mileage for a vehicle
+func updateVehicleMileage(vehicleID string, newMileage int) error {
+	// Try buses table first
+	result, err := db.Exec(`
+		UPDATE buses 
+		SET current_mileage = $1, updated_at = CURRENT_TIMESTAMP
+		WHERE bus_id = $2 AND (current_mileage IS NULL OR current_mileage < $1)
+	`, newMileage, vehicleID)
+	
+	if err != nil {
+		return err
+	}
+	
+	rowsAffected, _ := result.RowsAffected()
+	
+	// If no bus was updated, try vehicles table
+	if rowsAffected == 0 {
+		_, err = db.Exec(`
+			UPDATE vehicles 
+			SET current_mileage = $1, updated_at = CURRENT_TIMESTAMP
+			WHERE vehicle_id = $2 AND (current_mileage IS NULL OR current_mileage < $1)
+		`, newMileage, vehicleID)
+	}
+	
+	return err
+}
+
+// updateVehicleStatus updates oil or tire status
+func updateVehicleStatus(vehicleID string, statusType string, newStatus string) error {
+	var column string
+	switch statusType {
+	case "oil":
+		column = "oil_status"
+	case "tire":
+		column = "tire_status"
+	default:
+		return fmt.Errorf("invalid status type: %s", statusType)
+	}
+	
+	// Try buses table first
+	result, err := db.Exec(fmt.Sprintf(`
+		UPDATE buses 
+		SET %s = $1, updated_at = CURRENT_TIMESTAMP
+		WHERE bus_id = $2
+	`, column), newStatus, vehicleID)
+	
+	if err != nil {
+		return err
+	}
+	
+	rowsAffected, _ := result.RowsAffected()
+	
+	// If no bus was updated, try vehicles table
+	if rowsAffected == 0 {
+		_, err = db.Exec(fmt.Sprintf(`
+			UPDATE vehicles 
+			SET %s = $1, updated_at = CURRENT_TIMESTAMP
+			WHERE vehicle_id = $2
+		`, column), newStatus, vehicleID)
+	}
+	
+	return err
+}
+
+// checkMaintenanceDue checks if any maintenance is due for a vehicle
+func checkMaintenanceDue(vehicleID string) ([]MaintenanceAlert, error) {
+	var alerts []MaintenanceAlert
+	
+	// Get current mileage
+	var currentMileage int
+	err := db.QueryRow(`
+		SELECT COALESCE(current_mileage, 0) 
+		FROM buses 
+		WHERE bus_id = $1
+	`, vehicleID).Scan(&currentMileage)
+	
+	if err != nil && err != sql.ErrNoRows {
+		// Try vehicles table
+		err = db.QueryRow(`
+			SELECT COALESCE(current_mileage, 0) 
+			FROM vehicles 
+			WHERE vehicle_id = $1
+		`, vehicleID).Scan(&currentMileage)
+		
+		if err != nil {
+			return alerts, err
+		}
+	}
+	
+	// Check oil change
+	lastOilChange, _ := getLastServiceMileage(vehicleID, "oil_change")
+	if lastOilChange > 0 {
+		milesSinceOil := currentMileage - lastOilChange
+		dueMileage := lastOilChange + 5000
+		milesUntilDue := dueMileage - currentMileage
+		
+		if milesSinceOil >= 5000 {
+			alerts = append(alerts, MaintenanceAlert{
+				VehicleID:       vehicleID,
+				MaintenanceType: "Oil & Filter Change",
+				CurrentMileage:  currentMileage,
+				DueMileage:      dueMileage,
+				MilesUntilDue:   milesUntilDue,
+				IsOverdue:       true,
+				Severity:        "danger",
+				Message:         fmt.Sprintf("Oil change is %d miles overdue!", -milesUntilDue),
+			})
+		} else if milesSinceOil >= 4500 {
+			alerts = append(alerts, MaintenanceAlert{
+				VehicleID:       vehicleID,
+				MaintenanceType: "Oil & Filter Change",
+				CurrentMileage:  currentMileage,
+				DueMileage:      dueMileage,
+				MilesUntilDue:   milesUntilDue,
+				IsOverdue:       false,
+				Severity:        "warning",
+				Message:         fmt.Sprintf("Oil change due in %d miles", milesUntilDue),
+			})
+		}
+	}
+	
+	// Check tire service
+	lastTireService, _ := getLastServiceMileage(vehicleID, "tire_service")
+	if lastTireService > 0 {
+		milesSinceTires := currentMileage - lastTireService
+		dueMileage := lastTireService + 40000
+		milesUntilDue := dueMileage - currentMileage
+		
+		if milesSinceTires >= 40000 {
+			alerts = append(alerts, MaintenanceAlert{
+				VehicleID:       vehicleID,
+				MaintenanceType: "Tire Replacement",
+				CurrentMileage:  currentMileage,
+				DueMileage:      dueMileage,
+				MilesUntilDue:   milesUntilDue,
+				IsOverdue:       true,
+				Severity:        "danger",
+				Message:         "Tire replacement is overdue!",
+			})
+		} else if milesSinceTires >= 35000 {
+			alerts = append(alerts, MaintenanceAlert{
+				VehicleID:       vehicleID,
+				MaintenanceType: "Tire Inspection",
+				CurrentMileage:  currentMileage,
+				DueMileage:      dueMileage,
+				MilesUntilDue:   milesUntilDue,
+				IsOverdue:       false,
+				Severity:        "warning",
+				Message:         fmt.Sprintf("Tire inspection recommended in %d miles", milesUntilDue),
+			})
+		}
+	}
+	
+	return alerts, nil
+}
+
+// updateMaintenanceSchedule updates the maintenance schedule after a service
+func updateMaintenanceSchedule(vehicleID string, serviceType string, mileage int, date string) error {
+	// For now, this is handled by the validation functions
+	// In the future, you could store maintenance schedules in a separate table
+	return nil
+}
+
+// debugMaintenanceTables helps debug maintenance table issues
+func debugMaintenanceTables(vehicleID string) {
+	if db == nil {
+		log.Println("Database not initialized")
+		return
+	}
+	
+	log.Printf("\n=== Debugging maintenance tables for vehicle: %s ===", vehicleID)
+	
+	// Check bus_maintenance_logs
+	var count1 int
+	db.Get(&count1, "SELECT COUNT(*) FROM bus_maintenance_logs WHERE bus_id = $1", vehicleID)
+	log.Printf("Records in bus_maintenance_logs: %d", count1)
+	
+	// Check maintenance_records
+	var count2 int
+	db.Get(&count2, "SELECT COUNT(*) FROM maintenance_records WHERE vehicle_id = $1", vehicleID)
+	log.Printf("Records in maintenance_records: %d", count2)
+	
+	// Sample records
+	var sample BusMaintenanceLog
+	err := db.Get(&sample, `
+		SELECT bus_id, date::text, category, notes, mileage 
+		FROM bus_maintenance_logs 
+		WHERE bus_id = $1 
+		ORDER BY date DESC 
+		LIMIT 1
+	`, vehicleID)
+	
+	if err == nil {
+		log.Printf("Latest maintenance record: %+v", sample)
+	} else {
+		log.Printf("Error getting sample record: %v", err)
+	}
+	
+	// Check current mileage
+	var currentMileage int
+	err = db.Get(&currentMileage, `
+		SELECT COALESCE(current_mileage, 0) 
+		FROM buses 
+		WHERE bus_id = $1
+	`, vehicleID)
+	
+	if err == nil {
+		log.Printf("Current mileage in buses table: %d", currentMileage)
+	} else {
+		// Try vehicles table
+		err = db.Get(&currentMileage, `
+			SELECT COALESCE(current_mileage, 0) 
+			FROM vehicles 
+			WHERE vehicle_id = $1
+		`, vehicleID)
+		
+		if err == nil {
+			log.Printf("Current mileage in vehicles table: %d", currentMileage)
+		}
+	}
+	
+	log.Printf("=== End debug ===\n")
 }
