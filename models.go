@@ -23,7 +23,91 @@ type Bus struct {
 	OilStatus        string `json:"oil_status" db:"oil_status"`
 	TireStatus       string `json:"tire_status" db:"tire_status"`
 	MaintenanceNotes string `json:"maintenance_notes" db:"maintenance_notes"`
-	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"` // Add this field
+	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
+	CurrentMileage   int    `json:"current_mileage" db:"current_mileage"` // NEW FIELD
+}
+
+// Vehicle represents a company vehicle (non-bus)
+type Vehicle struct {
+	VehicleID        string    `json:"vehicle_id" db:"vehicle_id"`
+	BusID            string    `json:"bus_id,omitempty" db:"bus_id"`
+	Model            string    `json:"model" db:"model"`
+	Description      string    `json:"description" db:"description"`
+	Year             int       `json:"year" db:"year"`
+	TireSize         string    `json:"tire_size" db:"tire_size"`
+	License          string    `json:"license" db:"license"`
+	OilStatus        string    `json:"oil_status" db:"oil_status"`
+	TireStatus       string    `json:"tire_status" db:"tire_status"`
+	Status           string    `json:"status" db:"status"`
+	MaintenanceNotes string    `json:"maintenance_notes" db:"maintenance_notes"`
+	SerialNumber     string    `json:"serial_number" db:"serial_number"`
+	Base             string    `json:"base" db:"base"`
+	ServiceInterval  int       `json:"service_interval" db:"service_interval"`
+	CurrentMileage   int       `json:"current_mileage" db:"current_mileage"` // NEW FIELD
+	CreatedAt        time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// MaintenanceSchedule defines when maintenance is due
+type MaintenanceSchedule struct {
+	ID               int    `json:"id" db:"id"`
+	VehicleID        string `json:"vehicle_id" db:"vehicle_id"`
+	MaintenanceType  string `json:"maintenance_type" db:"maintenance_type"`
+	IntervalMiles    int    `json:"interval_miles" db:"interval_miles"`
+	LastServiceMiles int    `json:"last_service_miles" db:"last_service_miles"`
+	LastServiceDate  string `json:"last_service_date" db:"last_service_date"`
+	NextServiceMiles int    `json:"next_service_miles" db:"next_service_miles"`
+	IsDue            bool   `json:"is_due" db:"is_due"`
+	CreatedAt        time.Time `json:"created_at" db:"created_at"`
+}
+
+// MaintenanceAlert represents a maintenance alert
+type MaintenanceAlert struct {
+	VehicleID       string `json:"vehicle_id"`
+	MaintenanceType string `json:"maintenance_type"`
+	CurrentMileage  int    `json:"current_mileage"`
+	DueMileage      int    `json:"due_mileage"`
+	MilesUntilDue   int    `json:"miles_until_due"`
+	IsOverdue       bool   `json:"is_overdue"`
+	Severity        string `json:"severity"` // "info", "warning", "danger"
+	Message         string `json:"message"`
+}
+
+// MileageValidationResult represents the result of mileage validation
+type MileageValidationResult struct {
+	Valid        bool   `json:"valid"`
+	Error        string `json:"error,omitempty"`
+	Warning      string `json:"warning,omitempty"`
+	ShouldUpdate bool   `json:"should_update"`
+	NewOilStatus string `json:"new_oil_status,omitempty"`
+	NewTireStatus string `json:"new_tire_status,omitempty"`
+}
+
+// BusMaintenanceLog represents a maintenance record
+type BusMaintenanceLog struct {
+	ID              int       `json:"id" db:"id"`
+	BusID           string    `json:"bus_id" db:"bus_id"`
+	VehicleID       string    `json:"vehicle_id,omitempty" db:"vehicle_id"`
+	Date            string    `json:"date" db:"date"`
+	Type            string    `json:"type,omitempty" db:"type"`
+	Category        string    `json:"category" db:"category"`
+	Description     string    `json:"description,omitempty" db:"description"`
+	Notes           string    `json:"notes" db:"notes"`
+	Cost            float64   `json:"cost,omitempty" db:"cost"`
+	Mileage         int       `json:"mileage" db:"mileage"`
+	MaintenanceType string    `json:"maintenance_type,omitempty" db:"maintenance_type"`
+	CreatedAt       time.Time `json:"created_at" db:"created_at"`
+}
+
+// MaintenanceRecord represents a vehicle maintenance log entry
+type MaintenanceRecord struct {
+	VehicleID string    `json:"vehicle_id" db:"vehicle_id"`
+	Date      string    `json:"date" db:"date"`
+	Category  string    `json:"category" db:"category"`
+	Mileage   int       `json:"mileage" db:"mileage"`
+	Cost      float64   `json:"cost" db:"cost"`
+	Notes     string    `json:"notes" db:"notes"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
 // Route represents a bus route
@@ -188,7 +272,7 @@ type DriverAssignment struct {
 	RouteName string `json:"route_name" db:"route_name"`
 }
 
-// DriverLog represents a driver's daily log - CORRECTED VERSION
+// DriverLog represents a driver's daily log
 type DriverLog struct {
 	ID         int                 `json:"id" db:"id"`
 	Driver     string              `json:"driver" db:"driver"`
@@ -199,91 +283,10 @@ type DriverLog struct {
 	Departure  string              `json:"departure_time" db:"departure_time"`
 	Arrival    string              `json:"arrival_time" db:"arrival_time"`
 	Mileage    float64             `json:"mileage" db:"mileage"`
-	Attendance []StudentAttendance `json:"attendance"` // Changed from interface{} to proper type
-	CreatedAt  time.Time           `json:"created_at" db:"created_at"` // Add this field
+	Attendance []StudentAttendance `json:"attendance"`
+	CreatedAt  time.Time           `json:"created_at" db:"created_at"`
 }
 
-// BusMaintenanceLog represents a maintenance record
-type BusMaintenanceLog struct {
-	ID              int       `json:"id" db:"id"`
-	BusID           string    `json:"bus_id" db:"bus_id"`
-	VehicleID       string    `json:"vehicle_id,omitempty" db:"vehicle_id"`
-	Date            string    `json:"date" db:"date"`
-	Type            string    `json:"type,omitempty" db:"type"`
-	Category        string    `json:"category" db:"category"`
-	Description     string    `json:"description,omitempty" db:"description"`
-	Notes           string    `json:"notes" db:"notes"`
-	Cost            float64   `json:"cost,omitempty" db:"cost"`
-	Mileage         int       `json:"mileage" db:"mileage"`
-	MaintenanceType string    `json:"maintenance_type,omitempty" db:"maintenance_type"`
-	CreatedAt       time.Time `json:"created_at" db:"created_at"`
-}
-
-// MaintenanceRecord represents a vehicle maintenance log entry
-type MaintenanceRecord struct {
-	VehicleID string    `json:"vehicle_id" db:"vehicle_id"`
-	Date      string    `json:"date" db:"date"`
-	Category  string    `json:"category" db:"category"`
-	Mileage   int       `json:"mileage" db:"mileage"`
-	Cost      float64   `json:"cost" db:"cost"`
-	Notes     string    `json:"notes" db:"notes"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-}
-
-// Vehicle represents a company vehicle (non-bus)
-type Vehicle struct {
-	VehicleID        string    `json:"vehicle_id" db:"vehicle_id"`
-	BusID            string    `json:"bus_id,omitempty" db:"bus_id"`
-	Model            string    `json:"model" db:"model"`
-	Description      string    `json:"description" db:"description"`
-	Year             int       `json:"year" db:"year"`
-	TireSize         string    `json:"tire_size" db:"tire_size"`
-	License          string    `json:"license" db:"license"`
-	OilStatus        string    `json:"oil_status" db:"oil_status"`
-	TireStatus       string    `json:"tire_status" db:"tire_status"`
-	Status           string    `json:"status" db:"status"`
-	MaintenanceNotes string    `json:"maintenance_notes" db:"maintenance_notes"`
-	SerialNumber     string    `json:"serial_number" db:"serial_number"`
-	Base             string    `json:"base" db:"base"`
-	ServiceInterval  int       `json:"service_interval" db:"service_interval"`
-	CreatedAt        time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"` // Add this field
-}
-// Add these to models.go
-
-type MileageStatistics struct {
-    TotalVehicles      int
-    ActiveVehicles     int
-    TotalMiles         int
-    EstimatedCost      float64
-    CostPerMile        float64
-    AvgMilesPerVehicle int
-    VehicleUtilization float64
-    PercentChange      float64
-    AverageMPG         float64
-    FuelEfficiency     float64
-    DriverStats        []DriverStatistic
-    RouteStats         []RouteStatistic
-}
-
-type DriverStatistic struct {
-    DriverName          string
-    TotalTrips          int
-    TotalMiles          int
-    AvgMilesPerTrip     int
-    StudentsTransported int
-    AttendanceRate      float64
-    EfficiencyScore     int
-}
-
-type RouteStatistic struct {
-    RouteName      string
-    TotalRuns      int
-    TotalMiles     int
-    AvgStudents    int
-    Efficiency     float64
-    CostPerStudent float64
-}
 // Activity represents a special activity or trip
 type Activity struct {
 	Date       string  `db:"date"`
@@ -369,6 +372,40 @@ type ProgramStaffRecord struct {
 	StaffCount2  int    `db:"staff_count_2"`
 }
 
+type MileageStatistics struct {
+    TotalVehicles      int
+    ActiveVehicles     int
+    TotalMiles         int
+    EstimatedCost      float64
+    CostPerMile        float64
+    AvgMilesPerVehicle int
+    VehicleUtilization float64
+    PercentChange      float64
+    AverageMPG         float64
+    FuelEfficiency     float64
+    DriverStats        []DriverStatistic
+    RouteStats         []RouteStatistic
+}
+
+type DriverStatistic struct {
+    DriverName          string
+    TotalTrips          int
+    TotalMiles          int
+    AvgMilesPerTrip     int
+    StudentsTransported int
+    AttendanceRate      float64
+    EfficiencyScore     int
+}
+
+type RouteStatistic struct {
+    RouteName      string
+    TotalRuns      int
+    TotalMiles     int
+    AvgStudents    int
+    Efficiency     float64
+    CostPerStudent float64
+}
+
 // Template data structures
 
 type DashboardData struct {
@@ -376,7 +413,7 @@ type DashboardData struct {
 	Role            string
 	Users           []User
 	Buses           []*Bus
-	Routes          []*Route  // Changed from []Route to []*Route to match handlers
+	Routes          []*Route
 	DriverSummaries []*DriverSummary
 	RouteStats      []*RouteStats
 	Activities      []Activity
@@ -423,12 +460,12 @@ type StudentData struct {
 
 type AssignRouteData struct {
 	User                  *User
-	Assignments           []*RouteAssignment  // Changed to pointer
+	Assignments           []*RouteAssignment
 	Drivers               []User
-	Routes                []*Route            // Add this field
-	AvailableRoutes       []*Route            // Changed to pointer
+	Routes                []*Route
+	AvailableRoutes       []*Route
 	AvailableBuses        []*Bus
-	RoutesWithStatus      []*RouteWithStatus  // Changed to use proper type
+	RoutesWithStatus      []*RouteWithStatus
 	TotalAssignments      int
 	TotalRoutes           int
 	AvailableDriversCount int
@@ -448,7 +485,6 @@ type LoginFormData struct {
 	CSRFToken string
 }
 
-// This is already defined correctly at the bottom
 type RouteWithStatus struct {
 	Route
 	IsAssigned bool `json:"is_assigned"`
