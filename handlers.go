@@ -2198,35 +2198,4 @@ func getCSPNonce(r *http.Request) string {
 	return ""
 }
 
-// Add these missing helper functions if they don't exist elsewhere
-func getDriverLogsByDateRange(driver, startDate, endDate string) ([]DriverLog, error) {
-	logs := []DriverLog{}
-	rows, err := db.Query(`
-		SELECT id, driver, bus_id, route_id, date, period, departure_time, arrival_time, mileage, attendance
-		FROM driver_logs
-		WHERE driver = $1 AND date BETWEEN $2 AND $3
-		ORDER BY date DESC, period DESC
-	`, driver, startDate, endDate)
-	
-	if err != nil {
-		return logs, err
-	}
-	defer rows.Close()
-	
-	for rows.Next() {
-		var log DriverLog
-		var attendanceJSON sql.NullString
-		err := rows.Scan(&log.ID, &log.Driver, &log.BusID, &log.RouteID, &log.Date, 
-			&log.Period, &log.Departure, &log.Arrival, &log.Mileage, &attendanceJSON)
-		
-		if err == nil {
-			// Parse attendance JSON
-			if attendanceJSON.Valid && attendanceJSON.String != "" {
-				json.Unmarshal([]byte(attendanceJSON.String), &log.Attendance)
-			}
-			logs = append(logs, log)
-		}
-	}
-	
-	return logs, nil
-}
+// Note: getDriverLogsByDateRange is already defined in data.go
