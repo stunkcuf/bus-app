@@ -297,11 +297,11 @@ func jsonMarshal(v interface{}) template.JS {
 	return template.JS(b)
 }
 
+// Replace the getLength function in main.go with this updated version
+
 func getLength(v interface{}) int {
 	switch s := v.(type) {
 	case []interface{}:
-		return len(s)
-	case []*Bus:
 		return len(s)
 	case []Bus:
 		return len(s)
@@ -311,21 +311,32 @@ func getLength(v interface{}) int {
 		return len(s)
 	case []Route:
 		return len(s)
-	case []*Route:
-		return len(s)
 	case []Vehicle:
 		return len(s)
 	case []ECSEStudentView:
+		return len(s)
+	case []ECSEStudent:
+		return len(s)
+	case []MaintenanceAlert:
+		return len(s)
+	case []CombinedMaintenanceLog:
+		return len(s)
+	case []MileageReport:
+		return len(s)
+	case []RouteAssignment:
 		return len(s)
 	case map[string]interface{}:
 		return len(s)
 	case map[string]int:
 		return len(s)
+	case map[string][]MaintenanceAlert:
+		return len(s)
+	case string:
+		return len(s)
 	default:
 		return 0
 	}
 }
-
 func main() {
 	// Database setup
 	log.Println("🗄️  Setting up PostgreSQL database...")
