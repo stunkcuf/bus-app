@@ -2,13 +2,10 @@ package main
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
-	"log"
+	"net"
 	"net/http"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -18,335 +15,307 @@ import (
 
 // Session represents a user session
 type Session struct {
-	SessionID    string
-	Username     string
-	Role         string
-	CSRFToken    string
-	CreatedAt    time.Time
-	LastAccessed time.Time
-	ExpiresAt    time.Time
+	Username    string
+	UserRole    string
+	CSRFToken   string
+	CreatedAt   time.Time
+	LastAccess  time.Time
 }
 
-// Session storage
-var (
-	sessions    = make(map[string]*Session)
-	sessionsMux sync.RWMutex
-)
-
-// Constants for security
-const (
-	SessionDuration = 24 * time.Hour
-	CSRFTokenLength = 32
-	TokenLength     = 32
-)
-
-// SecurityHeaders middleware (WITHOUT CSP - that's handled by CSPMiddleware)
-func SecurityHeaders(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Security headers (without CSP)
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("X-XSS-Protection", "1; mode=block")
-		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
-		
-		// HSTS for HTTPS
-		if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
-			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		}
-		
-		next.ServeHTTP(w, r)
-	})
-}
-
-// Single cleanup goroutine to avoid race conditions
-func periodicSessionCleanup() {
-	ticker := time.NewTicker(time.Hour)
-	defer ticker.Stop()
-	
-	for range ticker.C {
-		cleanupExpiredSessions()
-	}
-}
-
-// CreateSecureSession creates a new session with CSRF protection
-func CreateSecureSession(username, role string) (string, string, error) {
-	sessionID, err := GenerateSecureToken()
-	if err != nil {
-		return "", "", err
-	}
-	
-	csrfToken, err := GenerateSecureToken()
-	if err != nil {
-		return "", "", err
-	}
-	
-	now := time.Now()
-	session := &Session{
-		SessionID:    sessionID,
-		Username:     username,
-		Role:         role,
-		CSRFToken:    csrfToken,
-		CreatedAt:    now,
-		LastAccessed: now,
-		ExpiresAt:    now.Add(SessionDuration),
-	}
-	
-	sessionsMux.Lock()
-	sessions[sessionID] = session
-	sessionsMux.Unlock()
-	
-	log.Printf("Created session for user %s with role %s", username, role)
-	
-	return sessionID, csrfToken, nil
-}
-
-// GetSecureSession retrieves and validates a session
-func GetSecureSession(sessionID string) (*Session, error) {
-	if sessionID == "" {
-		return nil, fmt.Errorf("empty session ID")
-	}
-	
-	sessionsMux.Lock()
-	defer sessionsMux.Unlock()
-	
-	session, exists := sessions[sessionID]
-	if !exists {
-		return nil, fmt.Errorf("session not found")
-	}
-	
-	// Check expiration
-	if time.Now().After(session.ExpiresAt) {
-		delete(sessions, sessionID)
-		return nil, fmt.Errorf("session expired")
-	}
-	
-	// Update last accessed time
-	session.LastAccessed = time.Now()
-	
-	// Extend session if it's been active
-	if time.Since(session.CreatedAt) < SessionDuration/2 {
-		session.ExpiresAt = time.Now().Add(SessionDuration)
-	}
-	
-	return session, nil
-}
-
-// ValidateCSRFToken validates a CSRF token for a session
-func ValidateCSRFToken(sessionID, token string) bool {
-	if sessionID == "" || token == "" {
-		return false
-	}
-	
-	session, err := GetSecureSession(sessionID)
-	if err != nil {
-		return false
-	}
-	
-	return session.CSRFToken == token
-}
-
-// ClearSession removes a session
-func ClearSession(sessionID string) {
-	sessionsMux.Lock()
-	defer sessionsMux.Unlock()
-	
-	if session, exists := sessions[sessionID]; exists {
-		log.Printf("Clearing session for user %s", session.Username)
-		delete(sessions, sessionID)
-	}
-}
-
-// ClearUserSessions removes all sessions for a specific user
-func ClearUserSessions(username string) {
-	sessionsMux.Lock()
-	defer sessionsMux.Unlock()
-	
-	for sessionID, session := range sessions {
-		if session.Username == username {
-			log.Printf("Clearing session %s for user %s", sessionID, username)
-			delete(sessions, sessionID)
-		}
-	}
-}
-
-// cleanupExpiredSessions removes expired sessions
-func cleanupExpiredSessions() {
-	sessionsMux.Lock()
-	defer sessionsMux.Unlock()
-	
-	now := time.Now()
-	expired := 0
-	
-	for sessionID, session := range sessions {
-		if now.After(session.ExpiresAt) {
-			delete(sessions, sessionID)
-			expired++
-		}
-	}
-	
-	if expired > 0 {
-		log.Printf("Cleaned up %d expired sessions", expired)
-	}
-}
-
-// GetActiveSessionCount returns the number of active sessions
-func GetActiveSessionCount() int {
-	sessionsMux.RLock()
-	defer sessionsMux.RUnlock()
-	return len(sessions)
-}
-
-// GenerateSecureToken generates a cryptographically secure random token
-func GenerateSecureToken() (string, error) {
-	bytes := make([]byte, TokenLength)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(bytes), nil
-}
-
-// HashPassword hashes a password using bcrypt
-func HashPassword(password string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	return string(hash), nil
-}
-
-// CheckPasswordHash compares a password with its hash
-func CheckPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
-}
-
-// SetSecureCookie sets a secure HTTP-only cookie
-func SetSecureCookie(w http.ResponseWriter, name, value string) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     name,
-		Value:    value,
-		Path:     "/",
-		MaxAge:   int(SessionDuration.Seconds()),
-		HttpOnly: true,
-		Secure:   true, // Always use secure in production
-		SameSite: http.SameSiteStrictMode,
-	})
-}
-
-// Input validation functions
-
-// ValidateUsername validates username format
-func ValidateUsername(username string) bool {
-	if len(username) < 3 || len(username) > 20 {
-		return false
-	}
-	// Only allow alphanumeric characters and underscores
-	match, _ := regexp.MatchString("^[a-zA-Z0-9_]+$", username)
-	return match
-}
-
-// SanitizeInput removes potentially dangerous characters from input
-func SanitizeInput(input string) string {
-	// Remove any HTML tags
-	re := regexp.MustCompile("<[^>]*>")
-	input = re.ReplaceAllString(input, "")
-	
-	// Trim whitespace
-	input = strings.TrimSpace(input)
-	
-	// Limit length
-	if len(input) > 1000 {
-		input = input[:1000]
-	}
-	
-	return input
-}
-
-// SanitizeFormValue gets and sanitizes a form value
-func SanitizeFormValue(r *http.Request, key string) string {
-	return SanitizeInput(r.FormValue(key))
-}
-
-// Rate limiting
+// Rate limiter
 type RateLimiter struct {
-	attempts map[string][]time.Time
 	mu       sync.Mutex
+	attempts map[string][]time.Time
 	limit    int
 	window   time.Duration
 }
 
-var loginLimiter = &RateLimiter{
-	attempts: make(map[string][]time.Time),
-	limit:    5,
-	window:   15 * time.Minute,
+// Global variables
+var (
+	sessions      = make(map[string]*Session)
+	sessionsMutex sync.RWMutex
+	rateLimiter   = NewRateLimiter(5, 15*time.Minute) // 5 attempts per 15 minutes
+)
+
+// NewRateLimiter creates a new rate limiter
+func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
+	rl := &RateLimiter{
+		attempts: make(map[string][]time.Time),
+		limit:    limit,
+		window:   window,
+	}
+	// Start cleanup routine
+	go rl.cleanup()
+	return rl
 }
 
-// checkRateLimit checks if an IP has exceeded the rate limit
-func (rl *RateLimiter) checkRateLimit(ip string) bool {
+// Allow checks if the request should be allowed
+func (rl *RateLimiter) Allow(ip string) bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
-	
+
 	now := time.Now()
-	
-	// Clean up old attempts
-	if attempts, exists := rl.attempts[ip]; exists {
-		validAttempts := []time.Time{}
-		for _, attempt := range attempts {
-			if now.Sub(attempt) < rl.window {
-				validAttempts = append(validAttempts, attempt)
-			}
+	windowStart := now.Add(-rl.window)
+
+	// Get attempts for this IP
+	attempts, exists := rl.attempts[ip]
+	if !exists {
+		rl.attempts[ip] = []time.Time{now}
+		return true
+	}
+
+	// Filter out old attempts
+	var validAttempts []time.Time
+	for _, attempt := range attempts {
+		if attempt.After(windowStart) {
+			validAttempts = append(validAttempts, attempt)
 		}
+	}
+
+	// Check if under limit
+	if len(validAttempts) < rl.limit {
+		validAttempts = append(validAttempts, now)
 		rl.attempts[ip] = validAttempts
+		return true
 	}
-	
-	// Check if limit exceeded
-	if len(rl.attempts[ip]) >= rl.limit {
-		return false
-	}
-	
-	// Record this attempt
-	rl.attempts[ip] = append(rl.attempts[ip], now)
-	return true
+
+	rl.attempts[ip] = validAttempts
+	return false
 }
 
-// getUserFromSession gets user from request context or session
-func getUserFromSession(r *http.Request) *User {
-	// Check context first
-	if user, ok := r.Context().Value("user").(*User); ok {
-		return user
+// cleanup removes old entries periodically
+func (rl *RateLimiter) cleanup() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		rl.mu.Lock()
+		now := time.Now()
+		windowStart := now.Add(-rl.window)
+
+		for ip, attempts := range rl.attempts {
+			var validAttempts []time.Time
+			for _, attempt := range attempts {
+				if attempt.After(windowStart) {
+					validAttempts = append(validAttempts, attempt)
+				}
+			}
+			if len(validAttempts) == 0 {
+				delete(rl.attempts, ip)
+			} else {
+				rl.attempts[ip] = validAttempts
+			}
+		}
+		rl.mu.Unlock()
 	}
-	
-	// Fall back to session lookup
-	cookie, err := r.Cookie(SessionCookieName)
+}
+
+// getClientIP extracts the client IP address from the request
+func getClientIP(r *http.Request) string {
+	// Check X-Forwarded-For header first (for proxies)
+	forwarded := r.Header.Get("X-Forwarded-For")
+	if forwarded != "" {
+		// Take the first IP in the chain
+		ips := strings.Split(forwarded, ",")
+		if len(ips) > 0 {
+			return strings.TrimSpace(ips[0])
+		}
+	}
+
+	// Check X-Real-IP header
+	realIP := r.Header.Get("X-Real-IP")
+	if realIP != "" {
+		return realIP
+	}
+
+	// Fall back to RemoteAddr
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return ip
+}
+
+// authenticateUser verifies username and password
+func authenticateUser(username, password string) (*User, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	var user User
+	err := db.Get(&user, "SELECT * FROM users WHERE username = $1", username)
+	if err != nil {
+		return nil, fmt.Errorf("invalid credentials")
+	}
+
+	// Check if password is hashed (bcrypt hashes start with $2)
+	if strings.HasPrefix(user.Password, "$2") {
+		// Verify bcrypt password
+		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+		if err != nil {
+			return nil, fmt.Errorf("invalid credentials")
+		}
+	} else {
+		// Legacy plain text password (should be migrated)
+		if user.Password != password {
+			return nil, fmt.Errorf("invalid credentials")
+		}
+		// Optionally hash the password here for migration
+		go migrateUserPassword(username, password)
+	}
+
+	return &user, nil
+}
+
+// migrateUserPassword updates a plain text password to bcrypt
+func migrateUserPassword(username, plainPassword string) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(plainPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return
+	}
+
+	_, _ = db.Exec("UPDATE users SET password = $1 WHERE username = $2", string(hashedPassword), username)
+}
+
+// generateSessionToken creates a new session token
+func generateSessionToken() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return base64.URLEncoding.EncodeToString(b)
+}
+
+// generateCSRFToken creates a new CSRF token
+func generateCSRFToken() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return base64.URLEncoding.EncodeToString(b)
+}
+
+// storeSession stores a session for a user
+func storeSession(token string, user *User) {
+	sessionsMutex.Lock()
+	defer sessionsMutex.Unlock()
+
+	sessions[token] = &Session{
+		Username:   user.Username,
+		UserRole:   user.Role,
+		CSRFToken:  generateCSRFToken(),
+		CreatedAt:  time.Now(),
+		LastAccess: time.Now(),
+	}
+}
+
+// GetSecureSession retrieves a session by token
+func GetSecureSession(token string) (*Session, error) {
+	sessionsMutex.RLock()
+	defer sessionsMutex.RUnlock()
+
+	session, exists := sessions[token]
+	if !exists {
+		return nil, fmt.Errorf("session not found")
+	}
+
+	// Check if session is expired (24 hours)
+	if time.Since(session.CreatedAt) > 24*time.Hour {
+		return nil, fmt.Errorf("session expired")
+	}
+
+	// Update last access time
+	session.LastAccess = time.Now()
+	return session, nil
+}
+
+// deleteSession removes a session
+func deleteSession(token string) {
+	sessionsMutex.Lock()
+	defer sessionsMutex.Unlock()
+	delete(sessions, token)
+}
+
+// getUserFromSession gets the user from the current session
+func getUserFromSession(r *http.Request) *User {
+	cookie, err := r.Cookie("session_token")
 	if err != nil {
 		return nil
 	}
-	
+
 	session, err := GetSecureSession(cookie.Value)
 	if err != nil {
 		return nil
 	}
-	
+
 	return &User{
 		Username: session.Username,
-		Role:     session.Role,
+		Role:     session.UserRole,
 	}
 }
 
-// CSRF token generation for forms
-func generateCSRFToken() string {
-	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
-		log.Printf("Error generating CSRF token: %v", err)
-		return ""
+// createUser creates a new user
+func createUser(username, password, role, status string) error {
+	if db == nil {
+		return fmt.Errorf("database not initialized")
 	}
-	return base64.URLEncoding.EncodeToString(b)
+
+	// Validate username
+	if len(username) < 3 || len(username) > 20 {
+		return fmt.Errorf("username must be between 3 and 20 characters")
+	}
+
+	// Validate password
+	if len(password) < 6 {
+		return fmt.Errorf("password must be at least 6 characters")
+	}
+
+	// Hash password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	// Insert user
+	_, err = db.Exec(`
+		INSERT INTO users (username, password, role, status, registration_date)
+		VALUES ($1, $2, $3, $4, CURRENT_DATE)
+	`, username, string(hashedPassword), role, status)
+	
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "unique constraint") {
+			return fmt.Errorf("username already exists")
+		}
+		return fmt.Errorf("failed to create user: %w", err)
+	}
+
+	return nil
 }
 
-// Hash a string using SHA256 (for non-password use)
-func hashSHA256(s string) string {
-	h := sha256.New()
-	h.Write([]byte(s))
-	return hex.EncodeToString(h.Sum(nil))
+// GetActiveSessionCount returns the number of active sessions
+func GetActiveSessionCount() int {
+	sessionsMutex.RLock()
+	defer sessionsMutex.RUnlock()
+	
+	count := 0
+	now := time.Now()
+	for _, session := range sessions {
+		if now.Sub(session.CreatedAt) < 24*time.Hour {
+			count++
+		}
+	}
+	return count
+}
+
+// periodicSessionCleanup removes expired sessions
+func periodicSessionCleanup() {
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		sessionsMutex.Lock()
+		now := time.Now()
+		for token, session := range sessions {
+			if now.Sub(session.CreatedAt) > 24*time.Hour {
+				delete(sessions, token)
+			}
+		}
+		sessionsMutex.Unlock()
+	}
 }
