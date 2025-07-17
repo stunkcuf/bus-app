@@ -52,12 +52,12 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		storeSession(sessionToken, user)
 		
 		http.SetCookie(w, &http.Cookie{
-			Name:     "session_token",
+			Name:     SessionCookieName,
 			Value:    sessionToken,
 			Path:     "/",
 			HttpOnly: true,
-			Secure:   true,
-			SameSite: http.SameSiteStrictMode,
+			Secure:   false, // Changed to false for HTTP support
+			SameSite: http.SameSiteLaxMode,
 			MaxAge:   86400,
 		})
 		
