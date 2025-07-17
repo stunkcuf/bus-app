@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -288,9 +289,41 @@ func runMigrations() error {
 		END $$;`,
 	}
 
-	for _, migration := range migrations {
+	for i, migration := range migrations {
+		// Log which migration we're running
+		tableName := "unknown"
+		if strings.Contains(migration, "CREATE TABLE") {
+			parts := strings.Split(migration, " ")
+			for j, part := range parts {
+				if strings.ToUpper(part) == "TABLE" && j+2 < len(parts) {
+					tableName = strings.TrimSuffix(parts[j+2], "(")
+					break
+				}
+			}
+		} else if strings.Contains(migration, "CREATE INDEX") {
+			tableName = "index"
+		}
+		
+		log.Printf("Running migration %d: %s", i+1, tableName)
+		
 		if _, err := db.Exec(migration); err != nil {
-			return fmt.Errorf("failed to execute migration: %w", err)
+			// Check if it's a duplicate table/constraint error
+			errStr := err.Error()
+			if strings.Contains(errStr, "already exists") {
+				log.Printf("Migration %d: %s already exists, continuing", i+1, tableName)
+				continue
+			}
+			
+			// Log which migration failed
+			log.Printf("Migration %d failed (%s): %v", i+1, tableName, err)
+			
+			// For index creation, we can continue if it fails
+			if strings.Contains(migration, "CREATE INDEX") {
+				log.Printf("Continuing despite index creation error")
+				continue
+			}
+			
+			return fmt.Errorf("failed to execute migration %d (%s): %w", i+1, tableName, err)
 		}
 	}
 

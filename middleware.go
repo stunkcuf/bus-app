@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"runtime/debug"
-	"strings"
 )
 
 // withRecovery wraps a handler to recover from panics
