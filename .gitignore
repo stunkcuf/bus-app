@@ -1,42 +1,32 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Test binary, built with `go test -c`
-*.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-# Dependency directories (remove the next line if you want to commit your dependencies)
-vendor/
-
-# Go workspace file
-go.work
-
-# Binary
-main
-
 # Environment variables
 .env
 .env.local
+.env.*.local
+
+# Binaries
+*.exe
+hs-bus
+
+# Test files
+test_connection.go
+check_database.go
+check_all_tables.go
+list_data.go
 
 # IDE
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
-*~
 
-# OS files
+# OS
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
+# Claude
+.claude/
 
-# Data files (if any JSON legacy remains)
-data/
+# Temp
+nul
+*.log
+*.tmp

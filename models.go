@@ -193,33 +193,6 @@ type ECSEStudent struct {
 	UpdatedAt              time.Time `json:"updated_at" db:"updated_at"`
 }
 
-// ECSEStudentView - make sure this also has the new fields
-type ECSEStudentView struct {
-	StudentID              string    `json:"student_id" db:"student_id"`
-	FirstName              string    `json:"first_name" db:"first_name"`
-	LastName               string    `json:"last_name" db:"last_name"`
-	DateOfBirth            string    `json:"date_of_birth" db:"date_of_birth"`
-	Grade                  string    `json:"grade" db:"grade"`
-	EnrollmentStatus       string    `json:"enrollment_status" db:"enrollment_status"`
-	IEPStatus              string    `json:"iep_status" db:"iep_status"`
-	PrimaryDisability      string    `json:"primary_disability" db:"primary_disability"`
-	ServiceMinutes         int       `json:"service_minutes" db:"service_minutes"`
-	TransportationRequired bool      `json:"transportation_required" db:"transportation_required"`
-	BusRoute               string    `json:"bus_route" db:"bus_route"`
-	ParentName             string    `json:"parent_name" db:"parent_name"`
-	ParentPhone            string    `json:"parent_phone" db:"parent_phone"`
-	ParentEmail            string    `json:"parent_email" db:"parent_email"`
-	Address                string    `json:"address" db:"address"`
-	City                   string    `json:"city" db:"city"`
-	State                  string    `json:"state" db:"state"`
-	ZipCode                string    `json:"zip_code" db:"zip_code"`
-	LastAssessmentDate     string    `json:"last_assessment_date" db:"last_assessment_date"`
-	NextAssessmentDate     string    `json:"next_assessment_date" db:"next_assessment_date"`
-	Notes                  string    `json:"notes" db:"notes"`
-	Active                 bool      `json:"active" db:"active"`
-	CreatedAt              time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt              time.Time `json:"updated_at" db:"updated_at"`
-}
 
 // MileageReport represents imported mileage data
 type MileageReport struct {
@@ -240,44 +213,80 @@ type MileageReport struct {
 // Import-specific structs for mileage reports
 // AgencyVehicleRecord represents a record from the Agency Vehicle Report
 type AgencyVehicleRecord struct {
-	Unit        string
-	VehicleNo   string
-	Driver      string
-	Month       string
-	Year        int
-	BeginMiles  int
-	EndMiles    int
-	TotalMiles  int
-	DailyMiles  string
-	Utilization float64
+	ReportMonth    string
+	ReportYear     int
+	VehicleYear    int
+	MakeModel      string
+	LicensePlate   string
+	VehicleID      string
+	Location       string
+	BeginningMiles int
+	EndingMiles    int
+	TotalMiles     int
+	Status         string
+	Notes          string
 }
 
 // SchoolBusRecord represents a record from the School Bus Report
 type SchoolBusRecord struct {
-	Unit        string
-	VehicleNo   string
-	Driver      string
-	Month       string
-	Year        int
-	BeginMiles  int
-	EndMiles    int
-	TotalMiles  int
-	DailyMiles  string
-	Utilization float64
+	ReportMonth    string
+	ReportYear     int
+	BusYear        int
+	BusMake        string
+	LicensePlate   string
+	BusID          string
+	Location       string
+	BeginningMiles int
+	EndingMiles    int
+	TotalMiles     int
+	Status         string
+	Notes          string
 }
 
 // ProgramStaffRecord represents a record from the Program Staff Report
 type ProgramStaffRecord struct {
-	Unit        string
-	VehicleNo   string
-	Driver      string
-	Month       string
-	Year        int
-	BeginMiles  int
-	EndMiles    int
-	TotalMiles  int
-	DailyMiles  string
-	Utilization float64
+	ReportMonth string
+	ReportYear  int
+	ProgramType string
+	StaffCount1 int
+	StaffCount2 int
+}
+
+// ECSEService represents services provided to ECSE students
+type ECSEService struct {
+	ID           int       `json:"id" db:"id"`
+	StudentID    string    `json:"student_id" db:"student_id"`
+	ServiceType  string    `json:"service_type" db:"service_type"`
+	Frequency    string    `json:"frequency" db:"frequency"`
+	Duration     int       `json:"duration" db:"duration"`
+	Provider     string    `json:"provider" db:"provider"`
+	StartDate    time.Time `json:"start_date" db:"start_date"`
+	EndDate      time.Time `json:"end_date" db:"end_date"`
+	CreatedAt    time.Time `json:"created_at" db:"created_at"`
+}
+
+// ECSEAssessment represents assessment data for ECSE students
+type ECSEAssessment struct {
+	ID                  int       `json:"id" db:"id"`
+	StudentID           string    `json:"student_id" db:"student_id"`
+	AssessmentDate      time.Time `json:"assessment_date" db:"assessment_date"`
+	AssessmentType      string    `json:"assessment_type" db:"assessment_type"`
+	Results             string    `json:"results" db:"results"`
+	Evaluator           string    `json:"evaluator" db:"evaluator"`
+	NextAssessmentDate  time.Time `json:"next_assessment_date" db:"next_assessment_date"`
+	CreatedAt           time.Time `json:"created_at" db:"created_at"`
+}
+
+// ECSEAttendance represents attendance records for ECSE students
+type ECSEAttendance struct {
+	ID            int       `json:"id" db:"id"`
+	StudentID     string    `json:"student_id" db:"student_id"`
+	Date          time.Time `json:"date" db:"date"`
+	Status        string    `json:"status" db:"status"`
+	ArrivalTime   string    `json:"arrival_time" db:"arrival_time"`
+	DepartureTime string    `json:"departure_time" db:"departure_time"`
+	Notes         string    `json:"notes" db:"notes"`
+	CreatedAt     time.Time `json:"created_at" db:"created_at"`
 }
 
 // ECSE-specific view structs
