@@ -21,16 +21,25 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "POST" {
+		// NOTE: Login page doesn't have a session yet, so CSRF validation 
+		// would always fail. Common practice is to skip CSRF for login
+		// but use other protections like rate limiting.
+		
 		username := r.FormValue("username")
 		password := r.FormValue("password")
 		
+		// Log for debugging
+		log.Printf("Login attempt for username: %s from IP: %s", username, getClientIP(r))
+		
 		if !rateLimiter.Allow(getClientIP(r)) {
+			log.Printf("Rate limit exceeded for IP: %s", getClientIP(r))
 			http.Error(w, "Too many login attempts. Please try again later.", http.StatusTooManyRequests)
 			return
 		}
 		
 		user, err := authenticateUser(username, password)
 		if err != nil {
+			log.Printf("Authentication failed for %s: %v", username, err)
 			data := map[string]interface{}{
 				"Error":     "Invalid username or password",
 				"CSRFToken": generateCSRFToken(),
@@ -40,6 +49,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		
 		if user.Status != "active" {
+			log.Printf("User %s is not active, status: %s", username, user.Status)
 			data := map[string]interface{}{
 				"Error":     "Your account is pending approval",
 				"CSRFToken": generateCSRFToken(),
@@ -47,6 +57,9 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			renderTemplate(w, r, "login.html", data)
 			return
 		}
+		
+		// Authentication successful
+		log.Printf("Login successful for user: %s (role: %s)", username, user.Role)
 		
 		sessionToken := generateSessionToken()
 		storeSession(sessionToken, user)
