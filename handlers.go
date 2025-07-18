@@ -176,21 +176,31 @@ func managerDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	users, _ := dataCache.getUsers()
 	routes, _ := dataCache.getRoutes()
 
-	// Count vehicles needing maintenance
+	// Count vehicles needing maintenance and status
 	maintenanceNeeded := 0
+	activeBuses := 0
+	busesMaintenanceDue := 0
+	busesOutOfService := 0
 	
 	// Check buses
 	for _, bus := range buses {
-		if bus.OilStatus == "needs_service" || bus.OilStatus == "overdue" ||
-			bus.TireStatus == "worn" || bus.TireStatus == "replace" {
+		if bus.Status == "active" {
+			activeBuses++
+		} else if bus.Status == "out_of_service" {
+			busesOutOfService++
+		}
+		
+		if bus.OilStatus == "due_soon" || bus.OilStatus == "overdue" ||
+			bus.TireStatus == "due_soon" || bus.TireStatus == "overdue" {
 			maintenanceNeeded++
+			busesMaintenanceDue++
 		}
 	}
 	
 	// Check vehicles
 	for _, vehicle := range vehicles {
-		if vehicle.OilStatus == "needs_service" || vehicle.OilStatus == "overdue" ||
-			vehicle.TireStatus == "worn" || vehicle.TireStatus == "replace" {
+		if vehicle.OilStatus == "due_soon" || vehicle.OilStatus == "overdue" ||
+			vehicle.TireStatus == "due_soon" || vehicle.TireStatus == "overdue" {
 			maintenanceNeeded++
 		}
 	}
@@ -202,21 +212,33 @@ func managerDashboardHandler(w http.ResponseWriter, r *http.Request) {
 			pendingUsers++
 		}
 	}
+	
+	// Count route assignments
+	assignedRoutes := 0
+	if assignments, err := getRouteAssignments(); err == nil {
+		assignedRoutes = len(assignments)
+	}
+	unassignedRoutes := len(routes) - assignedRoutes
 
 	data := map[string]interface{}{
-		"User":              user,
-		"CSRFToken":         getSessionCSRFToken(r),
-		"TotalBuses":        len(buses),
-		"TotalVehicles":     len(vehicles),
-		"TotalDrivers":      len(users) - 1, // Exclude manager
-		"TotalRoutes":       len(routes),
-		"MaintenanceNeeded": maintenanceNeeded,
-		"PendingUsers":      pendingUsers,
-		"Role":              "manager", // Explicitly set role for template
+		"User":                user,
+		"CSRFToken":           getSessionCSRFToken(r),
+		"TotalBuses":          len(buses),
+		"TotalVehicles":       len(vehicles),
+		"TotalDrivers":        len(users) - 1, // Exclude manager
+		"TotalRoutes":         len(routes),
+		"MaintenanceNeeded":   maintenanceNeeded,
+		"PendingUsers":        pendingUsers,
+		"ActiveBuses":         activeBuses,
+		"BusesMaintenanceDue": busesMaintenanceDue,
+		"BusesOutOfService":   busesOutOfService,
+		"AssignedRoutes":      assignedRoutes,
+		"UnassignedRoutes":    unassignedRoutes,
+		"RecentActivity":      nil, // TODO: Implement activity tracking
 	}
 
-	// Use enhanced dashboard for managers
-	renderTemplate(w, r, "dashboard_enhanced.html", data)
+	// Use the clean manager dashboard
+	renderTemplate(w, r, "manager_dashboard.html", data)
 }
 
 // driverDashboardHandler with maintenance alerts
@@ -873,6 +895,23 @@ func getDriverAssignments(username string) ([]RouteAssignment, error) {
 
 	var assignments []RouteAssignment
 	err := db.Select(&assignments, query, username)
+	return assignments, err
+}
+
+func getRouteAssignments() ([]RouteAssignment, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	query := `
+		SELECT ra.driver, ra.bus_id, ra.route_id, r.route_name, ra.assigned_date
+		FROM route_assignments ra
+		JOIN routes r ON ra.route_id = r.route_id
+		ORDER BY r.route_name
+	`
+
+	var assignments []RouteAssignment
+	err := db.Select(&assignments, query)
 	return assignments, err
 }
 
