@@ -43,16 +43,25 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 
 // approveUsersHandler shows pending users for approval
 func approveUsersHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	
 	var pendingUsers []User
 	
-	// Get pending users
-	query := `SELECT username, role, status, registration_date FROM users WHERE status = 'pending' ORDER BY registration_date DESC`
+	// Get pending users - need all fields for User struct
+	query := `SELECT username, password, role, status, registration_date, created_at 
+	          FROM users WHERE status = 'pending' ORDER BY registration_date DESC`
 	if err := db.Select(&pendingUsers, query); err != nil {
+		log.Printf("Error loading pending users: %v", err)
 		http.Error(w, "Failed to get pending users", http.StatusInternalServerError)
 		return
 	}
 
 	data := map[string]interface{}{
+		"User":         user,
 		"PendingUsers": pendingUsers,
 		"CSRFToken":    getSessionCSRFToken(r),
 	}
@@ -85,16 +94,22 @@ func approveUserHandler(w http.ResponseWriter, r *http.Request) {
 
 // manageUsersHandler shows all users for management
 func manageUsersHandler(w http.ResponseWriter, r *http.Request) {
-	var users []User
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
 	
-	// Get all users
-	query := `SELECT username, role, status, registration_date FROM users ORDER BY username`
-	if err := db.Select(&users, query); err != nil {
+	// Use the cache to get users
+	users, err := dataCache.getUsers()
+	if err != nil {
+		log.Printf("Error loading users: %v", err)
 		http.Error(w, "Failed to get users", http.StatusInternalServerError)
 		return
 	}
 
 	data := map[string]interface{}{
+		"User":      user,
 		"Users":     users,
 		"CSRFToken": getSessionCSRFToken(r),
 	}
@@ -162,16 +177,24 @@ func importECSEHandler(w http.ResponseWriter, r *http.Request) {
 
 // viewECSEReportsHandler shows ECSE reports
 func viewECSEReportsHandler(w http.ResponseWriter, r *http.Request) {
-	var students []ECSEStudentView
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	
+	var students []ECSEStudent
 	
 	// Get ECSE students
 	query := `SELECT * FROM ecse_students ORDER BY last_name, first_name`
 	if err := db.Select(&students, query); err != nil {
-		http.Error(w, "Failed to get ECSE students", http.StatusInternalServerError)
-		return
+		log.Printf("Error loading ECSE students: %v", err)
+		// Try to return empty list instead of error
+		students = []ECSEStudent{}
 	}
 
 	data := map[string]interface{}{
+		"User":      user,
 		"Students":  students,
 		"CSRFToken": getSessionCSRFToken(r),
 	}
@@ -335,26 +358,42 @@ func exportECSEHandler(w http.ResponseWriter, r *http.Request) {
 
 // studentsHandler shows student management page
 func studentsHandler(w http.ResponseWriter, r *http.Request) {
-	var students []Student
-	var routes []Route
-	
-	// Get students
-	query := `SELECT * FROM students ORDER BY route_id, position_number, name`
-	if err := db.Select(&students, query); err != nil {
-		http.Error(w, "Failed to get students", http.StatusInternalServerError)
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "driver" {
+		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
-
-	// Get routes
-	if err := db.Select(&routes, "SELECT * FROM routes ORDER BY route_name"); err != nil {
-		http.Error(w, "Failed to get routes", http.StatusInternalServerError)
-		return
+	
+	// Get driver's assignments to filter students
+	assignments, err := getDriverAssignments(user.Username)
+	if err != nil {
+		log.Printf("Error loading driver assignments: %v", err)
+	}
+	
+	// Get all students for the driver's routes
+	var students []Student
+	for _, assignment := range assignments {
+		routeStudents, err := getStudentsByRoute(assignment.RouteID)
+		if err != nil {
+			log.Printf("Error loading students for route %s: %v", assignment.RouteID, err)
+			continue
+		}
+		students = append(students, routeStudents...)
+	}
+	
+	// Get routes from cache
+	routes, err := dataCache.getRoutes()
+	if err != nil {
+		log.Printf("Error loading routes: %v", err)
+		routes = []Route{} // Empty slice on error
 	}
 
 	data := map[string]interface{}{
-		"Students":  students,
-		"Routes":    routes,
-		"CSRFToken": getSessionCSRFToken(r),
+		"User":        user,
+		"Students":    students,
+		"Routes":      routes,
+		"Assignments": assignments,
+		"CSRFToken":   getSessionCSRFToken(r),
 	}
 
 	renderTemplate(w, r, "students.html", data)
@@ -362,32 +401,55 @@ func studentsHandler(w http.ResponseWriter, r *http.Request) {
 
 // assignRoutesHandler handles route assignment page
 func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	
+	// Get data from cache
+	allUsers, err := dataCache.getUsers()
+	if err != nil {
+		log.Printf("Error loading users: %v", err)
+	}
+	
+	// Filter for active drivers
 	var drivers []User
-	var buses []Bus
-	var routes []Route
-	var assignments []RouteAssignment
+	for _, u := range allUsers {
+		if u.Role == "driver" && u.Status == "active" {
+			drivers = append(drivers, u)
+		}
+	}
 	
-	// Get active drivers
-	db.Select(&drivers, "SELECT * FROM users WHERE role = 'driver' AND status = 'active' ORDER BY username")
+	buses, err := dataCache.getBuses()
+	if err != nil {
+		log.Printf("Error loading buses: %v", err)
+	}
 	
-	// Get active buses
-	db.Select(&buses, "SELECT * FROM buses WHERE status = 'active' ORDER BY bus_id")
+	// Filter for active buses
+	var activeBuses []Bus
+	for _, b := range buses {
+		if b.Status == "active" {
+			activeBuses = append(activeBuses, b)
+		}
+	}
 	
-	// Get routes
-	db.Select(&routes, "SELECT * FROM routes ORDER BY route_name")
+	routes, err := dataCache.getRoutes()
+	if err != nil {
+		log.Printf("Error loading routes: %v", err)
+	}
 	
 	// Get current assignments
-	query := `SELECT ra.*, u.username as driver_name, b.bus_id as bus_name, r.route_name 
-			  FROM route_assignments ra
-			  JOIN users u ON ra.driver = u.username
-			  JOIN buses b ON ra.bus_id = b.bus_id
-			  JOIN routes r ON ra.route_id = r.route_id
-			  ORDER BY ra.assigned_date DESC`
-	db.Select(&assignments, query)
+	assignments, err := getRouteAssignments()
+	if err != nil {
+		log.Printf("Error loading assignments: %v", err)
+		assignments = []RouteAssignment{} // Empty slice on error
+	}
 
 	data := map[string]interface{}{
+		"User":        user,
 		"Drivers":     drivers,
-		"Buses":       buses,
+		"Buses":       activeBuses,
 		"Routes":      routes,
 		"Assignments": assignments,
 		"CSRFToken":   getSessionCSRFToken(r),
@@ -407,16 +469,24 @@ func importMileageHandler(w http.ResponseWriter, r *http.Request) {
 
 // viewMileageReportsHandler shows mileage reports
 func viewMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	
 	var reports []MileageReport
 	
 	// Get mileage reports
 	query := `SELECT * FROM mileage_reports ORDER BY year DESC, month DESC, vehicle_id`
 	if err := db.Select(&reports, query); err != nil {
-		http.Error(w, "Failed to get mileage reports", http.StatusInternalServerError)
-		return
+		log.Printf("Error loading mileage reports: %v", err)
+		// Return empty list instead of error
+		reports = []MileageReport{}
 	}
 
 	data := map[string]interface{}{
+		"User":      user,
 		"Reports":   reports,
 		"CSRFToken": getSessionCSRFToken(r),
 	}
