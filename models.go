@@ -27,6 +27,7 @@ type Bus struct {
 	CurrentMileage   int       `json:"current_mileage" db:"current_mileage"`
 	LastOilChange    int       `json:"last_oil_change" db:"last_oil_change"`
 	LastTireService  int       `json:"last_tire_service" db:"last_tire_service"`
+	CreatedAt        time.Time `json:"created_at" db:"created_at"`
 }
 
 // Vehicle represents a company vehicle
@@ -47,6 +48,8 @@ type Vehicle struct {
 	CurrentMileage   int       `json:"current_mileage" db:"current_mileage"`
 	LastOilChange    int       `json:"last_oil_change" db:"last_oil_change"`
 	LastTireService  int       `json:"last_tire_service" db:"last_tire_service"`
+	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
+	CreatedAt        time.Time `json:"created_at" db:"created_at"`
 }
 
 // BusMaintenanceLog represents a maintenance record for a bus
@@ -114,19 +117,22 @@ type MileageValidation struct {
 
 // Route represents a bus route
 type Route struct {
-	RouteID     string `json:"route_id" db:"route_id"`
-	RouteName   string `json:"route_name" db:"route_name"`
-	Description string `json:"description" db:"description"`
-	Positions   string `json:"positions" db:"positions"`
+	RouteID     string    `json:"route_id" db:"route_id"`
+	RouteName   string    `json:"route_name" db:"route_name"`
+	Description string    `json:"description" db:"description"`
+	Positions   string    `json:"positions" db:"positions"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 }
 
 // RouteAssignment represents a driver-bus-route assignment
 type RouteAssignment struct {
-	Driver       string `json:"driver" db:"driver"`
-	BusID        string `json:"bus_id" db:"bus_id"`
-	RouteID      string `json:"route_id" db:"route_id"`
-	RouteName    string `json:"route_name" db:"route_name"`
-	AssignedDate string `json:"assigned_date" db:"assigned_date"`
+	ID           int       `json:"id" db:"id"`
+	Driver       string    `json:"driver" db:"driver"`
+	BusID        string    `json:"bus_id" db:"bus_id"`
+	RouteID      string    `json:"route_id" db:"route_id"`
+	RouteName    string    `json:"route_name" db:"route_name"`
+	AssignedDate string    `json:"assigned_date" db:"assigned_date"`
+	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 }
 
 // Student represents a student
@@ -144,7 +150,6 @@ type Student struct {
 	Driver         string    `json:"driver" db:"driver"`
 	Active         bool      `json:"active" db:"active"`
 	CreatedAt      time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // DriverLog represents a driver's daily log
@@ -181,16 +186,11 @@ type ECSEStudent struct {
 	ParentName             string    `json:"parent_name" db:"parent_name"`
 	ParentPhone            string    `json:"parent_phone" db:"parent_phone"`
 	ParentEmail            string    `json:"parent_email" db:"parent_email"`
-	Address                string    `json:"address" db:"address"`
 	City                   string    `json:"city" db:"city"`
 	State                  string    `json:"state" db:"state"`
 	ZipCode                string    `json:"zip_code" db:"zip_code"`
-	LastAssessmentDate     string    `json:"last_assessment_date" db:"last_assessment_date"`
-	NextAssessmentDate     string    `json:"next_assessment_date" db:"next_assessment_date"`
 	Notes                  string    `json:"notes" db:"notes"`
-	Active                 bool      `json:"active" db:"active"`
 	CreatedAt              time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt              time.Time `json:"updated_at" db:"updated_at"`
 }
 
 
@@ -305,11 +305,9 @@ type ECSEStudentView struct {
 	ParentName             string    `json:"parent_name" db:"parent_name"`
 	ParentPhone            string    `json:"parent_phone" db:"parent_phone"`
 	ParentEmail            string    `json:"parent_email" db:"parent_email"`
-	Address                string    `json:"address" db:"address"`
-	LastAssessmentDate     string    `json:"last_assessment_date" db:"last_assessment_date"`
-	NextAssessmentDate     string    `json:"next_assessment_date" db:"next_assessment_date"`
+	City                   string    `json:"city" db:"city"`
+	State                  string    `json:"state" db:"state"`
+	ZipCode                string    `json:"zip_code" db:"zip_code"`
 	Notes                  string    `json:"notes" db:"notes"`
-	Active                 bool      `json:"active" db:"active"`
 	CreatedAt              time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt              time.Time `json:"updated_at" db:"updated_at"`
 }

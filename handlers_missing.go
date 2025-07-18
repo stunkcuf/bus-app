@@ -297,10 +297,10 @@ func editECSEStudentHandler(w http.ResponseWriter, r *http.Request) {
 		parentName := r.FormValue("parent_name")
 		parentPhone := r.FormValue("parent_phone")
 		parentEmail := r.FormValue("parent_email")
-		address := r.FormValue("address")
 		city := r.FormValue("city")
 		state := r.FormValue("state")
 		zipCode := r.FormValue("zip_code")
+		notes := r.FormValue("notes")
 
 		// Parse service minutes
 		serviceMinutes := 0
@@ -315,14 +315,14 @@ func editECSEStudentHandler(w http.ResponseWriter, r *http.Request) {
 				enrollment_status = $6, iep_status = $7, primary_disability = $8,
 				service_minutes = $9, transportation_required = $10, bus_route = $11,
 				parent_name = $12, parent_phone = $13, parent_email = $14,
-				address = $15, city = $16, state = $17, zip_code = $18
+				city = $15, state = $16, zip_code = $17, notes = $18
 			WHERE student_id = $1
 		`
 
 		_, err := db.Exec(query, studentID, firstName, lastName, dateOfBirth, grade,
 			enrollmentStatus, iepStatus, primaryDisability, serviceMinutes,
 			transportationRequired, busRoute, parentName, parentPhone, parentEmail,
-			address, city, state, zipCode)
+			city, state, zipCode, notes)
 
 		if err != nil {
 			log.Printf("Error updating ECSE student: %v", err)
