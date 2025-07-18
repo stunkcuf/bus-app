@@ -13,8 +13,27 @@ import (
 
 var db *sqlx.DB
 
+// maskConnectionString masks sensitive parts of connection string for logging
+func maskConnectionString(connStr string) string {
+	// Simple masking - just show the host
+	if strings.Contains(connStr, "@") {
+		parts := strings.Split(connStr, "@")
+		if len(parts) > 1 {
+			hostPart := parts[1]
+			if strings.Contains(hostPart, "/") {
+				hostPart = strings.Split(hostPart, "/")[0]
+			}
+			return fmt.Sprintf("postgres://****:****@%s/****", hostPart)
+		}
+	}
+	return "postgres://****:****@****:****/****"
+}
+
 // InitDB initializes the database connection
 func InitDB(dataSourceName string) error {
+	log.Printf("Initializing database connection...")
+	log.Printf("Database URL format check: %s", maskConnectionString(dataSourceName))
+	
 	var err error
 	db, err = sqlx.Open("postgres", dataSourceName)
 	if err != nil {
@@ -27,26 +46,33 @@ func InitDB(dataSourceName string) error {
 	db.SetConnMaxLifetime(5 * time.Minute)
 
 	// Test the connection
+	log.Println("Testing database connection...")
 	if err := db.Ping(); err != nil {
 		return fmt.Errorf("failed to ping database: %w", err)
 	}
+	log.Println("Database connection successful!")
 
 	// Run migrations
+	log.Println("Running database migrations...")
 	if err := runMigrations(); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 	
 	// Create admin user if it doesn't exist
+	log.Println("Creating admin user...")
 	if err := CreateAdminUser(); err != nil {
 		log.Printf("Warning: failed to create admin user: %v", err)
 		// Don't fail initialization if admin creation fails
 	}
 
+	log.Println("Database initialization complete!")
 	return nil
 }
 
 // runMigrations runs database migrations
 func runMigrations() error {
+	log.Println("Starting database migrations...")
+	
 	migrations := []string{
 		// Create users table
 		`CREATE TABLE IF NOT EXISTS users (
