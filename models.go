@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"time"
 )
 
@@ -30,23 +31,101 @@ type Bus struct {
 
 // Vehicle represents a company vehicle
 type Vehicle struct {
-	ID               int       `json:"id" db:"id"`
-	VehicleID        string    `json:"vehicle_id" db:"vehicle_id"`
-	Model            string    `json:"model" db:"model"`
-	Description      string    `json:"description" db:"description"`
-	Year             string    `json:"year" db:"year"` // VARCHAR in database
-	TireSize         string    `json:"tire_size" db:"tire_size"`
-	License          string    `json:"license" db:"license"`
-	OilStatus        string    `json:"oil_status" db:"oil_status"`
-	TireStatus       string    `json:"tire_status" db:"tire_status"`
-	Status           string    `json:"status" db:"status"`
-	MaintenanceNotes string    `json:"maintenance_notes" db:"maintenance_notes"`
-	CreatedAt        time.Time `json:"created_at" db:"created_at"`
-	SerialNumber     string    `json:"serial_number" db:"serial_number"`
-	Base             string    `json:"base" db:"base"`
-	ServiceInterval  int       `json:"service_interval" db:"service_interval"`
-	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
-	ImportID         string    `json:"import_id" db:"import_id"`
+	ID               int            `json:"id" db:"id"`
+	VehicleID        string         `json:"vehicle_id" db:"vehicle_id"`
+	Model            sql.NullString `json:"model" db:"model"`
+	Description      sql.NullString `json:"description" db:"description"`
+	Year             sql.NullString `json:"year" db:"year"` // VARCHAR in database
+	TireSize         sql.NullString `json:"tire_size" db:"tire_size"`
+	License          sql.NullString `json:"license" db:"license"`
+	OilStatus        sql.NullString `json:"oil_status" db:"oil_status"`
+	TireStatus       sql.NullString `json:"tire_status" db:"tire_status"`
+	Status           string         `json:"status" db:"status"`
+	MaintenanceNotes sql.NullString `json:"maintenance_notes" db:"maintenance_notes"`
+	CreatedAt        time.Time      `json:"created_at" db:"created_at"`
+	SerialNumber     sql.NullString `json:"serial_number" db:"serial_number"`
+	Base             sql.NullString `json:"base" db:"base"`
+	ServiceInterval  sql.NullInt32  `json:"service_interval" db:"service_interval"`
+	UpdatedAt        time.Time      `json:"updated_at" db:"updated_at"`
+	ImportID         sql.NullString `json:"import_id" db:"import_id"`
+}
+
+// Helper methods for Vehicle to handle null values in templates
+func (v Vehicle) GetModel() string {
+	if v.Model.Valid {
+		return v.Model.String
+	}
+	return ""
+}
+
+func (v Vehicle) GetDescription() string {
+	if v.Description.Valid {
+		return v.Description.String
+	}
+	return ""
+}
+
+func (v Vehicle) GetYear() string {
+	if v.Year.Valid {
+		return v.Year.String
+	}
+	return ""
+}
+
+func (v Vehicle) GetTireSize() string {
+	if v.TireSize.Valid {
+		return v.TireSize.String
+	}
+	return ""
+}
+
+func (v Vehicle) GetLicense() string {
+	if v.License.Valid {
+		return v.License.String
+	}
+	return ""
+}
+
+func (v Vehicle) GetOilStatus() string {
+	if v.OilStatus.Valid {
+		return v.OilStatus.String
+	}
+	return "unknown"
+}
+
+func (v Vehicle) GetTireStatus() string {
+	if v.TireStatus.Valid {
+		return v.TireStatus.String
+	}
+	return "unknown"
+}
+
+func (v Vehicle) GetMaintenanceNotes() string {
+	if v.MaintenanceNotes.Valid {
+		return v.MaintenanceNotes.String
+	}
+	return ""
+}
+
+func (v Vehicle) GetSerialNumber() string {
+	if v.SerialNumber.Valid {
+		return v.SerialNumber.String
+	}
+	return ""
+}
+
+func (v Vehicle) GetBase() string {
+	if v.Base.Valid {
+		return v.Base.String
+	}
+	return ""
+}
+
+func (v Vehicle) GetServiceInterval() int {
+	if v.ServiceInterval.Valid {
+		return int(v.ServiceInterval.Int32)
+	}
+	return 0
 }
 
 // BusMaintenanceLog represents a maintenance record for a bus
