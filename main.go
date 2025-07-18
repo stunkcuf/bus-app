@@ -231,6 +231,9 @@ func init() {
 			}
 			return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 		},
+		"formatDateTime": func(t time.Time) string {
+			return t.Format("Jan 2, 2006 3:04 PM")
+		},
 	}
 
 	var err error
