@@ -894,11 +894,18 @@
         params.append('oil_status', 'good');
         params.append('tire_status', 'good');
         
-        // TODO: Implement the actual endpoint
-        console.log('Adding new bus:', Object.fromEntries(params));
+        const response = await fetch('/add-bus', {
+          method: 'POST',
+          body: params
+        });
         
-        // For now, just show success and reload
-        showAlert('Bus added successfully! (Note: Backend endpoint needs to be implemented)');
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.message || 'Failed to add bus');
+        }
+        
+        showAlert('Bus added successfully!');
         
         setTimeout(() => {
           window.location.reload();

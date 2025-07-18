@@ -1,11 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"reflect"  // Add this line
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -123,18 +124,13 @@ func isValidPhone(phone string) bool {
 	return len(cleaned) >= 10 && len(cleaned) <= 15
 }
 
-// Helper regex patterns
+// Helper functions (removed duplicates)
+
+// Email and phone regex patterns
 var (
 	emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	phoneRegex = regexp.MustCompile(`[^\d]`)
 )
-
-// logError logs an error with context
-func logError(context string, err error) {
-	if err != nil {
-		log.Printf("[ERROR] %s: %v", context, err)
-	}
-}
 
 // logInfo logs an informational message
 func logInfo(format string, args ...interface{}) {
@@ -196,23 +192,23 @@ func copyMap(m map[string]string) map[string]string {
 }
 
 // mergeErrors combines multiple errors into one
-func mergeErrors(errors []error) error {
-	if len(errors) == 0 {
+func mergeErrors(errs []error) error {
+	if len(errs) == 0 {
 		return nil
 	}
 	
-	if len(errors) == 1 {
-		return errors[0]
+	if len(errs) == 1 {
+		return errs[0]
 	}
 	
 	var msg string
-	for i, err := range errors {
+	for i, err := range errs {
 		if i > 0 {
 			msg += "; "
 		}
 		msg += err.Error()
 	}
-	return fmt.Errorf(msg)
+	return errors.New(msg)
 }
 
 // sanitizeFilename removes potentially dangerous characters from filenames

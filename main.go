@@ -43,10 +43,6 @@ const (
 	MinPasswordLength = 6
 )
 
-// Global cache for performance
-var cache = &DataCache{
-	ttl: 5 * time.Minute,
-}
 
 // Templates variable
 var templates *template.Template
@@ -213,13 +209,25 @@ func init() {
 		"hasSuffix": func(s, suffix string) bool {
 			return len(s) >= len(suffix) && s[len(s)-len(suffix):] == suffix
 		},
+		"title": func(s string) string {
+			// Simple title case implementation
+			words := strings.Fields(s)
+			for i, word := range words {
+				if len(word) > 0 {
+					words[i] = strings.ToUpper(string(word[0])) + strings.ToLower(word[1:])
+				}
+			}
+			return strings.Join(words, " ")
+		},
 	}
 
 	var err error
+	log.Printf("Loading templates from: %s", TemplateGlob)
 	templates, err = template.New("").Funcs(funcMap).ParseGlob(TemplateGlob)
 	if err != nil {
 		log.Fatalf("Failed to load templates: %v", err)
 	}
+	log.Printf("Successfully loaded %d templates", len(templates.Templates()))
 	
 	// Start session cleanup in security.go
 	go periodicSessionCleanup()
@@ -338,12 +346,19 @@ func getLength(v interface{}) int {
 	}
 }
 func main() {
+	// Initialize logger
+	InitLogger()
+	
 	// Database setup
-	log.Println("🗄️  Setting up PostgreSQL database...")
+	LogInfo("🗄️  Setting up PostgreSQL database...")
 	if err := setupDatabase(); err != nil {
-		log.Fatalf("Failed to setup database: %v", err)
+		LogFatal("Failed to setup database", err)
 	}
 	defer closeDatabase()
+	
+	// Reset rate limiter on startup to clear any previous blocks
+	LogInfo("🔄 Resetting rate limiter...")
+	rateLimiter.Reset()
 
 	mux := setupRoutes()
 	
@@ -364,6 +379,9 @@ func main() {
 		MaxHeaderBytes: MaxHeaderBytes,
 	}
 
+	// Start background jobs
+	startScheduledExportsJob()
+	
 	// Graceful shutdown
 	go gracefulShutdown(server)
 
@@ -403,6 +421,17 @@ func setupAPIRoutes(mux *http.ServeMux) {
 	// Maintenance API routes
 	mux.HandleFunc("/api/check-maintenance", withRecovery(requireAuth(requireDatabase(checkMaintenanceDueHandler))))
 	mux.HandleFunc("/api/debug-maintenance", withRecovery(requireAuth(requireRole("manager")(requireDatabase(debugMaintenanceRecordsHandler)))))
+	
+	// Dashboard Analytics API routes
+	mux.HandleFunc("/api/dashboard/analytics", withRecovery(requireAuth(requireRole("manager")(requireDatabase(dashboardAnalyticsHandler)))))
+	mux.HandleFunc("/api/dashboard/fleet-status", withRecovery(requireAuth(requireDatabase(fleetStatusWidgetHandler))))
+	mux.HandleFunc("/api/dashboard/maintenance-alerts", withRecovery(requireAuth(requireDatabase(maintenanceAlertsWidgetHandler))))
+	mux.HandleFunc("/api/dashboard/route-efficiency", withRecovery(requireAuth(requireDatabase(routeEfficiencyWidgetHandler))))
+	
+	// Report Builder API routes
+	mux.HandleFunc("/api/report-builder", withRecovery(requireAuth(requireRole("manager")(requireDatabase(reportBuilderAPIHandler)))))
+	mux.HandleFunc("/api/report-data-sources", withRecovery(requireAuth(requireRole("manager")(requireDatabase(getReportDataSourcesHandler)))))
+	mux.HandleFunc("/api/report-chart-types", withRecovery(requireAuth(requireRole("manager")(requireDatabase(reportChartTypesHandler)))))
 }
 
 // setupManagerRoutes configures manager-specific routes
@@ -418,15 +447,19 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/import-ecse", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importECSEHandler)))))
 	mux.HandleFunc("/view-ecse-reports", withRecovery(requireAuth(requireRole("manager")(requireDatabase(viewECSEReportsHandler)))))
 	mux.HandleFunc("/ecse-student/", withRecovery(requireAuth(requireRole("manager")(requireDatabase(viewECSEStudentHandler)))))
+	mux.HandleFunc("/edit-ecse-student", withRecovery(requireAuth(requireRole("manager")(requireDatabase(editECSEStudentHandler)))))
 	mux.HandleFunc("/export-ecse", withRecovery(requireAuth(requireRole("manager")(requireDatabase(exportECSEHandler)))))
 	
 	// Dashboard
-	mux.HandleFunc("/manager-dashboard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(dashboardHandler)))))
+	mux.HandleFunc("/manager-dashboard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(managerDashboardHandler)))))
+	mux.HandleFunc("/analytics-dashboard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(analyticsDashboardHandler)))))
+	mux.HandleFunc("/report-builder", withRecovery(requireAuth(requireRole("manager")(requireDatabase(reportBuilderHandler)))))
 	
 	// Fleet management - Available to both managers and drivers with proper permissions
 	mux.HandleFunc("/fleet", withRecovery(requireAuth(requireDatabase(fleetHandler))))
 	mux.HandleFunc("/company-fleet", withRecovery(requireAuth(requireDatabase(companyFleetHandler))))
 	mux.HandleFunc("/update-vehicle-status", withRecovery(requireAuth(requireDatabase(updateVehicleStatusHandler))))
+	mux.HandleFunc("/add-bus", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addBusHandler)))))
 	
 	// Maintenance - Available to both managers and drivers
 	mux.HandleFunc("/bus-maintenance/", withRecovery(requireAuth(requireDatabase(busMaintenanceHandler))))
@@ -445,6 +478,31 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/import-mileage", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importMileageHandler)))))
 	mux.HandleFunc("/view-mileage-reports", withRecovery(requireAuth(requireRole("manager")(requireDatabase(viewMileageReportsHandler)))))
 	mux.HandleFunc("/export-mileage", withRecovery(requireAuth(requireRole("manager")(requireDatabase(exportMileageHandler)))))
+	mux.HandleFunc("/mileage-report-generator", withRecovery(requireAuth(requireRole("manager")(requireDatabase(mileageReportGeneratorHandler)))))
+	
+	// Enhanced Import System (temporarily disabled)
+	// mux.HandleFunc("/import", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importHandler)))))
+	// mux.HandleFunc("/import/mapping", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importMappingHandler)))))
+	// mux.HandleFunc("/import/preview", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importPreviewHandler)))))
+	// mux.HandleFunc("/import/execute", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importExecuteHandler)))))
+	// mux.HandleFunc("/import/history", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importHistoryHandler)))))
+	// mux.HandleFunc("/import/details", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importDetailsHandler)))))
+	// mux.HandleFunc("/import/rollback", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importRollbackHandler)))))
+	// mux.HandleFunc("/api/import", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importAPIHandler)))))
+	// mux.HandleFunc("/api/import/auto-map", withRecovery(requireAuth(requireRole("manager")(requireDatabase(autoMapHandler)))))
+	
+	// Export System
+	mux.HandleFunc("/export/templates", withRecovery(requireAuth(requireRole("manager")(requireDatabase(exportTemplateHandler)))))
+	mux.HandleFunc("/export/template", withRecovery(requireAuth(requireRole("manager")(requireDatabase(exportTemplateHandler)))))
+	mux.HandleFunc("/export/data", withRecovery(requireAuth(requireRole("manager")(requireDatabase(exportDataHandler)))))
+	mux.HandleFunc("/export/scheduled", withRecovery(requireAuth(requireRole("manager")(requireDatabase(scheduledExportsHandler)))))
+	mux.HandleFunc("/export/scheduled/edit", withRecovery(requireAuth(requireRole("manager")(requireDatabase(scheduledExportEditHandler)))))
+	mux.HandleFunc("/export/scheduled/delete", withRecovery(requireAuth(requireRole("manager")(requireDatabase(scheduledExportDeleteHandler)))))
+	mux.HandleFunc("/export/scheduled/run", withRecovery(requireAuth(requireRole("manager")(requireDatabase(scheduledExportRunHandler)))))
+	
+	// PDF Reports
+	mux.HandleFunc("/api/reports/pdf", withRecovery(requireAuth(requireDatabase(pdfReportHandler))))
+	mux.HandleFunc("/api/reports/pdf/custom", withRecovery(requireAuth(requireRole("manager")(requireDatabase(pdfCustomReportHandler)))))
 	
 	// Driver profile
 	mux.HandleFunc("/driver/", withRecovery(requireAuth(requireRole("manager")(requireDatabase(driverProfileHandler)))))

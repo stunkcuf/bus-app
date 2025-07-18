@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Builder - Fleet Management System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.0/index.min.js"></script>
+  <style nonce="{{.CSPNonce}}">
+    :root {
+      --primary: #667eea;
+      --success: #48bb78;
+      --info: #4299e1;
+      --warning: #ed8936;
+      --danger: #f56565;
+      --dark: #2d3748;
+      --light: #f7fafc;
+    }
+    
+    body {
+      background-color: #f0f2f5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .report-header {
+      background: linear-gradient(135deg, var(--primary) 0%, #764ba2 100%);
+      color: white;
+      padding: 2rem;
+      border-radius: 0 0 20px 20px;
+      margin-bottom: 2rem;
+    }
+    
+    .builder-container {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 2rem;
+      height: calc(100vh - 200px);
+    }
+    
+    .builder-sidebar {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      overflow-y: auto;
+    }
+    
+    .builder-main {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      overflow-y: auto;
+    }
+    
+    .section-title {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .form-section {
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .form-section:last-child {
+      border-bottom: none;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #4a5568;
+      font-size: 0.875rem;
+    }
+    
+    .form-control {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      transition: border-color 0.2s ease;
+    }
+    
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .data-source-card {
+      padding: 1rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 0.75rem;
+    }
+    
+    .data-source-card:hover {
+      border-color: var(--primary);
+      background: rgba(102, 126, 234, 0.05);
+    }
+    
+    .data-source-card.active {
+      border-color: var(--primary);
+      background: rgba(102, 126, 234, 0.1);
+    }
+    
+    .data-source-name {
+      font-weight: 600;
+      color: var(--dark);
+      margin-bottom: 0.25rem;
+    }
+    
+    .data-source-desc {
+      font-size: 0.75rem;
+      color: #718096;
+    }
+    
+    .field-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.5rem;
+    }
+    
+    .field-item {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem;
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+    }
+    
+    .field-item:hover {
+      background: #f8f9fa;
+    }
+    
+    .field-checkbox {
+      margin-right: 0.5rem;
+    }
+    
+    .field-name {
+      font-weight: 500;
+      color: var(--dark);
+    }
+    
+    .field-type {
+      font-size: 0.75rem;
+      color: #718096;
+      margin-left: auto;
+      padding: 0.25rem 0.5rem;
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+    
+    .filter-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    
+    .filter-field {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .filter-operator {
+      width: 80px;
+    }
+    
+    .filter-value {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .filter-remove {
+      color: var(--danger);
+      cursor: pointer;
+      padding: 0.25rem;
+    }
+    
+    .btn-add {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    
+    .btn-add:hover {
+      background: #5a67d8;
+    }
+    
+    .btn-generate {
+      background: var(--success);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      width: 100%;
+    }
+    
+    .btn-generate:hover {
+      background: #38a169;
+    }
+    
+    .btn-save {
+      background: var(--info);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+    
+    .btn-save:hover {
+      background: #3182ce;
+    }
+    
+    .result-tabs {
+      display: flex;
+      border-bottom: 1px solid #e2e8f0;
+      margin-bottom: 1.5rem;
+    }
+    
+    .result-tab {
+      padding: 0.75rem 1.5rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      color: #718096;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    
+    .result-tab.active {
+      color: var(--primary);
+    }
+    
+    .result-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--primary);
+    }
+    
+    .result-content {
+      display: none;
+    }
+    
+    .result-content.active {
+      display: block;
+    }
+    
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    
+    .data-table th {
+      background: #f8f9fa;
+      padding: 0.75rem;
+      text-align: left;
+      font-weight: 600;
+      color: var(--dark);
+      border-bottom: 2px solid #e2e8f0;
+      font-size: 0.875rem;
+    }
+    
+    .data-table td {
+      padding: 0.75rem;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.875rem;
+      color: #4a5568;
+    }
+    
+    .data-table tr:hover {
+      background: #f8f9fa;
+    }
+    
+    .chart-container {
+      position: relative;
+      height: 400px;
+      margin-top: 1rem;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: #718096;
+    }
+    
+    .error {
+      background: #fed7d7;
+      color: #c53030;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+    
+    .success {
+      background: #c6f6d5;
+      color: #22543d;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+    
+    .chart-config {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    
+    .save-dialog {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .save-dialog-content {
+      background: white;
+      padding: 2rem;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 500px;
+    }
+    
+    .save-dialog-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .save-dialog-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--dark);
+    }
+    
+    .save-dialog-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #718096;
+    }
+    
+    .save-dialog-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+      margin-top: 1.5rem;
+    }
+    
+    .btn-cancel {
+      background: #e2e8f0;
+      color: #4a5568;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    
+    .btn-confirm {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    
+    @media (max-width: 1024px) {
+      .builder-container {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      
+      .builder-sidebar {
+        order: 2;
+      }
+      
+      .builder-main {
+        order: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="report-header">
+    <div class="container-fluid">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h2 mb-1">Report Builder</h1>
+          <p class="mb-0 opacity-75">Create custom reports and visualizations</p>
+        </div>
+        <div>
+          <a href="/analytics-dashboard" class="btn btn-light me-2">
+            <i class="bi bi-graph-up me-2"></i>Analytics
+          </a>
+          <a href="/dashboard" class="btn btn-light">
+            <i class="bi bi-arrow-left me-2"></i>Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid">
+    <div class="builder-container">
+      <!-- Sidebar -->
+      <div class="builder-sidebar">
+        <!-- Data Source Selection -->
+        <div class="form-section">
+          <div class="section-title">
+            <i class="bi bi-database"></i>
+            Data Source
+          </div>
+          <div id="dataSourcesList">
+            {{range $key, $source := .DataSources}}
+            <div class="data-source-card" data-source="{{$key}}">
+              <div class="data-source-name">{{$source.Name}}</div>
+              <div class="data-source-desc">{{$source.Description}}</div>
+            </div>
+            {{end}}
+          </div>
+        </div>
+
+        <!-- Field Selection -->
+        <div class="form-section">
+          <div class="section-title">
+            <i class="bi bi-list-check"></i>
+            Fields
+          </div>
+          <div class="field-list" id="fieldsList">
+            <div class="text-muted text-center py-3">
+              <i class="bi bi-info-circle"></i>
+              Select a data source first
+            </div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="form-section">
+          <div class="section-title">
+            <i class="bi bi-funnel"></i>
+            Filters
+          </div>
+          <div id="filtersList">
+            <!-- Filters will be added here -->
+          </div>
+          <button type="button" class="btn-add" onclick="addFilter()">
+            <i class="bi bi-plus"></i> Add Filter
+          </button>
+        </div>
+
+        <!-- Chart Configuration -->
+        <div class="form-section">
+          <div class="section-title">
+            <i class="bi bi-bar-chart"></i>
+            Chart Options
+          </div>
+          <div class="form-group">
+            <label class="form-label">Chart Type</label>
+            <select class="form-control" id="chartType">
+              <option value="">None (Table Only)</option>
+              <option value="bar">Bar Chart</option>
+              <option value="line">Line Chart</option>
+              <option value="pie">Pie Chart</option>
+              <option value="scatter">Scatter Plot</option>
+            </select>
+          </div>
+          <div class="chart-config" id="chartConfig" style="display: none;">
+            <div class="form-group">
+              <label class="form-label">X-Axis</label>
+              <select class="form-control" id="chartXAxis">
+                <option value="">Select field...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Y-Axis</label>
+              <select class="form-control" id="chartYAxis">
+                <option value="">Select field...</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-section">
+          <button type="button" class="btn-generate" onclick="generateReport()">
+            <i class="bi bi-play-fill"></i> Generate Report
+          </button>
+          <button type="button" class="btn-save" onclick="showSaveDialog()">
+            <i class="bi bi-save"></i> Save Report
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="builder-main">
+        <!-- Result Tabs -->
+        <div class="result-tabs">
+          <button class="result-tab active" onclick="showResultTab('table')">
+            <i class="bi bi-table me-2"></i>Table
+          </button>
+          <button class="result-tab" onclick="showResultTab('chart')">
+            <i class="bi bi-bar-chart me-2"></i>Chart
+          </button>
+          <button class="result-tab" onclick="showResultTab('sql')">
+            <i class="bi bi-code me-2"></i>SQL
+          </button>
+        </div>
+
+        <!-- Table Results -->
+        <div id="tableResults" class="result-content active">
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-table" style="font-size: 3rem; opacity: 0.3;"></i>
+            <h5 class="mt-3">No Data</h5>
+            <p>Configure your report settings and click "Generate Report" to see results.</p>
+          </div>
+        </div>
+
+        <!-- Chart Results -->
+        <div id="chartResults" class="result-content">
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-bar-chart" style="font-size: 3rem; opacity: 0.3;"></i>
+            <h5 class="mt-3">No Chart</h5>
+            <p>Configure chart settings and generate a report to see visualization.</p>
+          </div>
+        </div>
+
+        <!-- SQL Results -->
+        <div id="sqlResults" class="result-content">
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-code" style="font-size: 3rem; opacity: 0.3;"></i>
+            <h5 class="mt-3">No Query</h5>
+            <p>Generate a report to see the SQL query.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Save Dialog -->
+  <div class="save-dialog" id="saveDialog">
+    <div class="save-dialog-content">
+      <div class="save-dialog-header">
+        <h3 class="save-dialog-title">Save Report</h3>
+        <button class="save-dialog-close" onclick="hideSaveDialog()">&times;</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Report Name</label>
+        <input type="text" class="form-control" id="reportName" placeholder="Enter report name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" id="reportDescription" rows="3" placeholder="Enter description (optional)"></textarea>
+      </div>
+      <div class="save-dialog-actions">
+        <button class="btn-cancel" onclick="hideSaveDialog()">Cancel</button>
+        <button class="btn-confirm" onclick="saveReport()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script nonce="{{.CSPNonce}}">
+    let currentDataSource = null;
+    let currentFields = [];
+    let currentFilters = [];
+    let currentData = null;
+    let currentChart = null;
+    
+    const dataSources = {{.DataSources | json}};
+    const csrfToken = '{{.CSRFToken}}';
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      setupDataSourceSelection();
+      setupChartTypeChange();
+    });
+    
+    // Data source selection
+    function setupDataSourceSelection() {
+      document.querySelectorAll('.data-source-card').forEach(card => {
+        card.addEventListener('click', function() {
+          // Update active state
+          document.querySelectorAll('.data-source-card').forEach(c => c.classList.remove('active'));
+          this.classList.add('active');
+          
+          // Set current data source
+          currentDataSource = this.dataset.source;
+          
+          // Update fields list
+          updateFieldsList();
+          
+          // Clear filters
+          clearFilters();
+          
+          // Update chart axes options
+          updateChartAxes();
+        });
+      });
+    }
+    
+    // Update fields list
+    function updateFieldsList() {
+      const fieldsContainer = document.getElementById('fieldsList');
+      const source = dataSources[currentDataSource];
+      
+      if (!source || !source.Fields) {
+        fieldsContainer.innerHTML = '<div class="text-muted text-center py-3">No fields available</div>';
+        return;
+      }
+      
+      let html = '';
+      source.Fields.forEach(field => {
+        html += `
+          <div class="field-item">
+            <input type="checkbox" class="field-checkbox" value="${field.Name}" onchange="updateSelectedFields()">
+            <span class="field-name">${field.DisplayName}</span>
+            <span class="field-type">${field.Type}</span>
+          </div>
+        `;
+      });
+      
+      fieldsContainer.innerHTML = html;
+    }
+    
+    // Update selected fields
+    function updateSelectedFields() {
+      const checkboxes = document.querySelectorAll('.field-checkbox:checked');
+      currentFields = Array.from(checkboxes).map(cb => cb.value);
+      updateChartAxes();
+    }
+    
+    // Add filter
+    function addFilter() {
+      const filtersContainer = document.getElementById('filtersList');
+      const filterId = 'filter_' + Date.now();
+      
+      const source = dataSources[currentDataSource];
+      if (!source) return;
+      
+      let fieldOptions = '';
+      source.Fields.forEach(field => {
+        fieldOptions += `<option value="${field.Name}">${field.DisplayName}</option>`;
+      });
+      
+      const filterHtml = `
+        <div class="filter-item" id="${filterId}">
+          <select class="form-control filter-field">
+            <option value="">Select field...</option>
+            ${fieldOptions}
+          </select>
+          <select class="form-control filter-operator">
+            <option value="equals">Equals</option>
+            <option value="contains">Contains</option>
+            <option value="starts_with">Starts With</option>
+            <option value="greater_than">Greater Than</option>
+            <option value="less_than">Less Than</option>
+          </select>
+          <input type="text" class="form-control filter-value" placeholder="Value">
+          <i class="bi bi-x-circle filter-remove" onclick="removeFilter('${filterId}')"></i>
+        </div>
+      `;
+      
+      filtersContainer.insertAdjacentHTML('beforeend', filterHtml);
+    }
+    
+    // Remove filter
+    function removeFilter(filterId) {
+      document.getElementById(filterId).remove();
+    }
+    
+    // Clear filters
+    function clearFilters() {
+      document.getElementById('filtersList').innerHTML = '';
+      currentFilters = [];
+    }
+    
+    // Setup chart type change
+    function setupChartTypeChange() {
+      document.getElementById('chartType').addEventListener('change', function() {
+        const chartConfig = document.getElementById('chartConfig');
+        if (this.value) {
+          chartConfig.style.display = 'grid';
+        } else {
+          chartConfig.style.display = 'none';
+        }
+        updateChartAxes();
+      });
+    }
+    
+    // Update chart axes options
+    function updateChartAxes() {
+      const xAxisSelect = document.getElementById('chartXAxis');
+      const yAxisSelect = document.getElementById('chartYAxis');
+      
+      // Clear existing options
+      xAxisSelect.innerHTML = '<option value="">Select field...</option>';
+      yAxisSelect.innerHTML = '<option value="">Select field...</option>';
+      
+      if (!currentDataSource) return;
+      
+      const source = dataSources[currentDataSource];
+      if (!source) return;
+      
+      // Add field options
+      source.Fields.forEach(field => {
+        const option = `<option value="${field.Name}">${field.DisplayName}</option>`;
+        xAxisSelect.insertAdjacentHTML('beforeend', option);
+        yAxisSelect.insertAdjacentHTML('beforeend', option);
+      });
+    }
+    
+    // Generate report
+    async function generateReport() {
+      if (!currentDataSource) {
+        alert('Please select a data source first');
+        return;
+      }
+      
+      if (currentFields.length === 0) {
+        alert('Please select at least one field');
+        return;
+      }
+      
+      // Show loading
+      showLoading();
+      
+      try {
+        // Build query parameters
+        const params = new URLSearchParams();
+        params.append('data_source', currentDataSource);
+        params.append('fields', currentFields.join(','));
+        
+        // Add filters
+        document.querySelectorAll('.filter-item').forEach(item => {
+          const field = item.querySelector('.filter-field').value;
+          const operator = item.querySelector('.filter-operator').value;
+          const value = item.querySelector('.filter-value').value;
+          
+          if (field && value) {
+            params.append(`filter_${field}`, value);
+          }
+        });
+        
+        // Fetch data
+        const response = await fetch(`/api/report-builder?${params}`);
+        const result = await response.json();
+        
+        if (result.success) {
+          currentData = result.data;
+          updateTableResults(result.data, result.columns);
+          updateChartResults(result.data);
+          updateSQLResults(params);
+        } else {
+          showError('Failed to generate report: ' + (result.message || 'Unknown error'));
+        }
+      } catch (error) {
+        showError('Error generating report: ' + error.message);
+      }
+    }
+    
+    // Update table results
+    function updateTableResults(data, columns) {
+      const container = document.getElementById('tableResults');
+      
+      if (!data || data.length === 0) {
+        container.innerHTML = '<div class="text-center py-5 text-muted">No data found</div>';
+        return;
+      }
+      
+      let html = '<table class="data-table"><thead><tr>';
+      columns.forEach(col => {
+        html += `<th>${col}</th>`;
+      });
+      html += '</tr></thead><tbody>';
+      
+      data.forEach(row => {
+        html += '<tr>';
+        columns.forEach(col => {
+          const value = row[col] || '';
+          html += `<td>${value}</td>`;
+        });
+        html += '</tr>';
+      });
+      
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+    
+    // Update chart results
+    function updateChartResults(data) {
+      const container = document.getElementById('chartResults');
+      const chartType = document.getElementById('chartType').value;
+      
+      if (!chartType || !data || data.length === 0) {
+        container.innerHTML = '<div class="text-center py-5 text-muted">No chart data available</div>';
+        return;
+      }
+      
+      const xAxis = document.getElementById('chartXAxis').value;
+      const yAxis = document.getElementById('chartYAxis').value;
+      
+      if (!xAxis || !yAxis) {
+        container.innerHTML = '<div class="text-center py-5 text-muted">Please select chart axes</div>';
+        return;
+      }
+      
+      // Create chart canvas
+      container.innerHTML = '<canvas id="reportChart" class="chart-container"></canvas>';
+      
+      // Destroy existing chart
+      if (currentChart) {
+        currentChart.destroy();
+      }
+      
+      // Prepare chart data
+      const labels = data.map(row => row[xAxis]);
+      const values = data.map(row => parseFloat(row[yAxis]) || 0);
+      
+      const ctx = document.getElementById('reportChart').getContext('2d');
+      currentChart = new Chart(ctx, {
+        type: chartType,
+        data: {
+          labels: labels,
+          datasets: [{
+            label: yAxis,
+            data: values,
+            backgroundColor: chartType === 'pie' ? 
+              ['#667eea', '#48bb78', '#4299e1', '#ed8936', '#f56565'] : 
+              '#667eea',
+            borderColor: '#667eea',
+            borderWidth: 2,
+            fill: chartType === 'line' ? false : true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: chartType === 'pie'
+            }
+          },
+          scales: chartType === 'pie' ? {} : {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+    
+    // Update SQL results
+    function updateSQLResults(params) {
+      const container = document.getElementById('sqlResults');
+      
+      // This would typically come from the server
+      const sql = `SELECT ${currentFields.join(', ')} FROM ${currentDataSource} WHERE 1=1`;
+      
+      container.innerHTML = `
+        <pre style="background: #f8f9fa; padding: 1rem; border-radius: 8px; overflow-x: auto;">
+          <code>${sql}</code>
+        </pre>
+      `;
+    }
+    
+    // Show loading
+    function showLoading() {
+      const containers = ['tableResults', 'chartResults', 'sqlResults'];
+      containers.forEach(id => {
+        document.getElementById(id).innerHTML = '<div class="loading"><i class="bi bi-hourglass-split"></i><br>Loading...</div>';
+      });
+    }
+    
+    // Show error
+    function showError(message) {
+      const container = document.getElementById('tableResults');
+      container.innerHTML = `<div class="error"><i class="bi bi-exclamation-triangle"></i> ${message}</div>`;
+    }
+    
+    // Show success
+    function showSuccess(message) {
+      const container = document.getElementById('tableResults');
+      container.innerHTML = `<div class="success"><i class="bi bi-check-circle"></i> ${message}</div>`;
+    }
+    
+    // Show result tab
+    function showResultTab(tabName) {
+      // Update tab buttons
+      document.querySelectorAll('.result-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      // Update content
+      document.querySelectorAll('.result-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      document.getElementById(tabName + 'Results').classList.add('active');
+    }
+    
+    // Save dialog
+    function showSaveDialog() {
+      document.getElementById('saveDialog').style.display = 'flex';
+    }
+    
+    function hideSaveDialog() {
+      document.getElementById('saveDialog').style.display = 'none';
+    }
+    
+    // Save report
+    async function saveReport() {
+      const name = document.getElementById('reportName').value;
+      const description = document.getElementById('reportDescription').value;
+      
+      if (!name.trim()) {
+        alert('Please enter a report name');
+        return;
+      }
+      
+      if (!currentDataSource) {
+        alert('Please configure and generate a report first');
+        return;
+      }
+      
+      try {
+        const reportConfig = {
+          name: name,
+          description: description,
+          data_source: currentDataSource,
+          fields: currentFields,
+          filters: currentFilters,
+          chart_config: {
+            type: document.getElementById('chartType').value,
+            x_axis: document.getElementById('chartXAxis').value,
+            y_axis: document.getElementById('chartYAxis').value
+          }
+        };
+        
+        const response = await fetch('/api/report-builder', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken
+          },
+          body: JSON.stringify(reportConfig)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showSuccess('Report saved successfully!');
+          hideSaveDialog();
+          
+          // Clear form
+          document.getElementById('reportName').value = '';
+          document.getElementById('reportDescription').value = '';
+        } else {
+          alert('Failed to save report: ' + (result.message || 'Unknown error'));
+        }
+      } catch (error) {
+        alert('Error saving report: ' + error.message);
+      }
+    }
+  </script>
+</body>
+</html>

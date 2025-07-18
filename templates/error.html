@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error - Fleet Management</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .error-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #f8f9fa;
+    }
+    .error-box {
+      background: white;
+      padding: 3rem;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+    }
+    .error-icon {
+      font-size: 4rem;
+      color: #dc3545;
+      margin-bottom: 1rem;
+    }
+    .error-code {
+      font-size: 5rem;
+      font-weight: 200;
+      color: #6c757d;
+      margin-bottom: 1rem;
+    }
+    .error-message {
+      font-size: 1.25rem;
+      color: #495057;
+      margin-bottom: 2rem;
+    }
+    .error-details {
+      color: #6c757d;
+      margin-bottom: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="error-container">
+    <div class="error-box">
+      <div class="error-icon">⚠️</div>
+      
+      {{if .ErrorCode}}
+      <div class="error-code">{{.ErrorCode}}</div>
+      {{end}}
+      
+      <h1 class="h3 mb-3">
+        {{if .ErrorTitle}}
+          {{.ErrorTitle}}
+        {{else}}
+          Oops! Something went wrong
+        {{end}}
+      </h1>
+      
+      <div class="error-message">
+        {{if .Error}}
+          {{.Error}}
+        {{else}}
+          We encountered an unexpected error while processing your request.
+        {{end}}
+      </div>
+      
+      {{if .ErrorDetail}}
+      <div class="error-details">
+        <small>{{.ErrorDetail}}</small>
+      </div>
+      {{end}}
+      
+      <div class="d-flex gap-2 justify-content-center">
+        <button onclick="window.history.back()" class="btn btn-secondary">
+          Go Back
+        </button>
+        
+        {{if .User}}
+          {{if eq .User.Role "manager"}}
+            <a href="/manager-dashboard" class="btn btn-primary">Dashboard</a>
+          {{else}}
+            <a href="/driver-dashboard" class="btn btn-primary">Dashboard</a>
+          {{end}}
+        {{else}}
+          <a href="/" class="btn btn-primary">Login</a>
+        {{end}}
+      </div>
+      
+      {{if .RequestID}}
+      <div class="mt-4 text-muted">
+        <small>Request ID: {{.RequestID}}</small>
+      </div>
+      {{end}}
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

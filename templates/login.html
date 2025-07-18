@@ -185,14 +185,14 @@
         <p class="login-subtitle">Sign in to your Fleet Management account</p>
       </div>
       <div class="login-body">
-        {{if .Data.Error}}
-        <div class="alert alert-info">
-          <i class="bi bi-info-circle me-2"></i>{{.Data.Error}}
+        {{if .Error}}
+        <div class="alert alert-danger">
+          <i class="bi bi-exclamation-circle me-2"></i>{{.Error}}
         </div>
         {{end}}
         
         <form method="POST" action="/" id="loginForm">
-          <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
           
           <div class="mb-3">
             <label for="username" class="form-label">

@@ -26,7 +26,7 @@ func withRecovery(h http.HandlerFunc) http.HandlerFunc {
 // requireAuth ensures the user is authenticated
 func requireAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("session_token")
+		cookie, err := r.Cookie(SessionCookieName)
 		if err != nil {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
@@ -148,6 +148,11 @@ func generateNonce() string {
 	b := make([]byte, 16)
 	rand.Read(b)
 	return base64.StdEncoding.EncodeToString(b)
+}
+
+// GenerateCSPNonce generates a CSP nonce for external use
+func GenerateCSPNonce() string {
+	return generateNonce()
 }
 
 // Context keys
