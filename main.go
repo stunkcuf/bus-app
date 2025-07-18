@@ -555,25 +555,62 @@ func setupDriverRoutes(mux *http.ServeMux) {
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {
 	health := struct {
-		Status      string `json:"status"`
-		Service     string `json:"service"`
-		Timestamp   string `json:"timestamp"`
-		Database    string `json:"database"`
-		Version     string `json:"version"`
-		SessionCount int   `json:"active_sessions"`
+		Status       string      `json:"status"`
+		Service      string      `json:"service"`
+		Timestamp    string      `json:"timestamp"`
+		Database     string      `json:"database"`
+		Version      string      `json:"version"`
+		SessionCount int         `json:"active_sessions"`
+		UserCount    *int        `json:"user_count,omitempty"`
+		AdminExists  *bool       `json:"admin_exists,omitempty"`
+		DBError      string      `json:"db_error,omitempty"`
+		TableExists  *bool       `json:"users_table_exists,omitempty"`
 	}{
-		Status:      "ok",
-		Service:     "bus-fleet-management",
-		Timestamp:   time.Now().Format(time.RFC3339),
-		Database:    "connected",
-		Version:     "2.0.0",
+		Status:       "ok",
+		Service:      "bus-fleet-management",
+		Timestamp:    time.Now().Format(time.RFC3339),
+		Database:     "connected",
+		Version:      "2.0.0",
 		SessionCount: GetActiveSessionCount(),
 	}
 	
 	// Check database connection
-	if db == nil || db.Ping() != nil {
+	if db == nil {
+		health.Status = "degraded"
+		health.Database = "not_initialized"
+		health.DBError = "Database connection is nil"
+	} else if err := db.Ping(); err != nil {
 		health.Status = "degraded"
 		health.Database = "disconnected"
+		health.DBError = err.Error()
+	} else {
+		// Database is connected, run additional checks
+		
+		// Check if users table exists
+		var tableExists bool
+		if err := db.Get(&tableExists, `
+			SELECT EXISTS (
+				SELECT FROM information_schema.tables 
+				WHERE table_schema = 'public' 
+				AND table_name = 'users'
+			)
+		`); err == nil {
+			health.TableExists = &tableExists
+		}
+		
+		// Count users
+		var userCount int
+		if err := db.Get(&userCount, "SELECT COUNT(*) FROM users"); err == nil {
+			health.UserCount = &userCount
+		} else if health.DBError == "" {
+			health.DBError = "Failed to count users: " + err.Error()
+		}
+		
+		// Check if admin exists
+		var adminExists bool
+		if err := db.Get(&adminExists, "SELECT EXISTS(SELECT 1 FROM users WHERE username = 'admin')"); err == nil {
+			health.AdminExists = &adminExists
+		}
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
