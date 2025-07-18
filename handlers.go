@@ -255,16 +255,8 @@ func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error loading assignments: %v", err)
 	}
 
-	// Check for maintenance alerts on assigned buses
+	// Maintenance checks disabled - required columns not in database
 	var maintenanceAlerts []MaintenanceAlert
-	for _, assignment := range assignments {
-		alerts, err := checkMaintenanceDue(assignment.BusID)
-		if err != nil {
-			log.Printf("Error checking maintenance for bus %s: %v", assignment.BusID, err)
-			continue
-		}
-		maintenanceAlerts = append(maintenanceAlerts, alerts...)
-	}
 
 	// Get students for assigned routes
 	studentsMap := make(map[string][]Student)
@@ -308,24 +300,17 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get maintenance alerts for all buses
+	// Maintenance alerts disabled - required columns not in database
 	allAlerts := make(map[string][]MaintenanceAlert)
-	for _, bus := range buses {
-		alerts, err := checkMaintenanceDue(bus.BusID)
-		if err != nil {
-			log.Printf("Error checking maintenance for bus %s: %v", bus.BusID, err)
-			continue
-		}
-		if len(alerts) > 0 {
-			allAlerts[bus.BusID] = alerts
-		}
-	}
 
 	data := map[string]interface{}{
-		"User":               user,
-		"CSRFToken":          getSessionCSRFToken(r),
-		"Buses":              buses,
-		"MaintenanceAlerts":  allAlerts,
+		"User":      user,
+		"CSRFToken": getSessionCSRFToken(r),
+		"Data": map[string]interface{}{
+			"Buses":             buses,
+			"MaintenanceAlerts": allAlerts,
+			"CSRFToken":         getSessionCSRFToken(r),
+		},
 	}
 
 	renderTemplate(w, r, "fleet.html", data)
@@ -346,24 +331,17 @@ func companyFleetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get maintenance alerts for all vehicles
+	// Maintenance alerts disabled - required columns not in database
 	allAlerts := make(map[string][]MaintenanceAlert)
-	for _, vehicle := range vehicles {
-		alerts, err := checkMaintenanceDue(vehicle.VehicleID)
-		if err != nil {
-			log.Printf("Error checking maintenance for vehicle %s: %v", vehicle.VehicleID, err)
-			continue
-		}
-		if len(alerts) > 0 {
-			allAlerts[vehicle.VehicleID] = alerts
-		}
-	}
 
 	data := map[string]interface{}{
-		"User":              user,
-		"CSRFToken":         getSessionCSRFToken(r),
-		"Vehicles":          vehicles,
-		"MaintenanceAlerts": allAlerts,
+		"User":      user,
+		"CSRFToken": getSessionCSRFToken(r),
+		"Data": map[string]interface{}{
+			"Vehicles":          vehicles,
+			"MaintenanceAlerts": allAlerts,
+			"CSRFToken":         getSessionCSRFToken(r),
+		},
 	}
 
 	renderTemplate(w, r, "company_fleet.html", data)
