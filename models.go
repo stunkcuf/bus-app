@@ -16,6 +16,7 @@ type User struct {
 
 // Bus represents a school bus
 type Bus struct {
+	ID               int       `json:"id" db:"id"`
 	BusID            string    `json:"bus_id" db:"bus_id"`
 	Status           string    `json:"status" db:"status"`
 	Model            string    `json:"model" db:"model"`
@@ -23,33 +24,29 @@ type Bus struct {
 	OilStatus        string    `json:"oil_status" db:"oil_status"`
 	TireStatus       string    `json:"tire_status" db:"tire_status"`
 	MaintenanceNotes string    `json:"maintenance_notes" db:"maintenance_notes"`
-	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
-	CurrentMileage   int       `json:"current_mileage" db:"current_mileage"`
-	LastOilChange    int       `json:"last_oil_change" db:"last_oil_change"`
-	LastTireService  int       `json:"last_tire_service" db:"last_tire_service"`
 	CreatedAt        time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // Vehicle represents a company vehicle
 type Vehicle struct {
+	ID               int       `json:"id" db:"id"`
 	VehicleID        string    `json:"vehicle_id" db:"vehicle_id"`
 	Model            string    `json:"model" db:"model"`
 	Description      string    `json:"description" db:"description"`
-	Year             int       `json:"year" db:"year"`
+	Year             string    `json:"year" db:"year"` // VARCHAR in database
 	TireSize         string    `json:"tire_size" db:"tire_size"`
 	License          string    `json:"license" db:"license"`
 	OilStatus        string    `json:"oil_status" db:"oil_status"`
 	TireStatus       string    `json:"tire_status" db:"tire_status"`
 	Status           string    `json:"status" db:"status"`
 	MaintenanceNotes string    `json:"maintenance_notes" db:"maintenance_notes"`
+	CreatedAt        time.Time `json:"created_at" db:"created_at"`
 	SerialNumber     string    `json:"serial_number" db:"serial_number"`
 	Base             string    `json:"base" db:"base"`
 	ServiceInterval  int       `json:"service_interval" db:"service_interval"`
-	CurrentMileage   int       `json:"current_mileage" db:"current_mileage"`
-	LastOilChange    int       `json:"last_oil_change" db:"last_oil_change"`
-	LastTireService  int       `json:"last_tire_service" db:"last_tire_service"`
 	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
-	CreatedAt        time.Time `json:"created_at" db:"created_at"`
+	ImportID         string    `json:"import_id" db:"import_id"`
 }
 
 // BusMaintenanceLog represents a maintenance record for a bus
