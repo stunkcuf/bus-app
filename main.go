@@ -234,6 +234,13 @@ func init() {
 		"formatDateTime": func(t time.Time) string {
 			return t.Format("Jan 2, 2006 3:04 PM")
 		},
+		"dayOfWeek": func(day int) string {
+			days := []string{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}
+			if day >= 0 && day < len(days) {
+				return days[day]
+			}
+			return ""
+		},
 	}
 
 	var err error
