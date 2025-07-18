@@ -212,9 +212,11 @@ func managerDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		"TotalRoutes":       len(routes),
 		"MaintenanceNeeded": maintenanceNeeded,
 		"PendingUsers":      pendingUsers,
+		"Role":              "manager", // Explicitly set role for template
 	}
 
-	renderTemplate(w, r, "dashboard.html", data)
+	// Use enhanced dashboard for managers
+	renderTemplate(w, r, "dashboard_enhanced.html", data)
 }
 
 // driverDashboardHandler with maintenance alerts
@@ -396,12 +398,13 @@ func busMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 	data := map[string]interface{}{
 		"User":             user,
 		"CSRFToken":        getSessionCSRFToken(r),
-		"Bus":              bus,
+		"Vehicle":          bus,  // Use Vehicle key for compatibility with vehicle_maintenance.html
+		"VehicleType":      "bus",
 		"MaintenanceLogs":  logs,
 		"MaintenanceAlerts": alerts,
 	}
 
-	renderTemplate(w, r, "bus_maintenance.html", data)
+	renderTemplate(w, r, "vehicle_maintenance.html", data)
 }
 
 // vehicleMaintenanceHandler shows maintenance history for a vehicle

@@ -13,13 +13,13 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 	// Get username from session
 	cookie, err := r.Cookie(SessionCookieName)
 	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 	
 	session, err := GetSecureSession(cookie.Value)
 	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 	
@@ -438,13 +438,13 @@ func driverProfileHandler(w http.ResponseWriter, r *http.Request) {
 	// Get username from session
 	cookie, err := r.Cookie(SessionCookieName)
 	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 	
 	session, err := GetSecureSession(cookie.Value)
 	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 	
