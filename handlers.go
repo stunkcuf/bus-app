@@ -935,5 +935,38 @@ func updateVehicleField(vehicleID, fieldName, fieldValue string) error {
 // Health check endpoint
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
+	
+	health := map[string]interface{}{
+		"status": "healthy",
+		"service": "fleet-management",
+		"timestamp": time.Now().Format(time.RFC3339),
+	}
+	
+	// Check database
+	if db != nil {
+		if err := db.Ping(); err != nil {
+			health["database"] = "error"
+			health["db_error"] = err.Error()
+		} else {
+			health["database"] = "connected"
+			
+			// Count users
+			var userCount int
+			if err := db.Get(&userCount, "SELECT COUNT(*) FROM users"); err == nil {
+				health["user_count"] = userCount
+			} else {
+				health["user_query_error"] = err.Error()
+			}
+			
+			// Check if admin exists
+			var adminExists bool
+			if err := db.Get(&adminExists, "SELECT EXISTS(SELECT 1 FROM users WHERE username = 'admin')"); err == nil {
+				health["admin_exists"] = adminExists
+			}
+		}
+	} else {
+		health["database"] = "not initialized"
+	}
+	
+	json.NewEncoder(w).Encode(health)
 }

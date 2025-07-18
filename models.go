@@ -10,7 +10,7 @@ type User struct {
 	Password         string    `json:"password,omitempty" db:"password"`
 	Role             string    `json:"role" db:"role"`
 	Status           string    `json:"status" db:"status"`
-	RegistrationDate string    `json:"registration_date" db:"registration_date"`
+	RegistrationDate time.Time `json:"registration_date" db:"registration_date"`
 	CreatedAt        time.Time `json:"created_at" db:"created_at"`
 }
 
