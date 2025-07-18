@@ -439,32 +439,32 @@
                     <td role="cell">
                       <div>
                         <div class="fw-semibold">
-                          {{if .Model}}{{.Model}}{{else if .Description}}{{.Description}}{{else}}Unknown Model{{end}}
+                          {{if .GetModel}}{{.GetModel}}{{else if .GetDescription}}{{.GetDescription}}{{else}}Unknown Model{{end}}
                         </div>
-                        {{if and .Model .Description}}
-                        <div class="vehicle-details">{{.Description}}</div>
+                        {{if and .GetModel .GetDescription}}
+                        <div class="vehicle-details">{{.GetDescription}}</div>
                         {{end}}
                         <span class="vehicle-type-badge type-other">
-                          {{if .Model}}{{.Model}}{{else}}Vehicle{{end}}
+                          {{if .GetModel}}{{.GetModel}}{{else}}Vehicle{{end}}
                         </span>
                       </div>
                     </td>
                     <td role="cell">
-                      {{if .Year}}<span data-year="{{.Year}}">{{.Year}}</span>{{else}}<span class="text-muted">--</span>{{end}}
+                      {{if .GetYear}}<span data-year="{{.GetYear}}">{{.GetYear}}</span>{{else}}<span class="text-muted">--</span>{{end}}
                     </td>
                     <td role="cell">
-                      {{if .TireSize}}{{.TireSize}}{{else}}<span class="text-muted">--</span>{{end}}
+                      {{if .GetTireSize}}{{.GetTireSize}}{{else}}<span class="text-muted">--</span>{{end}}
                     </td>
                     <td role="cell">
-                      {{if .License}}{{.License}}{{else}}<span class="text-muted">--</span>{{end}}
+                      {{if .GetLicense}}{{.GetLicense}}{{else}}<span class="text-muted">--</span>{{end}}
                     </td>
                     <td role="cell">
                       <div class="dropdown">
-                        <button class="btn btn-sm status-light oil-status-{{.OilStatus}} dropdown-toggle" 
+                        <button class="btn btn-sm status-light oil-status-{{.GetOilStatus}} dropdown-toggle" 
                                 type="button" 
                                 data-bs-toggle="dropdown" 
                                 aria-expanded="false"
-                                aria-label="Oil Status: {{.OilStatus}}. Click to change"
+                                aria-label="Oil Status: {{.GetOilStatus}}. Click to change"
                                 data-status-type="oil"
                                 data-vehicle-id="{{.VehicleID}}">
                           <i class="bi bi-circle-fill" aria-hidden="true"></i>
@@ -505,11 +505,11 @@
                     </td>
                     <td role="cell">
                       <div class="dropdown">
-                        <button class="btn btn-sm status-light tire-status-{{.TireStatus}} dropdown-toggle" 
+                        <button class="btn btn-sm status-light tire-status-{{.GetTireStatus}} dropdown-toggle" 
                                 type="button" 
                                 data-bs-toggle="dropdown" 
                                 aria-expanded="false"
-                                aria-label="Tire Status: {{.TireStatus}}. Click to change"
+                                aria-label="Tire Status: {{.GetTireStatus}}. Click to change"
                                 data-status-type="tire"
                                 data-vehicle-id="{{.VehicleID}}">
                           <i class="bi bi-circle-fill" aria-hidden="true"></i>

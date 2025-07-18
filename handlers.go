@@ -199,8 +199,10 @@ func managerDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	
 	// Check vehicles
 	for _, vehicle := range vehicles {
-		if vehicle.OilStatus == "due_soon" || vehicle.OilStatus == "overdue" ||
-			vehicle.TireStatus == "due_soon" || vehicle.TireStatus == "overdue" {
+		oilStatus := vehicle.GetOilStatus()
+		tireStatus := vehicle.GetTireStatus()
+		if oilStatus == "due_soon" || oilStatus == "overdue" ||
+			tireStatus == "due_soon" || tireStatus == "overdue" {
 			maintenanceNeeded++
 		}
 	}
