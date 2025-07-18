@@ -153,24 +153,30 @@ func getClientIP(r *http.Request) string {
 // authenticateUser verifies username and password
 func authenticateUser(username, password string) (*User, error) {
 	if db == nil {
+		log.Printf("Authentication failed: database not initialized")
 		return nil, fmt.Errorf("database not initialized")
 	}
 
 	var user User
 	err := db.Get(&user, "SELECT * FROM users WHERE username = $1", username)
 	if err != nil {
+		log.Printf("Authentication failed for %s: user not found in database", username)
 		return nil, fmt.Errorf("invalid credentials")
 	}
+
+	log.Printf("User %s found, checking password (hashed: %v)", username, strings.HasPrefix(user.Password, "$2"))
 
 	// Check if password is hashed (bcrypt hashes start with $2)
 	if strings.HasPrefix(user.Password, "$2") {
 		// Verify bcrypt password
 		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 		if err != nil {
+			log.Printf("Authentication failed for %s: incorrect password", username)
 			return nil, fmt.Errorf("invalid credentials")
 		}
 	} else {
 		// Legacy plain text password (should be migrated)
+		log.Printf("WARNING: User %s has plain text password, needs migration", username)
 		if user.Password != password {
 			return nil, fmt.Errorf("invalid credentials")
 		}

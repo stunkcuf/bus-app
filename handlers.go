@@ -72,12 +72,15 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		storeSession(sessionToken, user)
 		log.Printf("Session created with token: %s for user: %s", sessionToken[:8]+"...", username)
 		
+		// Detect if we're on HTTPS
+		isHTTPS := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
+		
 		http.SetCookie(w, &http.Cookie{
 			Name:     SessionCookieName,
 			Value:    sessionToken,
 			Path:     "/",
 			HttpOnly: true,
-			Secure:   false, // Changed to false for HTTP support
+			Secure:   isHTTPS, // Set based on protocol
 			SameSite: http.SameSiteLaxMode,
 			MaxAge:   86400,
 		})

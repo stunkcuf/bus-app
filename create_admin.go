@@ -12,43 +12,41 @@ func CreateAdminUser() error {
 	username := "admin"
 	password := "Headstart1"
 	
+	log.Println("Checking for admin user...")
+	
+	// Check if user already exists
+	var exists bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)", username).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("failed to check if user exists: %v", err)
+	}
+	
+	if exists {
+		log.Println("Admin user already exists - skipping creation")
+		// Don't update the password if user already exists
+		// This preserves any password changes made in production
+		return nil
+	}
+	
+	// Only create if doesn't exist
+	log.Println("Admin user not found, creating...")
+	
 	// Hash the password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("failed to hash password: %v", err)
 	}
 	
-	// Check if user already exists
-	var exists bool
-	err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)", username).Scan(&exists)
+	// Insert new user
+	_, err = db.Exec(`
+		INSERT INTO users (username, password, role, status)
+		VALUES ($1, $2, 'manager', 'active')
+	`, username, string(hashedPassword))
 	if err != nil {
-		return fmt.Errorf("failed to check if user exists: %v", err)
+		return fmt.Errorf("failed to create admin user: %v", err)
 	}
-	
-	if exists {
-		// Update existing user
-		_, err = db.Exec(`
-			UPDATE users 
-			SET password = $1, role = 'manager', status = 'active'
-			WHERE username = $2
-		`, string(hashedPassword), username)
-		if err != nil {
-			return fmt.Errorf("failed to update admin user: %v", err)
-		}
-		log.Println("Admin user updated successfully")
-		log.Printf("Admin login: username=%s, password=%s", username, password)
-	} else {
-		// Insert new user
-		_, err = db.Exec(`
-			INSERT INTO users (username, password, role, status)
-			VALUES ($1, $2, 'manager', 'active')
-		`, username, string(hashedPassword))
-		if err != nil {
-			return fmt.Errorf("failed to create admin user: %v", err)
-		}
-		log.Println("Admin user created successfully")
-		log.Printf("Admin login: username=%s, password=%s", username, password)
-	}
+	log.Println("Admin user created successfully")
+	log.Printf("Default admin login: username=%s, password=%s", username, password)
 	
 	return nil
 }
