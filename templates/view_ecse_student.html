@@ -241,6 +241,9 @@
           <p class="mb-0 opacity-75">Student ID: {{.Data.Student.StudentID}} | Grade: {{.Data.Student.Grade}}</p>
         </div>
         <nav class="btn-group btn-group-sm" role="group">
+          <a href="/edit-ecse-student?id={{.Data.Student.StudentID}}" class="btn btn-primary">
+            <i class="bi bi-pencil me-1"></i>Edit
+          </a>
           <button type="button" class="btn" onclick="window.print()">
             <i class="bi bi-printer me-1"></i>Print
           </button>

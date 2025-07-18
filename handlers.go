@@ -25,6 +25,13 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		// would always fail. Common practice is to skip CSRF for login
 		// but use other protections like rate limiting.
 		
+		// Parse form data
+		if err := r.ParseForm(); err != nil {
+			log.Printf("Failed to parse form: %v", err)
+			http.Error(w, "Failed to parse form", http.StatusBadRequest)
+			return
+		}
+		
 		username := r.FormValue("username")
 		password := r.FormValue("password")
 		
@@ -63,6 +70,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		
 		sessionToken := generateSessionToken()
 		storeSession(sessionToken, user)
+		log.Printf("Session created with token: %s for user: %s", sessionToken[:8]+"...", username)
 		
 		http.SetCookie(w, &http.Cookie{
 			Name:     SessionCookieName,
@@ -74,10 +82,14 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			MaxAge:   86400,
 		})
 		
+		log.Printf("Cookie set, redirecting user %s (role: %s)", username, user.Role)
+		
 		if user.Role == "manager" {
-			http.Redirect(w, r, "/manager-dashboard", http.StatusFound)
+			log.Printf("Redirecting to manager dashboard")
+			http.Redirect(w, r, "/manager-dashboard", http.StatusSeeOther)
 		} else {
-			http.Redirect(w, r, "/driver-dashboard", http.StatusFound)
+			log.Printf("Redirecting to driver dashboard")
+			http.Redirect(w, r, "/driver-dashboard", http.StatusSeeOther)
 		}
 	}
 }
@@ -89,13 +101,13 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	cookie, err := r.Cookie("session_token")
+	cookie, err := r.Cookie(SessionCookieName)
 	if err == nil {
 		deleteSession(cookie.Value)
 	}
 	
 	http.SetCookie(w, &http.Cookie{
-		Name:     "session_token",
+		Name:     SessionCookieName,
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
@@ -199,7 +211,7 @@ func managerDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		"PendingUsers":      pendingUsers,
 	}
 
-	renderTemplate(w, r, "manager_dashboard.html", data)
+	renderTemplate(w, r, "dashboard.html", data)
 }
 
 // driverDashboardHandler with maintenance alerts

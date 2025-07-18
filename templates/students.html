@@ -865,7 +865,6 @@
         // Populate locations from data-locations attribute
         try {
           const locations = JSON.parse(data.locations || '[]');
-          console.log('Loading locations for student:', data.studentId, locations);
           
           locations.forEach(function(location) {
             if (location.Type === 'pickup') {

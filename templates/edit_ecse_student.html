@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit ECSE Student - Fleet Management</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .required::after {
+      content: " *";
+      color: red;
+    }
+    .form-section {
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background-color: #f8f9fa;
+      border-radius: 0.5rem;
+    }
+    .form-section h5 {
+      margin-bottom: 1rem;
+      color: #495057;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/manager-dashboard">Fleet Management</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="/manager-dashboard">Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/view-ecse-reports">ECSE Reports</a>
+          </li>
+        </ul>
+        <form class="d-flex" action="/logout" method="POST">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button class="btn btn-outline-light" type="submit">Logout</button>
+        </form>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mt-4">
+    <div class="row">
+      <div class="col-12">
+        <h2>Edit ECSE Student</h2>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/manager-dashboard">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="/view-ecse-reports">ECSE Reports</a></li>
+            <li class="breadcrumb-item"><a href="/ecse-student/{{.Student.StudentID}}">{{.Student.FirstName}} {{.Student.LastName}}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit</li>
+          </ol>
+        </nav>
+
+        <form method="POST" action="/edit-ecse-student" class="needs-validation" novalidate>
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <input type="hidden" name="student_id" value="{{.Student.StudentID}}">
+
+          <!-- Basic Information -->
+          <div class="form-section">
+            <h5>Basic Information</h5>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="firstName" class="form-label required">First Name</label>
+                <input type="text" class="form-control" id="firstName" name="first_name" 
+                       value="{{.Student.FirstName}}" required>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="lastName" class="form-label required">Last Name</label>
+                <input type="text" class="form-control" id="lastName" name="last_name" 
+                       value="{{.Student.LastName}}" required>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="dateOfBirth" class="form-label required">Date of Birth</label>
+                <input type="date" class="form-control" id="dateOfBirth" name="date_of_birth" 
+                       value="{{.Student.DateOfBirth}}" required>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="grade" class="form-label">Grade</label>
+                <select class="form-select" id="grade" name="grade">
+                  <option value="">Select Grade</option>
+                  <option value="PreK" {{if eq .Student.Grade "PreK"}}selected{{end}}>PreK</option>
+                  <option value="K" {{if eq .Student.Grade "K"}}selected{{end}}>Kindergarten</option>
+                  <option value="1" {{if eq .Student.Grade "1"}}selected{{end}}>1st Grade</option>
+                  <option value="2" {{if eq .Student.Grade "2"}}selected{{end}}>2nd Grade</option>
+                  <option value="3" {{if eq .Student.Grade "3"}}selected{{end}}>3rd Grade</option>
+                  <option value="4" {{if eq .Student.Grade "4"}}selected{{end}}>4th Grade</option>
+                  <option value="5" {{if eq .Student.Grade "5"}}selected{{end}}>5th Grade</option>
+                </select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="enrollmentStatus" class="form-label">Enrollment Status</label>
+                <select class="form-select" id="enrollmentStatus" name="enrollment_status">
+                  <option value="Active" {{if eq .Student.EnrollmentStatus "Active"}}selected{{end}}>Active</option>
+                  <option value="Inactive" {{if eq .Student.EnrollmentStatus "Inactive"}}selected{{end}}>Inactive</option>
+                  <option value="Pending" {{if eq .Student.EnrollmentStatus "Pending"}}selected{{end}}>Pending</option>
+                </select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="studentId" class="form-label">Student ID</label>
+                <input type="text" class="form-control" id="studentId" value="{{.Student.StudentID}}" readonly>
+              </div>
+            </div>
+          </div>
+
+          <!-- IEP Information -->
+          <div class="form-section">
+            <h5>IEP Information</h5>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="iepStatus" class="form-label">IEP Status</label>
+                <select class="form-select" id="iepStatus" name="iep_status">
+                  <option value="Active" {{if eq .Student.IEPStatus "Active"}}selected{{end}}>Active</option>
+                  <option value="Inactive" {{if eq .Student.IEPStatus "Inactive"}}selected{{end}}>Inactive</option>
+                  <option value="Pending" {{if eq .Student.IEPStatus "Pending"}}selected{{end}}>Pending</option>
+                </select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="primaryDisability" class="form-label">Primary Disability</label>
+                <input type="text" class="form-control" id="primaryDisability" name="primary_disability" 
+                       value="{{.Student.PrimaryDisability}}">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="serviceMinutes" class="form-label">Service Minutes</label>
+                <input type="number" class="form-control" id="serviceMinutes" name="service_minutes" 
+                       value="{{.Student.ServiceMinutes}}" min="0">
+              </div>
+            </div>
+          </div>
+
+          <!-- Transportation -->
+          <div class="form-section">
+            <h5>Transportation</h5>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="transportationRequired" 
+                         name="transportation_required" value="true" 
+                         {{if .Student.TransportationRequired}}checked{{end}}>
+                  <label class="form-check-label" for="transportationRequired">
+                    Transportation Required
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-8 mb-3">
+                <label for="busRoute" class="form-label">Bus Route</label>
+                <input type="text" class="form-control" id="busRoute" name="bus_route" 
+                       value="{{.Student.BusRoute}}">
+              </div>
+            </div>
+          </div>
+
+          <!-- Parent/Guardian Information -->
+          <div class="form-section">
+            <h5>Parent/Guardian Information</h5>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="parentName" class="form-label">Parent/Guardian Name</label>
+                <input type="text" class="form-control" id="parentName" name="parent_name" 
+                       value="{{.Student.ParentName}}">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="parentPhone" class="form-label">Phone Number</label>
+                <input type="tel" class="form-control" id="parentPhone" name="parent_phone" 
+                       value="{{.Student.ParentPhone}}">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="parentEmail" class="form-label">Email</label>
+                <input type="email" class="form-control" id="parentEmail" name="parent_email" 
+                       value="{{.Student.ParentEmail}}">
+              </div>
+            </div>
+          </div>
+
+          <!-- Address Information -->
+          <div class="form-section">
+            <h5>Address Information</h5>
+            <div class="row">
+              <div class="col-md-12 mb-3">
+                <label for="address" class="form-label">Street Address</label>
+                <input type="text" class="form-control" id="address" name="address" 
+                       value="{{.Student.Address}}">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="city" class="form-label">City</label>
+                <input type="text" class="form-control" id="city" name="city" 
+                       value="{{.Student.City}}">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="state" class="form-label">State</label>
+                <input type="text" class="form-control" id="state" name="state" 
+                       value="{{.Student.State}}" maxlength="2">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="zipCode" class="form-label">ZIP Code</label>
+                <input type="text" class="form-control" id="zipCode" name="zip_code" 
+                       value="{{.Student.ZipCode}}" pattern="[0-9]{5}(-[0-9]{4})?">
+              </div>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary">Save Changes</button>
+              <a href="/ecse-student/{{.Student.StudentID}}" class="btn btn-secondary">Cancel</a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script nonce="{{.CSPNonce}}">
+    // Form validation
+    (function() {
+      'use strict'
+      const forms = document.querySelectorAll('.needs-validation')
+      Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+          if (!form.checkValidity()) {
+            event.preventDefault()
+            event.stopPropagation()
+          }
+          form.classList.add('was-validated')
+        }, false)
+      })
+    })()
+  </script>
+</body>
+</html>

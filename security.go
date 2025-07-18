@@ -34,7 +34,7 @@ type RateLimiter struct {
 var (
 	sessions      = make(map[string]*Session)
 	sessionsMutex sync.RWMutex
-	rateLimiter   = NewRateLimiter(5, 15*time.Minute) // 5 attempts per 15 minutes
+	rateLimiter   = NewRateLimiter(20, 15*time.Minute) // 20 attempts per 15 minutes (increased for development)
 )
 
 // NewRateLimiter creates a new rate limiter
@@ -81,6 +81,20 @@ func (rl *RateLimiter) Allow(ip string) bool {
 
 	rl.attempts[ip] = validAttempts
 	return false
+}
+
+// Reset clears all rate limit records
+func (rl *RateLimiter) Reset() {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	rl.attempts = make(map[string][]time.Time)
+}
+
+// ResetIP clears rate limit records for a specific IP
+func (rl *RateLimiter) ResetIP(ip string) {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	delete(rl.attempts, ip)
 }
 
 // cleanup removes old entries periodically
@@ -225,6 +239,16 @@ func GetSecureSession(token string) (*Session, error) {
 	return session, nil
 }
 
+// GetSession retrieves a session from HTTP request
+func GetSession(r *http.Request) (*Session, error) {
+	cookie, err := r.Cookie(SessionCookieName)
+	if err != nil {
+		return nil, fmt.Errorf("no session cookie")
+	}
+	
+	return GetSecureSession(cookie.Value)
+}
+
 // deleteSession removes a session
 func deleteSession(token string) {
 	sessionsMutex.Lock()
@@ -234,7 +258,7 @@ func deleteSession(token string) {
 
 // getUserFromSession gets the user from the current session
 func getUserFromSession(r *http.Request) *User {
-	cookie, err := r.Cookie("session_token")
+	cookie, err := r.Cookie(SessionCookieName)
 	if err != nil {
 		return nil
 	}

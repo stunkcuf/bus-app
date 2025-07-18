@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -217,6 +219,100 @@ func viewECSEStudentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	renderTemplate(w, r, "view_ecse_student.html", data)
+}
+
+// editECSEStudentHandler handles editing ECSE student information
+func editECSEStudentHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		// Show edit form
+		studentID := r.URL.Query().Get("id")
+		if studentID == "" {
+			http.Error(w, "Student ID required", http.StatusBadRequest)
+			return
+		}
+
+		var student ECSEStudent
+		if err := db.Get(&student, "SELECT * FROM ecse_students WHERE student_id = $1", studentID); err != nil {
+			http.Error(w, "Student not found", http.StatusNotFound)
+			return
+		}
+
+		data := map[string]interface{}{
+			"Student":   student,
+			"CSRFToken": getSessionCSRFToken(r),
+		}
+
+		renderTemplate(w, r, "edit_ecse_student.html", data)
+		return
+	}
+
+	if r.Method == "POST" {
+		// Parse form
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			http.Error(w, "Failed to parse form", http.StatusBadRequest)
+			return
+		}
+
+		// Validate CSRF token
+		if !validateCSRF(r) {
+			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+			return
+		}
+
+		// Get form values
+		studentID := r.FormValue("student_id")
+		firstName := r.FormValue("first_name")
+		lastName := r.FormValue("last_name")
+		dateOfBirth := r.FormValue("date_of_birth")
+		grade := r.FormValue("grade")
+		enrollmentStatus := r.FormValue("enrollment_status")
+		iepStatus := r.FormValue("iep_status")
+		primaryDisability := r.FormValue("primary_disability")
+		serviceMinutesStr := r.FormValue("service_minutes")
+		transportationRequired := r.FormValue("transportation_required") == "true"
+		busRoute := r.FormValue("bus_route")
+		parentName := r.FormValue("parent_name")
+		parentPhone := r.FormValue("parent_phone")
+		parentEmail := r.FormValue("parent_email")
+		address := r.FormValue("address")
+		city := r.FormValue("city")
+		state := r.FormValue("state")
+		zipCode := r.FormValue("zip_code")
+
+		// Parse service minutes
+		serviceMinutes := 0
+		if serviceMinutesStr != "" {
+			fmt.Sscanf(serviceMinutesStr, "%d", &serviceMinutes)
+		}
+
+		// Update student
+		query := `
+			UPDATE ecse_students SET
+				first_name = $2, last_name = $3, date_of_birth = $4, grade = $5,
+				enrollment_status = $6, iep_status = $7, primary_disability = $8,
+				service_minutes = $9, transportation_required = $10, bus_route = $11,
+				parent_name = $12, parent_phone = $13, parent_email = $14,
+				address = $15, city = $16, state = $17, zip_code = $18
+			WHERE student_id = $1
+		`
+
+		_, err := db.Exec(query, studentID, firstName, lastName, dateOfBirth, grade,
+			enrollmentStatus, iepStatus, primaryDisability, serviceMinutes,
+			transportationRequired, busRoute, parentName, parentPhone, parentEmail,
+			address, city, state, zipCode)
+
+		if err != nil {
+			log.Printf("Error updating ECSE student: %v", err)
+			http.Error(w, "Failed to update student", http.StatusInternalServerError)
+			return
+		}
+
+		// Redirect back to student view
+		http.Redirect(w, r, "/ecse-student/"+studentID, http.StatusSeeOther)
+		return
+	}
+
+	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 }
 
 // exportECSEHandler exports ECSE data
@@ -585,4 +681,79 @@ func removeStudentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/students", http.StatusSeeOther)
+}
+
+// addBusHandler handles adding a new bus to the fleet
+func addBusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	// Parse form for multipart data
+	err := r.ParseMultipartForm(10 << 20) // 10MB max
+	if err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	// Validate CSRF token
+	if !validateCSRF(r) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+
+	// Get form values
+	busID := r.FormValue("bus_id")
+	model := r.FormValue("model")
+	capacityStr := r.FormValue("capacity")
+	status := r.FormValue("status")
+
+	// Validate required fields
+	if busID == "" || model == "" || capacityStr == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	// Parse capacity
+	var capacity int
+	_, err = fmt.Sscanf(capacityStr, "%d", &capacity)
+	if err != nil || capacity <= 0 {
+		http.Error(w, "Invalid capacity", http.StatusBadRequest)
+		return
+	}
+
+	// Set default status if not provided
+	if status == "" {
+		status = "active"
+	}
+
+	// Create bus in database
+	query := `
+		INSERT INTO buses (bus_id, model, capacity, status, oil_status, tire_status)
+		VALUES ($1, $2, $3, $4, 'good', 'good')
+	`
+	
+	_, err = db.Exec(query, busID, model, capacity, status)
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key") {
+			http.Error(w, "Bus ID already exists", http.StatusConflict)
+			return
+		}
+		log.Printf("Error adding bus: %v", err)
+		http.Error(w, "Failed to add bus", http.StatusInternalServerError)
+		return
+	}
+
+	// Invalidate cache
+	dataCache.invalidateBuses()
+
+	// Redirect to fleet page
+	http.Redirect(w, r, "/fleet", http.StatusSeeOther)
 }

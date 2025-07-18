@@ -777,7 +777,6 @@
     async function updateStatus(vehicleId, type, status) {
       if (state.isLoading) return;
       
-      console.log('Updating status:', { vehicleId, type, status });
       
       const csrfToken = document.getElementById('csrfToken')?.value;
       if (!csrfToken) {

@@ -35,6 +35,12 @@ func InitDB(dataSourceName string) error {
 	if err := runMigrations(); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
+	
+	// Create admin user if it doesn't exist
+	if err := CreateAdminUser(); err != nil {
+		log.Printf("Warning: failed to create admin user: %v", err)
+		// Don't fail initialization if admin creation fails
+	}
 
 	return nil
 }
@@ -287,6 +293,117 @@ func runMigrations() error {
 				ALTER TABLE ecse_students ADD COLUMN zip_code VARCHAR(20);
 			END IF;
 		END $$;`,
+		
+		// Create mileage_records table if not exists
+		`CREATE TABLE IF NOT EXISTS mileage_records (
+			id SERIAL PRIMARY KEY,
+			vehicle_id VARCHAR(50) NOT NULL,
+			begin_mileage INTEGER NOT NULL,
+			end_mileage INTEGER NOT NULL,
+			import_id VARCHAR(50),
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		
+		// Create import history table
+		`CREATE TABLE IF NOT EXISTS import_history (
+			id SERIAL PRIMARY KEY,
+			import_id VARCHAR(50) UNIQUE NOT NULL,
+			import_type VARCHAR(20) NOT NULL,
+			file_name VARCHAR(255) NOT NULL,
+			file_size BIGINT NOT NULL,
+			total_rows INTEGER DEFAULT 0,
+			successful_rows INTEGER DEFAULT 0,
+			failed_rows INTEGER DEFAULT 0,
+			error_count INTEGER DEFAULT 0,
+			warning_count INTEGER DEFAULT 0,
+			summary TEXT,
+			start_time TIMESTAMP NOT NULL,
+			end_time TIMESTAMP NOT NULL,
+			duration INTERVAL GENERATED ALWAYS AS (end_time - start_time) STORED,
+			imported_by VARCHAR(50) REFERENCES users(username),
+			rollback_available BOOLEAN DEFAULT TRUE,
+			rollback_expires_at TIMESTAMP,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		
+		// Create import errors table
+		`CREATE TABLE IF NOT EXISTS import_errors (
+			id SERIAL PRIMARY KEY,
+			import_id VARCHAR(50) REFERENCES import_history(import_id) ON DELETE CASCADE,
+			row_number INTEGER,
+			column_name VARCHAR(100),
+			sheet_name VARCHAR(100),
+			error_type VARCHAR(50),
+			error_message TEXT,
+			error_value TEXT,
+			severity VARCHAR(20) DEFAULT 'error',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		
+		// Add import_id columns to track imports
+		`DO $$ 
+		BEGIN 
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+				WHERE table_name = 'mileage_records' AND column_name = 'import_id') THEN
+				ALTER TABLE mileage_records ADD COLUMN import_id VARCHAR(50);
+			END IF;
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+				WHERE table_name = 'ecse_students' AND column_name = 'import_id') THEN
+				ALTER TABLE ecse_students ADD COLUMN import_id VARCHAR(50);
+			END IF;
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+				WHERE table_name = 'students' AND column_name = 'import_id') THEN
+				ALTER TABLE students ADD COLUMN import_id VARCHAR(50);
+			END IF;
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+				WHERE table_name = 'vehicles' AND column_name = 'import_id') THEN
+				ALTER TABLE vehicles ADD COLUMN import_id VARCHAR(50);
+			END IF;
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+				WHERE table_name = 'agency_vehicles' AND column_name = 'import_id') THEN
+				ALTER TABLE agency_vehicles ADD COLUMN import_id VARCHAR(50);
+			END IF;
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+				WHERE table_name = 'school_buses' AND column_name = 'import_id') THEN
+				ALTER TABLE school_buses ADD COLUMN import_id VARCHAR(50);
+			END IF;
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+				WHERE table_name = 'program_staff' AND column_name = 'import_id') THEN
+				ALTER TABLE program_staff ADD COLUMN import_id VARCHAR(50);
+			END IF;
+		END $$;`,
+		
+		// Create indexes for import tracking
+		`CREATE INDEX IF NOT EXISTS idx_import_history_import_type ON import_history(import_type)`,
+		`CREATE INDEX IF NOT EXISTS idx_import_history_start_time ON import_history(start_time DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_import_errors_import_id ON import_errors(import_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_mileage_records_import_id ON mileage_records(import_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_ecse_students_import_id ON ecse_students(import_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_students_import_id ON students(import_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_vehicles_import_id ON vehicles(import_id)`,
+		
+		// Create scheduled exports table
+		`CREATE TABLE IF NOT EXISTS scheduled_exports (
+			id SERIAL PRIMARY KEY,
+			name VARCHAR(100) NOT NULL,
+			export_type VARCHAR(50) NOT NULL,
+			schedule VARCHAR(20) NOT NULL CHECK (schedule IN ('daily', 'weekly', 'monthly')),
+			day_of_week INTEGER DEFAULT 0,
+			day_of_month INTEGER DEFAULT 1,
+			time VARCHAR(5) NOT NULL,
+			format VARCHAR(10) NOT NULL DEFAULT 'xlsx',
+			recipients TEXT,
+			enabled BOOLEAN DEFAULT TRUE,
+			last_run TIMESTAMP,
+			next_run TIMESTAMP NOT NULL,
+			created_by VARCHAR(50) REFERENCES users(username),
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		
+		// Create index for scheduled exports
+		`CREATE INDEX IF NOT EXISTS idx_scheduled_exports_next_run ON scheduled_exports(next_run)`,
+		`CREATE INDEX IF NOT EXISTS idx_scheduled_exports_enabled ON scheduled_exports(enabled)`,
 	}
 
 	for i, migration := range migrations {
@@ -451,7 +568,7 @@ func updateVehicleMaintenanceStatus(vehicleID string, oilStatus, tireStatus stri
 	}
 
 	// Try updating vehicle
-	result, err = db.Exec(
+	_, err = db.Exec(
 		"UPDATE vehicles SET oil_status = $1, tire_status = $2, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $3",
 		oilStatus, tireStatus, vehicleID,
 	)

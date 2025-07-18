@@ -1,5 +1,11 @@
 # Fleet Management System - Claude Development Guide
 
+## 🚨 IMPORTANT: Start of Session Checklist
+1. **Always read PLANNING.md** at the start of every new conversation
+2. **Check TASKS.md** before starting your work
+3. **Mark completed tasks** in TASKS.md immediately after completion
+4. **Add newly discovered tasks** to TASKS.md when found
+
 ## Project Overview
 
 The Fleet Management System is a comprehensive web-based platform for managing school transportation operations, including bus fleets, driver assignments, student ridership, and vehicle maintenance.
@@ -228,6 +234,11 @@ type ECSEService struct {
     fleet.html
     students.html
     (etc.)
+  /utilities           # Utility scripts (not part of main build)
+    test_connection.go
+    generate_hash.go
+    reset_password.go
+    (etc.)
 ```
 
 ### HTTP Routes Structure
@@ -253,6 +264,7 @@ POST   /delete-user            # Delete user
 GET    /fleet                   # Bus fleet overview
 GET    /company-fleet           # Company vehicles
 POST   /update-vehicle-status   # Update vehicle status
+POST   /add-bus                 # Add new bus
 GET    /bus-maintenance/{id}    # Bus maintenance history
 GET    /vehicle-maintenance/{id} # Vehicle maintenance history
 POST   /save-maintenance-record # Save maintenance record
@@ -270,6 +282,8 @@ GET    /import-ecse             # ECSE import page
 POST   /import-ecse             # Import ECSE Excel file
 GET    /view-ecse-reports       # ECSE reports overview
 GET    /ecse-student/{id}       # ECSE student details
+GET    /edit-ecse-student       # Edit ECSE student form
+POST   /edit-ecse-student       # Update ECSE student
 GET    /export-ecse             # Export ECSE data to CSV
 
 # Mileage Reports
@@ -357,7 +371,7 @@ GET    /driver/{username}       # Driver profile (manager view)
 1. Define struct in `models.go`
 2. Add database table/migration in `database.go`
 3. Create data access functions in `data.go`
-4. Implement HTTP handlers in `handlers.go`
+4. Implement HTTP handlers in `handlers.go` or `handlers_missing.go`
 5. Add routes in `main.go`
 6. Create/update HTML templates
 7. Add caching support in `cache.go` if needed
@@ -427,6 +441,12 @@ func myHandler(w http.ResponseWriter, r *http.Request) {
     }
     
     if r.Method == "POST" {
+        // Parse form for CSRF token
+        if err := r.ParseMultipartForm(10 << 20); err != nil {
+            http.Error(w, "Failed to parse form", http.StatusBadRequest)
+            return
+        }
+        
         // Validate CSRF
         if !validateCSRF(r) {
             http.Error(w, "Invalid CSRF token", http.StatusForbidden)
@@ -475,3 +495,81 @@ func myHandler(w http.ResponseWriter, r *http.Request) {
 - **HTTP Methods**: Always check r.Method in handlers
 - **Redirects**: Use http.StatusSeeOther (303) after POST
 - **Static Files**: Currently served inline, consider CDN for production
+- **Utility Files**: Keep standalone utilities in `/utilities` folder to avoid main package conflicts
+
+## Quick Commands
+
+### Run the application
+```bash
+go run .
+```
+
+### Build for production
+```bash
+go build -ldflags='-s -w' -o fleet-management .
+```
+
+### Run utilities
+```bash
+# Test database connection
+go run utilities/test_connection.go
+
+# Generate password hash
+go run utilities/generate_hash.go
+
+# Reset admin password
+go run utilities/reset_password.go
+```
+
+### Database operations
+```bash
+# Connect to PostgreSQL
+psql $DATABASE_URL
+
+# View all tables
+\dt
+
+# Describe a table
+\d users
+```
+
+## Recent Updates (January 2025)
+1. **Add Bus Functionality**: Implemented `/add-bus` endpoint for fleet management
+2. **ECSE Edit Feature**: Added full ECSE student editing capabilities with dedicated form
+3. **Security Improvements**: Removed hardcoded credentials from test utilities
+4. **Code Cleanup**: Removed debugging console.log statements from production templates
+5. **Project Organization**: Moved utility scripts to separate folder to avoid compilation conflicts
+6. **Comprehensive Error Handling**: 
+   - Created `errors.go` with structured error types (AppError)
+   - Implemented error constants for validation, auth, database, etc.
+   - Added error response formatting with appropriate HTTP status codes
+   - Created user-friendly error messages with detailed logging
+7. **Structured Logging System**:
+   - Created `logger.go` with structured logging support
+   - Implemented log levels (DEBUG, INFO, WARN, ERROR, FATAL)
+   - Added JSON logging for production environment
+   - Integrated request context logging with user/request IDs
+   - Added logging middleware for HTTP requests
+8. **Handler Improvements**:
+   - Created `handlers_improved.go` with example implementations
+   - Enhanced login handler with validation and detailed logging
+   - Improved fleet handler with graceful error recovery
+   - Updated addBus handler with comprehensive validation
+9. **Error Page Template**: Created `error.html` for user-friendly error display
+
+## Common Issues and Solutions
+
+### Issue: Multiple main functions error
+**Solution**: Move utility files to `/utilities` folder
+
+### Issue: CSRF token validation failing
+**Solution**: Ensure `r.ParseMultipartForm()` is called before `validateCSRF()`
+
+### Issue: Sessions lost on restart
+**Solution**: This is expected behavior - consider implementing persistent session storage for production
+
+### Issue: Template not found
+**Solution**: Ensure template is added to `loadTemplates()` function in main.go
+
+### Issue: Database connection timeout
+**Solution**: Check DATABASE_URL environment variable and network connectivity
