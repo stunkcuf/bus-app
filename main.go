@@ -241,6 +241,15 @@ func init() {
 			}
 			return ""
 		},
+		"truncate": func(s string, n int) string {
+			if len(s) <= n {
+				return s
+			}
+			if n <= 3 {
+				return s[:n]
+			}
+			return s[:n-3] + "..."
+		},
 	}
 
 	var err error
