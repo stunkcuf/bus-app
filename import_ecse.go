@@ -132,7 +132,6 @@ func processTransportationSheet(f *excelize.File, sheetName string) (int, error)
 			BusRoute:               studentData.Route,
 			Notes:                  fmt.Sprintf("Program: %s, District: %s, Month: %s", studentData.Program, schoolDistrict, monthYear),
 			CreatedAt:              time.Now(),
-			UpdatedAt:              time.Now(),
 		}
 
 		err := saveECSEStudent(student)
@@ -437,7 +436,7 @@ func saveECSEStudent(student ECSEStudent) error {
 			student_id, first_name, last_name, date_of_birth, grade,
 			enrollment_status, iep_status, primary_disability, service_minutes,
 			transportation_required, bus_route, parent_name, parent_phone,
-			parent_email, address, city, state, zip_code, notes, created_at, updated_at
+			parent_email, city, state, zip_code, notes, created_at
 		) VALUES (
 			$1, $2, $3, 
 			CASE WHEN $4 = '' THEN NULL ELSE $4::DATE END, 
@@ -445,9 +444,9 @@ func saveECSEStudent(student ECSEStudent) error {
 			NULLIF($7, ''), NULLIF($8, ''), 
 			$9, $10, 
 			NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''), NULLIF($14, ''), 
-			NULLIF($15, ''), NULLIF($16, ''), NULLIF($17, ''), NULLIF($18, ''), 
-			NULLIF($19, ''), 
-			$20, $21
+			NULLIF($15, ''), NULLIF($16, ''), NULLIF($17, ''), 
+			NULLIF($18, ''), 
+			$19
 		)
 		ON CONFLICT (student_id) DO UPDATE SET
 			first_name = EXCLUDED.first_name,
@@ -456,14 +455,13 @@ func saveECSEStudent(student ECSEStudent) error {
 			enrollment_status = EXCLUDED.enrollment_status,
 			transportation_required = EXCLUDED.transportation_required,
 			bus_route = EXCLUDED.bus_route,
-			notes = EXCLUDED.notes,
-			updated_at = EXCLUDED.updated_at
+			notes = EXCLUDED.notes
 	`, student.StudentID, student.FirstName, student.LastName, student.DateOfBirth,
 		student.Grade, student.EnrollmentStatus, student.IEPStatus, student.PrimaryDisability,
 		student.ServiceMinutes, student.TransportationRequired, student.BusRoute,
 		student.ParentName, student.ParentPhone, student.ParentEmail,
-		student.Address, student.City, student.State, student.ZipCode, student.Notes,
-		student.CreatedAt, student.UpdatedAt)
+		student.City, student.State, student.ZipCode, student.Notes,
+		student.CreatedAt)
 
 	return err
 }
