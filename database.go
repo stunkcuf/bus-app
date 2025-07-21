@@ -84,48 +84,130 @@ func InitDB(dataSourceName string) error {
 
 // createPerformanceIndexes creates database indexes for optimal performance
 func createPerformanceIndexes() error {
-	indexes := []string{
+	indexes := []struct {
+		name  string
+		query string
+	}{
 		// Monthly Mileage Reports Indexes
-		`CREATE INDEX IF NOT EXISTS idx_monthly_mileage_reports_year_month 
-		 ON monthly_mileage_reports(report_year DESC, report_month DESC)`,
-
-		`CREATE INDEX IF NOT EXISTS idx_monthly_mileage_reports_bus_id 
-		 ON monthly_mileage_reports(bus_id)`,
-
-		// Maintenance Records Indexes
-		`CREATE INDEX IF NOT EXISTS idx_maintenance_records_vehicle_id 
-		 ON maintenance_records(vehicle_id)`,
-
-		`CREATE INDEX IF NOT EXISTS idx_maintenance_records_date 
-		 ON maintenance_records(maintenance_date DESC)`,
-
-		// Fleet Vehicles Indexes
-		`CREATE INDEX IF NOT EXISTS idx_fleet_vehicles_status 
-		 ON fleet_vehicles(status)`,
-
-		`CREATE INDEX IF NOT EXISTS idx_fleet_vehicles_make_model 
-		 ON fleet_vehicles(make, model)`,
-
-		// Service Records Indexes
-		`CREATE INDEX IF NOT EXISTS idx_service_records_vehicle_id 
-		 ON service_records(vehicle_id)`,
-
+		{
+			name: "monthly_mileage_reports_year_month",
+			query: `CREATE INDEX IF NOT EXISTS idx_monthly_mileage_reports_year_month 
+			 ON monthly_mileage_reports(report_year DESC, report_month)`,
+		},
+		{
+			name: "monthly_mileage_reports_bus_id",
+			query: `CREATE INDEX IF NOT EXISTS idx_monthly_mileage_reports_bus_id 
+			 ON monthly_mileage_reports(bus_id)`,
+		},
+		// Maintenance Records Indexes - FIXED: use correct columns
+		{
+			name: "maintenance_records_vehicle_id",
+			query: `CREATE INDEX IF NOT EXISTS idx_maintenance_records_vehicle_id 
+			 ON maintenance_records(vehicle_id)`,
+		},
+		{
+			name: "maintenance_records_service_date",
+			query: `CREATE INDEX IF NOT EXISTS idx_maintenance_records_service_date 
+			 ON maintenance_records(service_date DESC) WHERE service_date IS NOT NULL`,
+		},
+		{
+			name: "maintenance_records_date",
+			query: `CREATE INDEX IF NOT EXISTS idx_maintenance_records_date 
+			 ON maintenance_records(date DESC) WHERE date IS NOT NULL`,
+		},
+		// Fleet Vehicles Indexes - FIXED: check if columns exist
+		{
+			name: "fleet_vehicles_make_model",
+			query: `CREATE INDEX IF NOT EXISTS idx_fleet_vehicles_make_model 
+			 ON fleet_vehicles(make, model)`,
+		},
+		// Buses table indexes
+		{
+			name: "buses_status",
+			query: `CREATE INDEX IF NOT EXISTS idx_buses_status 
+			 ON buses(status)`,
+		},
+		// Vehicles table indexes
+		{
+			name: "vehicles_status",
+			query: `CREATE INDEX IF NOT EXISTS idx_vehicles_status 
+			 ON vehicles(status) WHERE status IS NOT NULL`,
+		},
+		// Service Records Indexes - FIXED: remove non-existent column
+		{
+			name: "service_records_maintenance_date",
+			query: `CREATE INDEX IF NOT EXISTS idx_service_records_maintenance_date 
+			 ON service_records(maintenance_date DESC) WHERE maintenance_date IS NOT NULL`,
+		},
 		// Composite indexes for common queries
-		`CREATE INDEX IF NOT EXISTS idx_maintenance_records_vehicle_date_category 
-		 ON maintenance_records(vehicle_id, maintenance_date DESC, category)`,
-
-		`CREATE INDEX IF NOT EXISTS idx_monthly_reports_bus_year_month 
-		 ON monthly_mileage_reports(bus_id, report_year DESC, report_month DESC)`,
+		{
+			name: "maintenance_records_vehicle_service_date",
+			query: `CREATE INDEX IF NOT EXISTS idx_maintenance_records_vehicle_service_date 
+			 ON maintenance_records(vehicle_id, service_date DESC) WHERE service_date IS NOT NULL`,
+		},
+		{
+			name: "monthly_reports_bus_year_month",
+			query: `CREATE INDEX IF NOT EXISTS idx_monthly_reports_bus_year_month 
+			 ON monthly_mileage_reports(bus_id, report_year DESC, report_month)`,
+		},
+		// Add indexes for fuel records
+		{
+			name: "fuel_records_vehicle_date",
+			query: `CREATE INDEX IF NOT EXISTS idx_fuel_records_vehicle_date 
+			 ON fuel_records(vehicle_id, date DESC)`,
+		},
+		// Additional performance indexes
+		{
+			name: "students_route_id",
+			query: `CREATE INDEX IF NOT EXISTS idx_students_route_id 
+			 ON students(route_id)`,
+		},
+		{
+			name: "students_driver",
+			query: `CREATE INDEX IF NOT EXISTS idx_students_driver 
+			 ON students(driver)`,
+		},
+		{
+			name: "route_assignments_driver",
+			query: `CREATE INDEX IF NOT EXISTS idx_route_assignments_driver 
+			 ON route_assignments(driver)`,
+		},
+		{
+			name: "route_assignments_bus_id",
+			query: `CREATE INDEX IF NOT EXISTS idx_route_assignments_bus_id 
+			 ON route_assignments(bus_id)`,
+		},
+		{
+			name: "driver_logs_driver",
+			query: `CREATE INDEX IF NOT EXISTS idx_driver_logs_driver 
+			 ON driver_logs(driver)`,
+		},
+		{
+			name: "driver_logs_date",
+			query: `CREATE INDEX IF NOT EXISTS idx_driver_logs_date 
+			 ON driver_logs(date)`,
+		},
 	}
 
-	for _, indexSQL := range indexes {
-		if _, err := db.Exec(indexSQL); err != nil {
-			log.Printf("Warning: Failed to create index: %v", err)
+	for _, idx := range indexes {
+		log.Printf("Creating index: %s", idx.name)
+		if _, err := db.Exec(idx.query); err != nil {
+			// Check if it's a column doesn't exist error
+			errStr := err.Error()
+			if strings.Contains(errStr, "does not exist") {
+				log.Printf("Warning: Skipping index %s - column doesn't exist: %v", idx.name, err)
+				continue
+			}
+			if strings.Contains(errStr, "already exists") {
+				log.Printf("Index %s already exists, skipping", idx.name)
+				continue
+			}
+			log.Printf("Warning: Failed to create index %s: %v", idx.name, err)
 			// Continue with other indexes
 		}
 	}
 
-	log.Printf("Performance indexes created successfully")
+	log.Printf("Performance indexes creation completed")
 	return nil
 }
 
@@ -231,7 +313,7 @@ func runMigrations() error {
 			vehicle_id VARCHAR(50) PRIMARY KEY,
 			model VARCHAR(100),
 			description TEXT,
-			year INTEGER,
+			year VARCHAR(10),
 			tire_size VARCHAR(50),
 			license VARCHAR(50),
 			oil_status VARCHAR(20) DEFAULT 'good' CHECK (oil_status IN ('good', 'due_soon', 'overdue')),
@@ -247,32 +329,6 @@ func runMigrations() error {
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
-
-		// DEPRECATED: bus_maintenance_logs table - consolidated into maintenance_records
-		// Keeping for backwards compatibility but no longer used
-		/*`CREATE TABLE IF NOT EXISTS bus_maintenance_logs (
-			id SERIAL PRIMARY KEY,
-			bus_id VARCHAR(50) NOT NULL REFERENCES buses(bus_id) ON DELETE CASCADE,
-			date DATE NOT NULL,
-			category VARCHAR(50) NOT NULL CHECK (category IN ('oil_change', 'tire_service', 'inspection', 'repair', 'other')),
-			notes TEXT,
-			mileage INTEGER,
-			cost DECIMAL(10, 2) DEFAULT 0,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,*/
-
-		// DEPRECATED: vehicle_maintenance_logs table - consolidated into maintenance_records
-		// Keeping for backwards compatibility but no longer used
-		/*`CREATE TABLE IF NOT EXISTS vehicle_maintenance_logs (
-			id SERIAL PRIMARY KEY,
-			vehicle_id VARCHAR(50) NOT NULL REFERENCES vehicles(vehicle_id) ON DELETE CASCADE,
-			date DATE NOT NULL,
-			category VARCHAR(50) NOT NULL CHECK (category IN ('oil_change', 'tire_service', 'inspection', 'repair', 'other')),
-			notes TEXT,
-			mileage INTEGER,
-			cost DECIMAL(10, 2) DEFAULT 0,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,*/
 
 		// Create consolidated maintenance_records table
 		`CREATE TABLE IF NOT EXISTS maintenance_records (
@@ -420,24 +476,63 @@ func runMigrations() error {
 			UNIQUE(vehicle_id, month, year)
 		)`,
 
-		// Add indexes
-		// DEPRECATED: Indexes for old maintenance tables - no longer needed
-		/*`CREATE INDEX IF NOT EXISTS idx_bus_maintenance_logs_bus_id ON bus_maintenance_logs(bus_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_bus_maintenance_logs_date ON bus_maintenance_logs(date)`,
-		`CREATE INDEX IF NOT EXISTS idx_vehicle_maintenance_logs_vehicle_id ON vehicle_maintenance_logs(vehicle_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_vehicle_maintenance_logs_date ON vehicle_maintenance_logs(date)`,*/
-		`CREATE INDEX IF NOT EXISTS idx_students_route_id ON students(route_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_students_driver ON students(driver)`,
-		`CREATE INDEX IF NOT EXISTS idx_route_assignments_driver ON route_assignments(driver)`,
-		`CREATE INDEX IF NOT EXISTS idx_route_assignments_bus_id ON route_assignments(bus_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_driver_logs_driver ON driver_logs(driver)`,
-		`CREATE INDEX IF NOT EXISTS idx_driver_logs_date ON driver_logs(date)`,
-		`CREATE INDEX IF NOT EXISTS idx_ecse_services_student_id ON ecse_services(student_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_ecse_assessments_student_id ON ecse_assessments(student_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_ecse_attendance_student_id ON ecse_attendance(student_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_ecse_attendance_date ON ecse_attendance(date)`,
-		`CREATE INDEX IF NOT EXISTS idx_mileage_reports_vehicle_id ON mileage_reports(vehicle_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_mileage_reports_date ON mileage_reports(year, month)`,
+		// Create monthly_mileage_reports table if not exists
+		`CREATE TABLE IF NOT EXISTS monthly_mileage_reports (
+			id SERIAL PRIMARY KEY,
+			report_month VARCHAR(20) NOT NULL,
+			report_year INTEGER NOT NULL,
+			bus_year INTEGER,
+			bus_make VARCHAR(100),
+			license_plate VARCHAR(50),
+			bus_id VARCHAR(50),
+			located_at VARCHAR(100),
+			beginning_miles INTEGER,
+			ending_miles INTEGER,
+			total_miles INTEGER,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// Create fleet_vehicles table if not exists
+		`CREATE TABLE IF NOT EXISTS fleet_vehicles (
+			id SERIAL PRIMARY KEY,
+			vehicle_number INTEGER,
+			sheet_name VARCHAR(100),
+			year INTEGER,
+			make VARCHAR(100),
+			model VARCHAR(100),
+			description TEXT,
+			serial_number VARCHAR(100),
+			license VARCHAR(50),
+			location VARCHAR(100),
+			tire_size VARCHAR(50),
+			status VARCHAR(20) DEFAULT 'active',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// Create service_records table if not exists
+		`CREATE TABLE IF NOT EXISTS service_records (
+			id SERIAL PRIMARY KEY,
+			unnamed_0 VARCHAR(255),
+			unnamed_1 VARCHAR(255),
+			unnamed_2 VARCHAR(255),
+			unnamed_3 VARCHAR(255),
+			unnamed_4 VARCHAR(255),
+			unnamed_5 VARCHAR(255),
+			unnamed_6 VARCHAR(255),
+			unnamed_7 VARCHAR(255),
+			unnamed_8 VARCHAR(255),
+			unnamed_9 VARCHAR(255),
+			unnamed_10 VARCHAR(255),
+			unnamed_11 VARCHAR(255),
+			unnamed_12 VARCHAR(255),
+			unnamed_13 VARCHAR(255),
+			maintenance_date DATE,
+			vehicle_id VARCHAR(50),
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
 
 		// Add city, state, zip_code columns to ecse_students if they don't exist
 		`DO $$ 
@@ -453,6 +548,18 @@ func runMigrations() error {
 			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
 				WHERE table_name = 'ecse_students' AND column_name = 'zip_code') THEN
 				ALTER TABLE ecse_students ADD COLUMN zip_code VARCHAR(20);
+			END IF;
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+				WHERE table_name = 'ecse_students' AND column_name = 'address') THEN
+				ALTER TABLE ecse_students ADD COLUMN address TEXT;
+			END IF;
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+				WHERE table_name = 'ecse_students' AND column_name = 'updated_at') THEN
+				ALTER TABLE ecse_students ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+			END IF;
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+				WHERE table_name = 'ecse_students' AND column_name = 'import_id') THEN
+				ALTER TABLE ecse_students ADD COLUMN import_id VARCHAR(50);
 			END IF;
 		END $$;`,
 
@@ -510,10 +617,6 @@ func runMigrations() error {
 				ALTER TABLE mileage_records ADD COLUMN import_id VARCHAR(50);
 			END IF;
 			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-				WHERE table_name = 'ecse_students' AND column_name = 'import_id') THEN
-				ALTER TABLE ecse_students ADD COLUMN import_id VARCHAR(50);
-			END IF;
-			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
 				WHERE table_name = 'students' AND column_name = 'import_id') THEN
 				ALTER TABLE students ADD COLUMN import_id VARCHAR(50);
 			END IF;
@@ -521,29 +624,16 @@ func runMigrations() error {
 				WHERE table_name = 'vehicles' AND column_name = 'import_id') THEN
 				ALTER TABLE vehicles ADD COLUMN import_id VARCHAR(50);
 			END IF;
-			-- Commented out: Tables deleted during consolidation
-			-- IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-			-- 	WHERE table_name = 'agency_vehicles' AND column_name = 'import_id') THEN
-			-- 	ALTER TABLE agency_vehicles ADD COLUMN import_id VARCHAR(50);
-			-- END IF;
-			-- IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-			-- 	WHERE table_name = 'school_buses' AND column_name = 'import_id') THEN
-			-- 	ALTER TABLE school_buses ADD COLUMN import_id VARCHAR(50);
-			-- END IF;
 			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
 				WHERE table_name = 'program_staff' AND column_name = 'import_id') THEN
 				ALTER TABLE program_staff ADD COLUMN import_id VARCHAR(50);
 			END IF;
+			-- Year column fix for vehicles
+			IF EXISTS (SELECT 1 FROM information_schema.columns 
+				WHERE table_name = 'vehicles' AND column_name = 'year' AND data_type = 'integer') THEN
+				ALTER TABLE vehicles ALTER COLUMN year TYPE VARCHAR(10) USING year::VARCHAR;
+			END IF;
 		END $$;`,
-
-		// Create indexes for import tracking
-		`CREATE INDEX IF NOT EXISTS idx_import_history_import_type ON import_history(import_type)`,
-		`CREATE INDEX IF NOT EXISTS idx_import_history_start_time ON import_history(start_time DESC)`,
-		`CREATE INDEX IF NOT EXISTS idx_import_errors_import_id ON import_errors(import_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_mileage_records_import_id ON mileage_records(import_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_ecse_students_import_id ON ecse_students(import_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_students_import_id ON students(import_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_vehicles_import_id ON vehicles(import_id)`,
 
 		// Create scheduled exports table
 		`CREATE TABLE IF NOT EXISTS scheduled_exports (
@@ -563,10 +653,6 @@ func runMigrations() error {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
-
-		// Create index for scheduled exports
-		`CREATE INDEX IF NOT EXISTS idx_scheduled_exports_next_run ON scheduled_exports(next_run)`,
-		`CREATE INDEX IF NOT EXISTS idx_scheduled_exports_enabled ON scheduled_exports(enabled)`,
 		
 		// Create saved reports table
 		`CREATE TABLE IF NOT EXISTS saved_reports (
@@ -586,10 +672,6 @@ func runMigrations() error {
 			last_run TIMESTAMP,
 			is_public BOOLEAN DEFAULT FALSE
 		)`,
-		
-		// Create indexes for saved reports
-		`CREATE INDEX IF NOT EXISTS idx_saved_reports_created_by ON saved_reports(created_by)`,
-		`CREATE INDEX IF NOT EXISTS idx_saved_reports_data_source ON saved_reports(data_source)`,
 
 		// Create fuel_records table
 		`CREATE TABLE IF NOT EXISTS fuel_records (
@@ -609,10 +691,17 @@ func runMigrations() error {
 			CONSTRAINT positive_odometer CHECK (odometer > 0)
 		)`,
 
-		// Create indexes for fuel records
-		`CREATE INDEX IF NOT EXISTS idx_fuel_records_vehicle_id ON fuel_records(vehicle_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_fuel_records_date ON fuel_records(date)`,
-		`CREATE INDEX IF NOT EXISTS idx_fuel_records_vehicle_date ON fuel_records(vehicle_id, date)`,
+		// Create program_staff table if not exists
+		`CREATE TABLE IF NOT EXISTS program_staff (
+			id SERIAL PRIMARY KEY,
+			report_month VARCHAR(20),
+			report_year INTEGER,
+			program_type VARCHAR(100),
+			staff_count1 INTEGER,
+			staff_count2 INTEGER,
+			import_id VARCHAR(50),
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	for i, migration := range migrations {
@@ -628,6 +717,8 @@ func runMigrations() error {
 			}
 		} else if strings.Contains(migration, "CREATE INDEX") {
 			tableName = "index"
+		} else if strings.Contains(migration, "DO $$") {
+			tableName = "ALTER TABLE"
 		}
 
 		log.Printf("Running migration %d: %s", i+1, tableName)
@@ -643,9 +734,9 @@ func runMigrations() error {
 			// Log which migration failed
 			log.Printf("Migration %d failed (%s): %v", i+1, tableName, err)
 
-			// For index creation, we can continue if it fails
-			if strings.Contains(migration, "CREATE INDEX") {
-				log.Printf("Continuing despite index creation error")
+			// For index creation or ALTER TABLE, we can continue if it fails
+			if strings.Contains(migration, "CREATE INDEX") || strings.Contains(migration, "ALTER TABLE") {
+				log.Printf("Continuing despite error in %s", tableName)
 				continue
 			}
 
