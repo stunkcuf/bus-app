@@ -1,375 +1,938 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Company Fleet - HS Bus Management</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Company Fleet - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style nonce="{{.CSPNonce}}">
+    /* Ultimate beautiful design system */
+    :root {
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
     
-    <!-- Bootstrap 5 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <!-- Modern Theme CSS - Primary styling -->
-    <link rel="stylesheet" href="/static/modern_theme.css">
-    <!-- Help System CSS -->
-    <link rel="stylesheet" href="/static/help_system.css">
-    <link rel="stylesheet" href="/static/enhanced_help_system.css">
-    <!-- Auto-complete CSS -->
-    <link rel="stylesheet" href="/static/autocomplete.css">
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
+    }
+    
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 10% 90%, rgba(250, 112, 154, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 90% 10%, rgba(79, 172, 254, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(67, 233, 123, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 25s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      25% { transform: translate(20px, -20px) rotate(90deg); }
+      50% { transform: translate(-10px, 10px) rotate(180deg); }
+      75% { transform: translate(-20px, -10px) rotate(270deg); }
+    }
+    
+    /* Glassmorphism navigation */
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+      transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    }
+    
+    .navbar-brand i {
+      font-size: 2rem;
+      background: var(--gradient-3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 4rem 0 2rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #4facfe, #00f2fe, #43e97b, #38f9d7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-size: 200% auto;
+      animation: shimmer 3s ease infinite;
+    }
+    
+    @keyframes shimmer {
+      to {
+        background-position: 200% center;
+      }
+    }
+    
+    /* Floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.5;
+      animation: float 25s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.8), transparent);
+      top: -175px;
+      right: -175px;
+    }
+    
+    .orb2 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(67, 233, 123, 0.6), transparent);
+      bottom: -150px;
+      left: -150px;
+      animation-delay: -8s;
+    }
+    
+    .orb3 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(250, 112, 154, 0.5), transparent);
+      top: 40%;
+      left: 40%;
+      animation-delay: -16s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+      25% { transform: translate(50px, -50px) scale(1.1) rotate(90deg); }
+      50% { transform: translate(-30px, 30px) scale(0.9) rotate(180deg); }
+      75% { transform: translate(-50px, -30px) scale(1.05) rotate(270deg); }
+    }
+    
+    /* Stats cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3rem;
+      padding: 0 1rem;
+    }
+    
+    .stat-card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      padding: 2rem;
+      text-align: center;
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: var(--card-gradient);
+      border-radius: 30px;
+      opacity: 0;
+      z-index: -1;
+      transition: opacity 0.3s ease;
+    }
+    
+    .stat-card:hover::before {
+      opacity: 1;
+    }
+    
+    .stat-card:nth-child(1) { --card-gradient: var(--gradient-3); }
+    .stat-card:nth-child(2) { --card-gradient: var(--gradient-4); }
+    .stat-card:nth-child(3) { --card-gradient: var(--gradient-5); }
+    .stat-card:nth-child(4) { --card-gradient: var(--gradient-2); }
+    
+    .stat-card:hover {
+      transform: translateY(-10px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    .stat-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      display: inline-block;
+      background: var(--card-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 4px 20px rgba(255, 255, 255, 0.3));
+      animation: iconFloat 3s ease-in-out infinite;
+    }
+    
+    @keyframes iconFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      opacity: 0.9;
+    }
+    
+    /* Search box */
+    .search-container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .search-box {
+      position: relative;
+    }
+    
+    .search-box input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50px;
+      padding: 1rem 3rem 1rem 1.5rem;
+      color: white;
+      font-size: 1.1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .search-box input:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #4facfe;
+      box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.3);
+      outline: none;
+    }
+    
+    .search-box input::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .search-icon {
+      position: absolute;
+      right: 1.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 1.2rem;
+    }
+    
+    /* Vehicle table */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+    
+    .glass-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    
+    .glass-card-header h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 0;
+      background: var(--gradient-3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    /* Table styling */
+    .vehicle-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 0.75rem;
+    }
+    
+    .vehicle-table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      font-size: 0.85rem;
+      border: none;
+      text-align: left;
+    }
+    
+    .vehicle-table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .vehicle-table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(10px);
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    .vehicle-table td {
+      padding: 1.25rem 1rem;
+      color: white;
+      border: none;
+    }
+    
+    /* Vehicle info styling */
+    .vehicle-id {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #4facfe;
+    }
+    
+    .vehicle-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    
+    .vehicle-model {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    
+    .vehicle-desc {
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+    
+    /* Status dropdowns */
+    .status-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .btn-status {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 25px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .btn-status-good {
+      border-color: #38ef7d;
+      box-shadow: 0 0 15px rgba(56, 239, 125, 0.3);
+    }
+    
+    .btn-status-needs_service, .btn-status-worn {
+      border-color: #fee140;
+      box-shadow: 0 0 15px rgba(254, 225, 64, 0.3);
+    }
+    
+    .btn-status-overdue, .btn-status-replace {
+      border-color: #f5576c;
+      box-shadow: 0 0 15px rgba(245, 87, 108, 0.3);
+    }
+    
+    .btn-status-active {
+      border-color: #38ef7d;
+      background: rgba(56, 239, 125, 0.2);
+    }
+    
+    .btn-status-maintenance {
+      border-color: #fee140;
+      background: rgba(254, 225, 64, 0.2);
+    }
+    
+    .btn-status-out_of_service {
+      border-color: #f5576c;
+      background: rgba(245, 87, 108, 0.2);
+    }
+    
+    .btn-status:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Dropdown menu */
+    .dropdown-menu {
+      background: rgba(30, 30, 50, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      padding: 0.5rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    .dropdown-item {
+      color: white;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+    }
+    
+    .dropdown-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      transform: translateX(5px);
+    }
+    
+    .dropdown-item i {
+      margin-right: 0.5rem;
+    }
+    
+    /* Action button */
+    .btn-maintenance {
+      background: var(--gradient-1);
+      border: none;
+      color: white;
+      padding: 0.5rem 1.5rem;
+      border-radius: 25px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-maintenance:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+      color: white;
+    }
+    
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 5rem 2rem;
+      color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .empty-state i {
+      font-size: 5rem;
+      opacity: 0.3;
+      margin-bottom: 1.5rem;
+    }
+    
+    .empty-state h4 {
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+    }
+    
+    /* Toast container */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1050;
+    }
+    
+    .toast {
+      background: rgba(30, 30, 50, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white;
+    }
+    
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .fade-in:nth-child(1) { animation-delay: 0.1s; }
+    .fade-in:nth-child(2) { animation-delay: 0.2s; }
+    .fade-in:nth-child(3) { animation-delay: 0.3s; }
+    .fade-in:nth-child(4) { animation-delay: 0.4s; }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero-content h1 {
+        font-size: 2rem;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      
+      .vehicle-table {
+        font-size: 0.85rem;
+      }
+      
+      .vehicle-table td {
+        padding: 1rem 0.5rem;
+      }
+      
+      .btn-status {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.8rem;
+      }
+    }
+  </style>
 </head>
 <body>
-    <!-- Skip Link -->
-    <a href="#main-content" class="skip-link">Skip to main content</a>
-
-    <!-- Header -->
-    <header class="header-primary" role="banner">
-        <div class="header-content">
-            <h1>
-                <i class="bi bi-truck-flatbed" aria-hidden="true"></i>
-                Company Fleet
-            </h1>
-            <nav class="header-nav" role="navigation" aria-label="Primary navigation">
-                <a href="/manager-dashboard" class="nav-link">
-                    <i class="bi bi-speedometer2"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="/fleet" class="nav-link">
-                    <i class="bi bi-bus-front"></i>
-                    <span>Bus Fleet</span>
-                </a>
-                <a href="/help" class="nav-link">
-                    <i class="bi bi-question-circle"></i>
-                    <span>Help</span>
-                </a>
-                <a href="/logout" class="nav-link nav-link-danger">
-                    <i class="bi bi-box-arrow-right"></i>
-                    <span>Logout</span>
-                </a>
-            </nav>
+  <!-- Floating orbs -->
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  
+  <!-- Navigation -->
+  <nav class="navbar-glass">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <a href="/manager-dashboard" class="navbar-brand">
+          <i class="bi bi-truck-flatbed"></i>
+          <span>Company Fleet</span>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+          <a href="/fleet" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-bus-front"></i> Bus Fleet
+          </a>
+          <a href="/manager-dashboard" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-speedometer2"></i> Dashboard
+          </a>
+          <form method="POST" action="/logout" class="m-0">
+            <button type="submit" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+          </form>
         </div>
-    </header>
-
-    <!-- Main Content -->
-    <main id="main-content" class="main-content">
-        <div class="content-wrapper">
-            <!-- Page Header -->
-            <div class="page-header">
-                <h2>Fleet Overview</h2>
-                <p class="text-muted">Manage your company vehicles and maintenance schedules</p>
-            </div>
-
-            <!-- Fleet Statistics -->
-            <div class="stats-grid" role="region" aria-label="Fleet statistics">
-                <div class="stat-card stat-primary">
-                    <div class="stat-icon">
-                        <i class="bi bi-truck" aria-hidden="true"></i>
-                    </div>
-                    <div class="stat-content">
-                        <span class="stat-value">{{len .Data.Vehicles}}</span>
-                        <span class="stat-label">Total Vehicles</span>
-                    </div>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="fade-in">Company Vehicle Fleet</h1>
+        <p class="lead fade-in" style="opacity: 0.9;">Manage and track all company vehicles</p>
+      </div>
+    </div>
+  </section>
+  
+  <div class="container">
+    <!-- Statistics -->
+    <div class="stats-grid">
+      <div class="stat-card fade-in">
+        <i class="bi bi-truck stat-icon"></i>
+        <div class="stat-value">{{len .Data.Vehicles}}</div>
+        <div class="stat-label">Total Vehicles</div>
+      </div>
+      
+      <div class="stat-card fade-in">
+        <i class="bi bi-check-circle stat-icon"></i>
+        <div class="stat-value">{{if .ActiveCount}}{{.ActiveCount}}{{else}}0{{end}}</div>
+        <div class="stat-label">Active</div>
+      </div>
+      
+      <div class="stat-card fade-in">
+        <i class="bi bi-tools stat-icon"></i>
+        <div class="stat-value">{{if .MaintenanceCount}}{{.MaintenanceCount}}{{else}}0{{end}}</div>
+        <div class="stat-label">In Maintenance</div>
+      </div>
+      
+      <div class="stat-card fade-in">
+        <i class="bi bi-x-circle stat-icon"></i>
+        <div class="stat-value">{{if .OutOfServiceCount}}{{.OutOfServiceCount}}{{else}}0{{end}}</div>
+        <div class="stat-label">Out of Service</div>
+      </div>
+    </div>
+    
+    <!-- Search Box -->
+    <div class="search-container fade-in">
+      <div class="search-box">
+        <input type="search" 
+               id="searchInput" 
+               placeholder="Search by ID, model, license, or description..."
+               aria-label="Search vehicles">
+        <i class="bi bi-search search-icon"></i>
+      </div>
+    </div>
+    
+    <!-- Vehicle Table -->
+    <div class="glass-card fade-in">
+      <div class="glass-card-header">
+        <h2><i class="bi bi-list-ul me-2"></i>Vehicle Inventory</h2>
+      </div>
+      
+      {{if .Data.Vehicles}}
+      <div class="table-responsive">
+        <table class="vehicle-table" id="vehiclesTable">
+          <thead>
+            <tr>
+              <th>Vehicle ID</th>
+              <th>Model/Description</th>
+              <th>Year</th>
+              <th>License</th>
+              <th>Oil Status</th>
+              <th>Tire Status</th>
+              <th>Vehicle Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Data.Vehicles}}
+            <tr data-vehicle-id="{{.VehicleID}}">
+              <td>
+                <a href="/vehicle-maintenance/{{.VehicleID}}" class="vehicle-id">
+                  {{.VehicleID}}
+                </a>
+              </td>
+              <td>
+                <div class="vehicle-info">
+                  <span class="vehicle-model">
+                    {{if .GetModel}}{{.GetModel}}{{else if .GetDescription}}{{.GetDescription}}{{else}}Unknown{{end}}
+                  </span>
+                  {{if and .GetModel .GetDescription}}
+                  <span class="vehicle-desc">{{.GetDescription}}</span>
+                  {{end}}
                 </div>
-                <div class="stat-card stat-success">
-                    <div class="stat-icon">
-                        <i class="bi bi-check-circle" aria-hidden="true"></i>
-                    </div>
-                    <div class="stat-content">
-                        <span class="stat-value" id="activeCount">{{if .ActiveCount}}{{.ActiveCount}}{{else}}0{{end}}</span>
-                        <span class="stat-label">Active</span>
-                    </div>
+              </td>
+              <td>{{if .GetYear}}{{.GetYear}}{{else}}<span style="opacity: 0.5;">--</span>{{end}}</td>
+              <td>{{if .GetLicense}}{{.GetLicense}}{{else}}<span style="opacity: 0.5;">--</span>{{end}}</td>
+              <td>
+                <div class="status-dropdown">
+                  <button class="btn-status btn-status-{{.GetOilStatus}}" 
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                    <i class="bi bi-droplet-fill"></i>
+                    <span>{{.GetOilStatus}}</span>
+                    <i class="bi bi-chevron-down"></i>
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <a class="dropdown-item" href="#" 
+                         onclick="updateStatus('{{.VehicleID}}', 'oil', 'good'); return false;">
+                        <i class="bi bi-check-circle text-success"></i> Good
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#" 
+                         onclick="updateStatus('{{.VehicleID}}', 'oil', 'needs_service'); return false;">
+                        <i class="bi bi-exclamation-triangle text-warning"></i> Needs Service
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#" 
+                         onclick="updateStatus('{{.VehicleID}}', 'oil', 'overdue'); return false;">
+                        <i class="bi bi-x-circle text-danger"></i> Overdue
+                      </a>
+                    </li>
+                  </ul>
                 </div>
-                <div class="stat-card stat-warning">
-                    <div class="stat-icon">
-                        <i class="bi bi-tools" aria-hidden="true"></i>
-                    </div>
-                    <div class="stat-content">
-                        <span class="stat-value" id="maintenanceCount">{{if .MaintenanceCount}}{{.MaintenanceCount}}{{else}}0{{end}}</span>
-                        <span class="stat-label">In Maintenance</span>
-                    </div>
+              </td>
+              <td>
+                <div class="status-dropdown">
+                  <button class="btn-status btn-status-{{.GetTireStatus}}" 
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                    <i class="bi bi-circle-fill"></i>
+                    <span>{{.GetTireStatus}}</span>
+                    <i class="bi bi-chevron-down"></i>
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <a class="dropdown-item" href="#" 
+                         onclick="updateStatus('{{.VehicleID}}', 'tire', 'good'); return false;">
+                        <i class="bi bi-check-circle text-success"></i> Good
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#" 
+                         onclick="updateStatus('{{.VehicleID}}', 'tire', 'worn'); return false;">
+                        <i class="bi bi-exclamation-triangle text-warning"></i> Worn
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#" 
+                         onclick="updateStatus('{{.VehicleID}}', 'tire', 'replace'); return false;">
+                        <i class="bi bi-x-circle text-danger"></i> Replace
+                      </a>
+                    </li>
+                  </ul>
                 </div>
-                <div class="stat-card stat-danger">
-                    <div class="stat-icon">
-                        <i class="bi bi-x-circle" aria-hidden="true"></i>
-                    </div>
-                    <div class="stat-content">
-                        <span class="stat-value" id="outOfServiceCount">{{if .OutOfServiceCount}}{{.OutOfServiceCount}}{{else}}0{{end}}</span>
-                        <span class="stat-label">Out of Service</span>
-                    </div>
+              </td>
+              <td>
+                <div class="status-dropdown">
+                  <button class="btn-status btn-status-{{.Status}}" 
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                    <i class="bi bi-circle-fill"></i>
+                    <span>{{.Status}}</span>
+                    <i class="bi bi-chevron-down"></i>
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <a class="dropdown-item" href="#" 
+                         onclick="updateStatus('{{.VehicleID}}', 'status', 'active'); return false;">
+                        <i class="bi bi-check-circle text-success"></i> Active
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#" 
+                         onclick="updateStatus('{{.VehicleID}}', 'status', 'maintenance'); return false;">
+                        <i class="bi bi-tools text-warning"></i> Maintenance
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#" 
+                         onclick="updateStatus('{{.VehicleID}}', 'status', 'out_of_service'); return false;">
+                        <i class="bi bi-x-circle text-danger"></i> Out of Service
+                      </a>
+                    </li>
+                  </ul>
                 </div>
-            </div>
-
-            <!-- Search and Filters -->
-            <div class="card">
-                <div class="card-header">
-                    <h3>Vehicle Inventory</h3>
-                </div>
-                <div class="card-body">
-                    <div class="search-filters">
-                        <div class="search-box">
-                            <label for="searchInput" class="visually-hidden">Search vehicles</label>
-                            <i class="bi bi-search search-icon" aria-hidden="true"></i>
-                            <input type="search" 
-                                   id="searchInput" 
-                                   class="form-control" 
-                                   placeholder="Search by ID, model, or license..."
-                                   aria-label="Search vehicles">
-                        </div>
-                    </div>
-
-                    <!-- Vehicles Table -->
-                    {{if .Data.Vehicles}}
-                    <div class="table-responsive">
-                        <table class="data-table" id="vehiclesTable" role="table" aria-label="Company vehicles">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Vehicle ID</th>
-                                    <th scope="col">Model/Description</th>
-                                    <th scope="col">Year</th>
-                                    <th scope="col">License</th>
-                                    <th scope="col">Oil Status</th>
-                                    <th scope="col">Tire Status</th>
-                                    <th scope="col">Vehicle Status</th>
-                                    <th scope="col">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {{range .Data.Vehicles}}
-                                <tr data-vehicle-id="{{.VehicleID}}">
-                                    <td>
-                                        <a href="/vehicle-maintenance/{{.VehicleID}}" class="link-primary">
-                                            {{.VehicleID}}
-                                        </a>
-                                    </td>
-                                    <td>
-                                        <div class="vehicle-info">
-                                            <strong>{{if .GetModel}}{{.GetModel}}{{else if .GetDescription}}{{.GetDescription}}{{else}}Unknown{{end}}</strong>
-                                            {{if and .GetModel .GetDescription}}
-                                            <br><small class="text-muted">{{.GetDescription}}</small>
-                                            {{end}}
-                                        </div>
-                                    </td>
-                                    <td>{{if .GetYear}}{{.GetYear}}{{else}}<span class="text-muted">--</span>{{end}}</td>
-                                    <td>{{if .GetLicense}}{{.GetLicense}}{{else}}<span class="text-muted">--</span>{{end}}</td>
-                                    <td>
-                                        <div class="status-dropdown">
-                                            <button class="btn-status btn-status-{{.GetOilStatus}}" 
-                                                    data-bs-toggle="dropdown"
-                                                    aria-expanded="false"
-                                                    aria-label="Oil status: {{.GetOilStatus}}">
-                                                <i class="bi bi-droplet-fill" aria-hidden="true"></i>
-                                                <span class="status-text">{{.GetOilStatus}}</span>
-                                                <i class="bi bi-chevron-down" aria-hidden="true"></i>
-                                            </button>
-                                            <ul class="dropdown-menu">
-                                                <li>
-                                                    <a class="dropdown-item" href="#" 
-                                                       onclick="updateStatus('{{.VehicleID}}', 'oil', 'good'); return false;">
-                                                        <i class="bi bi-check-circle text-success"></i> Good
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item" href="#" 
-                                                       onclick="updateStatus('{{.VehicleID}}', 'oil', 'needs_service'); return false;">
-                                                        <i class="bi bi-exclamation-triangle text-warning"></i> Needs Service
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item" href="#" 
-                                                       onclick="updateStatus('{{.VehicleID}}', 'oil', 'overdue'); return false;">
-                                                        <i class="bi bi-x-circle text-danger"></i> Overdue
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="status-dropdown">
-                                            <button class="btn-status btn-status-{{.GetTireStatus}}" 
-                                                    data-bs-toggle="dropdown"
-                                                    aria-expanded="false"
-                                                    aria-label="Tire status: {{.GetTireStatus}}">
-                                                <i class="bi bi-circle-fill" aria-hidden="true"></i>
-                                                <span class="status-text">{{.GetTireStatus}}</span>
-                                                <i class="bi bi-chevron-down" aria-hidden="true"></i>
-                                            </button>
-                                            <ul class="dropdown-menu">
-                                                <li>
-                                                    <a class="dropdown-item" href="#" 
-                                                       onclick="updateStatus('{{.VehicleID}}', 'tire', 'good'); return false;">
-                                                        <i class="bi bi-check-circle text-success"></i> Good
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item" href="#" 
-                                                       onclick="updateStatus('{{.VehicleID}}', 'tire', 'worn'); return false;">
-                                                        <i class="bi bi-exclamation-triangle text-warning"></i> Worn
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item" href="#" 
-                                                       onclick="updateStatus('{{.VehicleID}}', 'tire', 'replace'); return false;">
-                                                        <i class="bi bi-x-circle text-danger"></i> Replace
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="status-dropdown">
-                                            <button class="btn-status btn-status-{{.Status}}" 
-                                                    data-bs-toggle="dropdown"
-                                                    aria-expanded="false"
-                                                    aria-label="Vehicle status: {{.Status}}">
-                                                <i class="bi bi-circle-fill" aria-hidden="true"></i>
-                                                <span class="status-text">{{.Status}}</span>
-                                                <i class="bi bi-chevron-down" aria-hidden="true"></i>
-                                            </button>
-                                            <ul class="dropdown-menu">
-                                                <li>
-                                                    <a class="dropdown-item" href="#" 
-                                                       onclick="updateStatus('{{.VehicleID}}', 'status', 'active'); return false;">
-                                                        <i class="bi bi-check-circle text-success"></i> Active
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item" href="#" 
-                                                       onclick="updateStatus('{{.VehicleID}}', 'status', 'maintenance'); return false;">
-                                                        <i class="bi bi-tools text-warning"></i> Maintenance
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item" href="#" 
-                                                       onclick="updateStatus('{{.VehicleID}}', 'status', 'out_of_service'); return false;">
-                                                        <i class="bi bi-x-circle text-danger"></i> Out of Service
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <a href="/vehicle-maintenance/{{.VehicleID}}" 
-                                           class="btn btn-sm btn-primary"
-                                           aria-label="View maintenance history for {{.VehicleID}}">
-                                            <i class="bi bi-wrench" aria-hidden="true"></i>
-                                            Maintenance
-                                        </a>
-                                    </td>
-                                </tr>
-                                {{end}}
-                            </tbody>
-                        </table>
-                    </div>
-                    {{else}}
-                    <div class="empty-state">
-                        <i class="bi bi-truck empty-icon" aria-hidden="true"></i>
-                        <h4>No Vehicles Found</h4>
-                        <p>There are no vehicles in the company fleet yet.</p>
-                    </div>
-                    {{end}}
-                </div>
-            </div>
+              </td>
+              <td>
+                <a href="/vehicle-maintenance/{{.VehicleID}}" 
+                   class="btn-maintenance">
+                  <i class="bi bi-wrench"></i>
+                  Maintenance
+                </a>
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+      {{else}}
+      <div class="empty-state">
+        <i class="bi bi-truck"></i>
+        <h4>No Vehicles Found</h4>
+        <p>There are no vehicles in the company fleet yet.</p>
+      </div>
+      {{end}}
+    </div>
+  </div>
+  
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script nonce="{{.CSPNonce}}">
+    // Update statistics
+    function updateStatistics() {
+      const vehicles = document.querySelectorAll('tbody tr');
+      let active = 0, maintenance = 0, outOfService = 0;
+      
+      vehicles.forEach(row => {
+        const statusBtn = row.querySelector('td:nth-child(7) .btn-status');
+        if (statusBtn) {
+          const status = statusBtn.classList.toString().match(/btn-status-(\w+)/)?.[1];
+          if (status === 'active') active++;
+          else if (status === 'maintenance') maintenance++;
+          else if (status === 'out_of_service') outOfService++;
+        }
+      });
+      
+      // Update counts with animation
+      animateValue(document.querySelector('.stat-card:nth-child(2) .stat-value'), active);
+      animateValue(document.querySelector('.stat-card:nth-child(3) .stat-value'), maintenance);
+      animateValue(document.querySelector('.stat-card:nth-child(4) .stat-value'), outOfService);
+    }
+    
+    // Animate value change
+    function animateValue(element, newValue) {
+      const oldValue = parseInt(element.textContent);
+      const duration = 500;
+      const startTime = Date.now();
+      
+      function update() {
+        const now = Date.now();
+        const progress = Math.min((now - startTime) / duration, 1);
+        const currentValue = Math.floor(oldValue + (newValue - oldValue) * progress);
+        element.textContent = currentValue;
+        
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        }
+      }
+      
+      requestAnimationFrame(update);
+    }
+    
+    // Search functionality
+    document.getElementById('searchInput')?.addEventListener('input', function(e) {
+      const searchTerm = e.target.value.toLowerCase();
+      const rows = document.querySelectorAll('#vehiclesTable tbody tr');
+      
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+      });
+    });
+    
+    // Update status function
+    async function updateStatus(vehicleId, type, status) {
+      const csrfToken = '{{.Data.CSRFToken}}';
+      
+      try {
+        const formData = new URLSearchParams();
+        formData.append('vehicle_id', vehicleId);
+        formData.append('status_type', type);
+        formData.append('new_status', status);
+        formData.append('csrf_token', csrfToken);
+        
+        const response = await fetch('/update-vehicle-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: formData.toString()
+        });
+        
+        if (response.ok) {
+          showToast('Status updated successfully', 'success');
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          throw new Error('Failed to update status');
+        }
+      } catch (error) {
+        showToast('Failed to update status. Please try again.', 'error');
+        console.error('Error:', error);
+      }
+    }
+    
+    // Toast notification
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast align-items-center text-white border-0`;
+      toast.style.background = type === 'error' ? 
+        'linear-gradient(135deg, #f5576c 0%, #f093fb 100%)' : 
+        'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)';
+      toast.setAttribute('role', 'alert');
+      toast.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">${message}</div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
         </div>
-    </main>
-
-    <!-- Toast Container -->
-    <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
-
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Initialize statistics
-        function updateStatistics() {
-            const vehicles = document.querySelectorAll('tbody tr');
-            let active = 0, maintenance = 0, outOfService = 0;
-            
-            vehicles.forEach(row => {
-                const statusBtn = row.querySelector('td:nth-child(7) .btn-status');
-                if (statusBtn) {
-                    const status = statusBtn.classList.toString().match(/btn-status-(\w+)/)?.[1];
-                    if (status === 'active') active++;
-                    else if (status === 'maintenance') maintenance++;
-                    else if (status === 'out_of_service') outOfService++;
-                }
-            });
-            
-            document.getElementById('activeCount').textContent = active;
-            document.getElementById('maintenanceCount').textContent = maintenance;
-            document.getElementById('outOfServiceCount').textContent = outOfService;
+      `;
+      
+      document.getElementById('toastContainer').appendChild(toast);
+      const bsToast = new bootstrap.Toast(toast);
+      bsToast.show();
+      
+      toast.addEventListener('hidden.bs.toast', () => toast.remove());
+    }
+    
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', function() {
+      updateStatistics();
+      
+      // Animate stat values
+      document.querySelectorAll('.stat-value').forEach(el => {
+        const value = parseInt(el.textContent);
+        if (!isNaN(value)) {
+          el.textContent = '0';
+          setTimeout(() => animateValue(el, value), 300);
         }
-
-        // Search functionality
-        document.getElementById('searchInput')?.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('#vehiclesTable tbody tr');
-            
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
-            });
+      });
+      
+      // Initialize dropdowns
+      const dropdownElementList = [].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]'));
+      dropdownElementList.map(function (dropdownToggleEl) {
+        return new bootstrap.Dropdown(dropdownToggleEl);
+      });
+      
+      // Add hover effects to table rows
+      document.querySelectorAll('.vehicle-table tbody tr').forEach(row => {
+        row.addEventListener('mousemove', (e) => {
+          const rect = row.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          
+          row.style.setProperty('--mouse-x', `${x}px`);
+          row.style.setProperty('--mouse-y', `${y}px`);
         });
-
-        // Update status function
-        async function updateStatus(vehicleId, type, status) {
-            const csrfToken = '{{.Data.CSRFToken}}';
-            
-            try {
-                const formData = new URLSearchParams();
-                formData.append('vehicle_id', vehicleId);
-                formData.append('status_type', type);
-                formData.append('new_status', status);
-                formData.append('csrf_token', csrfToken);
-
-                const response = await fetch('/update-vehicle-status', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: formData.toString()
-                });
-
-                if (response.ok) {
-                    showToast('Status updated successfully', 'success');
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    throw new Error('Failed to update status');
-                }
-            } catch (error) {
-                showToast('Failed to update status. Please try again.', 'error');
-                console.error('Error:', error);
-            }
-        }
-
-        // Toast notification
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('div');
-            toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type} border-0`;
-            toast.setAttribute('role', 'alert');
-            toast.setAttribute('aria-live', 'assertive');
-            toast.setAttribute('aria-atomic', 'true');
-            toast.innerHTML = `
-                <div class="d-flex">
-                    <div class="toast-body">${message}</div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-            `;
-            
-            document.getElementById('toastContainer').appendChild(toast);
-            const bsToast = new bootstrap.Toast(toast);
-            bsToast.show();
-            
-            toast.addEventListener('hidden.bs.toast', () => toast.remove());
-        }
-
-        // Initialize on load
-        document.addEventListener('DOMContentLoaded', function() {
-            updateStatistics();
-            
-            // Initialize Bootstrap dropdowns
-            const dropdownElementList = [].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]'));
-            dropdownElementList.map(function (dropdownToggleEl) {
-                return new bootstrap.Dropdown(dropdownToggleEl);
-            });
-        });
-    </script>
+      });
+    });
+  </script>
 </body>
 </html>
