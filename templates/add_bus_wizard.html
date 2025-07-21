@@ -6,59 +6,416 @@
   <title>Add New Bus - Fleet Management System</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="/static/modern_theme.css">
-  <link rel="stylesheet" href="/static/help_system.css">
   <style nonce="{{.CSPNonce}}">
-    /* Wizard specific styles */
+    /* Ultimate beautiful design system */
+    :root {
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
+      color: white;
+    }
+    
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 25s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      25% { transform: translate(20px, -20px) rotate(90deg); }
+      50% { transform: translate(-10px, 10px) rotate(180deg); }
+      75% { transform: translate(-20px, -10px) rotate(270deg); }
+    }
+    
+    /* Floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.5;
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
+    }
+    
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
+    }
+    
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+      25% { transform: translate(50px, -50px) scale(1.1) rotate(90deg); }
+      50% { transform: translate(-30px, 30px) scale(0.9) rotate(180deg); }
+      75% { transform: translate(-50px, -30px) scale(1.05) rotate(270deg); }
+    }
+    
+    /* Glassmorphism navigation */
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+      transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    }
+    
+    .navbar-brand i {
+      font-size: 2rem;
+      background: var(--gradient-1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 3rem 0 2rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #667eea, #764ba2, #f093fb, #667eea);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-size: 200% auto;
+      animation: shimmer 3s ease infinite;
+    }
+    
+    @keyframes shimmer {
+      to {
+        background-position: 200% center;
+      }
+    }
+    
+    /* Wizard container */
     .wizard-container {
       max-width: 800px;
       margin: 0 auto;
+      padding: 0 1rem;
     }
     
+    /* Progress indicator with neon glow */
+    .progress-container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+    
+    .progress-steps {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      position: relative;
+    }
+    
+    .progress-steps::before {
+      content: '';
+      position: absolute;
+      top: 25px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      z-index: -1;
+    }
+    
+    .progress-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    
+    .step-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      transition: all 0.3s ease;
+      z-index: 1;
+    }
+    
+    .progress-step.active .step-icon {
+      background: var(--gradient-3);
+      border-color: transparent;
+      box-shadow: 0 0 30px rgba(79, 172, 254, 0.8);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .progress-step.completed .step-icon {
+      background: var(--gradient-4);
+      border-color: transparent;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(79, 172, 254, 0.8); }
+      50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(79, 172, 254, 1); }
+    }
+    
+    .step-label {
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+      opacity: 0.7;
+      text-align: center;
+    }
+    
+    .progress-step.active .step-label {
+      opacity: 1;
+      font-weight: 600;
+    }
+    
+    /* Wizard steps */
     .wizard-step {
       display: none;
-      animation: fadeIn 0.3s ease;
+      animation: fadeInUp 0.5s ease;
     }
     
     .wizard-step.active {
       display: block;
     }
     
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
     
+    /* Form sections with glass effect */
     .form-section {
-      background: var(--color-bg-primary);
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius-lg);
-      padding: var(--space-lg);
-      margin-bottom: var(--space-lg);
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 30px;
+      padding: 2.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+    }
+    
+    .form-section:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
     }
     
     .form-section-title {
-      font-size: var(--font-size-lg);
-      font-weight: 600;
-      color: var(--color-text-primary);
-      margin-bottom: var(--space-md);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 2rem;
       display: flex;
       align-items: center;
-      gap: var(--space-sm);
+      gap: 1rem;
     }
     
+    .form-section-title i {
+      font-size: 2rem;
+      background: var(--gradient-2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    /* Form controls with neon glow */
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+      color: white;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .form-label i {
+      opacity: 0.7;
+    }
+    
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white;
+      padding: 1rem 1.5rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
+    }
+    
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .form-select option {
+      background: #302b63;
+      color: white;
+    }
+    
+    /* Navigation buttons */
+    .wizard-nav {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .btn-wizard {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 2px solid;
+      padding: 1rem 2rem;
+      border-radius: 50px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: white;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-wizard-primary {
+      border-color: #667eea;
+      box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-wizard-primary:hover {
+      background: var(--gradient-1);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+    }
+    
+    .btn-wizard-secondary {
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    .btn-wizard-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+    
+    .btn-wizard-complete {
+      background: var(--gradient-4);
+      border-color: transparent;
+      box-shadow: 0 0 30px rgba(67, 233, 123, 0.5);
+    }
+    
+    .btn-wizard-complete:hover {
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 10px 50px rgba(67, 233, 123, 0.7);
+    }
+    
+    /* Preview section */
     .preview-section {
-      background: var(--color-info-light);
-      border: 2px solid var(--color-info);
-      border-radius: var(--border-radius-lg);
-      padding: var(--space-lg);
+      background: rgba(79, 172, 254, 0.1);
+      border: 2px solid rgba(79, 172, 254, 0.3);
+      border-radius: 30px;
+      padding: 2.5rem;
+      backdrop-filter: blur(20px);
     }
     
     .preview-item {
       display: flex;
       justify-content: space-between;
-      padding: var(--space-sm) 0;
-      border-bottom: 1px solid var(--color-info);
+      padding: 1rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
     
     .preview-item:last-child {
@@ -67,250 +424,349 @@
     
     .preview-label {
       font-weight: 600;
-      color: var(--color-text-secondary);
+      color: rgba(255, 255, 255, 0.8);
     }
     
     .preview-value {
-      color: var(--color-text-primary);
+      color: white;
+      font-weight: 500;
+    }
+    
+    /* Alert styling */
+    .alert-info {
+      background: rgba(79, 172, 254, 0.2);
+      border: 1px solid rgba(79, 172, 254, 0.5);
+      color: white;
+      border-radius: 20px;
+      padding: 1.5rem;
+    }
+    
+    /* Required field indicator */
+    .required::after {
+      content: " *";
+      color: #fa709a;
+    }
+    
+    /* Small text */
+    small {
+      opacity: 0.8;
+    }
+    
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    
+    .fade-in:nth-child(1) { animation-delay: 0.1s; }
+    .fade-in:nth-child(2) { animation-delay: 0.2s; }
+    .fade-in:nth-child(3) { animation-delay: 0.3s; }
+    .fade-in:nth-child(4) { animation-delay: 0.4s; }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero-content h1 {
+        font-size: 2rem;
+      }
+      
+      .progress-steps {
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+      
+      .form-section {
+        padding: 1.5rem;
+      }
+      
+      .wizard-nav {
+        flex-direction: column;
+      }
+      
+      .btn-wizard {
+        width: 100%;
+        justify-content: center;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="page-wrapper">
-    <!-- Navigation Component -->
-    {{template "navigation" (dict "Navigation" .Navigation "CSPNonce" .CSPNonce "ShowHelpButton" .ShowHelpButton "PageDescription" "Add a new bus to your fleet")}}
-    
-    <!-- Main Content -->
-    <main id="main-content" class="main-content">
-      <div class="wizard-container">
-        <!-- Progress Indicator -->
-        {{$steps := slice 
-          (dict "Title" "Basic Info" "Description" "Bus identification")
-          (dict "Title" "Specifications" "Description" "Capacity and model")
-          (dict "Title" "Maintenance" "Description" "Initial status")
-          (dict "Title" "Review" "Description" "Confirm details")
-        }}
-        {{template "progress-indicator" (dict 
-          "Steps" $steps 
-          "CurrentStep" 1 
-          "TotalSteps" 4 
-          "ProgressPercent" 25
-          "ShowNavigation" true
-          "PreviousAction" "previousStep()"
-          "NextAction" "nextStep()"
-          "CompleteAction" "submitBus()"
-          "CSPNonce" .CSPNonce
-        )}}
-        
-        <!-- Wizard Form -->
-        <form id="addBusForm" method="POST" action="/add-bus" class="wizard-form">
-          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-          
-          <!-- Step 1: Basic Information -->
-          <div class="wizard-step active" data-step="1">
-            <div class="form-section">
-              <h2 class="form-section-title">
-                <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
-                Basic Bus Information
-              </h2>
-              
-              <div class="form-group">
-                <label for="busID" class="form-label required">
-                  <i class="bi bi-hash" aria-hidden="true"></i>
-                  Bus ID Number
-                </label>
-                <input type="text" 
-                       class="form-control form-control-lg" 
-                       id="busID" 
-                       name="bus_id" 
-                       required
-                       pattern="[A-Z0-9-]+"
-                       placeholder="e.g., BUS-001"
-                       aria-describedby="busIDHelp">
-                <small id="busIDHelp" class="form-text">
-                  Enter a unique identifier for this bus (letters, numbers, and hyphens only)
-                </small>
-              </div>
-              
-              <div class="form-group">
-                <label for="busYear" class="form-label">
-                  <i class="bi bi-calendar" aria-hidden="true"></i>
-                  Year of Manufacture
-                </label>
-                <select class="form-control form-control-lg" id="busYear" name="year">
-                  <option value="">Select year</option>
-                  {{range $year := seq 2000 2025}}
-                    <option value="{{$year}}">{{$year}}</option>
-                  {{end}}
-                </select>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Step 2: Specifications -->
-          <div class="wizard-step" data-step="2">
-            <div class="form-section">
-              <h2 class="form-section-title">
-                <i class="bi bi-gear-fill" aria-hidden="true"></i>
-                Bus Specifications
-              </h2>
-              
-              <div class="form-group">
-                <label for="busModel" class="form-label required">
-                  <i class="bi bi-bus-front" aria-hidden="true"></i>
-                  Bus Model
-                </label>
-                <input type="text" 
-                       class="form-control form-control-lg" 
-                       id="busModel" 
-                       name="model" 
-                       required
-                       placeholder="e.g., Blue Bird Vision">
-              </div>
-              
-              <div class="form-group">
-                <label for="busCapacity" class="form-label required">
-                  <i class="bi bi-people-fill" aria-hidden="true"></i>
-                  Passenger Capacity
-                </label>
-                <input type="number" 
-                       class="form-control form-control-lg" 
-                       id="busCapacity" 
-                       name="capacity" 
-                       required
-                       min="1"
-                       max="100"
-                       placeholder="e.g., 72">
-                <small class="form-text">
-                  Maximum number of passengers this bus can carry
-                </small>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Step 3: Maintenance Status -->
-          <div class="wizard-step" data-step="3">
-            <div class="form-section">
-              <h2 class="form-section-title">
-                <i class="bi bi-tools" aria-hidden="true"></i>
-                Initial Maintenance Status
-              </h2>
-              
-              <div class="form-group">
-                <label for="busStatus" class="form-label required">
-                  <i class="bi bi-activity" aria-hidden="true"></i>
-                  Service Status
-                </label>
-                <select class="form-control form-control-lg" id="busStatus" name="status" required>
-                  <option value="">Select status</option>
-                  <option value="active">Active - Ready for service</option>
-                  <option value="maintenance">Maintenance - Needs service</option>
-                  <option value="out of service">Out of Service - Not operational</option>
-                </select>
-              </div>
-              
-              <div class="form-group">
-                <label for="oilStatus" class="form-label">
-                  <i class="bi bi-droplet-fill" aria-hidden="true"></i>
-                  Oil Status
-                </label>
-                <select class="form-control form-control-lg" id="oilStatus" name="oil_status">
-                  <option value="good">Good - Recently changed</option>
-                  <option value="fair">Fair - Change soon</option>
-                  <option value="poor">Poor - Change needed</option>
-                </select>
-              </div>
-              
-              <div class="form-group">
-                <label for="tireStatus" class="form-label">
-                  <i class="bi bi-circle-fill" aria-hidden="true"></i>
-                  Tire Status
-                </label>
-                <select class="form-control form-control-lg" id="tireStatus" name="tire_status">
-                  <option value="good">Good - Good tread</option>
-                  <option value="fair">Fair - Monitor closely</option>
-                  <option value="poor">Poor - Replacement needed</option>
-                </select>
-              </div>
-              
-              <div class="form-group">
-                <label for="maintenanceNotes" class="form-label">
-                  <i class="bi bi-journal-text" aria-hidden="true"></i>
-                  Maintenance Notes
-                </label>
-                <textarea class="form-control form-control-lg" 
-                          id="maintenanceNotes" 
-                          name="maintenance_notes" 
-                          rows="3"
-                          placeholder="Any additional maintenance information..."></textarea>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Step 4: Review and Confirm -->
-          <div class="wizard-step" data-step="4">
-            <div class="form-section preview-section">
-              <h2 class="form-section-title">
-                <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
-                Review Bus Information
-              </h2>
-              
-              <div id="reviewContent">
-                <!-- Preview content will be populated by JavaScript -->
-              </div>
-              
-              <div class="alert alert-info mt-3" role="alert">
-                <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
-                <strong>Please review all information carefully.</strong> 
-                You can go back to make changes or click "Complete" to add this bus to your fleet.
-              </div>
-            </div>
-          </div>
-        </form>
+  <!-- Floating orbs -->
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  
+  <!-- Navigation -->
+  <nav class="navbar-glass">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <a href="/fleet" class="navbar-brand">
+          <i class="bi bi-bus-front-fill"></i>
+          <span>Fleet Management</span>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+          <a href="/fleet" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to Fleet
+          </a>
+          <form method="POST" action="/logout" class="m-0">
+            <button type="submit" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+          </form>
+        </div>
       </div>
-    </main>
+    </div>
+  </nav>
+  
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="fade-in">Add New Bus</h1>
+        <p class="lead fade-in" style="opacity: 0.9;">Register a new vehicle to your fleet</p>
+      </div>
+    </div>
+  </section>
+  
+  <div class="wizard-container">
+    <!-- Progress Indicator -->
+    <div class="progress-container fade-in">
+      <div class="progress-steps">
+        <div class="progress-step active" data-step="1">
+          <div class="step-icon">
+            <span>1</span>
+          </div>
+          <span class="step-label">Basic Info</span>
+        </div>
+        <div class="progress-step" data-step="2">
+          <div class="step-icon">
+            <span>2</span>
+          </div>
+          <span class="step-label">Specifications</span>
+        </div>
+        <div class="progress-step" data-step="3">
+          <div class="step-icon">
+            <span>3</span>
+          </div>
+          <span class="step-label">Maintenance</span>
+        </div>
+        <div class="progress-step" data-step="4">
+          <div class="step-icon">
+            <span>4</span>
+          </div>
+          <span class="step-label">Review</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Wizard Form -->
+    <form id="addBusForm" method="POST" action="/add-bus" class="wizard-form">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      
+      <!-- Step 1: Basic Information -->
+      <div class="wizard-step active" data-step="1">
+        <div class="form-section fade-in">
+          <h2 class="form-section-title">
+            <i class="bi bi-info-circle-fill"></i>
+            Basic Bus Information
+          </h2>
+          
+          <div class="form-group">
+            <label for="busID" class="form-label required">
+              <i class="bi bi-hash"></i>
+              Bus ID Number
+            </label>
+            <input type="text" 
+                   class="form-control form-control-lg" 
+                   id="busID" 
+                   name="bus_id" 
+                   required
+                   pattern="[A-Z0-9-]+"
+                   placeholder="e.g., BUS-001">
+            <small class="form-text">
+              Enter a unique identifier for this bus (letters, numbers, and hyphens only)
+            </small>
+          </div>
+          
+          <div class="form-group">
+            <label for="busYear" class="form-label">
+              <i class="bi bi-calendar"></i>
+              Year of Manufacture
+            </label>
+            <select class="form-control form-control-lg" id="busYear" name="year">
+              <option value="">Select year</option>
+              {{range $year := seq 2000 2025}}
+                <option value="{{$year}}">{{$year}}</option>
+              {{end}}
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Step 2: Specifications -->
+      <div class="wizard-step" data-step="2">
+        <div class="form-section fade-in">
+          <h2 class="form-section-title">
+            <i class="bi bi-gear-fill"></i>
+            Bus Specifications
+          </h2>
+          
+          <div class="form-group">
+            <label for="busModel" class="form-label required">
+              <i class="bi bi-bus-front"></i>
+              Bus Model
+            </label>
+            <input type="text" 
+                   class="form-control form-control-lg" 
+                   id="busModel" 
+                   name="model" 
+                   required
+                   placeholder="e.g., Blue Bird Vision">
+          </div>
+          
+          <div class="form-group">
+            <label for="busCapacity" class="form-label required">
+              <i class="bi bi-people-fill"></i>
+              Passenger Capacity
+            </label>
+            <input type="number" 
+                   class="form-control form-control-lg" 
+                   id="busCapacity" 
+                   name="capacity" 
+                   required
+                   min="1"
+                   max="100"
+                   placeholder="e.g., 72">
+            <small class="form-text">
+              Maximum number of passengers this bus can carry
+            </small>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Step 3: Maintenance Status -->
+      <div class="wizard-step" data-step="3">
+        <div class="form-section fade-in">
+          <h2 class="form-section-title">
+            <i class="bi bi-tools"></i>
+            Initial Maintenance Status
+          </h2>
+          
+          <div class="form-group">
+            <label for="busStatus" class="form-label required">
+              <i class="bi bi-activity"></i>
+              Service Status
+            </label>
+            <select class="form-control form-control-lg" id="busStatus" name="status" required>
+              <option value="">Select status</option>
+              <option value="active">Active - Ready for service</option>
+              <option value="maintenance">Maintenance - Needs service</option>
+              <option value="out of service">Out of Service - Not operational</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="oilStatus" class="form-label">
+              <i class="bi bi-droplet-fill"></i>
+              Oil Status
+            </label>
+            <select class="form-control form-control-lg" id="oilStatus" name="oil_status">
+              <option value="good">Good - Recently changed</option>
+              <option value="fair">Fair - Change soon</option>
+              <option value="poor">Poor - Change needed</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="tireStatus" class="form-label">
+              <i class="bi bi-circle-fill"></i>
+              Tire Status
+            </label>
+            <select class="form-control form-control-lg" id="tireStatus" name="tire_status">
+              <option value="good">Good - Good tread</option>
+              <option value="fair">Fair - Monitor closely</option>
+              <option value="poor">Poor - Replacement needed</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="maintenanceNotes" class="form-label">
+              <i class="bi bi-journal-text"></i>
+              Maintenance Notes
+            </label>
+            <textarea class="form-control form-control-lg" 
+                      id="maintenanceNotes" 
+                      name="maintenance_notes" 
+                      rows="3"
+                      placeholder="Any additional maintenance information..."></textarea>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Step 4: Review and Confirm -->
+      <div class="wizard-step" data-step="4">
+        <div class="form-section preview-section fade-in">
+          <h2 class="form-section-title">
+            <i class="bi bi-check-circle-fill"></i>
+            Review Bus Information
+          </h2>
+          
+          <div id="reviewContent">
+            <!-- Preview content will be populated by JavaScript -->
+          </div>
+          
+          <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle-fill"></i>
+            <strong>Please review all information carefully.</strong> 
+            You can go back to make changes or click "Complete" to add this bus to your fleet.
+          </div>
+        </div>
+      </div>
+      
+      <!-- Navigation Buttons -->
+      <div class="wizard-nav">
+        <button type="button" class="btn-wizard btn-wizard-secondary" onclick="previousStep()" id="prevBtn" style="visibility: hidden;">
+          <i class="bi bi-arrow-left"></i>
+          Previous
+        </button>
+        <button type="button" class="btn-wizard btn-wizard-primary" onclick="nextStep()" id="nextBtn">
+          Next
+          <i class="bi bi-arrow-right"></i>
+        </button>
+        <button type="button" class="btn-wizard btn-wizard-complete" onclick="submitBus()" id="completeBtn" style="display: none;">
+          <i class="bi bi-check-circle"></i>
+          Complete
+        </button>
+      </div>
+    </form>
   </div>
   
-  <script src="/static/help_system.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="{{.CSPNonce}}">
     let currentStep = 1;
     const totalSteps = 4;
     
     function updateProgress() {
-      const percent = (currentStep / totalSteps) * 100;
-      
-      // Update progress indicator
-      const progressBar = document.querySelector('.progress-bar');
-      if (progressBar) {
-        progressBar.style.width = percent + '%';
-      }
-      
-      // Update step markers
+      // Update progress steps
       document.querySelectorAll('.progress-step').forEach((step, index) => {
         const stepNum = index + 1;
-        step.classList.remove('active', 'completed', 'pending');
+        step.classList.remove('active', 'completed');
         
         if (stepNum < currentStep) {
           step.classList.add('completed');
         } else if (stepNum === currentStep) {
           step.classList.add('active');
-        } else {
-          step.classList.add('pending');
         }
       });
       
       // Update navigation buttons
-      const prevBtn = document.querySelector('[onclick="previousStep()"]');
-      const nextBtn = document.querySelector('[onclick="nextStep()"]');
-      const completeBtn = document.querySelector('[onclick="submitBus()"]');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const completeBtn = document.getElementById('completeBtn');
       
-      if (prevBtn) prevBtn.style.visibility = currentStep > 1 ? 'visible' : 'hidden';
-      if (nextBtn) nextBtn.style.display = currentStep < totalSteps ? 'inline-flex' : 'none';
-      if (completeBtn) completeBtn.style.display = currentStep === totalSteps ? 'inline-flex' : 'none';
-      
-      // Update progress text
-      document.querySelector('.progress-text').textContent = `Step ${currentStep} of ${totalSteps}`;
-      document.querySelector('.progress-percentage').textContent = `${Math.round(percent)}% Complete`;
+      prevBtn.style.visibility = currentStep > 1 ? 'visible' : 'hidden';
+      nextBtn.style.display = currentStep < totalSteps ? 'inline-flex' : 'none';
+      completeBtn.style.display = currentStep === totalSteps ? 'inline-flex' : 'none';
     }
     
     function showStep(step) {
@@ -343,7 +799,6 @@
         if (!field.value.trim()) {
           field.classList.add('is-invalid');
           field.focus();
-          alert('Please fill in all required fields before proceeding.');
           return false;
         }
         field.classList.remove('is-invalid');
