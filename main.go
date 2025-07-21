@@ -478,7 +478,7 @@ func main() {
 	defer closeDatabase()
 	
 	// Start test server in development mode
-	StartTestServer()
+	// StartTestServer() // TODO: Implement or remove
 
 	// Initialize session manager
 	LogInfo("🔐 Setting up session manager...")
@@ -500,8 +500,8 @@ func main() {
 	compressionConfig := DefaultCompressionConfig()
 	compressionConfig.Enabled = os.Getenv("DISABLE_COMPRESSION") != "true"
 
-	// Chain middlewares: Test -> CSP -> Security -> Router (Compression disabled for now)
-	handler := testableHandler(CSPMiddleware(SecurityHeaders(mux)))
+	// Chain middlewares: CSP -> Security -> Router (Compression disabled for now)
+	handler := CSPMiddleware(SecurityHeaders(mux))
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -577,7 +577,7 @@ func setupRoutes() *http.ServeMux {
 	mux.HandleFunc("/test-ecse", withRecovery(testECSEHandler))
 	
 	// Debug endpoint for fleet issues (temporary - remove in production)
-	mux.HandleFunc("/debug-fleet", withRecovery(debugFleetHandler))
+	// mux.HandleFunc("/debug-fleet", withRecovery(debugFleetHandler)) // TODO: Implement or remove
 
 	// Manager-only routes
 	setupManagerRoutes(mux)
