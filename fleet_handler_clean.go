@@ -1,3 +1,4 @@
+// fleet_handler_clean.go
 package main
 
 import (
@@ -233,6 +234,7 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 		"OilDueCount":        oilDueCount,
 	}
 
-	log.Printf("DEBUG: Rendering fleet_modern.html with %d vehicles", totalVehicles)
-	renderTemplate(w, r, "fleet_modern.html", data)
+	log.Printf("DEBUG: Rendering fleet.html with %d vehicles", totalVehicles)
+	// CHANGED FROM fleet_modern.html TO fleet.html
+	renderTemplate(w, r, "fleet.html", data)
 }
