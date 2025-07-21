@@ -4,318 +4,623 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Driver Profile - Fleet Management System</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <style nonce="{{.CSPNonce}}">
+    /* Ultimate beautiful design system */
     :root {
-      --grad-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      --grad-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-      --grad-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      --grad-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-      --grad-danger: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
     
     body {
-      background-color: #f8f9fa;
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
     }
     
-    .page-header {
-      background: var(--grad-primary);
-      color: white;
-      padding: 1.5rem;
-      border-radius: 15px;
-      margin-bottom: 2rem;
-      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 10% 90%, rgba(250, 112, 154, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 90% 10%, rgba(79, 172, 254, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(67, 233, 123, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 30s ease-in-out infinite;
+      z-index: -1;
     }
     
-    .page-header .btn {
-      background: rgba(255,255,255,0.2);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.3);
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
+    }
+    
+    /* Floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.6;
+      animation: float 25s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(67, 233, 123, 0.8), transparent);
+      top: -200px;
+      right: -200px;
+    }
+    
+    .orb2 {
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -175px;
+      left: -175px;
+      animation-delay: -8s;
+    }
+    
+    .orb3 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 40%;
+      left: 40%;
+      animation-delay: -16s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+      25% { transform: translate(50px, -50px) scale(1.1) rotate(90deg); }
+      50% { transform: translate(-30px, 30px) scale(0.9) rotate(180deg); }
+      75% { transform: translate(-50px, -30px) scale(1.05) rotate(270deg); }
+    }
+    
+    /* Glassmorphism navigation */
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
       transition: all 0.3s ease;
     }
     
-    .page-header .btn:hover {
-      background: rgba(255,255,255,0.3);
+    .navbar-brand:hover {
       transform: translateY(-2px);
-      color: white;
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
     }
     
-    .enhanced-card {
-      border: none;
-      border-radius: 15px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-      transition: all 0.3s ease;
+    .navbar-brand i {
+      font-size: 2rem;
+      background: var(--gradient-4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 3rem 0 2rem;
+      text-align: center;
+      color: white;
       overflow: hidden;
     }
     
-    .enhanced-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    .hero-content h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #43e97b, #38f9d7, #4facfe, #43e97b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-size: 200% auto;
+      animation: shimmer 3s ease infinite;
     }
     
-    .enhanced-card .card-header {
-      background: linear-gradient(45deg, #f8f9fa, #e9ecef);
-      border-bottom: 2px solid #dee2e6;
-      padding: 1.25rem;
+    @keyframes shimmer {
+      to {
+        background-position: 200% center;
+      }
     }
     
-    .enhanced-card .card-header h5 {
-      margin: 0;
-      font-weight: 600;
-      color: #495057;
+    /* Profile card */
+    .profile-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 3rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .profile-card::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      right: -100px;
+      width: 300px;
+      height: 300px;
+      background: var(--gradient-4);
+      opacity: 0.1;
+      border-radius: 50%;
+      animation: float 20s infinite ease-in-out;
     }
     
     .driver-avatar {
-      width: 80px;
-      height: 80px;
-      background: var(--grad-success);
+      width: 120px;
+      height: 120px;
+      background: var(--gradient-4);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 1rem;
-      font-size: 2rem;
+      margin: 0 auto 2rem;
+      font-size: 3rem;
       color: white;
+      box-shadow: 0 10px 40px rgba(67, 233, 123, 0.5);
+      animation: avatarFloat 3s ease-in-out infinite;
+      position: relative;
+      z-index: 1;
     }
     
-    .driver-info {
-      text-align: center;
-      margin-bottom: 2rem;
+    @keyframes avatarFloat {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-10px) scale(1.05); }
     }
     
     .driver-name {
-      font-size: 1.5rem;
+      font-size: 2rem;
       font-weight: 700;
-      color: #495057;
+      color: white;
       margin-bottom: 0.5rem;
     }
     
     .driver-badge {
       display: inline-block;
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: 500;
+      padding: 0.5rem 1.5rem;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      background: var(--grad-success);
+      letter-spacing: 1px;
+      background: var(--gradient-4);
       color: white;
+      box-shadow: 0 5px 20px rgba(67, 233, 123, 0.4);
     }
     
-    .stats-row {
-      background: linear-gradient(45deg, #f8f9fa, #e9ecef);
-      border-radius: 15px;
-      padding: 1.5rem;
+    /* Stats cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
       margin-bottom: 2rem;
     }
     
-    .stat-item {
+    .stat-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 25px;
+      padding: 2rem;
       text-align: center;
-      padding: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+      overflow: hidden;
     }
     
-    .stat-number {
-      font-size: 2rem;
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: var(--card-gradient);
+      border-radius: 25px;
+      opacity: 0;
+      z-index: -1;
+      transition: opacity 0.3s ease;
+    }
+    
+    .stat-card:hover::before {
+      opacity: 1;
+    }
+    
+    .stat-card:nth-child(1) { --card-gradient: var(--gradient-3); }
+    .stat-card:nth-child(2) { --card-gradient: var(--gradient-5); }
+    .stat-card:nth-child(3) { --card-gradient: var(--gradient-2); }
+    .stat-card:nth-child(4) { --card-gradient: var(--gradient-4); }
+    
+    .stat-card:hover {
+      transform: translateY(-10px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    .stat-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      display: inline-block;
+      background: var(--card-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 4px 20px rgba(255, 255, 255, 0.3));
+      animation: iconPulse 3s ease-in-out infinite;
+    }
+    
+    @keyframes iconPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    
+    .stat-value {
+      font-size: 2.5rem;
       font-weight: 700;
-      display: block;
-      color: #667eea;
+      color: white;
+      margin-bottom: 0.5rem;
     }
     
     .stat-label {
       font-size: 0.9rem;
-      color: #6c757d;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 2px;
+      color: rgba(255, 255, 255, 0.8);
     }
     
-    .trip-row {
-      transition: all 0.2s ease;
-      border-left: 4px solid transparent;
+    /* Trip logs table */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     }
     
-    .trip-row:hover {
-      background-color: rgba(102, 126, 234, 0.05);
-      border-left-color: #667eea;
-      transform: translateX(5px);
+    .glass-card-header {
+      margin-bottom: 2rem;
     }
     
+    .glass-card-header h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .glass-card-header h2 i {
+      background: var(--gradient-2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    /* Table styling */
+    .trip-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 0.75rem;
+    }
+    
+    .trip-table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      font-size: 0.85rem;
+      border: none;
+    }
+    
+    .trip-table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .trip-table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(10px);
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    .trip-table td {
+      padding: 1.25rem 1rem;
+      color: white;
+      border: none;
+    }
+    
+    /* Period badges */
     .period-badge {
+      display: inline-block;
       padding: 0.25rem 0.75rem;
       border-radius: 20px;
       font-size: 0.8rem;
-      font-weight: 500;
+      font-weight: 600;
       text-transform: capitalize;
     }
     
     .period-morning {
-      background: var(--grad-warning);
+      background: var(--gradient-5);
       color: white;
+      box-shadow: 0 2px 10px rgba(250, 112, 154, 0.4);
     }
     
     .period-afternoon {
-      background: var(--grad-info);
+      background: var(--gradient-3);
+      color: white;
+      box-shadow: 0 2px 10px rgba(79, 172, 254, 0.4);
+    }
+    
+    /* Trip details */
+    .trip-time {
+      font-weight: 600;
       color: white;
     }
     
+    .trip-mileage {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .trip-mileage i {
+      color: #4facfe;
+    }
+    
+    .trip-riders {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      color: white;
+    }
+    
+    .trip-riders i {
+      color: #fa709a;
+    }
+    
+    /* Empty state */
     .empty-state {
       text-align: center;
-      padding: 3rem 1rem;
-      color: #6c757d;
+      padding: 5rem 1rem;
+      color: rgba(255, 255, 255, 0.8);
     }
     
     .empty-state i {
-      font-size: 4rem;
-      margin-bottom: 1rem;
+      font-size: 5rem;
       opacity: 0.3;
+      margin-bottom: 1.5rem;
+    }
+    
+    .empty-state h4 {
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+      color: white;
+    }
+    
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .fade-in:nth-child(1) { animation-delay: 0.1s; }
+    .fade-in:nth-child(2) { animation-delay: 0.2s; }
+    .fade-in:nth-child(3) { animation-delay: 0.3s; }
+    .fade-in:nth-child(4) { animation-delay: 0.4s; }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero-content h1 {
+        font-size: 2rem;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      
+      .trip-table {
+        font-size: 0.9rem;
+      }
+      
+      .trip-table td {
+        padding: 1rem 0.5rem;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container-fluid py-4">
-    <!-- Header -->
-    <header class="page-header">
-      <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <div>
-          <h1 class="fs-3 mb-1">
-            <i class="bi bi-person-badge me-2"></i>Driver Profile
-          </h1>
-          <p class="mb-0 opacity-75">Detailed view of driver performance and trip history</p>
+  <!-- Floating orbs -->
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  
+  <!-- Navigation -->
+  <nav class="navbar-glass">
+    <div class="container-fluid">
+      <div class="d-flex justify-content-between align-items-center">
+        <a href="/manager-dashboard" class="navbar-brand">
+          <i class="bi bi-bus-front-fill"></i>
+          <span>Fleet Management</span>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+          <a href="/manager-dashboard" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+          </a>
+          <form method="POST" action="/logout" class="m-0">
+            <button type="submit" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+          </form>
         </div>
-        <nav class="btn-group btn-group-sm" role="group">
-          <a href="/manager-dashboard" class="btn">
-            <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
-          </a>
-          <a href="/logout" class="btn">
-            <i class="bi bi-box-arrow-right me-1"></i>Logout
-          </a>
-        </nav>
       </div>
-    </header>
+    </div>
+  </nav>
 
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="fade-in">Driver Profile</h1>
+        <p class="lead fade-in" style="opacity: 0.9; color: rgba(255, 255, 255, 0.8);">Performance metrics and trip history</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="container">
     <!-- Driver Information -->
-    <div class="row g-4 mb-4">
-      <div class="col-12">
-        <div class="enhanced-card">
-          <div class="card-body p-4">
-            <div class="driver-info">
-              <div class="driver-avatar">
-                <i class="bi bi-person-badge"></i>
-              </div>
-              <div class="driver-name">{{.Name}}</div>
-              <span class="driver-badge">
-                <i class="bi bi-bus-front me-1"></i>Licensed Driver
-              </span>
-            </div>
-          </div>
-        </div>
+    <div class="profile-card fade-in">
+      <div class="driver-avatar">
+        <i class="bi bi-person-badge"></i>
+      </div>
+      <div class="text-center">
+        <div class="driver-name">{{.Name}}</div>
+        <span class="driver-badge">
+          <i class="bi bi-bus-front me-1"></i>Licensed Driver
+        </span>
       </div>
     </div>
 
     <!-- Trip Statistics -->
     {{if .Logs}}
-    <div class="stats-row">
-      <div class="row g-4">
-        <div class="col-md-3">
-          <div class="stat-item">
-            <span class="stat-number" id="totalTrips">{{len .Logs}}</span>
-            <div class="stat-label">Total Trips</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="stat-item">
-            <span class="stat-number" id="totalMileage">0.0</span>
-            <div class="stat-label">Total Miles</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="stat-item">
-            <span class="stat-number" id="totalRiders">0</span>
-            <div class="stat-label">Total Riders</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="stat-item">
-            <span class="stat-number" id="avgRiders">0</span>
-            <div class="stat-label">Avg Riders/Trip</div>
-          </div>
-        </div>
+    <div class="stats-grid">
+      <div class="stat-card fade-in">
+        <i class="bi bi-calendar-check stat-icon"></i>
+        <div class="stat-value" id="totalTrips">{{len .Logs}}</div>
+        <div class="stat-label">Total Trips</div>
+      </div>
+      <div class="stat-card fade-in">
+        <i class="bi bi-speedometer2 stat-icon"></i>
+        <div class="stat-value" id="totalMileage">0.0</div>
+        <div class="stat-label">Total Miles</div>
+      </div>
+      <div class="stat-card fade-in">
+        <i class="bi bi-people stat-icon"></i>
+        <div class="stat-value" id="totalRiders">0</div>
+        <div class="stat-label">Total Riders</div>
+      </div>
+      <div class="stat-card fade-in">
+        <i class="bi bi-graph-up stat-icon"></i>
+        <div class="stat-value" id="avgRiders">0</div>
+        <div class="stat-label">Avg Riders/Trip</div>
       </div>
     </div>
     {{end}}
 
     <!-- Trip Logs -->
-    <div class="row g-4">
-      <div class="col-12">
-        <div class="enhanced-card">
-          <div class="card-header">
-            <h5><i class="bi bi-journal-text me-2"></i>Trip History</h5>
-          </div>
-          <div class="card-body p-0">
-            {{if .Logs}}
-            <div class="table-responsive">
-              <table class="table table-hover mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th class="px-4 py-3">Date & Period</th>
-                    <th class="px-4 py-3">Bus Information</th>
-                    <th class="px-4 py-3">Trip Details</th>
-                    <th class="px-4 py-3">Performance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {{range .Logs}}
-                  <tr class="trip-row">
-                    <td class="px-4 py-3">
-                      <div class="fw-semibold">{{.Date}}</div>
-                      <span class="period-badge {{if eq .Period "morning"}}period-morning{{else}}period-afternoon{{end}}">
-                        {{.Period}}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3">
-                      <div class="d-flex align-items-center">
-                        <i class="bi bi-bus-front me-2 text-primary"></i>
-                        <div>
-                          <div class="fw-semibold">Bus #{{.BusID}}</div>
-                          <small class="text-muted">Fleet Vehicle</small>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-4 py-3">
-                      <div class="mb-1">
-                        <i class="bi bi-clock me-1 text-success"></i>
-                        <strong>{{.Departure}}</strong> → <strong>{{.Arrival}}</strong>
-                      </div>
-                      <div>
-                        <i class="bi bi-speedometer2 me-1 text-info"></i>
-                        <small>{{printf "%.1f" .Mileage}} miles</small>
-                      </div>
-                    </td>
-                    <td class="px-4 py-3">
-                      <div class="d-flex align-items-center">
-                        <i class="bi bi-people me-2 text-warning"></i>
-                        <div>
-                          <div class="fw-semibold">{{len .Attendance}} riders</div>
-                          <small class="text-muted">Passengers</small>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  {{end}}
-                </tbody>
-              </table>
-            </div>
-            {{else}}
-            <div class="empty-state">
-              <i class="bi bi-journal-x"></i>
-              <h6>No Trip Logs Found</h6>
-              <p class="mb-0">This driver hasn't logged any trips yet</p>
-            </div>
-            {{end}}
-          </div>
-        </div>
+    <div class="glass-card fade-in">
+      <div class="glass-card-header">
+        <h2><i class="bi bi-journal-text"></i>Trip History</h2>
       </div>
+      {{if .Logs}}
+      <div class="table-responsive">
+        <table class="trip-table">
+          <thead>
+            <tr>
+              <th>Date & Period</th>
+              <th>Bus Information</th>
+              <th>Trip Details</th>
+              <th>Performance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Logs}}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{.Date}}</div>
+                <span class="period-badge {{if eq .Period "morning"}}period-morning{{else}}period-afternoon{{end}}">
+                  {{.Period}}
+                </span>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-bus-front me-2" style="color: #4facfe; font-size: 1.25rem;"></i>
+                  <div>
+                    <div class="fw-semibold">Bus #{{.BusID}}</div>
+                    <small style="opacity: 0.8;">Fleet Vehicle</small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="mb-1">
+                  <i class="bi bi-clock me-1" style="color: #43e97b;"></i>
+                  <span class="trip-time">{{.Departure}}</span> → <span class="trip-time">{{.Arrival}}</span>
+                </div>
+                <div class="trip-mileage">
+                  <i class="bi bi-speedometer2"></i>
+                  <span>{{printf "%.1f" .Mileage}} miles</span>
+                </div>
+              </td>
+              <td>
+                <div class="trip-riders">
+                  <i class="bi bi-people-fill"></i>
+                  <span>{{len .Attendance}} riders</span>
+                </div>
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+      {{else}}
+      <div class="empty-state">
+        <i class="bi bi-journal-x"></i>
+        <h4>No Trip Logs Found</h4>
+        <p>This driver hasn't logged any trips yet</p>
+      </div>
+      {{end}}
     </div>
   </div>
 
@@ -343,24 +648,37 @@
 
       const avgRiders = logs.length > 0 ? Math.round(totalRiders / logs.length) : 0;
 
-      // Update statistics display
-      document.getElementById('totalMileage').textContent = totalMileage.toFixed(1);
-      document.getElementById('totalRiders').textContent = totalRiders;
-      document.getElementById('avgRiders').textContent = avgRiders;
+      // Animate statistics
+      function animateValue(element, start, end, duration) {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+          if (!startTimestamp) startTimestamp = timestamp;
+          const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+          const value = progress * (end - start) + start;
+          element.textContent = element.id === 'totalMileage' ? value.toFixed(1) : Math.floor(value);
+          if (progress < 1) {
+            window.requestAnimationFrame(step);
+          }
+        };
+        window.requestAnimationFrame(step);
+      }
+
+      // Update statistics display with animation
+      animateValue(document.getElementById('totalMileage'), 0, totalMileage, 1500);
+      animateValue(document.getElementById('totalRiders'), 0, totalRiders, 1500);
+      animateValue(document.getElementById('avgRiders'), 0, avgRiders, 1500);
       {{end}}
 
-      // Add animation to cards
-      const cards = document.querySelectorAll('.enhanced-card');
-      cards.forEach((card, index) => {
-        setTimeout(() => {
-          card.style.opacity = '0';
-          card.style.transform = 'translateY(20px)';
-          card.style.transition = 'all 0.5s ease';
-          setTimeout(() => {
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-          }, 100);
-        }, index * 200);
+      // Add hover effects to table rows
+      document.querySelectorAll('.trip-table tbody tr').forEach(row => {
+        row.addEventListener('mousemove', (e) => {
+          const rect = row.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          
+          row.style.setProperty('--mouse-x', `${x}px`);
+          row.style.setProperty('--mouse-y', `${y}px`);
+        });
       });
     });
   </script>
