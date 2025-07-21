@@ -11,26 +11,88 @@
   <link rel="stylesheet" href="/static/help_system.css">
   <link rel="stylesheet" href="/static/enhanced_help_system.css">
   <style nonce="{{.CSPNonce}}">
-    /* Driver Dashboard with purple theme */
-    .driver-header {
-      color: white !important;
+    /* Beautiful gradient background matching manager dashboard */
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    
+    /* Glass morphism wrapper */
+    .page-wrapper {
+      min-height: 100vh;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+    
+    .main-content {
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    /* Navigation with glass effect */
+    .navbar {
+      background: rgba(255, 255, 255, 0.95) !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .navbar-brand, .navbar-nav .nav-link {
+      color: #667eea !important;
+      font-weight: 600;
+    }
+    
+    /* Enhanced card styling */
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+      backdrop-filter: blur(4px);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+    
+    /* Hero section for driver */
+    .driver-hero {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 3rem 0;
+      margin: -2rem -2rem 2rem -2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .driver-hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      animation: rotate 30s linear infinite;
+    }
+    
+    @keyframes rotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .driver-hero-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+    }
+    
+    .driver-welcome {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
       text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      margin-bottom: 2rem;
     }
     
-    .driver-header i {
-      color: white !important;
-    }
-    
-    /* Dashboard metrics grid */
-    .dashboard-metrics {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-    
-    /* Colorful metric cards */
+    /* Beautiful metric cards with gradients */
     .metric-card {
       border-radius: 20px;
       text-align: center;
@@ -40,28 +102,24 @@
       position: relative;
       overflow: hidden;
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+      border: none;
     }
     
-    .metric-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
-    }
-    
-    /* Gradient backgrounds for metric cards */
-    .metric-card.primary { 
+    /* Different gradients for each metric */
+    .metric-card.time-card { 
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
     }
-    .metric-card.success { 
+    .metric-card.students-card { 
       background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); 
     }
-    .metric-card.info { 
+    .metric-card.bus-card { 
       background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); 
     }
-    .metric-card.warning { 
+    .metric-card.miles-card { 
       background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); 
     }
     
-    /* Shimmer effect on hover */
+    /* Shimmer effect */
     .metric-card::before {
       content: '';
       position: absolute;
@@ -78,42 +136,201 @@
       transform: rotate(45deg) translateX(100%);
     }
     
+    .metric-card:hover {
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+    }
+    
     .metric-icon {
-      font-size: 2.5rem;
-      margin-bottom: var(--space-md);
+      font-size: 3rem;
+      margin-bottom: 1rem;
       opacity: 0.9;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
     }
     
     .metric-value {
-      font-size: var(--font-size-xxl);
+      font-size: 2.5rem;
       font-weight: 700;
-      margin-bottom: var(--space-sm);
+      margin-bottom: 0.5rem;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
     
     .metric-label {
-      font-size: var(--font-size-base);
+      font-size: 1rem;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 1px;
       opacity: 0.9;
     }
     
-    /* Assignment info card with gradient */
-    .assignment-info {
-      background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%);
-      border-radius: 20px;
-      padding: 2rem;
+    /* Quick actions with beautiful styling */
+    .quick-actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
       margin-bottom: 2rem;
-      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      backdrop-filter: blur(10px);
     }
     
-    /* Action buttons with gradients */
-    .btn-start-trip {
+    .quick-action-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background: white;
+      border: none;
+      border-radius: 20px;
+      text-decoration: none;
+      color: white;
+      transition: all 0.3s ease;
+      min-height: 150px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    .quick-action-btn:nth-child(1) {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    .quick-action-btn:nth-child(2) {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .quick-action-btn:nth-child(3) {
+      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+    
+    .quick-action-btn:nth-child(4) {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+    
+    .quick-action-btn::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%);
+      transform: rotate(45deg) translateX(-100%);
+      transition: transform 0.6s;
+    }
+    
+    .quick-action-btn:hover::before {
+      transform: rotate(45deg) translateX(100%);
+    }
+    
+    .quick-action-btn:hover {
+      transform: translateY(-8px) scale(1.05);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+      color: white;
+      text-decoration: none;
+    }
+    
+    .quick-action-btn i {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    }
+    
+    .quick-action-btn span {
+      font-weight: 600;
+      font-size: 1.1rem;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Route assignment card */
+    .route-assignment-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.9) 100%);
+      border-radius: 25px;
+      padding: 2.5rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .route-assignment-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 8px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    /* Beautiful form styling */
+    .log-form {
+      background: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.9) 100%);
+      border-radius: 20px;
+      padding: 2rem;
+    }
+    
+    .form-control, .form-select {
+      background: rgba(255, 255, 255, 0.9);
+      border: 2px solid rgba(102, 126, 234, 0.2);
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+      background: white;
+      border-color: #667eea;
+      box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .form-label {
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 0.5rem;
+    }
+    
+    /* Student attendance list */
+    .student-list-container {
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 20px;
+      padding: 1.5rem;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    .student-item {
+      background: white;
+      border-radius: 15px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .student-item:hover {
+      transform: translateX(5px);
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
+    }
+    
+    .position-badge {
+      width: 35px;
+      height: 35px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      margin-right: 1rem;
+      flex-shrink: 0;
+    }
+    
+    /* Action buttons */
+    .btn-save-log {
       background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
       border: none;
       color: white;
-      padding: 0.75rem 2rem;
+      padding: 1rem 3rem;
       border-radius: 30px;
       font-weight: 600;
       font-size: 1.1rem;
@@ -121,102 +338,133 @@
       box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
     }
     
-    .btn-start-trip:hover {
+    .btn-save-log:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 25px rgba(17, 153, 142, 0.4);
     }
     
-    .btn-end-trip {
-      background: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
-      border: none;
-      color: white;
-      padding: 0.75rem 2rem;
-      border-radius: 30px;
-      font-weight: 600;
-      font-size: 1.1rem;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
-    }
-    
-    .btn-end-trip:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 25px rgba(255, 107, 107, 0.4);
-    }
-    
-    .quick-action-card {
-      border: 2px dashed var(--border-color);
-      border-radius: var(--border-radius-lg);
-      transition: all var(--transition-base);
-      cursor: pointer;
-      padding: var(--space-lg);
-      text-align: center;
-      display: block;
-      text-decoration: none;
-      color: var(--color-text-primary);
-      min-height: var(--touch-target-large);
-    }
-    
-    .quick-action-card:hover {
-      border-color: var(--color-success);
-      background-color: var(--color-success-light);
-      transform: translateY(-3px);
-      text-decoration: none;
-      color: var(--color-text-primary);
-    }
-    
-    .quick-action-card i {
-      font-size: 2rem;
-      margin-bottom: var(--space-sm);
-      display: block;
-    }
-    
+    /* Recent logs styling */
     .trip-log-item {
-      padding: var(--space-md);
-      background: var(--color-bg-primary);
-      border-radius: var(--border-radius-base);
-      margin-bottom: var(--space-sm);
-      border-left: 4px solid var(--color-info);
-      transition: all var(--transition-base);
+      background: white;
+      border-radius: 15px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      position: relative;
+      transition: all 0.3s ease;
+      border-left: 5px solid;
+    }
+    
+    .trip-log-item:nth-child(odd) {
+      border-left-color: #667eea;
+    }
+    
+    .trip-log-item:nth-child(even) {
+      border-left-color: #38ef7d;
     }
     
     .trip-log-item:hover {
-      transform: translateX(5px);
-      box-shadow: var(--shadow-sm);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
     }
     
-    .student-table th {
-      background-color: var(--color-bg-tertiary);
+    /* Badge styling */
+    .badge {
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
       font-weight: 600;
-      text-transform: uppercase;
-      font-size: var(--font-size-small);
-      letter-spacing: 0.5px;
     }
     
-    .position-number {
-      width: 40px;
-      height: 40px;
-      background: var(--color-primary);
-      color: var(--color-text-inverse);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      font-size: var(--font-size-base);
+    .badge.bg-success {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
     }
     
-    .route-positions {
-      max-height: 400px;
-      overflow-y: auto;
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #a0aec0;
     }
     
+    .empty-state i {
+      font-size: 4rem;
+      opacity: 0.3;
+      margin-bottom: 1rem;
+    }
+    
+    /* Section styling */
+    .section-wrapper {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 25px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      backdrop-filter: blur(5px);
+    }
+    
+    .section-title {
+      color: white;
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .section-title i {
+      margin-right: 0.75rem;
+    }
+    
+    /* Animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.05);
+      }
+    }
+    
+    .metric-card, .quick-action-btn, .card {
+      animation: fadeInUp 0.6s ease-out;
+      animation-fill-mode: both;
+    }
+    
+    .metric-card:nth-child(1) { animation-delay: 0.1s; }
+    .metric-card:nth-child(2) { animation-delay: 0.2s; }
+    .metric-card:nth-child(3) { animation-delay: 0.3s; }
+    .metric-card:nth-child(4) { animation-delay: 0.4s; }
+    
+    .quick-action-btn:nth-child(1) { animation-delay: 0.15s; }
+    .quick-action-btn:nth-child(2) { animation-delay: 0.25s; }
+    .quick-action-btn:nth-child(3) { animation-delay: 0.35s; }
+    .quick-action-btn:nth-child(4) { animation-delay: 0.45s; }
+    
+    /* Responsive */
     @media (max-width: 768px) {
-      .dashboard-metrics {
-        grid-template-columns: 1fr;
+      .driver-welcome {
+        font-size: 2rem;
       }
       
-      .quick-actions {
+      .metric-value {
+        font-size: 2rem;
+      }
+      
+      .quick-actions-grid {
         grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+      }
+      
+      .data-grid-primary {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -227,49 +475,47 @@
     {{$pageDesc := printf "Welcome back, %s! Here's your route overview." .Data.User.Username}}
     {{template "navigation" (dict "Navigation" .Navigation "CSPNonce" .CSPNonce "ShowHelpButton" .ShowHelpButton "PageDescription" $pageDesc)}}
     
-    <!-- Page Actions -->
-    <div class="primary-actions">
-      <div>
-        <h2 class="subsection-heading">Quick Actions</h2>
-      </div>
-      <nav>
-        <a href="/students" class="btn btn-primary btn-lg" data-help="manage-students-driver" data-help-title="Manage Students" data-help-content="View and manage students assigned to your routes. Check contact information and update pickup/dropoff details.">
-          <i class="bi bi-people" aria-hidden="true"></i>
-          Manage Students
-        </a>
-        </nav>
-      </div>
-    </header>
-    
     <!-- Main Content -->
     <main id="main-content" class="main-content">
+      <!-- Driver Hero Section -->
+      <div class="driver-hero">
+        <div class="container">
+          <div class="driver-hero-content">
+            <h1 class="driver-welcome">
+              <i class="bi bi-bus-front"></i> Welcome, {{.Data.User.Username}}!
+            </h1>
+            <p class="lead mb-0">Let's make today's routes safe and smooth</p>
+          </div>
+        </div>
+      </div>
+      
       <!-- Dashboard Shortcuts -->
       {{template "dashboard-shortcuts" (dict "UserRole" .Data.User.Role "CSPNonce" .CSPNonce)}}
       
       <!-- Quick Stats -->
       {{if .Data.Route}}
-      <section class="content-section" aria-labelledby="metrics-heading">
-        <h2 id="metrics-heading" class="section-heading">
+      <section class="section-wrapper" aria-labelledby="metrics-heading">
+        <h2 id="metrics-heading" class="section-title">
           <i class="bi bi-graph-up" aria-hidden="true"></i>
           Today's Route Metrics
         </h2>
         <div class="data-grid-primary">
-          <div class="metric-card primary">
+          <div class="metric-card time-card">
             <i class="bi bi-clock-fill metric-icon" aria-hidden="true"></i>
             <div class="metric-value" id="currentTime">--:--</div>
             <div class="metric-label">Current Time</div>
           </div>
-          <div class="metric-card success">
+          <div class="metric-card students-card">
             <i class="bi bi-people-fill metric-icon" aria-hidden="true"></i>
             <div class="metric-value">{{if .Data.Students}}{{len .Data.Students}}{{else}}0{{end}}</div>
             <div class="metric-label">Students on Route</div>
           </div>
-          <div class="metric-card info">
+          <div class="metric-card bus-card">
             <i class="bi bi-bus-front metric-icon" aria-hidden="true"></i>
             <div class="metric-value">{{if .Data.Bus}}{{.Data.Bus.BusID}}{{else}}--{{end}}</div>
             <div class="metric-label">Assigned Bus</div>
           </div>
-          <div class="metric-card warning">
+          <div class="metric-card miles-card">
             <i class="bi bi-speedometer2 metric-icon" aria-hidden="true"></i>
             <div class="metric-value">{{if .Data.DriverLog}}{{printf "%.1f" .Data.DriverLog.Mileage}}{{else}}0.0{{end}}</div>
             <div class="metric-label">Today's Miles</div>
@@ -281,24 +527,30 @@
       <!-- Daily Route Log -->
       <section aria-labelledby="log-heading">
         <div class="card">
-          <div class="card-header">
-            <h2 id="log-heading">Daily Route Log</h2>
+          <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem;">
+            <h2 id="log-heading" style="margin: 0; font-weight: 700;">
+              <i class="bi bi-journal-text"></i> Daily Route Log
+            </h2>
           </div>
           <div class="card-body">
-            <form action="/save-log" method="POST" class="accessible-form">
+            <form action="/save-log" method="POST" class="log-form">
               <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
               
-              <div class="row">
+              <div class="row g-3">
                 <div class="col-md-3">
                   <div class="form-group">
-                    <label for="date" class="form-label required">Date</label>
-                    <input type="date" id="date" name="date" class="form-control" value="{{.Data.Date}}" required data-help="log-date" data-help-title="Trip Date" data-help-content="Select the date of this trip. Defaults to today's date. You can log trips for past dates if needed.">
+                    <label for="date" class="form-label required">
+                      <i class="bi bi-calendar3"></i> Date
+                    </label>
+                    <input type="date" id="date" name="date" class="form-control" value="{{.Data.Date}}" required>
                   </div>
                 </div>
                 <div class="col-md-3">
                   <div class="form-group">
-                    <label for="period" class="form-label required">Period</label>
-                    <select id="period" name="period" class="form-control form-select" required data-help="trip-period" data-help-title="Trip Period" data-help-content="Choose whether this is a morning (AM) or afternoon (PM) route. This helps track daily operations accurately.">
+                    <label for="period" class="form-label required">
+                      <i class="bi bi-sun"></i> Period
+                    </label>
+                    <select id="period" name="period" class="form-control form-select" required>
                       <option value="morning" {{if eq .Data.Period "morning"}}selected{{end}}>Morning Route (AM)</option>
                       <option value="afternoon" {{if eq .Data.Period "afternoon"}}selected{{end}}>Afternoon Route (PM)</option>
                     </select>
@@ -306,16 +558,20 @@
                 </div>
                 <div class="col-md-3">
                   <div class="form-group">
-                    <label for="departure" class="form-label required">Departure Time</label>
+                    <label for="departure" class="form-label required">
+                      <i class="bi bi-arrow-up-circle"></i> Departure Time
+                    </label>
                     <input type="time" id="departure" name="departure" class="form-control" 
-                           value="{{if .Data.DriverLog}}{{.Data.DriverLog.Departure}}{{end}}" required data-help="departure-time" data-help-title="Departure Time" data-help-content="Enter the time you departed from the bus depot or starting location. Use 24-hour format or AM/PM.">
+                           value="{{if .Data.DriverLog}}{{.Data.DriverLog.Departure}}{{end}}" required>
                   </div>
                 </div>
                 <div class="col-md-3">
                   <div class="form-group">
-                    <label for="arrival" class="form-label required">Arrival Time</label>
+                    <label for="arrival" class="form-label required">
+                      <i class="bi bi-arrow-down-circle"></i> Arrival Time
+                    </label>
                     <input type="time" id="arrival" name="arrival" class="form-control" 
-                           value="{{if .Data.DriverLog}}{{.Data.DriverLog.Arrival}}{{end}}" required data-help="arrival-time" data-help-title="Arrival Time" data-help-content="Enter the time you arrived back at the depot or ending location after completing the route.">
+                           value="{{if .Data.DriverLog}}{{.Data.DriverLog.Arrival}}{{end}}" required>
                   </div>
                 </div>
               </div>
@@ -324,129 +580,121 @@
               <input type="hidden" name="route_id" value="{{.Data.Route.RouteID}}">
               <input type="hidden" name="bus_id" value="{{if .Data.Bus}}{{.Data.Bus.BusID}}{{end}}">
               
-              <div class="assignment-info">
-                <div class="row">
+              <div class="route-assignment-card mt-4">
+                <div class="row align-items-center">
                   <div class="col-md-4">
-                    <strong><i class="bi bi-bus-front" aria-hidden="true"></i> Bus:</strong> 
-                    {{if .Data.Bus}}#{{.Data.Bus.BusID}} - {{.Data.Bus.Model}}{{else}}Not Assigned{{end}}
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-bus-front text-primary" style="font-size: 2rem; margin-right: 1rem;"></i>
+                      <div>
+                        <strong style="color: #667eea;">Bus Assignment</strong>
+                        <div>{{if .Data.Bus}}#{{.Data.Bus.BusID}} - {{.Data.Bus.Model}}{{else}}Not Assigned{{end}}</div>
+                      </div>
+                    </div>
                   </div>
                   <div class="col-md-4">
-                    <strong><i class="bi bi-map" aria-hidden="true"></i> Route:</strong> 
-                    {{.Data.Route.RouteName}} ({{.Data.Route.RouteID}})
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-map text-success" style="font-size: 2rem; margin-right: 1rem;"></i>
+                      <div>
+                        <strong style="color: #11998e;">Route</strong>
+                        <div>{{.Data.Route.RouteName}} ({{.Data.Route.RouteID}})</div>
+                      </div>
+                    </div>
                   </div>
                   <div class="col-md-4">
                     <div class="form-group mb-0">
                       <label for="mileage" class="form-label required">
-                        <i class="bi bi-speedometer2" aria-hidden="true"></i> Mileage:
+                        <i class="bi bi-speedometer2"></i> Mileage
                       </label>
-                      <input type="number" id="mileage" name="mileage" class="form-control form-control-sm d-inline-block w-auto" 
+                      <input type="number" id="mileage" name="mileage" class="form-control" 
                              step="0.1" placeholder="0.0" 
-                             value="{{if .Data.DriverLog}}{{.Data.DriverLog.Mileage}}{{end}}" required data-help="trip-mileage" data-help-title="Trip Mileage" data-help-content="Enter the total miles driven for this route. Use the odometer reading at start and end to calculate. Decimals are allowed (e.g., 12.5).">
+                             value="{{if .Data.DriverLog}}{{.Data.DriverLog.Mileage}}{{end}}" required>
                     </div>
                   </div>
                 </div>
               </div>
               
-              <h3 class="mb-3">
-                <i class="bi bi-people" aria-hidden="true"></i>
-                Student Attendance
+              <h3 class="mt-4 mb-3" style="color: #4a5568; font-weight: 700;">
+                <i class="bi bi-people"></i> Student Attendance
               </h3>
-              <div class="alert alert-info">
-                <i class="bi bi-info-circle" aria-hidden="true"></i>
+              
+              <div class="alert" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none;">
+                <i class="bi bi-info-circle"></i>
                 Students are automatically ordered by their 
                 {{if eq .Data.Period "morning"}}pickup{{else}}dropoff{{end}} times for efficient route planning.
               </div>
               
-              <div class="route-positions">
+              <div class="student-list-container">
                 {{if .Data.Students}}
-                <div class="table-responsive" data-responsive-table>
-                  <table class="table student-table" aria-label="Student attendance">
-                    <thead>
-                      <tr>
-                        <th scope="col">Order</th>
-                        <th scope="col">Student Name</th>
-                        <th scope="col">Guardian</th>
-                        <th scope="col">Phone</th>
-                        <th scope="col">{{if eq .Data.Period "morning"}}Pickup{{else}}Dropoff{{end}} Time</th>
-                        <th scope="col">Present</th>
-                        <th scope="col">Actual Time</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {{range $index, $student := .Data.Students}}
-                      {{$position := $student.PositionNumber}}
-                      <tr>
-                        <td data-label="Order">
-                          <div class="position-number">{{add $index 1}}</div>
-                        </td>
-                        <td data-label="Student">
+                  {{range $index, $student := .Data.Students}}
+                  {{$position := $student.PositionNumber}}
+                  <div class="student-item">
+                    <div class="position-badge">{{add $index 1}}</div>
+                    <div class="flex-grow-1">
+                      <div class="d-flex justify-content-between align-items-start">
+                        <div>
                           <strong>{{.Name}}</strong>
-                          <br>
-                          <small class="text-muted">ID: {{.StudentID}}</small>
-                        </td>
-                        <td data-label="Guardian">{{.Guardian}}</td>
-                        <td data-label="Phone">{{.PhoneNumber}}</td>
-                        <td data-label="Scheduled Time">
-                          <strong class="text-primary">
+                          <small class="text-muted d-block">ID: {{.StudentID}} • Guardian: {{.Guardian}}</small>
+                          <small class="text-muted">
+                            <i class="bi bi-telephone"></i> {{.PhoneNumber}}
+                          </small>
+                        </div>
+                        <div class="text-end">
+                          <div class="badge bg-primary mb-2">
                             {{if eq $.Data.Period "morning"}}
-                              {{.PickupTime}}
+                              <i class="bi bi-sunrise"></i> {{.PickupTime}}
                             {{else}}
-                              {{.DropoffTime}}
+                              <i class="bi bi-sunset"></i> {{.DropoffTime}}
                             {{end}}
-                          </strong>
-                        </td>
-                        <td data-label="Present">
-                          <div class="form-check">
-                            <input class="form-check-input" type="checkbox" 
-                                   name="present_{{.PositionNumber}}" id="present_{{.PositionNumber}}"
+                          </div>
+                          <div class="d-flex gap-3 align-items-center">
+                            <div class="form-check">
+                              <input class="form-check-input" type="checkbox" 
+                                     name="present_{{.PositionNumber}}" id="present_{{.PositionNumber}}"
+                                     {{if $.Data.DriverLog}}
+                                       {{range $.Data.DriverLog.Attendance}}
+                                         {{if eq .Position $position}}{{if .Present}}checked{{end}}{{end}}
+                                       {{end}}
+                                     {{end}}>
+                              <label class="form-check-label" for="present_{{.PositionNumber}}">
+                                Present
+                              </label>
+                            </div>
+                            <input type="time" class="form-control form-control-sm" style="width: 120px;"
+                                   name="pickup_{{.PositionNumber}}"
+                                   aria-label="Actual time for {{.Name}}"
                                    {{if $.Data.DriverLog}}
                                      {{range $.Data.DriverLog.Attendance}}
-                                       {{if eq .Position $position}}{{if .Present}}checked{{end}}{{end}}
+                                       {{if eq .Position $position}}value="{{.PickupTime}}"{{end}}
                                      {{end}}
                                    {{end}}>
-                            <label class="form-check-label" for="present_{{.PositionNumber}}">
-                              Present
-                            </label>
                           </div>
-                        </td>
-                        <td data-label="Actual Time">
-                          <input type="time" class="form-control form-control-sm" 
-                                 name="pickup_{{.PositionNumber}}"
-                                 aria-label="Actual time for {{.Name}}"
-                                 {{if $.Data.DriverLog}}
-                                   {{range $.Data.DriverLog.Attendance}}
-                                     {{if eq .Position $position}}value="{{.PickupTime}}"{{end}}
-                                   {{end}}
-                                 {{end}}>
-                        </td>
-                      </tr>
-                      {{end}}
-                    </tbody>
-                  </table>
-                </div>
-                <div class="mt-2 text-muted">
-                  <small><i class="bi bi-info-circle" aria-hidden="true"></i> Total students on route: {{len .Data.Students}}</small>
-                  <br>
-                  <small><i class="bi bi-clock" aria-hidden="true"></i> Order shows the sequence for {{if eq .Data.Period "morning"}}pickups{{else}}dropoffs{{end}}</small>
-                </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {{end}}
+                  <div class="text-center mt-3 text-muted">
+                    <small><i class="bi bi-info-circle"></i> Total students on route: {{len .Data.Students}}</small>
+                  </div>
                 {{else}}
-                <div class="alert alert-info">
-                  <i class="bi bi-info-circle" aria-hidden="true"></i>
-                  No students assigned to this route yet. 
-                  <a href="/students" class="alert-link">Add students to your route</a>
+                <div class="empty-state">
+                  <i class="bi bi-people"></i>
+                  <h4>No Students Assigned</h4>
+                  <p>No students assigned to this route yet.</p>
+                  <a href="/students" class="btn btn-primary">Add Students</a>
                 </div>
                 {{end}}
               </div>
               
-              <div class="form-actions">
-                <button type="submit" class="btn btn-primary" data-help="save-log" data-help-title="Save Route Log" data-help-content="Save this trip log including attendance and mileage. You can update it later if needed. All data is saved securely.">
-                  <i class="bi bi-check-circle" aria-hidden="true"></i>
+              <div class="text-center mt-4">
+                <button type="submit" class="btn btn-save-log">
+                  <i class="bi bi-check-circle"></i>
                   Save Route Log
                 </button>
               </div>
               {{else}}
               <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                <i class="bi bi-exclamation-triangle"></i>
                 <strong>No Route Assignment</strong>
                 <p class="mb-0">You have not been assigned to a route yet. Please contact your manager.</p>
               </div>
@@ -461,8 +709,10 @@
         <div class="col-lg-8">
           <section aria-labelledby="logs-heading">
             <div class="card">
-              <div class="card-header">
-                <h3 id="logs-heading">Recent Trip Logs</h3>
+              <div class="card-header" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+                <h3 id="logs-heading" style="margin: 0; color: #4a5568;">
+                  <i class="bi bi-clock-history"></i> Recent Trip Logs
+                </h3>
               </div>
               <div class="card-body">
                 {{if .Data.RecentLogs}}
@@ -470,20 +720,22 @@
                 <div class="trip-log-item">
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
-                      <strong>{{.Date}} - {{.Period}}</strong>
-                      <p class="mb-0 text-muted small">
-                        <i class="bi bi-clock" aria-hidden="true"></i> {{.Departure}} - {{.Arrival}} • 
-                        <i class="bi bi-speedometer2" aria-hidden="true"></i> {{printf "%.1f" .Mileage}} miles • 
-                        <i class="bi bi-people" aria-hidden="true"></i> {{len .Attendance}} students
+                      <strong style="font-size: 1.1rem;">{{.Date}} - {{.Period}}</strong>
+                      <p class="mb-0 text-muted">
+                        <i class="bi bi-clock"></i> {{.Departure}} - {{.Arrival}} • 
+                        <i class="bi bi-speedometer2"></i> {{printf "%.1f" .Mileage}} miles • 
+                        <i class="bi bi-people"></i> {{len .Attendance}} students
                       </p>
                     </div>
-                    <span class="badge bg-success">Completed</span>
+                    <span class="badge bg-success">
+                      <i class="bi bi-check-circle"></i> Completed
+                    </span>
                   </div>
                 </div>
                 {{end}}
                 {{else}}
                 <div class="empty-state">
-                  <i class="bi bi-journal-plus" aria-hidden="true"></i>
+                  <i class="bi bi-journal-plus"></i>
                   <h4>No Recent Trips</h4>
                   <p>Your trip logs will appear here once you start logging</p>
                 </div>
@@ -497,39 +749,29 @@
         <div class="col-lg-4">
           <section aria-labelledby="actions-heading">
             <div class="card">
-              <div class="card-header">
-                <h3 id="actions-heading">Quick Actions</h3>
+              <div class="card-header" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+                <h3 id="actions-heading" style="margin: 0; color: #4a5568;">
+                  <i class="bi bi-lightning-charge"></i> Quick Actions
+                </h3>
               </div>
               <div class="card-body">
-                <div class="row g-3 quick-actions">
-                  <div class="col-6">
-                    <a href="/students" class="quick-action-card">
-                      <i class="bi bi-people text-success" aria-hidden="true"></i>
-                      <h4>Students</h4>
-                      <small class="text-muted">Manage roster</small>
-                    </a>
-                  </div>
-                  <div class="col-6">
-                    <a href="/driver-dashboard?date={{.Data.Date}}&period=morning" class="quick-action-card">
-                      <i class="bi bi-sunrise text-warning" aria-hidden="true"></i>
-                      <h4>Morning</h4>
-                      <small class="text-muted">AM Route</small>
-                    </a>
-                  </div>
-                  <div class="col-6">
-                    <a href="/driver-dashboard?date={{.Data.Date}}&period=afternoon" class="quick-action-card">
-                      <i class="bi bi-sunset text-info" aria-hidden="true"></i>
-                      <h4>Afternoon</h4>
-                      <small class="text-muted">PM Route</small>
-                    </a>
-                  </div>
-                  <div class="col-6">
-                    <a href="/reports" class="quick-action-card">
-                      <i class="bi bi-file-text text-primary" aria-hidden="true"></i>
-                      <h4>Reports</h4>
-                      <small class="text-muted">View history</small>
-                    </a>
-                  </div>
+                <div class="quick-actions-grid">
+                  <a href="/students" class="quick-action-btn">
+                    <i class="bi bi-people"></i>
+                    <span>Students</span>
+                  </a>
+                  <a href="/driver-dashboard?date={{.Data.Date}}&period=morning" class="quick-action-btn">
+                    <i class="bi bi-sunrise"></i>
+                    <span>Morning</span>
+                  </a>
+                  <a href="/driver-dashboard?date={{.Data.Date}}&period=afternoon" class="quick-action-btn">
+                    <i class="bi bi-sunset"></i>
+                    <span>Afternoon</span>
+                  </a>
+                  <a href="/reports" class="quick-action-btn">
+                    <i class="bi bi-file-text"></i>
+                    <span>Reports</span>
+                  </a>
                 </div>
               </div>
             </div>
@@ -554,7 +796,7 @@
         new ResponsiveTable(table.querySelector('table'));
       });
       
-      // Update current time
+      // Update current time with animation
       function updateTime() {
         const now = new Date();
         const timeString = now.toLocaleTimeString('en-US', { 
@@ -573,7 +815,7 @@
       // Auto-check present when actual time is entered
       document.querySelectorAll('input[name^="pickup_"]').forEach(function(input) {
         input.addEventListener('change', function() {
-          const row = this.closest('tr');
+          const row = this.closest('.student-item');
           const checkbox = row.querySelector('input[type="checkbox"]');
           if (this.value && checkbox) {
             checkbox.checked = true;
@@ -591,6 +833,40 @@
           window.location.href = `/driver-dashboard?date=${currentDate}&period=${newPeriod}`;
         });
       }
+      
+      // Add hover effects to cards
+      document.querySelectorAll('.metric-card, .quick-action-btn').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+          this.style.animation = 'pulse 2s infinite';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+          this.style.animation = '';
+        });
+      });
+      
+      // Animate metric values on load
+      function animateValue(element, start, end, duration) {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+          if (!startTimestamp) startTimestamp = timestamp;
+          const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+          element.textContent = Math.floor(progress * (end - start) + start);
+          if (progress < 1) {
+            window.requestAnimationFrame(step);
+          }
+        };
+        window.requestAnimationFrame(step);
+      }
+      
+      // Animate numeric values
+      document.querySelectorAll('.metric-value').forEach(el => {
+        const text = el.textContent;
+        const value = parseFloat(text);
+        if (!isNaN(value) && text !== '--:--') {
+          animateValue(el, 0, value, 1000);
+        }
+      });
     });
   </script>
 </body>
