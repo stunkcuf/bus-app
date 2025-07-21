@@ -17,15 +17,15 @@ import (
 
 // Validation constants (non-duplicated)
 const (
-	MaxUsernameLength    = 50
-	MinUsernameLength    = 3
-	MaxPasswordLength    = 128
-	MaxNameLength        = 200
-	MaxPhoneLength       = 20
-	MaxEmailLength       = 100
-	MaxAddressLength     = 500
-	MaxNotesLength       = 1000
-	MaxMultipartMemory   = 10 << 20 // 10MB
+	MaxUsernameLength  = 50
+	MinUsernameLength  = 3
+	MaxPasswordLength  = 128
+	MaxNameLength      = 200
+	MaxPhoneLength     = 20
+	MaxEmailLength     = 100
+	MaxAddressLength   = 500
+	MaxNotesLength     = 1000
+	MaxMultipartMemory = 10 << 20 // 10MB
 )
 
 // Regular expressions for validation (non-duplicated)
@@ -39,17 +39,17 @@ var (
 
 // AllowedFileTypes defines allowed file extensions for uploads
 var AllowedFileTypes = map[string][]string{
-	"excel":  {".xlsx", ".xls", ".csv"},
-	"image":  {".jpg", ".jpeg", ".png", ".gif", ".bmp"},
+	"excel":    {".xlsx", ".xls", ".csv"},
+	"image":    {".jpg", ".jpeg", ".png", ".gif", ".bmp"},
 	"document": {".pdf", ".doc", ".docx"},
 }
 
 // ValidationRule represents a validation rule
 type ValidationRule struct {
-	Field      string
-	Value      interface{}
-	Rules      []Validator
-	Optional   bool
+	Field    string
+	Value    interface{}
+	Rules    []Validator
+	Optional bool
 }
 
 // Validator is a function that validates a value
@@ -86,7 +86,7 @@ func ValidationMiddleware(rules map[string][]ValidationRule) func(http.HandlerFu
 			var errors []*AppError
 			for _, rule := range endpointRules {
 				value := getValueFromRequest(r, rule.Field)
-				
+
 				// Check if field is required
 				if !rule.Optional && (value == nil || value == "") {
 					errors = append(errors, ErrValidation(fmt.Sprintf("%s is required", rule.Field)).WithField(rule.Field))
@@ -136,7 +136,7 @@ func getValueFromRequest(r *http.Request, field string) interface{} {
 		var data map[string]interface{}
 		body, _ := io.ReadAll(r.Body)
 		r.Body = io.NopCloser(strings.NewReader(string(body)))
-		
+
 		if err := json.Unmarshal(body, &data); err == nil {
 			if val, ok := data[field]; ok {
 				return val
@@ -171,7 +171,7 @@ func StringLength(min, max int) Validator {
 	return func(value interface{}, field string) *AppError {
 		str := fmt.Sprintf("%v", value)
 		length := utf8.RuneCountInString(str)
-		
+
 		if length < min {
 			return ErrValidation(fmt.Sprintf("%s must be at least %d characters", field, min)).WithField(field)
 		}
@@ -197,15 +197,15 @@ func Pattern(regex *regexp.Regexp, message string) Validator {
 func Username() Validator {
 	return func(value interface{}, field string) *AppError {
 		username := fmt.Sprintf("%v", value)
-		
+
 		if len(username) < MinUsernameLength || len(username) > MaxUsernameLength {
 			return ErrValidation(fmt.Sprintf("Username must be between %d and %d characters", MinUsernameLength, MaxUsernameLength)).WithField(field)
 		}
-		
+
 		if !usernameRegex.MatchString(username) {
 			return ErrValidation("Username can only contain letters, numbers, underscores, and hyphens").WithField(field)
 		}
-		
+
 		return nil
 	}
 }
@@ -214,15 +214,15 @@ func Username() Validator {
 func Email() Validator {
 	return func(value interface{}, field string) *AppError {
 		email := fmt.Sprintf("%v", value)
-		
+
 		if len(email) > MaxEmailLength {
 			return ErrValidation("Email address is too long").WithField(field)
 		}
-		
+
 		if !emailRegex.MatchString(email) {
 			return ErrValidation("Invalid email format").WithField(field)
 		}
-		
+
 		return nil
 	}
 }
@@ -231,15 +231,15 @@ func Email() Validator {
 func Phone() Validator {
 	return func(value interface{}, field string) *AppError {
 		phone := fmt.Sprintf("%v", value)
-		
+
 		if len(phone) > MaxPhoneLength {
 			return ErrValidation("Phone number is too long").WithField(field)
 		}
-		
+
 		if !phoneRegex.MatchString(phone) {
 			return ErrValidation("Invalid phone number format").WithField(field)
 		}
-		
+
 		return nil
 	}
 }
@@ -248,7 +248,7 @@ func Phone() Validator {
 func Integer(min, max int) Validator {
 	return func(value interface{}, field string) *AppError {
 		var intVal int
-		
+
 		switch v := value.(type) {
 		case int:
 			intVal = v
@@ -263,14 +263,14 @@ func Integer(min, max int) Validator {
 		default:
 			return ErrValidation(fmt.Sprintf("%s must be a valid number", field)).WithField(field)
 		}
-		
+
 		if intVal < min {
 			return ErrValidation(fmt.Sprintf("%s must be at least %d", field, min)).WithField(field)
 		}
 		if max > 0 && intVal > max {
 			return ErrValidation(fmt.Sprintf("%s must be at most %d", field, max)).WithField(field)
 		}
-		
+
 		return nil
 	}
 }
@@ -279,7 +279,7 @@ func Integer(min, max int) Validator {
 func Float(min, max float64) Validator {
 	return func(value interface{}, field string) *AppError {
 		var floatVal float64
-		
+
 		switch v := value.(type) {
 		case float64:
 			floatVal = v
@@ -294,14 +294,14 @@ func Float(min, max float64) Validator {
 		default:
 			return ErrValidation(fmt.Sprintf("%s must be a valid number", field)).WithField(field)
 		}
-		
+
 		if floatVal < min {
 			return ErrValidation(fmt.Sprintf("%s must be at least %.2f", field, min)).WithField(field)
 		}
 		if max > 0 && floatVal > max {
 			return ErrValidation(fmt.Sprintf("%s must be at most %.2f", field, max)).WithField(field)
 		}
-		
+
 		return nil
 	}
 }
@@ -310,16 +310,16 @@ func Float(min, max float64) Validator {
 func Date() Validator {
 	return func(value interface{}, field string) *AppError {
 		dateStr := fmt.Sprintf("%v", value)
-		
+
 		if !dateRegex.MatchString(dateStr) {
 			return ErrValidation("Date must be in YYYY-MM-DD format").WithField(field)
 		}
-		
+
 		_, err := time.Parse("2006-01-02", dateStr)
 		if err != nil {
 			return ErrValidation("Invalid date").WithField(field)
 		}
-		
+
 		return nil
 	}
 }
@@ -328,11 +328,11 @@ func Date() Validator {
 func Time() Validator {
 	return func(value interface{}, field string) *AppError {
 		timeStr := fmt.Sprintf("%v", value)
-		
+
 		if !timeRegex.MatchString(timeStr) {
 			return ErrValidation("Time must be in HH:MM format").WithField(field)
 		}
-		
+
 		return nil
 	}
 }
@@ -341,15 +341,15 @@ func Time() Validator {
 func BusID() Validator {
 	return func(value interface{}, field string) *AppError {
 		busID := fmt.Sprintf("%v", value)
-		
+
 		if len(busID) > 50 {
 			return ErrValidation("Bus ID is too long").WithField(field)
 		}
-		
+
 		if !busIDRegex.MatchString(busID) {
 			return ErrValidation("Bus ID can only contain uppercase letters, numbers, and hyphens").WithField(field)
 		}
-		
+
 		return nil
 	}
 }
@@ -358,15 +358,15 @@ func BusID() Validator {
 func RouteID() Validator {
 	return func(value interface{}, field string) *AppError {
 		routeID := fmt.Sprintf("%v", value)
-		
+
 		if len(routeID) > 50 {
 			return ErrValidation("Route ID is too long").WithField(field)
 		}
-		
+
 		if !routeIDRegex.MatchString(routeID) {
 			return ErrValidation("Route ID can only contain uppercase letters, numbers, and hyphens").WithField(field)
 		}
-		
+
 		return nil
 	}
 }
@@ -378,19 +378,19 @@ func FileUpload(fileType string, maxSize int64) Validator {
 		if !ok {
 			return ErrValidation("Invalid file upload").WithField(field)
 		}
-		
+
 		// Check file size
 		if fileHeader.Size > maxSize {
 			return ErrValidation(fmt.Sprintf("File size must not exceed %d MB", maxSize/(1<<20))).WithField(field)
 		}
-		
+
 		// Check file type
 		ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
 		allowedExts, ok := AllowedFileTypes[fileType]
 		if !ok {
 			return ErrValidation("Invalid file type category").WithField(field)
 		}
-		
+
 		allowed := false
 		for _, allowedExt := range allowedExts {
 			if ext == allowedExt {
@@ -398,11 +398,11 @@ func FileUpload(fileType string, maxSize int64) Validator {
 				break
 			}
 		}
-		
+
 		if !allowed {
 			return ErrValidation(fmt.Sprintf("File type must be one of: %s", strings.Join(allowedExts, ", "))).WithField(field)
 		}
-		
+
 		return nil
 	}
 }
@@ -411,13 +411,13 @@ func FileUpload(fileType string, maxSize int64) Validator {
 func OneOf(values []string) Validator {
 	return func(value interface{}, field string) *AppError {
 		strVal := fmt.Sprintf("%v", value)
-		
+
 		for _, allowed := range values {
 			if strVal == allowed {
 				return nil
 			}
 		}
-		
+
 		return ErrValidation(fmt.Sprintf("%s must be one of: %s", field, strings.Join(values, ", "))).WithField(field)
 	}
 }
@@ -432,7 +432,7 @@ func sanitizeRequest(r *http.Request) {
 		}
 	}
 	r.URL.RawQuery = query.Encode()
-	
+
 	// Sanitize form values
 	if r.Form != nil {
 		for key, values := range r.Form {
@@ -441,7 +441,7 @@ func sanitizeRequest(r *http.Request) {
 			}
 		}
 	}
-	
+
 	// Sanitize multipart form
 	if r.MultipartForm != nil && r.MultipartForm.Value != nil {
 		for key, values := range r.MultipartForm.Value {
@@ -456,16 +456,16 @@ func sanitizeRequest(r *http.Request) {
 func sanitizeString(input string) string {
 	// Decode HTML entities
 	input = html.UnescapeString(input)
-	
+
 	// Remove null bytes
 	input = strings.ReplaceAll(input, "\x00", "")
-	
+
 	// Escape HTML
 	input = html.EscapeString(input)
-	
+
 	// Trim whitespace
 	input = strings.TrimSpace(input)
-	
+
 	return input
 }
 
@@ -514,13 +514,13 @@ var AddBusValidationRules = []ValidationRule{
 		Rules: []Validator{Required(), Integer(1, 100)},
 	},
 	{
-		Field: "model",
-		Rules: []Validator{StringLength(0, 100)},
+		Field:    "model",
+		Rules:    []Validator{StringLength(0, 100)},
 		Optional: true,
 	},
 	{
-		Field: "status",
-		Rules: []Validator{OneOf([]string{"active", "maintenance", "out_of_service"})},
+		Field:    "status",
+		Rules:    []Validator{OneOf([]string{"active", "maintenance", "out_of_service"})},
 		Optional: true,
 	},
 }
@@ -532,28 +532,28 @@ var StudentValidationRules = []ValidationRule{
 		Rules: []Validator{Required(), StringLength(2, MaxNameLength)},
 	},
 	{
-		Field: "phone_number",
-		Rules: []Validator{Phone()},
+		Field:    "phone_number",
+		Rules:    []Validator{Phone()},
 		Optional: true,
 	},
 	{
-		Field: "alt_phone_number",
-		Rules: []Validator{Phone()},
+		Field:    "alt_phone_number",
+		Rules:    []Validator{Phone()},
 		Optional: true,
 	},
 	{
-		Field: "guardian",
-		Rules: []Validator{StringLength(2, MaxNameLength)},
+		Field:    "guardian",
+		Rules:    []Validator{StringLength(2, MaxNameLength)},
 		Optional: true,
 	},
 	{
-		Field: "pickup_time",
-		Rules: []Validator{Time()},
+		Field:    "pickup_time",
+		Rules:    []Validator{Time()},
 		Optional: true,
 	},
 	{
-		Field: "dropoff_time",
-		Rules: []Validator{Time()},
+		Field:    "dropoff_time",
+		Rules:    []Validator{Time()},
 		Optional: true,
 	},
 }
@@ -569,12 +569,12 @@ var FileUploadValidationRules = []ValidationRule{
 // CreateValidationRules creates a map of validation rules for endpoints
 func CreateValidationRules() map[string][]ValidationRule {
 	return map[string][]ValidationRule{
-		"/":                    LoginValidationRules,
-		"/register":            RegisterValidationRules,
-		"/add-bus":             AddBusValidationRules,
-		"/add-student":         StudentValidationRules,
-		"/edit-student":        StudentValidationRules,
-		"/import-mileage":      FileUploadValidationRules,
-		"/import-ecse":         FileUploadValidationRules,
+		"/":               LoginValidationRules,
+		"/register":       RegisterValidationRules,
+		"/add-bus":        AddBusValidationRules,
+		"/add-student":    StudentValidationRules,
+		"/edit-student":   StudentValidationRules,
+		"/import-mileage": FileUploadValidationRules,
+		"/import-ecse":    FileUploadValidationRules,
 	}
 }

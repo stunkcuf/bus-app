@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Fleet Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .nav {
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0.5rem 1rem;
+        }
+
+        .nav a {
+            color: #667eea;
+            text-decoration: none;
+            margin-right: 1rem;
+            padding: 0.5rem 0;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .nav a:hover {
+            border-bottom-color: #667eea;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .notice h4 {
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .filters {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .filters h3 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 150px;
+        }
+
+        .filter-group label {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            color: #555;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .summary-card h3 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-card p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .records-table {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .table-header {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-header h3 {
+            margin: 0;
+            color: #333;
+        }
+
+        .results-info {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .record-item {
+            border-bottom: 1px solid #f0f0f0;
+            padding: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        .record-item:hover {
+            background: #f8f9fa;
+        }
+
+        .record-item:last-child {
+            border-bottom: none;
+        }
+
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .record-id {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .record-date {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .record-fields {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .field-item {
+            background: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .field-label {
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 0.25rem;
+        }
+
+        .field-value {
+            color: #333;
+            word-break: break-word;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-primary {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .badge-info {
+            background: #e1f5fe;
+            color: #0277bd;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .pagination a,
+        .pagination span {
+            padding: 0.5rem 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #495057;
+            background: white;
+        }
+
+        .pagination a:hover {
+            background: #e9ecef;
+        }
+
+        .pagination .current {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .no-data i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #ddd;
+        }
+
+        @media (max-width: 768px) {
+            .filter-row {
+                flex-direction: column;
+            }
+
+            .filter-group {
+                min-width: 100%;
+            }
+
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .record-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .record-fields {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            📋 Service Records
+        </h1>
+    </div>
+
+    <div class="nav">
+        <a href="/manager-dashboard">Dashboard</a>
+        <a href="/fleet">Fleet</a>
+        <a href="/maintenance-records">Maintenance Records</a>
+        <a href="/service-records" style="border-bottom-color: #667eea;">Service Records</a>
+        {{if eq .User.Role "manager"}}
+        <a href="/assign-routes">Routes</a>
+        {{end}}
+    </div>
+
+    <div class="container">
+        <div class="notice">
+            <h4>About Service Records</h4>
+            <p>This data was imported from spreadsheets with unstructured columns. The system attempts to interpret and display the information meaningfully, but some data may appear in generic field formats.</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <h3>Filter Service Records</h3>
+            <form method="GET" action="/service-records">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="vehicle_filter">Vehicle Search:</label>
+                        <input type="text" name="vehicle_filter" id="vehicle_filter" value="{{.SelectedVehicleFilter}}" placeholder="Vehicle info, number, or make">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="start_date">Start Date:</label>
+                        <input type="date" name="start_date" id="start_date" value="{{.SelectedStartDate}}">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="end_date">End Date:</label>
+                        <input type="date" name="end_date" id="end_date" value="{{.SelectedEndDate}}">
+                    </div>
+
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        <a href="/service-records" class="btn btn-secondary">Clear</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card">
+                <h3>{{.TotalRecords}}</h3>
+                <p>Total Records</p>
+            </div>
+            <div class="summary-card">
+                <h3>{{.RecordsWithData}}</h3>
+                <p>With Data</p>
+            </div>
+            <div class="summary-card">
+                <h3>{{.UniqueVehicles}}</h3>
+                <p>Unique Vehicles</p>
+            </div>
+            <div class="summary-card">
+                <h3>{{.RecordsWithMaintDate}}</h3>
+                <p>With Maintenance Date</p>
+            </div>
+        </div>
+
+        <!-- Records Display -->
+        <div class="records-table">
+            <div class="table-header">
+                <h3>Service Records</h3>
+                <div class="results-info">
+                    Showing {{if .Records}}{{add (mul (sub .Pagination.Page 1) .Pagination.PerPage) 1}} - {{add (mul (sub .Pagination.Page 1) .Pagination.PerPage) (len .Records)}}{{else}}0{{end}} of {{.TotalRecords}} records
+                </div>
+            </div>
+
+            {{if .Records}}
+            {{range .Records}}
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">{{.GetVehicleInfo}}</span>
+                    <span class="record-date">
+                        {{if .GetMaintenanceDate}}
+                        <span class="badge badge-secondary">{{.GetFormattedMaintenanceDate}}</span>
+                        {{else}}
+                        <span class="badge badge-info">Record #{{.ID}}</span>
+                        {{end}}
+                    </span>
+                </div>
+
+                {{$fields := .GetAllFields}}
+                {{if $fields}}
+                <div class="record-fields">
+                    {{range $index, $field := $fields}}
+                    <div class="field-item">
+                        <div class="field-label">Field {{add $index 1}}</div>
+                        <div class="field-value">{{$field}}</div>
+                    </div>
+                    {{end}}
+                </div>
+                {{else}}
+                <div style="color: #999; font-style: italic;">No structured data available</div>
+                {{end}}
+
+                <!-- Interpreted Fields (if available) -->
+                {{if or .GetVehicleNumber .GetServicedMiles .GetLastMileage .GetNeedsService}}
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    {{if .GetVehicleNumber}}
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">{{.GetVehicleNumber}}</span></div>
+                    </div>
+                    {{end}}
+                    {{if .GetServicedMiles}}
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">{{.GetServicedMiles}}</div>
+                    </div>
+                    {{end}}
+                    {{if .GetLastMileage}}
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">{{.GetLastMileage}}</div>
+                    </div>
+                    {{end}}
+                    {{if .GetNeedsService}}
+                    <div class="field-item">
+                        <div class="field-label">Needs Service</div>
+                        <div class="field-value">{{.GetNeedsService}}</div>
+                    </div>
+                    {{end}}
+                    {{if .GetMilesToService}}
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">{{.GetMilesToService}}</div>
+                    </div>
+                    {{end}}
+                    {{if .GetServiceAt}}
+                    <div class="field-item">
+                        <div class="field-label">Service At</div>
+                        <div class="field-value">{{.GetServiceAt}}</div>
+                    </div>
+                    {{end}}
+                </div>
+                {{end}}
+            </div>
+            {{end}}
+
+            <!-- Pagination -->
+            {{if gt .Pagination.TotalPages 1}}
+            <div class="pagination">
+                {{if .Pagination.HasPrev}}
+                <a href="?page={{sub .Pagination.Page 1}}{{if .SelectedVehicleFilter}}&vehicle_filter={{.SelectedVehicleFilter}}{{end}}{{if .SelectedStartDate}}&start_date={{.SelectedStartDate}}{{end}}{{if .SelectedEndDate}}&end_date={{.SelectedEndDate}}{{end}}">&laquo; Previous</a>
+                {{end}}
+
+                {{range $page := .Pagination.Pages}}
+                {{if eq $page $.Pagination.Page}}
+                <span class="current">{{$page}}</span>
+                {{else}}
+                <a href="?page={{$page}}{{if $.SelectedVehicleFilter}}&vehicle_filter={{$.SelectedVehicleFilter}}{{end}}{{if $.SelectedStartDate}}&start_date={{$.SelectedStartDate}}{{end}}{{if $.SelectedEndDate}}&end_date={{$.SelectedEndDate}}{{end}}">{{$page}}</a>
+                {{end}}
+                {{end}}
+
+                {{if .Pagination.HasNext}}
+                <a href="?page={{add .Pagination.Page 1}}{{if .SelectedVehicleFilter}}&vehicle_filter={{.SelectedVehicleFilter}}{{end}}{{if .SelectedStartDate}}&start_date={{.SelectedStartDate}}{{end}}{{if .SelectedEndDate}}&end_date={{.SelectedEndDate}}{{end}}">Next &raquo;</a>
+                {{end}}
+            </div>
+            {{end}}
+
+            {{else}}
+            <div class="no-data">
+                <div style="font-size: 3rem; margin-bottom: 1rem; color: #ddd;">📋</div>
+                <h3>No Records Found</h3>
+                <p>{{if or .SelectedVehicleFilter .SelectedStartDate .SelectedEndDate}}Try adjusting your filters or clearing them to see all records.{{else}}No service records are available in the system.{{end}}</p>
+                {{if or .SelectedVehicleFilter .SelectedStartDate .SelectedEndDate}}
+                <a href="/service-records" class="btn btn-primary" style="margin-top: 1rem;">Clear Filters</a>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+    </div>
+</body>
+</html>

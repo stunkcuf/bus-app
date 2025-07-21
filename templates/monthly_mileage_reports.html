@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Fleet Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .nav {
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0.5rem 1rem;
+        }
+
+        .nav a {
+            color: #667eea;
+            text-decoration: none;
+            margin-right: 1rem;
+            padding: 0.5rem 0;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .nav a:hover {
+            border-bottom-color: #667eea;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .filters {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .filters h3 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 150px;
+        }
+
+        .filter-group label {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            color: #555;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .summary-card h3 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-card p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .reports-table {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .table-header {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-header h3 {
+            margin: 0;
+            color: #333;
+        }
+
+        .results-info {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+            white-space: nowrap;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-primary {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .pagination a,
+        .pagination span {
+            padding: 0.5rem 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #495057;
+            background: white;
+        }
+
+        .pagination a:hover {
+            background: #e9ecef;
+        }
+
+        .pagination .current {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .no-data i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #ddd;
+        }
+
+        @media (max-width: 768px) {
+            .filter-row {
+                flex-direction: column;
+            }
+
+            .filter-group {
+                min-width: 100%;
+            }
+
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 0.8rem;
+            }
+
+            th, td {
+                padding: 0.5rem 0.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            🚌 Monthly Mileage Reports
+        </h1>
+    </div>
+
+    <div class="nav">
+        <a href="/manager-dashboard">Dashboard</a>
+        <a href="/fleet">Fleet</a>
+        <a href="/view-mileage-reports">Mileage Reports</a>
+        <a href="/monthly-mileage-reports" style="border-bottom-color: #667eea;">Monthly Reports</a>
+        {{if eq .User.Role "manager"}}
+        <a href="/assign-routes">Routes</a>
+        {{end}}
+    </div>
+
+    <div class="container">
+        <!-- Filters -->
+        <div class="filters">
+            <h3>Filter Reports</h3>
+            <form method="GET" action="/monthly-mileage-reports">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="year">Year:</label>
+                        <select name="year" id="year">
+                            <option value="">All Years</option>
+                            {{range .Years}}
+                            <option value="{{.}}" {{if eq . $.SelectedYear}}selected{{end}}>{{.}}</option>
+                            {{end}}
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="month">Month:</label>
+                        <select name="month" id="month">
+                            <option value="">All Months</option>
+                            {{range .Months}}
+                            <option value="{{.}}" {{if eq . $.SelectedMonth}}selected{{end}}>{{.}}</option>
+                            {{end}}
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="bus_id">Bus ID:</label>
+                        <select name="bus_id" id="bus_id">
+                            <option value="">All Buses</option>
+                            {{range .BusIDs}}
+                            <option value="{{.}}" {{if eq . $.SelectedBusID}}selected{{end}}>{{.}}</option>
+                            {{end}}
+                        </select>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        <a href="/monthly-mileage-reports" class="btn btn-secondary">Clear</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card">
+                <h3>{{.TotalReports}}</h3>
+                <p>Total Reports</p>
+            </div>
+            <div class="summary-card">
+                <h3>{{formatNumber .TotalMiles}}</h3>
+                <p>Total Miles</p>
+            </div>
+            <div class="summary-card">
+                <h3>{{.ActiveVehicles}}</h3>
+                <p>Active Vehicles</p>
+            </div>
+            <div class="summary-card">
+                <h3>{{if .TotalReports}}{{printf "%.0f" (div (mul .TotalMiles 1.0) .TotalReports)}}{{else}}0{{end}}</h3>
+                <p>Avg Miles/Report</p>
+            </div>
+        </div>
+
+        <!-- Reports Table -->
+        <div class="reports-table">
+            <div class="table-header">
+                <h3>Monthly Mileage Reports</h3>
+                <div class="results-info">
+                    Showing {{if .Reports}}{{add (mul (sub .Pagination.Page 1) .Pagination.PerPage) 1}} - {{add (mul (sub .Pagination.Page 1) .Pagination.PerPage) (len .Reports)}}{{else}}0{{end}} of {{.TotalReports}} reports
+                </div>
+            </div>
+
+            {{if .Reports}}
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Period</th>
+                            <th>Bus ID</th>
+                            <th>Bus Make</th>
+                            <th>Bus Year</th>
+                            <th>License Plate</th>
+                            <th>Location</th>
+                            <th class="text-right">Beginning Miles</th>
+                            <th class="text-right">Ending Miles</th>
+                            <th class="text-right">Total Miles</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Reports}}
+                        <tr>
+                            <td>
+                                <strong>{{.GetMonthYearString}}</strong>
+                            </td>
+                            <td>
+                                {{if .BusID}}
+                                <span class="badge badge-primary">{{.BusID}}</span>
+                                {{else}}
+                                <span style="color: #999;">—</span>
+                                {{end}}
+                            </td>
+                            <td>{{if .BusMake}}{{.BusMake}}{{else}}<span style="color: #999;">—</span>{{end}}</td>
+                            <td>{{if .BusYear}}{{.BusYear}}{{else}}<span style="color: #999;">—</span>{{end}}</td>
+                            <td>{{if .LicensePlate}}{{.LicensePlate}}{{else}}<span style="color: #999;">—</span>{{end}}</td>
+                            <td>{{if .LocatedAt}}{{.LocatedAt}}{{else}}<span style="color: #999;">—</span>{{end}}</td>
+                            <td class="text-right">{{formatNumber .BeginningMiles}}</td>
+                            <td class="text-right">{{formatNumber .EndingMiles}}</td>
+                            <td class="text-right">
+                                <strong>{{formatNumber .TotalMiles}}</strong>
+                            </td>
+                            <td class="text-center">
+                                {{if gt .TotalMiles 0}}
+                                <span style="color: #28a745;">✓ Active</span>
+                                {{else}}
+                                <span style="color: #6c757d;">— No Miles</span>
+                                {{end}}
+                            </td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {{if gt .Pagination.TotalPages 1}}
+            <div class="pagination">
+                {{if .Pagination.HasPrev}}
+                <a href="?page={{sub .Pagination.Page 1}}{{if .SelectedYear}}&year={{.SelectedYear}}{{end}}{{if .SelectedMonth}}&month={{.SelectedMonth}}{{end}}{{if .SelectedBusID}}&bus_id={{.SelectedBusID}}{{end}}">&laquo; Previous</a>
+                {{end}}
+
+                {{range $page := .Pagination.Pages}}
+                {{if eq $page $.Pagination.Page}}
+                <span class="current">{{$page}}</span>
+                {{else}}
+                <a href="?page={{$page}}{{if $.SelectedYear}}&year={{$.SelectedYear}}{{end}}{{if $.SelectedMonth}}&month={{$.SelectedMonth}}{{end}}{{if $.SelectedBusID}}&bus_id={{$.SelectedBusID}}{{end}}">{{$page}}</a>
+                {{end}}
+                {{end}}
+
+                {{if .Pagination.HasNext}}
+                <a href="?page={{add .Pagination.Page 1}}{{if .SelectedYear}}&year={{.SelectedYear}}{{end}}{{if .SelectedMonth}}&month={{.SelectedMonth}}{{end}}{{if .SelectedBusID}}&bus_id={{.SelectedBusID}}{{end}}">Next &raquo;</a>
+                {{end}}
+            </div>
+            {{end}}
+
+            {{else}}
+            <div class="no-data">
+                <div style="font-size: 3rem; margin-bottom: 1rem; color: #ddd;">📊</div>
+                <h3>No Reports Found</h3>
+                <p>{{if or .SelectedYear .SelectedMonth .SelectedBusID}}Try adjusting your filters or clearing them to see all reports.{{else}}No monthly mileage reports are available in the system.{{end}}</p>
+                {{if or .SelectedYear .SelectedMonth .SelectedBusID}}
+                <a href="/monthly-mileage-reports" class="btn btn-primary" style="margin-top: 1rem;">Clear Filters</a>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+    </div>
+</body>
+</html>

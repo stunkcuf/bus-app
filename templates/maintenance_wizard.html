@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maintenance Logging Wizard - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/accessible_design_system.css">
+  <link rel="stylesheet" href="/static/visual_hierarchy.css">
+  <link rel="stylesheet" href="/static/accessible_forms.css">
+  <link rel="stylesheet" href="/static/enhanced_help_system.css">
+  <style nonce="{{.CSPNonce}}">
+    /* Wizard specific styles */
+    .wizard-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .wizard-header {
+      text-align: center;
+      margin-bottom: var(--space-xl);
+    }
+    
+    .wizard-icon {
+      font-size: 3rem;
+      color: var(--color-primary);
+      margin-bottom: var(--space-md);
+    }
+    
+    .wizard-steps {
+      display: none;
+    }
+    
+    .wizard-steps.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .step-header {
+      background: var(--color-primary-light);
+      padding: var(--space-lg);
+      border-radius: var(--border-radius-lg);
+      margin-bottom: var(--space-xl);
+      text-align: center;
+    }
+    
+    .step-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: var(--color-primary);
+      color: var(--color-text-inverse);
+      border-radius: 50%;
+      font-weight: 700;
+      margin-right: var(--space-md);
+    }
+    
+    .category-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-lg);
+      margin-bottom: var(--space-xl);
+    }
+    
+    .category-card {
+      background: var(--color-bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: var(--border-radius-lg);
+      padding: var(--space-lg);
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition-base);
+    }
+    
+    .category-card:hover {
+      border-color: var(--color-primary);
+      transform: translateY(-2px);
+    }
+    
+    .category-card.selected {
+      background: var(--color-primary-light);
+      border-color: var(--color-primary);
+    }
+    
+    .category-icon {
+      font-size: 2.5rem;
+      color: var(--color-primary);
+      margin-bottom: var(--space-md);
+    }
+    
+    .suggestion-list {
+      background: var(--color-info-light);
+      border: 1px solid var(--color-info);
+      border-radius: var(--border-radius-base);
+      padding: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .suggestion-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-sm);
+      cursor: pointer;
+      padding: var(--space-xs);
+      border-radius: var(--border-radius-base);
+      transition: background var(--transition-base);
+    }
+    
+    .suggestion-item:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+    
+    .suggestion-item:last-child {
+      margin-bottom: 0;
+    }
+    
+    .mileage-info {
+      background: var(--color-bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-base);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .mileage-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-sm) 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .mileage-item:last-child {
+      border-bottom: none;
+    }
+    
+    .preview-section {
+      background: var(--color-bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: var(--border-radius-lg);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .preview-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      padding: var(--space-md) 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .preview-item:last-child {
+      border-bottom: none;
+    }
+    
+    .preview-icon {
+      font-size: 1.5rem;
+      color: var(--color-primary);
+    }
+    
+    .cost-estimate {
+      background: var(--color-warning-light);
+      border: 1px solid var(--color-warning);
+      border-radius: var(--border-radius-base);
+      padding: var(--space-md);
+      margin-top: var(--space-lg);
+      text-align: center;
+    }
+    
+    .cost-estimate-amount {
+      font-size: var(--font-size-xxl);
+      font-weight: 700;
+      color: var(--color-warning-dark);
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid page-container">
+    <!-- Navigation Component -->
+    {{template "navigation" (dict "Navigation" .Navigation "CSPNonce" .CSPNonce "ShowHelpButton" .ShowHelpButton "PageDescription" "Step-by-step maintenance logging wizard")}}
+    
+    <!-- Header -->
+    <header class="page-header">
+      <div class="page-header-content">
+        <div class="page-header-text">
+          <h1>
+            <i class="bi bi-wrench-adjustable-circle-fill" aria-hidden="true"></i>
+            Maintenance Logging Wizard
+          </h1>
+          <p class="page-description">Log vehicle maintenance with intelligent suggestions</p>
+        </div>
+      </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+      <div class="wizard-container">
+        <!-- Progress Indicator -->
+        {{template "progress_indicator" (dict "CurrentStep" 1 "TotalSteps" 5 "Steps" (list "Select Vehicle" "Choose Category" "Enter Details" "Add Cost" "Review & Save"))}}
+        
+        <form id="maintenanceWizardForm" method="POST" action="/save-maintenance-wizard" class="accessible-form">
+          <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
+          
+          <!-- Step 1: Select Vehicle -->
+          <div class="wizard-steps active" id="step1">
+            <div class="step-header">
+              <h2>
+                <span class="step-number">1</span>
+                Select Vehicle
+              </h2>
+              <p>Choose the vehicle that needs maintenance</p>
+            </div>
+            
+            <div class="form-group">
+              <label for="vehicle_type" class="form-label required">Vehicle Type</label>
+              <div class="form-help">
+                <i class="bi bi-info-circle form-help-icon" aria-hidden="true"></i>
+                Select whether this is a bus or company vehicle
+              </div>
+              <select id="vehicle_type" name="vehicle_type" class="form-control form-select" required
+                      data-help="vehicle-type-wizard" 
+                      data-help-title="Vehicle Type" 
+                      data-help-content="Choose between school buses and company vehicles. This determines which vehicles are available to select.">
+                <option value="">-- Select Type --</option>
+                <option value="bus">School Bus</option>
+                <option value="vehicle">Company Vehicle</option>
+              </select>
+            </div>
+            
+            <div class="form-group" id="busSelectGroup" style="display: none;">
+              <label for="bus_id" class="form-label required">Select Bus</label>
+              <select id="bus_id" name="bus_id" class="form-control form-select"
+                      data-help="bus-selection-maintenance" 
+                      data-help-title="Bus Selection" 
+                      data-help-content="Select the bus that needs maintenance. The list shows all buses with their current status.">
+                <option value="">-- Select Bus --</option>
+                {{range .Data.Buses}}
+                <option value="{{.BusID}}" data-model="{{.Model}}" data-mileage="{{.LastMileage}}">
+                  Bus {{.BusID}} - {{.Model}} 
+                  {{if eq .Status "active"}}
+                    <span class="text-success">(Active)</span>
+                  {{else if eq .Status "maintenance"}}
+                    <span class="text-warning">(In Maintenance)</span>
+                  {{else}}
+                    <span class="text-danger">(Out of Service)</span>
+                  {{end}}
+                </option>
+                {{end}}
+              </select>
+            </div>
+            
+            <div class="form-group" id="vehicleSelectGroup" style="display: none;">
+              <label for="vehicle_id" class="form-label required">Select Vehicle</label>
+              <select id="vehicle_id" name="vehicle_id" class="form-control form-select"
+                      data-help="vehicle-selection-maintenance" 
+                      data-help-title="Vehicle Selection" 
+                      data-help-content="Select the company vehicle that needs maintenance.">
+                <option value="">-- Select Vehicle --</option>
+                {{range .Data.Vehicles}}
+                <option value="{{.VehicleID}}" data-model="{{.Model}}" data-year="{{.Year}}">
+                  {{.VehicleID}} - {{.Model.String}} {{if .Year.Valid}}({{.Year.String}}){{end}}
+                </option>
+                {{end}}
+              </select>
+            </div>
+            
+            <div class="mileage-info" id="vehicleInfo" style="display: none;">
+              <h3>Vehicle Information</h3>
+              <div class="mileage-item">
+                <span>Model:</span>
+                <strong id="vehicleModel">-</strong>
+              </div>
+              <div class="mileage-item">
+                <span>Last Recorded Mileage:</span>
+                <strong id="lastMileage">-</strong>
+              </div>
+              <div class="mileage-item">
+                <span>Last Maintenance:</span>
+                <strong id="lastMaintenance">-</strong>
+              </div>
+            </div>
+            
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                Cancel
+              </button>
+              <button type="button" class="btn btn-primary" onclick="nextStep()" id="step1Next" disabled>
+                Next: Choose Category
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Step 2: Choose Category -->
+          <div class="wizard-steps" id="step2">
+            <div class="step-header">
+              <h2>
+                <span class="step-number">2</span>
+                Choose Maintenance Category
+              </h2>
+              <p>Select the type of maintenance being performed</p>
+            </div>
+            
+            <div class="category-cards">
+              <div class="category-card" data-category="oil" 
+                   data-help="oil-category" 
+                   data-help-title="Oil Change" 
+                   data-help-content="Regular oil changes keep the engine running smoothly. Typically needed every 5,000-7,500 miles.">
+                <i class="bi bi-droplet-fill category-icon" aria-hidden="true"></i>
+                <h3>Oil Change</h3>
+                <p>Engine oil and filter replacement</p>
+              </div>
+              
+              <div class="category-card" data-category="tires"
+                   data-help="tires-category" 
+                   data-help-title="Tire Service" 
+                   data-help-content="Tire rotation, replacement, or repair. Check tread depth and pressure regularly.">
+                <i class="bi bi-circle category-icon" aria-hidden="true"></i>
+                <h3>Tires</h3>
+                <p>Rotation, replacement, or repair</p>
+              </div>
+              
+              <div class="category-card" data-category="inspection"
+                   data-help="inspection-category" 
+                   data-help-title="Inspection" 
+                   data-help-content="Regular safety inspections required by law. Includes checking brakes, lights, and safety equipment.">
+                <i class="bi bi-clipboard-check category-icon" aria-hidden="true"></i>
+                <h3>Inspection</h3>
+                <p>Safety and compliance checks</p>
+              </div>
+              
+              <div class="category-card" data-category="repair"
+                   data-help="repair-category" 
+                   data-help-title="General Repair" 
+                   data-help-content="Any other maintenance or repair work not covered by the other categories.">
+                <i class="bi bi-tools category-icon" aria-hidden="true"></i>
+                <h3>General Repair</h3>
+                <p>Other maintenance and repairs</p>
+              </div>
+            </div>
+            
+            <input type="hidden" id="category" name="category" required>
+            
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" onclick="previousStep()">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                Previous
+              </button>
+              <button type="button" class="btn btn-primary" onclick="nextStep()" id="step2Next" disabled>
+                Next: Enter Details
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Step 3: Enter Details -->
+          <div class="wizard-steps" id="step3">
+            <div class="step-header">
+              <h2>
+                <span class="step-number">3</span>
+                Enter Maintenance Details
+              </h2>
+              <p>Provide specific information about the maintenance</p>
+            </div>
+            
+            <div class="suggestion-list" id="suggestionList" style="display: none;">
+              <h3><i class="bi bi-lightbulb" aria-hidden="true"></i> Common Tasks for <span id="categoryName"></span></h3>
+              <div id="suggestions"></div>
+            </div>
+            
+            <div class="form-group">
+              <label for="date" class="form-label required">Date</label>
+              <input type="date" id="date" name="date" class="form-control" required value="{{.Data.Today}}"
+                     data-help="maintenance-date" 
+                     data-help-title="Maintenance Date" 
+                     data-help-content="Enter the date when the maintenance was performed. Defaults to today.">
+            </div>
+            
+            <div class="form-group">
+              <label for="mileage" class="form-label required">Current Mileage</label>
+              <div class="form-help">
+                <i class="bi bi-info-circle form-help-icon" aria-hidden="true"></i>
+                Enter the vehicle's current odometer reading
+              </div>
+              <input type="number" id="mileage" name="mileage" class="form-control" required min="0"
+                     data-help="current-mileage" 
+                     data-help-title="Current Mileage" 
+                     data-help-content="Enter the current odometer reading. This helps track service intervals.">
+            </div>
+            
+            <div class="form-group">
+              <label for="notes" class="form-label required">Maintenance Notes</label>
+              <div class="form-help">
+                <i class="bi bi-info-circle form-help-icon" aria-hidden="true"></i>
+                Describe the work performed in detail
+              </div>
+              <textarea id="notes" name="notes" class="form-control" rows="4" required
+                        placeholder="Example: Changed engine oil and filter, checked all fluid levels..."
+                        data-help="maintenance-notes" 
+                        data-help-title="Maintenance Notes" 
+                        data-help-content="Provide detailed notes about what was done. This creates a valuable service history."></textarea>
+            </div>
+            
+            <div class="form-group">
+              <label for="performed_by" class="form-label">Performed By</label>
+              <input type="text" id="performed_by" name="performed_by" class="form-control" 
+                     placeholder="Mechanic name or service shop"
+                     data-help="performed-by" 
+                     data-help-title="Service Provider" 
+                     data-help-content="Optional: Record who performed the maintenance for accountability.">
+            </div>
+            
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" onclick="previousStep()">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                Previous
+              </button>
+              <button type="button" class="btn btn-primary" onclick="nextStep()" id="step3Next" disabled>
+                Next: Add Cost
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Step 4: Add Cost -->
+          <div class="wizard-steps" id="step4">
+            <div class="step-header">
+              <h2>
+                <span class="step-number">4</span>
+                Add Cost Information
+              </h2>
+              <p>Enter the cost of this maintenance (optional)</p>
+            </div>
+            
+            <div class="form-group">
+              <label for="cost" class="form-label">Total Cost</label>
+              <div class="form-help">
+                <i class="bi bi-info-circle form-help-icon" aria-hidden="true"></i>
+                Leave blank if no cost or unknown
+              </div>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" id="cost" name="cost" class="form-control" 
+                       step="0.01" min="0" placeholder="0.00"
+                       data-help="maintenance-cost" 
+                       data-help-title="Maintenance Cost" 
+                       data-help-content="Enter the total cost including parts and labor. This helps track maintenance expenses.">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="invoice_number" class="form-label">Invoice/Receipt Number</label>
+              <input type="text" id="invoice_number" name="invoice_number" class="form-control" 
+                     placeholder="Optional reference number"
+                     data-help="invoice-number" 
+                     data-help-title="Invoice Reference" 
+                     data-help-content="Optional: Add invoice or receipt number for record keeping.">
+            </div>
+            
+            <div class="cost-estimate" id="costEstimate" style="display: none;">
+              <p>Estimated annual maintenance cost based on this service:</p>
+              <div class="cost-estimate-amount" id="annualEstimate">$0</div>
+            </div>
+            
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" onclick="previousStep()">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                Previous
+              </button>
+              <button type="button" class="btn btn-primary" onclick="nextStep()">
+                Next: Review
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Step 5: Review & Save -->
+          <div class="wizard-steps" id="step5">
+            <div class="step-header">
+              <h2>
+                <span class="step-number">5</span>
+                Review & Save Maintenance Record
+              </h2>
+              <p>Please review the details before saving</p>
+            </div>
+            
+            <div class="preview-section">
+              <h3>Maintenance Summary</h3>
+              
+              <div class="preview-item">
+                <i class="bi bi-truck preview-icon" aria-hidden="true"></i>
+                <div>
+                  <strong>Vehicle:</strong>
+                  <span id="previewVehicle">Not selected</span>
+                </div>
+              </div>
+              
+              <div class="preview-item">
+                <i class="bi bi-tag preview-icon" aria-hidden="true"></i>
+                <div>
+                  <strong>Category:</strong>
+                  <span id="previewCategory">Not selected</span>
+                </div>
+              </div>
+              
+              <div class="preview-item">
+                <i class="bi bi-calendar-check preview-icon" aria-hidden="true"></i>
+                <div>
+                  <strong>Date:</strong>
+                  <span id="previewDate">Not selected</span>
+                </div>
+              </div>
+              
+              <div class="preview-item">
+                <i class="bi bi-speedometer2 preview-icon" aria-hidden="true"></i>
+                <div>
+                  <strong>Mileage:</strong>
+                  <span id="previewMileage">Not entered</span>
+                </div>
+              </div>
+              
+              <div class="preview-item">
+                <i class="bi bi-journal-text preview-icon" aria-hidden="true"></i>
+                <div>
+                  <strong>Notes:</strong>
+                  <span id="previewNotes">Not entered</span>
+                </div>
+              </div>
+              
+              <div class="preview-item" id="previewCostContainer" style="display: none;">
+                <i class="bi bi-currency-dollar preview-icon" aria-hidden="true"></i>
+                <div>
+                  <strong>Cost:</strong>
+                  <span id="previewCost">$0.00</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="alert alert-success" role="alert">
+              <div class="alert-header">
+                <i class="bi bi-check-circle" aria-hidden="true"></i>
+                <strong>Ready to Save</strong>
+              </div>
+              <p>This maintenance record will be added to the vehicle's history and will be available in reports.</p>
+            </div>
+            
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" onclick="previousStep()">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                Previous
+              </button>
+              <button type="submit" class="btn btn-success btn-lg"
+                      data-help="save-maintenance" 
+                      data-help-title="Save Record" 
+                      data-help-content="Click to save this maintenance record. You can view and edit it later from the vehicle's maintenance history.">
+                <i class="bi bi-check-circle" aria-hidden="true"></i>
+                Save Maintenance Record
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/accessible_forms.js"></script>
+  <script src="/static/enhanced_help_system.js"></script>
+  
+  <script nonce="{{.CSPNonce}}">
+    let currentStep = 1;
+    const totalSteps = 5;
+    
+    // Maintenance suggestions by category
+    const maintenanceSuggestions = {
+      oil: [
+        'Changed engine oil and replaced oil filter',
+        'Checked and topped off all fluid levels',
+        'Inspected air filter condition',
+        'Reset oil change indicator'
+      ],
+      tires: [
+        'Rotated tires front to back',
+        'Checked tire pressure and adjusted to specifications',
+        'Inspected tread depth - all tires within safe limits',
+        'Balanced all four tires',
+        'Replaced front/rear tires'
+      ],
+      inspection: [
+        'Completed annual safety inspection',
+        'Checked all lights and signals - functioning properly',
+        'Tested emergency exits and alarms',
+        'Inspected brake system - pads and fluid levels good',
+        'Verified seat belts and safety equipment'
+      ],
+      repair: [
+        'Replaced windshield wipers',
+        'Fixed minor body damage',
+        'Repaired exhaust system',
+        'Replaced battery',
+        'Fixed electrical issue'
+      ]
+    };
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      // Vehicle type change
+      document.getElementById('vehicle_type').addEventListener('change', handleVehicleTypeChange);
+      
+      // Vehicle selection
+      document.getElementById('bus_id').addEventListener('change', handleVehicleSelect);
+      document.getElementById('vehicle_id').addEventListener('change', handleVehicleSelect);
+      
+      // Category selection
+      document.querySelectorAll('.category-card').forEach(card => {
+        card.addEventListener('click', handleCategorySelect);
+      });
+      
+      // Form field changes
+      document.getElementById('notes').addEventListener('input', validateStep3);
+      document.getElementById('mileage').addEventListener('input', validateStep3);
+      document.getElementById('cost').addEventListener('input', handleCostChange);
+      
+      // Form submission
+      document.getElementById('maintenanceWizardForm').addEventListener('submit', handleSubmit);
+    });
+    
+    function handleVehicleTypeChange(e) {
+      const type = e.target.value;
+      
+      // Show/hide appropriate select
+      document.getElementById('busSelectGroup').style.display = type === 'bus' ? 'block' : 'none';
+      document.getElementById('vehicleSelectGroup').style.display = type === 'vehicle' ? 'block' : 'none';
+      
+      // Reset selections
+      document.getElementById('bus_id').value = '';
+      document.getElementById('vehicle_id').value = '';
+      document.getElementById('vehicleInfo').style.display = 'none';
+      
+      // Enable/disable next button
+      document.getElementById('step1Next').disabled = true;
+    }
+    
+    function handleVehicleSelect(e) {
+      const vehicleId = e.target.value;
+      if (!vehicleId) {
+        document.getElementById('vehicleInfo').style.display = 'none';
+        document.getElementById('step1Next').disabled = true;
+        return;
+      }
+      
+      // Show vehicle info
+      const option = e.target.selectedOptions[0];
+      document.getElementById('vehicleModel').textContent = option.dataset.model || '-';
+      document.getElementById('lastMileage').textContent = option.dataset.mileage ? 
+        parseInt(option.dataset.mileage).toLocaleString() + ' miles' : 'Not recorded';
+      
+      // TODO: Get last maintenance date from server
+      document.getElementById('lastMaintenance').textContent = '30 days ago';
+      
+      document.getElementById('vehicleInfo').style.display = 'block';
+      document.getElementById('step1Next').disabled = false;
+    }
+    
+    function handleCategorySelect(e) {
+      // Remove previous selection
+      document.querySelectorAll('.category-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+      
+      // Add selection
+      const card = e.currentTarget;
+      card.classList.add('selected');
+      
+      // Set hidden input
+      const category = card.dataset.category;
+      document.getElementById('category').value = category;
+      
+      // Enable next button
+      document.getElementById('step2Next').disabled = false;
+    }
+    
+    function showSuggestions(category) {
+      const suggestions = maintenanceSuggestions[category] || [];
+      const suggestionList = document.getElementById('suggestionList');
+      const suggestionsContainer = document.getElementById('suggestions');
+      const categoryName = document.getElementById('categoryName');
+      
+      // Set category name
+      const categoryNames = {
+        oil: 'Oil Change',
+        tires: 'Tire Service',
+        inspection: 'Inspection',
+        repair: 'General Repair'
+      };
+      categoryName.textContent = categoryNames[category] || category;
+      
+      // Clear and populate suggestions
+      suggestionsContainer.innerHTML = '';
+      suggestions.forEach(suggestion => {
+        const item = document.createElement('div');
+        item.className = 'suggestion-item';
+        item.innerHTML = `
+          <i class="bi bi-lightbulb" aria-hidden="true"></i>
+          <span>${suggestion}</span>
+        `;
+        item.addEventListener('click', () => {
+          document.getElementById('notes').value = suggestion;
+          validateStep3();
+        });
+        suggestionsContainer.appendChild(item);
+      });
+      
+      suggestionList.style.display = 'block';
+    }
+    
+    function validateStep3() {
+      const notes = document.getElementById('notes').value.trim();
+      const mileage = document.getElementById('mileage').value;
+      
+      document.getElementById('step3Next').disabled = !notes || !mileage;
+    }
+    
+    function handleCostChange(e) {
+      const cost = parseFloat(e.target.value) || 0;
+      
+      if (cost > 0) {
+        // Simple annual estimate (assuming 4 similar services per year)
+        const annual = cost * 4;
+        document.getElementById('annualEstimate').textContent = '$' + annual.toFixed(2);
+        document.getElementById('costEstimate').style.display = 'block';
+      } else {
+        document.getElementById('costEstimate').style.display = 'none';
+      }
+    }
+    
+    function nextStep() {
+      if (currentStep < totalSteps) {
+        // Hide current step
+        document.getElementById('step' + currentStep).classList.remove('active');
+        
+        // Show next step
+        currentStep++;
+        document.getElementById('step' + currentStep).classList.add('active');
+        
+        // Update progress indicator
+        updateProgressIndicator();
+        
+        // Step-specific actions
+        if (currentStep === 3) {
+          const category = document.getElementById('category').value;
+          showSuggestions(category);
+        } else if (currentStep === 5) {
+          updatePreview();
+        }
+        
+        // Focus on first input
+        const firstInput = document.querySelector('#step' + currentStep + ' input:not([type="hidden"]), #step' + currentStep + ' select');
+        if (firstInput) {
+          firstInput.focus();
+        }
+      }
+    }
+    
+    function previousStep() {
+      if (currentStep > 1) {
+        // Hide current step
+        document.getElementById('step' + currentStep).classList.remove('active');
+        
+        // Show previous step
+        currentStep--;
+        document.getElementById('step' + currentStep).classList.add('active');
+        
+        // Update progress indicator
+        updateProgressIndicator();
+      }
+    }
+    
+    function updateProgressIndicator() {
+      // Update progress bar
+      const progressBar = document.querySelector('.progress-bar');
+      const percentage = (currentStep / totalSteps) * 100;
+      progressBar.style.width = percentage + '%';
+      progressBar.setAttribute('aria-valuenow', percentage);
+      
+      // Update step indicators
+      document.querySelectorAll('.progress-step').forEach((step, index) => {
+        if (index < currentStep) {
+          step.classList.add('completed');
+          step.classList.remove('active');
+        } else if (index === currentStep - 1) {
+          step.classList.add('active');
+          step.classList.remove('completed');
+        } else {
+          step.classList.remove('active', 'completed');
+        }
+      });
+    }
+    
+    function updatePreview() {
+      // Vehicle
+      const vehicleType = document.getElementById('vehicle_type').value;
+      let vehicleText = 'Not selected';
+      if (vehicleType === 'bus') {
+        const busSelect = document.getElementById('bus_id');
+        vehicleText = busSelect.selectedOptions[0] ? busSelect.selectedOptions[0].text : 'Not selected';
+      } else if (vehicleType === 'vehicle') {
+        const vehicleSelect = document.getElementById('vehicle_id');
+        vehicleText = vehicleSelect.selectedOptions[0] ? vehicleSelect.selectedOptions[0].text : 'Not selected';
+      }
+      document.getElementById('previewVehicle').textContent = vehicleText;
+      
+      // Category
+      const category = document.getElementById('category').value;
+      const categoryNames = {
+        oil: 'Oil Change',
+        tires: 'Tire Service',
+        inspection: 'Inspection',
+        repair: 'General Repair'
+      };
+      document.getElementById('previewCategory').textContent = categoryNames[category] || 'Not selected';
+      
+      // Date
+      const date = document.getElementById('date').value;
+      document.getElementById('previewDate').textContent = date ? 
+        new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 
+        'Not selected';
+      
+      // Mileage
+      const mileage = document.getElementById('mileage').value;
+      document.getElementById('previewMileage').textContent = mileage ? 
+        parseInt(mileage).toLocaleString() + ' miles' : 
+        'Not entered';
+      
+      // Notes
+      const notes = document.getElementById('notes').value;
+      document.getElementById('previewNotes').textContent = notes || 'Not entered';
+      
+      // Cost
+      const cost = parseFloat(document.getElementById('cost').value) || 0;
+      if (cost > 0) {
+        document.getElementById('previewCost').textContent = '$' + cost.toFixed(2);
+        document.getElementById('previewCostContainer').style.display = 'flex';
+      } else {
+        document.getElementById('previewCostContainer').style.display = 'none';
+      }
+    }
+    
+    function handleSubmit(e) {
+      e.preventDefault();
+      
+      // Final validation
+      const vehicleType = document.getElementById('vehicle_type').value;
+      const vehicleId = vehicleType === 'bus' ? 
+        document.getElementById('bus_id').value : 
+        document.getElementById('vehicle_id').value;
+      
+      if (!vehicleId || !document.getElementById('category').value) {
+        alert('Please complete all required fields.');
+        return;
+      }
+      
+      // Show loading state
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="bi bi-hourglass-split" aria-hidden="true"></i> Saving...';
+      
+      // Submit form
+      e.target.submit();
+    }
+  </script>
+</body>
+</html>

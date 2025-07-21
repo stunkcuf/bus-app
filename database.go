@@ -9,6 +9,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var db *sqlx.DB
@@ -33,17 +34,22 @@ func maskConnectionString(connStr string) string {
 func InitDB(dataSourceName string) error {
 	log.Printf("Initializing database connection...")
 	log.Printf("Database URL format check: %s", maskConnectionString(dataSourceName))
-	
+
 	var err error
 	db, err = sqlx.Open("postgres", dataSourceName)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
 
-	// Set connection pool settings
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	// Set optimized connection pool settings for production
+	// Max open connections: higher for concurrent users
+	db.SetMaxOpenConns(50)
+	// Keep more idle connections for faster response times
+	db.SetMaxIdleConns(15)
+	// Longer connection lifetime for stability
+	db.SetConnMaxLifetime(15 * time.Minute)
+	// Set idle timeout to prevent stale connections
+	db.SetConnMaxIdleTime(5 * time.Minute)
 
 	// Test the connection
 	log.Println("Testing database connection...")
@@ -57,22 +63,132 @@ func InitDB(dataSourceName string) error {
 	if err := runMigrations(); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
-	
-	// Create admin user if it doesn't exist
-	log.Println("Creating admin user...")
-	if err := CreateAdminUser(); err != nil {
-		log.Printf("Warning: failed to create admin user: %v", err)
-		// Don't fail initialization if admin creation fails
+
+	// Ensure admin user exists
+	log.Println("Ensuring admin user exists...")
+	if err := ensureAdminUser(); err != nil {
+		log.Printf("Warning: Failed to ensure admin user: %v", err)
+		// Don't fail startup, but log the warning
+	}
+
+	// Create performance indexes
+	if err := createPerformanceIndexes(); err != nil {
+		log.Printf("Warning: Failed to create some performance indexes: %v", err)
+		// Don't fail startup for index creation errors
 	}
 
 	log.Println("Database initialization complete!")
 	return nil
 }
 
+// createPerformanceIndexes creates database indexes for optimal performance
+func createPerformanceIndexes() error {
+	indexes := []string{
+		// Monthly Mileage Reports Indexes
+		`CREATE INDEX IF NOT EXISTS idx_monthly_mileage_reports_year_month 
+		 ON monthly_mileage_reports(report_year DESC, report_month DESC)`,
+
+		`CREATE INDEX IF NOT EXISTS idx_monthly_mileage_reports_bus_id 
+		 ON monthly_mileage_reports(bus_id)`,
+
+		// Maintenance Records Indexes
+		`CREATE INDEX IF NOT EXISTS idx_maintenance_records_vehicle_id 
+		 ON maintenance_records(vehicle_id)`,
+
+		`CREATE INDEX IF NOT EXISTS idx_maintenance_records_date 
+		 ON maintenance_records(maintenance_date DESC)`,
+
+		// Fleet Vehicles Indexes
+		`CREATE INDEX IF NOT EXISTS idx_fleet_vehicles_status 
+		 ON fleet_vehicles(status)`,
+
+		`CREATE INDEX IF NOT EXISTS idx_fleet_vehicles_make_model 
+		 ON fleet_vehicles(make, model)`,
+
+		// Service Records Indexes
+		`CREATE INDEX IF NOT EXISTS idx_service_records_vehicle_id 
+		 ON service_records(vehicle_id)`,
+
+		// Composite indexes for common queries
+		`CREATE INDEX IF NOT EXISTS idx_maintenance_records_vehicle_date_category 
+		 ON maintenance_records(vehicle_id, maintenance_date DESC, category)`,
+
+		`CREATE INDEX IF NOT EXISTS idx_monthly_reports_bus_year_month 
+		 ON monthly_mileage_reports(bus_id, report_year DESC, report_month DESC)`,
+	}
+
+	for _, indexSQL := range indexes {
+		if _, err := db.Exec(indexSQL); err != nil {
+			log.Printf("Warning: Failed to create index: %v", err)
+			// Continue with other indexes
+		}
+	}
+
+	log.Printf("Performance indexes created successfully")
+	return nil
+}
+
+// ensureAdminUser ensures that an admin user exists in the database
+func ensureAdminUser() error {
+	// Get admin credentials from environment or use secure defaults
+	username := os.Getenv("ADMIN_USERNAME")
+	if username == "" {
+		username = "admin"
+	}
+	
+	password := os.Getenv("ADMIN_PASSWORD")
+	if password == "" {
+		// Generate a random password if not provided
+		log.Println("Warning: ADMIN_PASSWORD not set. Admin user creation skipped.")
+		log.Println("Set ADMIN_PASSWORD environment variable and restart to create admin user.")
+		return nil
+	}
+	
+	// Hash the password
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+	hashedPassword := string(hashedBytes)
+	
+	// Check if admin user exists
+	var exists bool
+	err = db.Get(&exists, "SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)", username)
+	if err != nil {
+		return fmt.Errorf("failed to check admin existence: %w", err)
+	}
+	
+	if exists {
+		// Update password and ensure active status
+		_, err = db.Exec(`
+			UPDATE users 
+			SET password = $1, role = 'manager', status = 'active'
+			WHERE username = $2
+		`, hashedPassword, username)
+		if err != nil {
+			return fmt.Errorf("failed to update admin user: %w", err)
+		}
+		log.Printf("Admin user updated successfully")
+	} else {
+		// Create admin user
+		_, err = db.Exec(`
+			INSERT INTO users (username, password, role, status, registration_date, created_at)
+			VALUES ($1, $2, 'manager', 'active', CURRENT_DATE, CURRENT_TIMESTAMP)
+		`, username, hashedPassword)
+		if err != nil {
+			return fmt.Errorf("failed to create admin user: %w", err)
+		}
+		log.Printf("Admin user created successfully")
+	}
+	
+	log.Printf("✅ Admin user ensured: username='%s'", username)
+	return nil
+}
+
 // runMigrations runs database migrations
 func runMigrations() error {
 	log.Println("Starting database migrations...")
-	
+
 	migrations := []string{
 		// Create users table
 		`CREATE TABLE IF NOT EXISTS users (
@@ -131,8 +247,9 @@ func runMigrations() error {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
 
-		// Create bus_maintenance_logs table
-		`CREATE TABLE IF NOT EXISTS bus_maintenance_logs (
+		// DEPRECATED: bus_maintenance_logs table - consolidated into maintenance_records
+		// Keeping for backwards compatibility but no longer used
+		/*`CREATE TABLE IF NOT EXISTS bus_maintenance_logs (
 			id SERIAL PRIMARY KEY,
 			bus_id VARCHAR(50) NOT NULL REFERENCES buses(bus_id) ON DELETE CASCADE,
 			date DATE NOT NULL,
@@ -141,10 +258,11 @@ func runMigrations() error {
 			mileage INTEGER,
 			cost DECIMAL(10, 2) DEFAULT 0,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
+		)`,*/
 
-		// Create vehicle_maintenance_logs table
-		`CREATE TABLE IF NOT EXISTS vehicle_maintenance_logs (
+		// DEPRECATED: vehicle_maintenance_logs table - consolidated into maintenance_records
+		// Keeping for backwards compatibility but no longer used
+		/*`CREATE TABLE IF NOT EXISTS vehicle_maintenance_logs (
 			id SERIAL PRIMARY KEY,
 			vehicle_id VARCHAR(50) NOT NULL REFERENCES vehicles(vehicle_id) ON DELETE CASCADE,
 			date DATE NOT NULL,
@@ -153,6 +271,22 @@ func runMigrations() error {
 			mileage INTEGER,
 			cost DECIMAL(10, 2) DEFAULT 0,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,*/
+
+		// Create consolidated maintenance_records table
+		`CREATE TABLE IF NOT EXISTS maintenance_records (
+			id SERIAL PRIMARY KEY,
+			vehicle_number INTEGER,
+			service_date DATE,
+			mileage INTEGER,
+			cost NUMERIC,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			date DATE,
+			po_number VARCHAR(50),
+			vehicle_id VARCHAR(20),
+			work_description TEXT,
+			raw_data TEXT
 		)`,
 
 		// Create routes table
@@ -286,10 +420,11 @@ func runMigrations() error {
 		)`,
 
 		// Add indexes
-		`CREATE INDEX IF NOT EXISTS idx_bus_maintenance_logs_bus_id ON bus_maintenance_logs(bus_id)`,
+		// DEPRECATED: Indexes for old maintenance tables - no longer needed
+		/*`CREATE INDEX IF NOT EXISTS idx_bus_maintenance_logs_bus_id ON bus_maintenance_logs(bus_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_bus_maintenance_logs_date ON bus_maintenance_logs(date)`,
 		`CREATE INDEX IF NOT EXISTS idx_vehicle_maintenance_logs_vehicle_id ON vehicle_maintenance_logs(vehicle_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_vehicle_maintenance_logs_date ON vehicle_maintenance_logs(date)`,
+		`CREATE INDEX IF NOT EXISTS idx_vehicle_maintenance_logs_date ON vehicle_maintenance_logs(date)`,*/
 		`CREATE INDEX IF NOT EXISTS idx_students_route_id ON students(route_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_students_driver ON students(driver)`,
 		`CREATE INDEX IF NOT EXISTS idx_route_assignments_driver ON route_assignments(driver)`,
@@ -319,7 +454,7 @@ func runMigrations() error {
 				ALTER TABLE ecse_students ADD COLUMN zip_code VARCHAR(20);
 			END IF;
 		END $$;`,
-		
+
 		// Create mileage_records table if not exists
 		`CREATE TABLE IF NOT EXISTS mileage_records (
 			id SERIAL PRIMARY KEY,
@@ -329,7 +464,7 @@ func runMigrations() error {
 			import_id VARCHAR(50),
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
-		
+
 		// Create import history table
 		`CREATE TABLE IF NOT EXISTS import_history (
 			id SERIAL PRIMARY KEY,
@@ -351,7 +486,7 @@ func runMigrations() error {
 			rollback_expires_at TIMESTAMP,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
-		
+
 		// Create import errors table
 		`CREATE TABLE IF NOT EXISTS import_errors (
 			id SERIAL PRIMARY KEY,
@@ -365,7 +500,7 @@ func runMigrations() error {
 			severity VARCHAR(20) DEFAULT 'error',
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
-		
+
 		// Add import_id columns to track imports
 		`DO $$ 
 		BEGIN 
@@ -385,20 +520,21 @@ func runMigrations() error {
 				WHERE table_name = 'vehicles' AND column_name = 'import_id') THEN
 				ALTER TABLE vehicles ADD COLUMN import_id VARCHAR(50);
 			END IF;
-			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-				WHERE table_name = 'agency_vehicles' AND column_name = 'import_id') THEN
-				ALTER TABLE agency_vehicles ADD COLUMN import_id VARCHAR(50);
-			END IF;
-			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-				WHERE table_name = 'school_buses' AND column_name = 'import_id') THEN
-				ALTER TABLE school_buses ADD COLUMN import_id VARCHAR(50);
-			END IF;
+			-- Commented out: Tables deleted during consolidation
+			-- IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+			-- 	WHERE table_name = 'agency_vehicles' AND column_name = 'import_id') THEN
+			-- 	ALTER TABLE agency_vehicles ADD COLUMN import_id VARCHAR(50);
+			-- END IF;
+			-- IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+			-- 	WHERE table_name = 'school_buses' AND column_name = 'import_id') THEN
+			-- 	ALTER TABLE school_buses ADD COLUMN import_id VARCHAR(50);
+			-- END IF;
 			IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
 				WHERE table_name = 'program_staff' AND column_name = 'import_id') THEN
 				ALTER TABLE program_staff ADD COLUMN import_id VARCHAR(50);
 			END IF;
 		END $$;`,
-		
+
 		// Create indexes for import tracking
 		`CREATE INDEX IF NOT EXISTS idx_import_history_import_type ON import_history(import_type)`,
 		`CREATE INDEX IF NOT EXISTS idx_import_history_start_time ON import_history(start_time DESC)`,
@@ -407,7 +543,7 @@ func runMigrations() error {
 		`CREATE INDEX IF NOT EXISTS idx_ecse_students_import_id ON ecse_students(import_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_students_import_id ON students(import_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_vehicles_import_id ON vehicles(import_id)`,
-		
+
 		// Create scheduled exports table
 		`CREATE TABLE IF NOT EXISTS scheduled_exports (
 			id SERIAL PRIMARY KEY,
@@ -426,10 +562,56 @@ func runMigrations() error {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
-		
+
 		// Create index for scheduled exports
 		`CREATE INDEX IF NOT EXISTS idx_scheduled_exports_next_run ON scheduled_exports(next_run)`,
 		`CREATE INDEX IF NOT EXISTS idx_scheduled_exports_enabled ON scheduled_exports(enabled)`,
+		
+		// Create saved reports table
+		`CREATE TABLE IF NOT EXISTS saved_reports (
+			id SERIAL PRIMARY KEY,
+			name VARCHAR(200) NOT NULL,
+			description TEXT,
+			data_source VARCHAR(100) NOT NULL,
+			fields TEXT NOT NULL, -- JSON array of fields
+			filters TEXT, -- JSON object of filters
+			sort_by VARCHAR(100),
+			sort_order VARCHAR(10) DEFAULT 'asc',
+			chart_type VARCHAR(50),
+			chart_config TEXT, -- JSON configuration
+			created_by VARCHAR(50) REFERENCES users(username),
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			last_run TIMESTAMP,
+			is_public BOOLEAN DEFAULT FALSE
+		)`,
+		
+		// Create indexes for saved reports
+		`CREATE INDEX IF NOT EXISTS idx_saved_reports_created_by ON saved_reports(created_by)`,
+		`CREATE INDEX IF NOT EXISTS idx_saved_reports_data_source ON saved_reports(data_source)`,
+
+		// Create fuel_records table
+		`CREATE TABLE IF NOT EXISTS fuel_records (
+			id SERIAL PRIMARY KEY,
+			vehicle_id VARCHAR(50) NOT NULL,
+			date DATE NOT NULL,
+			gallons DECIMAL(10,2) NOT NULL,
+			cost DECIMAL(10,2) NOT NULL,
+			price_per_gallon DECIMAL(10,2) NOT NULL,
+			odometer INTEGER NOT NULL,
+			location VARCHAR(255),
+			driver VARCHAR(100),
+			notes TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			CONSTRAINT positive_gallons CHECK (gallons > 0),
+			CONSTRAINT positive_cost CHECK (cost > 0),
+			CONSTRAINT positive_odometer CHECK (odometer > 0)
+		)`,
+
+		// Create indexes for fuel records
+		`CREATE INDEX IF NOT EXISTS idx_fuel_records_vehicle_id ON fuel_records(vehicle_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_fuel_records_date ON fuel_records(date)`,
+		`CREATE INDEX IF NOT EXISTS idx_fuel_records_vehicle_date ON fuel_records(vehicle_id, date)`,
 	}
 
 	for i, migration := range migrations {
@@ -446,9 +628,9 @@ func runMigrations() error {
 		} else if strings.Contains(migration, "CREATE INDEX") {
 			tableName = "index"
 		}
-		
+
 		log.Printf("Running migration %d: %s", i+1, tableName)
-		
+
 		if _, err := db.Exec(migration); err != nil {
 			// Check if it's a duplicate table/constraint error
 			errStr := err.Error()
@@ -456,16 +638,16 @@ func runMigrations() error {
 				log.Printf("Migration %d: %s already exists, continuing", i+1, tableName)
 				continue
 			}
-			
+
 			// Log which migration failed
 			log.Printf("Migration %d failed (%s): %v", i+1, tableName, err)
-			
+
 			// For index creation, we can continue if it fails
 			if strings.Contains(migration, "CREATE INDEX") {
 				log.Printf("Continuing despite index creation error")
 				continue
 			}
-			
+
 			return fmt.Errorf("failed to execute migration %d (%s): %w", i+1, tableName, err)
 		}
 	}
@@ -476,7 +658,7 @@ func runMigrations() error {
 
 // Database query functions
 
-// GetMaintenanceLogsForVehicle retrieves all maintenance logs for a vehicle (bus or regular vehicle)
+// GetMaintenanceLogsForVehicle retrieves all maintenance logs for a vehicle from the consolidated maintenance_records table
 func getMaintenanceLogsForVehicle(vehicleID string) ([]CombinedMaintenanceLog, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database not initialized")
@@ -485,33 +667,30 @@ func getMaintenanceLogsForVehicle(vehicleID string) ([]CombinedMaintenanceLog, e
 	query := `
 		SELECT 
 			id,
-			bus_id as vehicle_id,
-			'bus' as vehicle_type,
-			date,
-			category,
-			notes,
-			mileage,
-			cost,
-			created_at
-		FROM bus_maintenance_logs
-		WHERE bus_id = $1
-		
-		UNION ALL
-		
-		SELECT 
-			id,
-			vehicle_id,
-			'vehicle' as vehicle_type,
-			date,
-			category,
-			notes,
-			mileage,
-			cost,
-			created_at
-		FROM vehicle_maintenance_logs
-		WHERE vehicle_id = $1
-		
-		ORDER BY date DESC, created_at DESC
+			COALESCE(vehicle_id, CAST(vehicle_number AS VARCHAR)) as vehicle_id,
+			CASE 
+				WHEN vehicle_id ~ '^[0-9]+$' THEN 'bus'
+				ELSE 'vehicle'
+			END as vehicle_type,
+			COALESCE(TO_CHAR(service_date, 'YYYY-MM-DD'), TO_CHAR(date, 'YYYY-MM-DD'), '') as date,
+			COALESCE(
+				CASE 
+					WHEN work_description ILIKE '%oil%' THEN 'oil_change'
+					WHEN work_description ILIKE '%tire%' THEN 'tire_service'
+					WHEN work_description ILIKE '%inspect%' THEN 'inspection'
+					WHEN work_description ILIKE '%repair%' THEN 'repair'
+					ELSE 'other'
+				END,
+				'other'
+			) as category,
+			COALESCE(work_description, '') as notes,
+			COALESCE(mileage, 0) as mileage,
+			COALESCE(cost::numeric, 0) as cost,
+			COALESCE(created_at, CURRENT_TIMESTAMP) as created_at
+		FROM maintenance_records
+		WHERE vehicle_id = $1 
+		   OR CAST(vehicle_number AS VARCHAR) = $1
+		ORDER BY COALESCE(service_date, date, created_at) DESC
 	`
 
 	var logs []CombinedMaintenanceLog
@@ -530,19 +709,19 @@ func getVehicleCurrentMileage(vehicleID string) (int, error) {
 	}
 
 	var mileage int
-	
+
 	// Try buses table first
 	err := db.Get(&mileage, "SELECT current_mileage FROM buses WHERE bus_id = $1", vehicleID)
 	if err == nil {
 		return mileage, nil
 	}
-	
+
 	// Try vehicles table
 	err = db.Get(&mileage, "SELECT current_mileage FROM vehicles WHERE vehicle_id = $1", vehicleID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get vehicle mileage: %w", err)
 	}
-	
+
 	return mileage, nil
 }
 
@@ -616,7 +795,7 @@ func getVehicleMaintenanceInfo(vehicleID string) (currentMileage, lastOilChange,
 		"SELECT current_mileage, last_oil_change, last_tire_service FROM buses WHERE bus_id = $1",
 		vehicleID,
 	).Scan(&currentMileage, &lastOilChange, &lastTireService)
-	
+
 	if err == nil {
 		return currentMileage, lastOilChange, lastTireService, nil
 	}
@@ -626,7 +805,7 @@ func getVehicleMaintenanceInfo(vehicleID string) (currentMileage, lastOilChange,
 		"SELECT current_mileage, last_oil_change, last_tire_service FROM vehicles WHERE vehicle_id = $1",
 		vehicleID,
 	).Scan(&currentMileage, &lastOilChange, &lastTireService)
-	
+
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("failed to get vehicle maintenance info: %w", err)
 	}
@@ -687,7 +866,7 @@ func getLastMileageForVehicle(vehicleID string) (float64, error) {
 		FROM driver_logs 
 		WHERE bus_id = $1 AND end_mileage IS NOT NULL
 	`
-	
+
 	err := db.Get(&lastMileage, query, vehicleID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get last mileage: %w", err)

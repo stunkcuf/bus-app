@@ -72,14 +72,14 @@ func requireDatabase(next http.HandlerFunc) http.HandlerFunc {
 			http.Error(w, "Database not available", http.StatusServiceUnavailable)
 			return
 		}
-		
+
 		// Test database connection
 		if err := db.Ping(); err != nil {
 			log.Printf("Database ping failed: %v", err)
 			http.Error(w, "Database connection lost", http.StatusServiceUnavailable)
 			return
 		}
-		
+
 		next(w, r)
 	}
 }
@@ -104,12 +104,12 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		
+
 		// HSTS (only on HTTPS)
 		if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -119,7 +119,7 @@ func CSPMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Generate nonce for inline scripts
 		nonce := generateNonce()
-		
+
 		// Set CSP header
 		csp := fmt.Sprintf(
 			"default-src 'self'; "+
@@ -134,11 +134,11 @@ func CSPMiddleware(next http.Handler) http.Handler {
 			nonce,
 		)
 		w.Header().Set("Content-Security-Policy", csp)
-		
+
 		// Store nonce in request context for template use
 		ctx := r.Context()
 		ctx = setCSPNonce(ctx, nonce)
-		
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

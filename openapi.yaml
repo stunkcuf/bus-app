@@ -1,0 +1,782 @@
+openapi: 3.0.3
+info:
+  title: Fleet Management System API
+  description: |
+    Comprehensive API for managing school transportation operations including 
+    bus fleets, driver assignments, student ridership, and vehicle maintenance.
+  version: 1.0.0
+  contact:
+    name: Fleet Management Support
+    email: support@fleetmanagement.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5000
+    description: Development server
+  - url: https://api.fleetmanagement.com
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Dashboard
+    description: Dashboard analytics and widgets
+  - name: Fleet
+    description: Fleet and vehicle management
+  - name: Routes
+    description: Route management and assignments
+  - name: Students
+    description: Student management
+  - name: Maintenance
+    description: Vehicle maintenance tracking
+  - name: Analytics
+    description: Analytics and reporting
+  - name: Import/Export
+    description: Data import and export operations
+
+security:
+  - sessionAuth: []
+  - csrfToken: []
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      tags:
+        - System
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+
+  /:
+    post:
+      summary: User login
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 50
+                password:
+                  type: string
+                  minLength: 6
+      responses:
+        '303':
+          description: Successful login, redirect to dashboard
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: session_id=abc123; HttpOnly; Secure; SameSite=Strict
+            Location:
+              schema:
+                type: string
+                example: /manager-dashboard
+        '200':
+          description: Login failed, returns login page with error
+
+  /logout:
+    post:
+      summary: User logout
+      tags:
+        - Authentication
+      responses:
+        '303':
+          description: Logged out successfully
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /
+
+  /api/dashboard/analytics:
+    get:
+      summary: Get comprehensive dashboard analytics
+      tags:
+        - Dashboard
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Dashboard analytics data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardAnalytics'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/dashboard/fleet-status:
+    get:
+      summary: Get fleet status widget data
+      tags:
+        - Dashboard
+      responses:
+        '200':
+          description: Fleet status summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FleetStatusWidget'
+
+  /api/dashboard/maintenance-alerts:
+    get:
+      summary: Get maintenance alerts
+      tags:
+        - Dashboard
+      responses:
+        '200':
+          description: Maintenance alerts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceAlertsWidget'
+
+  /api/update-vehicle-status:
+    post:
+      summary: Update vehicle status
+      tags:
+        - Fleet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVehicleStatusRequest'
+      responses:
+        '200':
+          description: Status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /add-bus:
+    post:
+      summary: Add a new bus to the fleet
+      tags:
+        - Fleet
+      security:
+        - sessionAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddBusRequest'
+      responses:
+        '200':
+          description: Bus added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  bus_id:
+                    type: string
+
+  /api/analytics/comparison:
+    get:
+      summary: Get comparative analytics
+      tags:
+        - Analytics
+      parameters:
+        - name: period
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [month, year]
+          description: Comparison period
+      responses:
+        '200':
+          description: Comparative analytics data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComparativeAnalytics'
+
+  /api/fuel/efficiency:
+    get:
+      summary: Get vehicle fuel efficiency data
+      tags:
+        - Analytics
+      parameters:
+        - name: vehicle_id
+          in: query
+          schema:
+            type: string
+          description: Filter by vehicle ID
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Fuel efficiency data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FuelEfficiencyData'
+
+  /add-student:
+    post:
+      summary: Add a new student
+      tags:
+        - Students
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AddStudentRequest'
+      responses:
+        '303':
+          description: Student added successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /save-log:
+    post:
+      summary: Save driver log entry
+      tags:
+        - Routes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveLogRequest'
+      responses:
+        '200':
+          description: Log saved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  log_id:
+                    type: integer
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: session_id
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+
+  schemas:
+    HealthCheck:
+      type: object
+      properties:
+        status:
+          type: string
+          example: healthy
+        service:
+          type: string
+          example: fleet-management
+        timestamp:
+          type: string
+          format: date-time
+        database:
+          type: string
+          example: connected
+        cache:
+          type: string
+          example: active
+        session_store:
+          type: string
+          example: database
+
+    DashboardAnalytics:
+      type: object
+      properties:
+        fleet:
+          type: object
+          properties:
+            total_buses:
+              type: integer
+            active_buses:
+              type: integer
+            maintenance_buses:
+              type: integer
+            out_of_service:
+              type: integer
+            utilization_rate:
+              type: number
+              format: float
+        routes:
+          type: object
+          properties:
+            total_routes:
+              type: integer
+            active_routes:
+              type: integer
+            students_transported:
+              type: integer
+            avg_route_efficiency:
+              type: number
+        mileage:
+          type: object
+          properties:
+            total_miles_today:
+              type: number
+            total_miles_month:
+              type: number
+            avg_miles_per_bus:
+              type: number
+            fuel_efficiency:
+              type: number
+        maintenance:
+          type: object
+          properties:
+            overdue_count:
+              type: integer
+            due_soon_count:
+              type: integer
+            completed_this_month:
+              type: integer
+            avg_maintenance_cost:
+              type: number
+        drivers:
+          type: object
+          properties:
+            total_drivers:
+              type: integer
+            active_today:
+              type: integer
+            avg_performance_score:
+              type: number
+        trends:
+          type: object
+          properties:
+            mileage_trend:
+              type: array
+              items:
+                type: object
+            maintenance_trend:
+              type: array
+              items:
+                type: object
+            cost_trend:
+              type: array
+              items:
+                type: object
+
+    FleetStatusWidget:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            total:
+              type: integer
+            active:
+              type: integer
+            maintenance:
+              type: integer
+            out_of_service:
+              type: integer
+        buses:
+          type: array
+          items:
+            type: object
+            properties:
+              bus_id:
+                type: string
+              status:
+                type: string
+              current_route:
+                type: string
+              driver:
+                type: string
+              last_location:
+                type: string
+
+    MaintenanceAlertsWidget:
+      type: object
+      properties:
+        alerts:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaintenanceAlert'
+        summary:
+          type: object
+          properties:
+            critical:
+              type: integer
+            warning:
+              type: integer
+            info:
+              type: integer
+
+    MaintenanceAlert:
+      type: object
+      properties:
+        id:
+          type: integer
+        vehicle_id:
+          type: string
+        vehicle_type:
+          type: string
+          enum: [bus, vehicle]
+        alert_type:
+          type: string
+        category:
+          type: string
+        message:
+          type: string
+        severity:
+          type: string
+          enum: [critical, warning, info]
+        due_mileage:
+          type: integer
+        current_miles:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    UpdateVehicleStatusRequest:
+      type: object
+      required:
+        - vehicle_id
+        - vehicle_type
+        - field_name
+        - field_value
+        - csrf_token
+      properties:
+        vehicle_id:
+          type: string
+        vehicle_type:
+          type: string
+          enum: [bus, vehicle]
+        field_name:
+          type: string
+        field_value:
+          type: string
+        csrf_token:
+          type: string
+
+    AddBusRequest:
+      type: object
+      required:
+        - bus_id
+        - model
+        - capacity
+        - status
+        - csrf_token
+      properties:
+        bus_id:
+          type: string
+          pattern: '^[A-Z0-9]+$'
+        model:
+          type: string
+        capacity:
+          type: integer
+          minimum: 1
+          maximum: 100
+        status:
+          type: string
+          enum: [active, maintenance, out of service]
+        oil_status:
+          type: string
+          enum: [good, due soon, overdue]
+        tire_status:
+          type: string
+          enum: [good, fair, poor]
+        maintenance_notes:
+          type: string
+        csrf_token:
+          type: string
+
+    AddStudentRequest:
+      type: object
+      required:
+        - student_id
+        - name
+        - phone_number
+        - guardian
+        - pickup_time
+        - dropoff_time
+        - csrf_token
+      properties:
+        student_id:
+          type: string
+        name:
+          type: string
+        phone_number:
+          type: string
+        alt_phone_number:
+          type: string
+        guardian:
+          type: string
+        pickup_time:
+          type: string
+          pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+        dropoff_time:
+          type: string
+          pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+        position_number:
+          type: integer
+        route_id:
+          type: string
+        csrf_token:
+          type: string
+
+    SaveLogRequest:
+      type: object
+      required:
+        - bus_id
+        - route_id
+        - date
+        - period
+        - departure_time
+        - arrival_time
+        - mileage
+        - csrf_token
+      properties:
+        bus_id:
+          type: string
+        route_id:
+          type: string
+        date:
+          type: string
+          format: date
+        period:
+          type: string
+          enum: [morning, afternoon]
+        departure_time:
+          type: string
+          pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+        arrival_time:
+          type: string
+          pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+        mileage:
+          type: number
+          minimum: 0
+        notes:
+          type: string
+        attendance:
+          type: array
+          items:
+            type: object
+            properties:
+              position:
+                type: integer
+              present:
+                type: boolean
+              pickup_time:
+                type: string
+        csrf_token:
+          type: string
+
+    ComparativeAnalytics:
+      type: object
+      properties:
+        period:
+          type: string
+        current_period:
+          type: object
+          properties:
+            start_date:
+              type: string
+              format: date
+            end_date:
+              type: string
+              format: date
+            metrics:
+              type: object
+        previous_period:
+          type: object
+          properties:
+            start_date:
+              type: string
+              format: date
+            end_date:
+              type: string
+              format: date
+            metrics:
+              type: object
+        comparison:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              current:
+                type: number
+              previous:
+                type: number
+              change:
+                type: number
+              change_percent:
+                type: number
+              trend:
+                type: string
+                enum: [up, down, stable]
+
+    FuelEfficiencyData:
+      type: object
+      properties:
+        vehicle_id:
+          type: string
+        avg_mpg:
+          type: number
+        total_gallons:
+          type: number
+        total_miles:
+          type: number
+        total_cost:
+          type: number
+        records:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              gallons:
+                type: number
+              miles:
+                type: number
+              mpg:
+                type: number
+              cost:
+                type: number
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        per_page:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+        has_prev:
+          type: boolean
+        has_next:
+          type: boolean
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: UNAUTHORIZED
+              message: Please log in to access this resource
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: FORBIDDEN
+              message: You do not have permission to access this resource
+
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: Invalid input data
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: NOT_FOUND
+              message: The requested resource was not found
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INTERNAL_ERROR
+              message: An unexpected error occurred

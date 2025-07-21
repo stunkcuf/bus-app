@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import Data Wizard - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/accessible_design_system.css">
+  <link rel="stylesheet" href="/static/visual_hierarchy.css">
+  <link rel="stylesheet" href="/static/accessible_forms.css">
+  <link rel="stylesheet" href="/static/enhanced_help_system.css">
+  <style nonce="{{.CSPNonce}}">
+    /* Wizard specific styles */
+    .wizard-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    .wizard-steps {
+      display: none;
+    }
+    
+    .wizard-steps.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .step-header {
+      background: var(--color-primary-light);
+      padding: var(--space-lg);
+      border-radius: var(--border-radius-lg);
+      margin-bottom: var(--space-xl);
+      text-align: center;
+    }
+    
+    .step-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: var(--color-primary);
+      color: var(--color-text-inverse);
+      border-radius: 50%;
+      font-weight: 700;
+      margin-right: var(--space-md);
+    }
+    
+    .import-type-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: var(--space-lg);
+      margin-bottom: var(--space-xl);
+    }
+    
+    .import-type-card {
+      background: var(--color-bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: var(--border-radius-lg);
+      padding: var(--space-lg);
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition-base);
+    }
+    
+    .import-type-card:hover {
+      border-color: var(--color-primary);
+      transform: translateY(-2px);
+    }
+    
+    .import-type-card.selected {
+      background: var(--color-primary-light);
+      border-color: var(--color-primary);
+    }
+    
+    .import-icon {
+      font-size: 3rem;
+      color: var(--color-primary);
+      margin-bottom: var(--space-md);
+    }
+    
+    .file-upload-area {
+      background: var(--color-bg-tertiary);
+      border: 3px dashed var(--border-color);
+      border-radius: var(--border-radius-lg);
+      padding: var(--space-xl);
+      text-align: center;
+      transition: all var(--transition-base);
+      cursor: pointer;
+    }
+    
+    .file-upload-area:hover,
+    .file-upload-area.drag-over {
+      border-color: var(--color-primary);
+      background: var(--color-primary-light);
+    }
+    
+    .file-upload-icon {
+      font-size: 4rem;
+      color: var(--color-primary);
+      margin-bottom: var(--space-md);
+    }
+    
+    .template-download {
+      background: var(--color-info-light);
+      border: 1px solid var(--color-info);
+      border-radius: var(--border-radius-base);
+      padding: var(--space-md);
+      margin-bottom: var(--space-lg);
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+    }
+    
+    .template-download i {
+      font-size: 2rem;
+      color: var(--color-info-dark);
+    }
+    
+    .column-mapping {
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-base);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .mapping-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+      padding: var(--space-md);
+      background: var(--color-bg-primary);
+      border-radius: var(--border-radius-base);
+    }
+    
+    .mapping-arrow {
+      color: var(--color-primary);
+      font-size: 1.5rem;
+    }
+    
+    .preview-table {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-base);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .preview-table table {
+      margin-bottom: 0;
+    }
+    
+    .validation-summary {
+      background: var(--color-bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-lg);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .validation-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      padding: var(--space-sm) 0;
+    }
+    
+    .validation-item i {
+      font-size: 1.25rem;
+    }
+    
+    .validation-item.success i {
+      color: var(--color-success);
+    }
+    
+    .validation-item.warning i {
+      color: var(--color-warning);
+    }
+    
+    .validation-item.error i {
+      color: var(--color-danger);
+    }
+    
+    .import-summary {
+      background: var(--color-success-light);
+      border: 2px solid var(--color-success);
+      border-radius: var(--border-radius-lg);
+      padding: var(--space-xl);
+      text-align: center;
+      margin-bottom: var(--space-xl);
+    }
+    
+    .import-summary-icon {
+      font-size: 4rem;
+      color: var(--color-success);
+      margin-bottom: var(--space-md);
+    }
+    
+    .import-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: var(--space-lg);
+      margin-top: var(--space-xl);
+    }
+    
+    .import-stat {
+      text-align: center;
+    }
+    
+    .import-stat-number {
+      font-size: var(--font-size-xxl);
+      font-weight: 700;
+      color: var(--color-primary);
+      display: block;
+    }
+    
+    .import-stat-label {
+      font-size: var(--font-size-small);
+      color: var(--color-text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid page-container">
+    <!-- Navigation Component -->
+    {{template "navigation" (dict "Navigation" .Navigation "CSPNonce" .CSPNonce "ShowHelpButton" .ShowHelpButton "PageDescription" "Import data from Excel files with validation")}}
+    
+    <!-- Header -->
+    <header class="page-header">
+      <div class="page-header-content">
+        <div class="page-header-text">
+          <h1>
+            <i class="bi bi-cloud-upload-fill" aria-hidden="true"></i>
+            Import Data Wizard
+          </h1>
+          <p class="page-description">Import data from Excel files with preview and validation</p>
+        </div>
+      </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+      <div class="wizard-container">
+        <!-- Progress Indicator -->
+        {{template "progress_indicator" (dict "CurrentStep" 1 "TotalSteps" 5 "Steps" (list "Select Type" "Upload File" "Map Columns" "Preview & Validate" "Import"))}}
+        
+        <form id="importWizardForm" method="POST" action="/import-data-wizard" enctype="multipart/form-data" class="accessible-form">
+          <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
+          
+          <!-- Step 1: Select Import Type -->
+          <div class="wizard-steps active" id="step1">
+            <div class="step-header">
+              <h2>
+                <span class="step-number">1</span>
+                Select Import Type
+              </h2>
+              <p>Choose what type of data you want to import</p>
+            </div>
+            
+            <div class="import-type-cards">
+              <div class="import-type-card" data-type="students"
+                   data-help="import-students" 
+                   data-help-title="Import Students" 
+                   data-help-content="Import student roster including names, contact information, and route assignments from Excel.">
+                <i class="bi bi-people-fill import-icon" aria-hidden="true"></i>
+                <h3>Students</h3>
+                <p>Import student roster with contact info and routes</p>
+              </div>
+              
+              <div class="import-type-card" data-type="mileage"
+                   data-help="import-mileage" 
+                   data-help-title="Import Mileage" 
+                   data-help-content="Import monthly mileage reports for all vehicles. Must include vehicle ID, date, and mileage.">
+                <i class="bi bi-speedometer2 import-icon" aria-hidden="true"></i>
+                <h3>Mileage Reports</h3>
+                <p>Import monthly mileage data for vehicles</p>
+              </div>
+              
+              <div class="import-type-card" data-type="ecse"
+                   data-help="import-ecse" 
+                   data-help-title="Import ECSE" 
+                   data-help-content="Import Early Childhood Special Education student data with IEP status and service requirements.">
+                <i class="bi bi-heart-pulse-fill import-icon" aria-hidden="true"></i>
+                <h3>ECSE Students</h3>
+                <p>Import special education student data</p>
+              </div>
+              
+              <div class="import-type-card" data-type="maintenance"
+                   data-help="import-maintenance" 
+                   data-help-title="Import Maintenance" 
+                   data-help-content="Import maintenance history for vehicles. Include date, type, cost, and description.">
+                <i class="bi bi-tools import-icon" aria-hidden="true"></i>
+                <h3>Maintenance Records</h3>
+                <p>Import vehicle maintenance history</p>
+              </div>
+            </div>
+            
+            <input type="hidden" id="import_type" name="import_type" required>
+            
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                Cancel
+              </button>
+              <button type="button" class="btn btn-primary" onclick="nextStep()" id="step1Next" disabled>
+                Next: Upload File
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Step 2: Upload File -->
+          <div class="wizard-steps" id="step2">
+            <div class="step-header">
+              <h2>
+                <span class="step-number">2</span>
+                Upload Excel File
+              </h2>
+              <p>Select or drag your Excel file here</p>
+            </div>
+            
+            <div class="template-download" id="templateDownload" style="display: none;"
+                 data-help="download-template" 
+                 data-help-title="Download Template" 
+                 data-help-content="Download a pre-formatted Excel template with the correct column headers. This ensures your data imports correctly.">
+              <i class="bi bi-file-earmark-excel" aria-hidden="true"></i>
+              <div>
+                <strong>Need a template?</strong><br>
+                <a href="#" id="downloadTemplateLink" class="btn btn-sm btn-info">
+                  <i class="bi bi-download" aria-hidden="true"></i>
+                  Download Excel Template
+                </a>
+              </div>
+            </div>
+            
+            <div class="file-upload-area" id="fileUploadArea"
+                 data-help="file-upload" 
+                 data-help-title="Upload File" 
+                 data-help-content="Click to browse or drag and drop your Excel file here. Supported formats: .xlsx, .xls">
+              <i class="bi bi-cloud-upload file-upload-icon" aria-hidden="true"></i>
+              <h3>Drop Excel file here or click to browse</h3>
+              <p class="text-muted">Supported formats: .xlsx, .xls (Max size: 10MB)</p>
+              <input type="file" id="import_file" name="import_file" 
+                     accept=".xlsx,.xls" 
+                     style="display: none;" required>
+            </div>
+            
+            <div id="fileInfo" class="alert alert-info" style="display: none;" role="status">
+              <div class="alert-header">
+                <i class="bi bi-file-earmark-excel" aria-hidden="true"></i>
+                <strong>File Selected</strong>
+              </div>
+              <p id="fileName"></p>
+              <p id="fileSize"></p>
+            </div>
+            
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" onclick="previousStep()">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                Previous
+              </button>
+              <button type="button" class="btn btn-primary" onclick="uploadAndAnalyze()" id="step2Next" disabled>
+                Next: Map Columns
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Step 3: Map Columns -->
+          <div class="wizard-steps" id="step3">
+            <div class="step-header">
+              <h2>
+                <span class="step-number">3</span>
+                Map Excel Columns
+              </h2>
+              <p>Match your Excel columns to system fields</p>
+            </div>
+            
+            <div class="alert alert-info" role="alert">
+              <div class="alert-header">
+                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                <strong>Column Mapping</strong>
+              </div>
+              <p>We've automatically detected your columns. Please verify the mappings are correct.</p>
+            </div>
+            
+            <div class="column-mapping" id="columnMapping">
+              <!-- Dynamically populated based on file analysis -->
+            </div>
+            
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" onclick="previousStep()">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                Previous
+              </button>
+              <button type="button" class="btn btn-primary" onclick="validateData()" id="step3Next">
+                Next: Preview
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Step 4: Preview & Validate -->
+          <div class="wizard-steps" id="step4">
+            <div class="step-header">
+              <h2>
+                <span class="step-number">4</span>
+                Preview & Validate Data
+              </h2>
+              <p>Review your data before importing</p>
+            </div>
+            
+            <div class="validation-summary">
+              <h3>Validation Summary</h3>
+              <div id="validationResults">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+            
+            <h3>Data Preview (First 10 rows)</h3>
+            <div class="preview-table">
+              <table class="table table-striped" id="previewTable">
+                <!-- Dynamically populated -->
+              </table>
+            </div>
+            
+            <div class="form-group">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="skipDuplicates" name="skip_duplicates" checked>
+                <label class="form-check-label" for="skipDuplicates">
+                  Skip duplicate records (recommended)
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="updateExisting" name="update_existing">
+                <label class="form-check-label" for="updateExisting">
+                  Update existing records with matching IDs
+                </label>
+              </div>
+            </div>
+            
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" onclick="previousStep()">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                Previous
+              </button>
+              <button type="button" class="btn btn-primary" onclick="nextStep()" id="step4Next">
+                Import Data
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Step 5: Import Complete -->
+          <div class="wizard-steps" id="step5">
+            <div class="import-summary">
+              <i class="bi bi-check-circle-fill import-summary-icon" aria-hidden="true"></i>
+              <h2>Import Complete!</h2>
+              <p>Your data has been successfully imported</p>
+              
+              <div class="import-stats">
+                <div class="import-stat">
+                  <span class="import-stat-number" id="totalRecords">0</span>
+                  <span class="import-stat-label">Total Records</span>
+                </div>
+                <div class="import-stat">
+                  <span class="import-stat-number" id="importedRecords">0</span>
+                  <span class="import-stat-label">Imported</span>
+                </div>
+                <div class="import-stat">
+                  <span class="import-stat-number" id="skippedRecords">0</span>
+                  <span class="import-stat-label">Skipped</span>
+                </div>
+                <div class="import-stat">
+                  <span class="import-stat-number" id="errorRecords">0</span>
+                  <span class="import-stat-label">Errors</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="alert alert-info" role="alert">
+              <div class="alert-header">
+                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                <strong>What's Next?</strong>
+              </div>
+              <p>You can now view and manage your imported data from the appropriate section.</p>
+            </div>
+            
+            <div class="form-actions">
+              <a href="#" id="viewDataLink" class="btn btn-primary">
+                <i class="bi bi-eye" aria-hidden="true"></i>
+                View Imported Data
+              </a>
+              <button type="button" class="btn btn-secondary" onclick="startNewImport()">
+                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                Import More Data
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/accessible_forms.js"></script>
+  <script src="/static/enhanced_help_system.js"></script>
+  
+  <script nonce="{{.CSPNonce}}">
+    let currentStep = 1;
+    const totalSteps = 5;
+    let selectedType = '';
+    let fileData = null;
+    let columnMappings = {};
+    let previewData = [];
+    
+    // Template download URLs by type
+    const templateUrls = {
+      students: '/templates/students_import_template.xlsx',
+      mileage: '/templates/mileage_import_template.xlsx',
+      ecse: '/templates/ecse_import_template.xlsx',
+      maintenance: '/templates/maintenance_import_template.xlsx'
+    };
+    
+    // Required fields by import type
+    const requiredFields = {
+      students: ['student_id', 'name', 'phone_number', 'guardian'],
+      mileage: ['vehicle_id', 'date', 'mileage'],
+      ecse: ['student_id', 'first_name', 'last_name', 'date_of_birth'],
+      maintenance: ['vehicle_id', 'date', 'category', 'description']
+    };
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      // Import type selection
+      document.querySelectorAll('.import-type-card').forEach(card => {
+        card.addEventListener('click', handleTypeSelect);
+      });
+      
+      // File upload
+      const fileInput = document.getElementById('import_file');
+      const uploadArea = document.getElementById('fileUploadArea');
+      
+      uploadArea.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', handleFileSelect);
+      
+      // Drag and drop
+      uploadArea.addEventListener('dragover', handleDragOver);
+      uploadArea.addEventListener('dragleave', handleDragLeave);
+      uploadArea.addEventListener('drop', handleDrop);
+      
+      // Form submission
+      document.getElementById('importWizardForm').addEventListener('submit', handleSubmit);
+    });
+    
+    function handleTypeSelect(e) {
+      // Remove previous selection
+      document.querySelectorAll('.import-type-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+      
+      // Add selection
+      const card = e.currentTarget;
+      card.classList.add('selected');
+      
+      // Set type
+      selectedType = card.dataset.type;
+      document.getElementById('import_type').value = selectedType;
+      
+      // Update template download link
+      const templateDownload = document.getElementById('templateDownload');
+      const downloadLink = document.getElementById('downloadTemplateLink');
+      
+      if (templateUrls[selectedType]) {
+        downloadLink.href = templateUrls[selectedType];
+        templateDownload.style.display = 'block';
+      }
+      
+      // Enable next button
+      document.getElementById('step1Next').disabled = false;
+    }
+    
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('drag-over');
+    }
+    
+    function handleDragLeave(e) {
+      e.currentTarget.classList.remove('drag-over');
+    }
+    
+    function handleDrop(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
+      
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const file = files[0];
+        if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+          document.getElementById('import_file').files = files;
+          handleFileSelect({ target: { files: files } });
+        } else {
+          alert('Please drop an Excel file (.xlsx or .xls)');
+        }
+      }
+    }
+    
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      // Show file info
+      document.getElementById('fileName').textContent = file.name;
+      document.getElementById('fileSize').textContent = `Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+      document.getElementById('fileInfo').style.display = 'block';
+      
+      // Enable next button
+      document.getElementById('step2Next').disabled = false;
+    }
+    
+    async function uploadAndAnalyze() {
+      const fileInput = document.getElementById('import_file');
+      const file = fileInput.files[0];
+      
+      if (!file) {
+        alert('Please select a file');
+        return;
+      }
+      
+      // Show loading state
+      const btn = document.getElementById('step2Next');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="bi bi-hourglass-split" aria-hidden="true"></i> Analyzing...';
+      
+      // Create form data
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', selectedType);
+      formData.append('csrf_token', '{{.Data.CSRFToken}}');
+      
+      try {
+        // Upload and analyze file
+        const response = await fetch('/api/import/analyze', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to analyze file');
+        }
+        
+        const result = await response.json();
+        fileData = result;
+        
+        // Show column mappings
+        showColumnMappings(result.columns);
+        
+        // Move to next step
+        nextStep();
+      } catch (error) {
+        alert('Error analyzing file: ' + error.message);
+        btn.disabled = false;
+        btn.innerHTML = 'Next: Map Columns <i class="bi bi-arrow-right" aria-hidden="true"></i>';
+      }
+    }
+    
+    function showColumnMappings(columns) {
+      const container = document.getElementById('columnMapping');
+      const required = requiredFields[selectedType];
+      
+      container.innerHTML = '';
+      
+      // Smart mapping - try to match column names
+      columns.forEach(col => {
+        const mappingRow = document.createElement('div');
+        mappingRow.className = 'mapping-row';
+        
+        // Try to find matching field
+        let matchedField = '';
+        const colLower = col.toLowerCase().replace(/[^a-z0-9]/g, '');
+        
+        required.forEach(field => {
+          const fieldLower = field.toLowerCase().replace(/_/g, '');
+          if (colLower.includes(fieldLower) || fieldLower.includes(colLower)) {
+            matchedField = field;
+          }
+        });
+        
+        mappingRow.innerHTML = `
+          <div>
+            <strong>Excel Column:</strong> ${col}
+          </div>
+          <i class="bi bi-arrow-right mapping-arrow" aria-hidden="true"></i>
+          <div>
+            <label for="map_${col}" class="sr-only">Map ${col} to</label>
+            <select class="form-control column-mapping-select" data-column="${col}" id="map_${col}">
+              <option value="">-- Skip this column --</option>
+              ${required.map(field => `
+                <option value="${field}" ${field === matchedField ? 'selected' : ''}>
+                  ${field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </option>
+              `).join('')}
+            </select>
+          </div>
+        `;
+        
+        container.appendChild(mappingRow);
+      });
+      
+      // Add event listeners
+      document.querySelectorAll('.column-mapping-select').forEach(select => {
+        select.addEventListener('change', updateColumnMapping);
+      });
+    }
+    
+    function updateColumnMapping(e) {
+      const column = e.target.dataset.column;
+      const field = e.target.value;
+      
+      if (field) {
+        columnMappings[column] = field;
+      } else {
+        delete columnMappings[column];
+      }
+    }
+    
+    async function validateData() {
+      // Check required mappings
+      const required = requiredFields[selectedType];
+      const mapped = Object.values(columnMappings);
+      const missing = required.filter(field => !mapped.includes(field));
+      
+      if (missing.length > 0) {
+        alert(`Please map the following required fields: ${missing.join(', ')}`);
+        return;
+      }
+      
+      // Show loading
+      const btn = document.getElementById('step3Next');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="bi bi-hourglass-split" aria-hidden="true"></i> Validating...';
+      
+      try {
+        // Send mappings for validation
+        const response = await fetch('/api/import/validate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: selectedType,
+            mappings: columnMappings,
+            file_id: fileData.file_id,
+            csrf_token: '{{.Data.CSRFToken}}'
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Validation failed');
+        }
+        
+        const result = await response.json();
+        showValidationResults(result);
+        showPreview(result.preview);
+        
+        // Move to next step
+        nextStep();
+      } catch (error) {
+        alert('Error validating data: ' + error.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Next: Preview <i class="bi bi-arrow-right" aria-hidden="true"></i>';
+      }
+    }
+    
+    function showValidationResults(result) {
+      const container = document.getElementById('validationResults');
+      container.innerHTML = '';
+      
+      // Total records
+      addValidationItem(container, 'success', `${result.total_records} total records found`);
+      
+      // Valid records
+      if (result.valid_records > 0) {
+        addValidationItem(container, 'success', `${result.valid_records} valid records ready to import`);
+      }
+      
+      // Warnings
+      if (result.warnings.length > 0) {
+        result.warnings.forEach(warning => {
+          addValidationItem(container, 'warning', warning);
+        });
+      }
+      
+      // Errors
+      if (result.errors.length > 0) {
+        result.errors.forEach(error => {
+          addValidationItem(container, 'error', error);
+        });
+        
+        // Disable import if errors
+        document.getElementById('step4Next').disabled = true;
+        document.getElementById('step4Next').textContent = 'Cannot Import - Fix Errors';
+      }
+    }
+    
+    function addValidationItem(container, type, message) {
+      const item = document.createElement('div');
+      item.className = `validation-item ${type}`;
+      
+      let icon = '';
+      if (type === 'success') icon = 'bi-check-circle-fill';
+      else if (type === 'warning') icon = 'bi-exclamation-triangle-fill';
+      else if (type === 'error') icon = 'bi-x-circle-fill';
+      
+      item.innerHTML = `
+        <i class="bi ${icon}" aria-hidden="true"></i>
+        <span>${message}</span>
+      `;
+      
+      container.appendChild(item);
+    }
+    
+    function showPreview(data) {
+      previewData = data;
+      const table = document.getElementById('previewTable');
+      
+      if (!data || data.length === 0) {
+        table.innerHTML = '<tr><td>No data to preview</td></tr>';
+        return;
+      }
+      
+      // Create header
+      const headers = Object.keys(data[0]);
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr>
+          ${headers.map(h => `<th>${h}</th>`).join('')}
+        </tr>
+      `;
+      
+      // Create body
+      const tbody = document.createElement('tbody');
+      data.slice(0, 10).forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = headers.map(h => `<td>${row[h] || ''}</td>`).join('');
+        tbody.appendChild(tr);
+      });
+      
+      table.innerHTML = '';
+      table.appendChild(thead);
+      table.appendChild(tbody);
+    }
+    
+    function nextStep() {
+      if (currentStep < totalSteps) {
+        // Hide current step
+        document.getElementById('step' + currentStep).classList.remove('active');
+        
+        // Show next step
+        currentStep++;
+        document.getElementById('step' + currentStep).classList.add('active');
+        
+        // Update progress indicator
+        updateProgressIndicator();
+        
+        // Step-specific actions
+        if (currentStep === 5) {
+          performImport();
+        }
+      }
+    }
+    
+    function previousStep() {
+      if (currentStep > 1) {
+        // Hide current step
+        document.getElementById('step' + currentStep).classList.remove('active');
+        
+        // Show previous step
+        currentStep--;
+        document.getElementById('step' + currentStep).classList.add('active');
+        
+        // Update progress indicator
+        updateProgressIndicator();
+      }
+    }
+    
+    function updateProgressIndicator() {
+      // Update progress bar
+      const progressBar = document.querySelector('.progress-bar');
+      const percentage = (currentStep / totalSteps) * 100;
+      progressBar.style.width = percentage + '%';
+      progressBar.setAttribute('aria-valuenow', percentage);
+      
+      // Update step indicators
+      document.querySelectorAll('.progress-step').forEach((step, index) => {
+        if (index < currentStep) {
+          step.classList.add('completed');
+          step.classList.remove('active');
+        } else if (index === currentStep - 1) {
+          step.classList.add('active');
+          step.classList.remove('completed');
+        } else {
+          step.classList.remove('active', 'completed');
+        }
+      });
+    }
+    
+    async function performImport() {
+      try {
+        const response = await fetch('/api/import/execute', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: selectedType,
+            file_id: fileData.file_id,
+            mappings: columnMappings,
+            skip_duplicates: document.getElementById('skipDuplicates').checked,
+            update_existing: document.getElementById('updateExisting').checked,
+            csrf_token: '{{.Data.CSRFToken}}'
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Import failed');
+        }
+        
+        const result = await response.json();
+        
+        // Show results
+        document.getElementById('totalRecords').textContent = result.total;
+        document.getElementById('importedRecords').textContent = result.imported;
+        document.getElementById('skippedRecords').textContent = result.skipped;
+        document.getElementById('errorRecords').textContent = result.errors;
+        
+        // Set view link
+        const viewLinks = {
+          students: '/students',
+          mileage: '/view-mileage-reports',
+          ecse: '/view-ecse-reports',
+          maintenance: '/maintenance-records'
+        };
+        
+        document.getElementById('viewDataLink').href = viewLinks[selectedType] || '/';
+        
+      } catch (error) {
+        alert('Import failed: ' + error.message);
+        previousStep();
+      }
+    }
+    
+    function startNewImport() {
+      // Reset form
+      currentStep = 1;
+      selectedType = '';
+      fileData = null;
+      columnMappings = {};
+      previewData = [];
+      
+      // Reset UI
+      document.querySelectorAll('.wizard-steps').forEach(step => {
+        step.classList.remove('active');
+      });
+      document.getElementById('step1').classList.add('active');
+      
+      document.querySelectorAll('.import-type-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+      
+      document.getElementById('import_type').value = '';
+      document.getElementById('import_file').value = '';
+      document.getElementById('fileInfo').style.display = 'none';
+      document.getElementById('step1Next').disabled = true;
+      
+      updateProgressIndicator();
+    }
+    
+    function handleSubmit(e) {
+      e.preventDefault();
+      // Form is handled via AJAX
+    }
+  </script>
+</body>
+</html>

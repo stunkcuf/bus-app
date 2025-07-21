@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Fleet Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .nav {
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0.5rem 1rem;
+        }
+
+        .nav a {
+            color: #667eea;
+            text-decoration: none;
+            margin-right: 1rem;
+            padding: 0.5rem 0;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .nav a:hover {
+            border-bottom-color: #667eea;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .filters {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .filters h3 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 150px;
+        }
+
+        .filter-group label {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            color: #555;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .summary-card h3 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-card p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .cost-card h3 {
+            color: #28a745;
+        }
+
+        .records-table {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .table-header {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-header h3 {
+            margin: 0;
+            color: #333;
+        }
+
+        .results-info {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+            white-space: nowrap;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-primary {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-success {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .badge-warning {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .badge-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .cost-badge {
+            background: #e8f5e8;
+            color: #2e7d32;
+            font-weight: 600;
+        }
+
+        .mileage-badge {
+            background: #e3f2fd;
+            color: #1976d2;
+            font-family: monospace;
+        }
+
+        .po-number {
+            font-family: monospace;
+            font-size: 0.85rem;
+            background: #f0f0f0;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+        }
+
+        .work-description {
+            max-width: 300px;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .work-description.truncated {
+            max-height: 3em;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .work-description.truncated::after {
+            content: "...";
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: white;
+            padding-left: 0.5rem;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .pagination a,
+        .pagination span {
+            padding: 0.5rem 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #495057;
+            background: white;
+        }
+
+        .pagination a:hover {
+            background: #e9ecef;
+        }
+
+        .pagination .current {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .no-data i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #ddd;
+        }
+
+        @media (max-width: 768px) {
+            .filter-row {
+                flex-direction: column;
+            }
+
+            .filter-group {
+                min-width: 100%;
+            }
+
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 0.8rem;
+            }
+
+            th, td {
+                padding: 0.5rem 0.25rem;
+            }
+
+            .work-description {
+                max-width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            🔧 Maintenance Records
+        </h1>
+    </div>
+
+    <div class="nav">
+        <a href="/manager-dashboard">Dashboard</a>
+        <a href="/fleet">Fleet</a>
+        <a href="/company-fleet">Company Fleet</a>
+        <a href="/maintenance-records" style="border-bottom-color: #667eea;">Maintenance Records</a>
+        {{if eq .User.Role "manager"}}
+        <a href="/assign-routes">Routes</a>
+        {{end}}
+    </div>
+
+    <div class="container">
+        <!-- Filters -->
+        <div class="filters">
+            <h3>Filter Maintenance Records</h3>
+            <form method="GET" action="/maintenance-records">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="vehicle_number">Vehicle Number:</label>
+                        <select name="vehicle_number" id="vehicle_number">
+                            <option value="">All Vehicles</option>
+                            {{range .VehicleNumbers}}
+                            <option value="{{.}}" {{if eq . $.SelectedVehicleNumber}}selected{{end}}>Vehicle #{{.}}</option>
+                            {{end}}
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="start_date">Start Date:</label>
+                        <input type="date" name="start_date" id="start_date" value="{{.SelectedStartDate}}">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="end_date">End Date:</label>
+                        <input type="date" name="end_date" id="end_date" value="{{.SelectedEndDate}}">
+                    </div>
+
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        <a href="/maintenance-records" class="btn btn-secondary">Clear</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card">
+                <h3>{{.TotalRecords}}</h3>
+                <p>Total Records</p>
+            </div>
+            <div class="summary-card cost-card">
+                <h3>${{printf "%.2f" .TotalCost}}</h3>
+                <p>Total Cost</p>
+            </div>
+            <div class="summary-card">
+                <h3>{{.UniqueVehicles}}</h3>
+                <p>Vehicles Serviced</p>
+            </div>
+            <div class="summary-card">
+                <h3>{{.RecordsWithMileage}}</h3>
+                <p>With Mileage Data</p>
+            </div>
+        </div>
+
+        <!-- Records Table -->
+        <div class="records-table">
+            <div class="table-header">
+                <h3>Maintenance Records</h3>
+                <div class="results-info">
+                    Showing {{if .Records}}{{add (mul (sub .Pagination.Page 1) .Pagination.PerPage) 1}} - {{add (mul (sub .Pagination.Page 1) .Pagination.PerPage) (len .Records)}}{{else}}0{{end}} of {{.TotalRecords}} records
+                </div>
+            </div>
+
+            {{if .Records}}
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Vehicle</th>
+                            <th>Service Date</th>
+                            <th>Mileage</th>
+                            <th>Cost</th>
+                            <th>PO Number</th>
+                            <th>Work Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Records}}
+                        <tr>
+                            <td>
+                                <strong>{{.GetVehicleIdentifier}}</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">{{.GetFormattedServiceDate}}</span>
+                            </td>
+                            <td>
+                                {{if gt .GetMileage 0}}
+                                <span class="badge mileage-badge">{{printf "%,d" .GetMileage}}</span>
+                                {{else}}
+                                <span style="color: #999;">—</span>
+                                {{end}}
+                            </td>
+                            <td>
+                                {{if ne .GetCost ""}}
+                                <span class="badge cost-badge">{{.GetCost}}</span>
+                                {{else}}
+                                <span style="color: #999;">—</span>
+                                {{end}}
+                            </td>
+                            <td>
+                                {{if .GetPONumber}}
+                                <span class="po-number">{{.GetPONumber}}</span>
+                                {{else}}
+                                <span style="color: #999;">—</span>
+                                {{end}}
+                            </td>
+                            <td>
+                                {{if .GetWorkDescription}}
+                                <div class="work-description">{{.GetWorkDescription}}</div>
+                                {{else}}
+                                <span style="color: #999;">No description</span>
+                                {{end}}
+                            </td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {{if gt .Pagination.TotalPages 1}}
+            <div class="pagination">
+                {{if .Pagination.HasPrev}}
+                <a href="?page={{sub .Pagination.Page 1}}{{if .SelectedVehicleNumber}}&vehicle_number={{.SelectedVehicleNumber}}{{end}}{{if .SelectedStartDate}}&start_date={{.SelectedStartDate}}{{end}}{{if .SelectedEndDate}}&end_date={{.SelectedEndDate}}{{end}}">&laquo; Previous</a>
+                {{end}}
+
+                {{range $page := .Pagination.Pages}}
+                {{if eq $page $.Pagination.Page}}
+                <span class="current">{{$page}}</span>
+                {{else}}
+                <a href="?page={{$page}}{{if $.SelectedVehicleNumber}}&vehicle_number={{$.SelectedVehicleNumber}}{{end}}{{if $.SelectedStartDate}}&start_date={{$.SelectedStartDate}}{{end}}{{if $.SelectedEndDate}}&end_date={{$.SelectedEndDate}}{{end}}">{{$page}}</a>
+                {{end}}
+                {{end}}
+
+                {{if .Pagination.HasNext}}
+                <a href="?page={{add .Pagination.Page 1}}{{if .SelectedVehicleNumber}}&vehicle_number={{.SelectedVehicleNumber}}{{end}}{{if .SelectedStartDate}}&start_date={{.SelectedStartDate}}{{end}}{{if .SelectedEndDate}}&end_date={{.SelectedEndDate}}{{end}}">Next &raquo;</a>
+                {{end}}
+            </div>
+            {{end}}
+
+            {{else}}
+            <div class="no-data">
+                <div style="font-size: 3rem; margin-bottom: 1rem; color: #ddd;">🔧</div>
+                <h3>No Records Found</h3>
+                <p>{{if or .SelectedVehicleNumber .SelectedStartDate .SelectedEndDate}}Try adjusting your filters or clearing them to see all records.{{else}}No maintenance records are available in the system.{{end}}</p>
+                {{if or .SelectedVehicleNumber .SelectedStartDate .SelectedEndDate}}
+                <a href="/maintenance-records" class="btn btn-primary" style="margin-top: 1rem;">Clear Filters</a>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+    </div>
+</body>
+</html>

@@ -34,29 +34,29 @@ var logLevelNames = map[LogLevel]string{
 
 // LogEntry represents a structured log entry
 type LogEntry struct {
-	Timestamp   time.Time              `json:"timestamp"`
-	Level       string                 `json:"level"`
-	Message     string                 `json:"message"`
-	Error       string                 `json:"error,omitempty"`
-	RequestID   string                 `json:"request_id,omitempty"`
-	UserID      string                 `json:"user_id,omitempty"`
-	Method      string                 `json:"method,omitempty"`
-	Path        string                 `json:"path,omitempty"`
-	StatusCode  int                    `json:"status_code,omitempty"`
-	Duration    float64                `json:"duration_ms,omitempty"`
-	IP          string                 `json:"ip,omitempty"`
-	UserAgent   string                 `json:"user_agent,omitempty"`
-	Fields      map[string]interface{} `json:"fields,omitempty"`
-	Caller      string                 `json:"caller,omitempty"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Level      string                 `json:"level"`
+	Message    string                 `json:"message"`
+	Error      string                 `json:"error,omitempty"`
+	RequestID  string                 `json:"request_id,omitempty"`
+	UserID     string                 `json:"user_id,omitempty"`
+	Method     string                 `json:"method,omitempty"`
+	Path       string                 `json:"path,omitempty"`
+	StatusCode int                    `json:"status_code,omitempty"`
+	Duration   float64                `json:"duration_ms,omitempty"`
+	IP         string                 `json:"ip,omitempty"`
+	UserAgent  string                 `json:"user_agent,omitempty"`
+	Fields     map[string]interface{} `json:"fields,omitempty"`
+	Caller     string                 `json:"caller,omitempty"`
 }
 
 // Logger is the main logger instance
 type Logger struct {
-	mu       sync.RWMutex
-	level    LogLevel
-	output   io.Writer
-	json     bool
-	fields   map[string]interface{}
+	mu     sync.RWMutex
+	level  LogLevel
+	output io.Writer
+	json   bool
+	fields map[string]interface{}
 }
 
 // Global logger instance
@@ -66,7 +66,7 @@ var logger *Logger
 func InitLogger() {
 	logLevel := LogLevelInfo
 	jsonFormat := false
-	
+
 	// Set log level from environment
 	switch strings.ToUpper(getEnv("LOG_LEVEL", "INFO")) {
 	case "DEBUG":
@@ -76,19 +76,19 @@ func InitLogger() {
 	case "ERROR":
 		logLevel = LogLevelError
 	}
-	
+
 	// Enable JSON logging in production
 	if isProduction() {
 		jsonFormat = true
 	}
-	
+
 	logger = &Logger{
 		level:  logLevel,
 		output: os.Stdout,
 		json:   jsonFormat,
 		fields: make(map[string]interface{}),
 	}
-	
+
 	// Also set standard logger
 	log.SetOutput(logger)
 	log.SetFlags(0) // We handle formatting ourselves
@@ -111,15 +111,15 @@ func (l *Logger) WithField(key string, value interface{}) *Logger {
 		json:   l.json,
 		fields: make(map[string]interface{}),
 	}
-	
+
 	// Copy existing fields
 	for k, v := range l.fields {
 		newLogger.fields[k] = v
 	}
-	
+
 	// Add new field
 	newLogger.fields[key] = value
-	
+
 	return newLogger
 }
 
@@ -131,17 +131,17 @@ func (l *Logger) WithFields(fields map[string]interface{}) *Logger {
 		json:   l.json,
 		fields: make(map[string]interface{}),
 	}
-	
+
 	// Copy existing fields
 	for k, v := range l.fields {
 		newLogger.fields[k] = v
 	}
-	
+
 	// Add new fields
 	for k, v := range fields {
 		newLogger.fields[k] = v
 	}
-	
+
 	return newLogger
 }
 
@@ -153,17 +153,17 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 		"ip":         getClientIP(r),
 		"user_agent": r.UserAgent(),
 	}
-	
+
 	// Add request ID if available
 	if requestID := r.Context().Value("requestID"); requestID != nil {
 		fields["request_id"] = requestID
 	}
-	
+
 	// Add user if available
 	if user := getUserFromSession(r); user != nil {
 		fields["user_id"] = user.Username
 	}
-	
+
 	return l.WithFields(fields)
 }
 
@@ -172,19 +172,19 @@ func (l *Logger) log(level LogLevel, message string, err error) {
 	if level < l.level {
 		return
 	}
-	
+
 	entry := LogEntry{
 		Timestamp: time.Now(),
 		Level:     logLevelNames[level],
 		Message:   message,
 		Fields:    l.fields,
 	}
-	
+
 	// Add error if provided
 	if err != nil {
 		entry.Error = err.Error()
 	}
-	
+
 	// Add caller information
 	if level >= LogLevelError {
 		_, file, line, ok := runtime.Caller(2)
@@ -193,11 +193,11 @@ func (l *Logger) log(level LogLevel, message string, err error) {
 			entry.Caller = fmt.Sprintf("%s:%d", parts[len(parts)-1], line)
 		}
 	}
-	
+
 	// Format and write log entry
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	if l.json {
 		json.NewEncoder(l.output).Encode(entry)
 	} else {
@@ -207,42 +207,42 @@ func (l *Logger) log(level LogLevel, message string, err error) {
 			entry.Level,
 			entry.Message,
 		)
-		
+
 		if entry.Error != "" {
 			fmt.Fprintf(l.output, " error=%q", entry.Error)
 		}
-		
+
 		if entry.RequestID != "" {
 			fmt.Fprintf(l.output, " request_id=%s", entry.RequestID)
 		}
-		
+
 		if entry.UserID != "" {
 			fmt.Fprintf(l.output, " user=%s", entry.UserID)
 		}
-		
+
 		if entry.Method != "" && entry.Path != "" {
 			fmt.Fprintf(l.output, " %s %s", entry.Method, entry.Path)
 		}
-		
+
 		if entry.StatusCode > 0 {
 			fmt.Fprintf(l.output, " status=%d", entry.StatusCode)
 		}
-		
+
 		if entry.Duration > 0 {
 			fmt.Fprintf(l.output, " duration=%.2fms", entry.Duration)
 		}
-		
+
 		if entry.Caller != "" {
 			fmt.Fprintf(l.output, " caller=%s", entry.Caller)
 		}
-		
+
 		// Add custom fields
 		for k, v := range entry.Fields {
 			if k != "method" && k != "path" && k != "request_id" && k != "user_id" {
 				fmt.Fprintf(l.output, " %s=%v", k, v)
 			}
 		}
-		
+
 		fmt.Fprintln(l.output)
 	}
 }
@@ -359,19 +359,19 @@ func LogRequest(r *http.Request) *Logger {
 func LoggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
+
 		// Create response writer wrapper to capture status code
 		wrapped := &responseWriter{
 			ResponseWriter: w,
 			statusCode:     http.StatusOK,
 		}
-		
+
 		// Log request start
 		LogRequest(r).Debug("Request started")
-		
+
 		// Call the handler
 		next(wrapped, r)
-		
+
 		// Log request completion
 		duration := time.Since(start).Milliseconds()
 		LogRequest(r).WithFields(map[string]interface{}{

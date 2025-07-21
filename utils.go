@@ -14,9 +14,21 @@ import (
 
 // executeTemplate executes a template with error handling and CSP nonce support
 func executeTemplate(w http.ResponseWriter, name string, data interface{}) {
-	if err := templates.ExecuteTemplate(w, name, data); err != nil {
+	var err error
+
+	// Use optimized template cache if available (production)
+	if templateCache != nil {
+		err = templateCache.Render(w, name, data)
+	} else if templates != nil {
+		// Use standard templates (development)
+		err = templates.ExecuteTemplate(w, name, data)
+	} else {
+		err = fmt.Errorf("no templates loaded")
+	}
+
+	if err != nil {
 		log.Printf("Error executing template %s: %v", name, err)
-		
+
 		// In development mode, show detailed error
 		if isDevelopment() {
 			http.Error(w, fmt.Sprintf("Template error in %s: %v", name, err), http.StatusInternalServerError)
@@ -33,29 +45,39 @@ func renderTemplate(w http.ResponseWriter, r *http.Request, name string, data in
 	if n, ok := r.Context().Value("csp-nonce").(string); ok {
 		nonce = n
 	}
+
+	// Get user from session for navigation
+	user := getUserFromSession(r)
 	
-	// Check if data is a map, if so add CSPNonce to it
+	// Determine current page from template name
+	currentPage := getPageFromTemplate(name)
+	
+	// Check if data is a map, if so add CSPNonce and Navigation to it
 	if mapData, ok := data.(map[string]interface{}); ok {
 		mapData["CSPNonce"] = nonce
+		if user != nil && currentPage != "" {
+			mapData["Navigation"] = getNavigationData(user, currentPage)
+		}
+		mapData["ShowHelpButton"] = true
 		executeTemplate(w, name, mapData)
 		return
 	}
-	
+
 	// For struct data, we need to use reflection to add CSPNonce
 	// For now, just pass the data directly with CSPNonce in a wrapper
 	// that preserves the original structure
 	type TemplateData struct {
 		CSPNonce string
 	}
-	
+
 	// Create a map to hold all the data
 	templateData := make(map[string]interface{})
-	
+
 	// Use reflection to convert struct to map
 	if data != nil {
 		dataType := reflect.TypeOf(data)
 		dataValue := reflect.ValueOf(data)
-		
+
 		if dataType.Kind() == reflect.Struct {
 			for i := 0; i < dataType.NumField(); i++ {
 				field := dataType.Field(i)
@@ -67,10 +89,14 @@ func renderTemplate(w http.ResponseWriter, r *http.Request, name string, data in
 			templateData["Data"] = data
 		}
 	}
-	
-	// Add CSPNonce
+
+	// Add CSPNonce and Navigation
 	templateData["CSPNonce"] = nonce
-	
+	if user != nil && currentPage != "" {
+		templateData["Navigation"] = getNavigationData(user, currentPage)
+	}
+	templateData["ShowHelpButton"] = true
+
 	executeTemplate(w, name, templateData)
 }
 
@@ -113,8 +139,8 @@ func truncateString(s string, maxLen int) string {
 // isValidEmail checks if an email address is valid
 func isValidEmail(email string) bool {
 	// Simple email validation
-	return len(email) > 3 && len(email) < 255 && 
-		   emailRegex.MatchString(email)
+	return len(email) > 3 && len(email) < 255 &&
+		emailRegex.MatchString(email)
 }
 
 // isValidPhone checks if a phone number is valid
@@ -122,6 +148,63 @@ func isValidPhone(phone string) bool {
 	// Remove common formatting characters
 	cleaned := phoneRegex.ReplaceAllString(phone, "")
 	return len(cleaned) >= 10 && len(cleaned) <= 15
+}
+
+// getPageFromTemplate extracts the page identifier from template name
+func getPageFromTemplate(templateName string) string {
+	// Remove .html extension and convert underscores to hyphens
+	pageName := strings.TrimSuffix(templateName, ".html")
+	pageName = strings.Replace(pageName, "_", "-", -1)
+	
+	// Special cases for templates with different naming conventions
+	switch pageName {
+	case "manager-dashboard":
+		return "manager-dashboard"
+	case "driver-dashboard":
+		return "driver-dashboard"
+	case "fleet":
+		return "fleet"
+	case "company-fleet":
+		return "company-fleet"
+	case "students":
+		return "students"
+	case "assign-routes":
+		return "assign-routes"
+	case "import-ecse":
+		return "import-ecse"
+	case "view-ecse-reports":
+		return "view-ecse-reports"
+	case "edit-ecse-student":
+		return "edit-ecse-student"
+	case "import-mileage":
+		return "import-mileage"
+	case "view-mileage-reports":
+		return "view-mileage-reports"
+	case "approve-users":
+		return "approve-users"
+	case "users":
+		return "users"
+	case "fleet-vehicles":
+		return "fleet-vehicles"
+	case "maintenance-records":
+		return "maintenance-records"
+	case "monthly-mileage-reports":
+		return "monthly-mileage-reports"
+	case "service-records":
+		return "service-records"
+	case "report-builder":
+		return "report-builder"
+	case "scheduled-exports":
+		return "scheduled-exports"
+	case "vehicle-maintenance":
+		return "vehicle-maintenance"
+	case "driver-profile":
+		return "driver-profile"
+	case "view-ecse-student":
+		return "ecse-student"
+	default:
+		return pageName
+	}
 }
 
 // Helper functions (removed duplicates)
@@ -196,11 +279,11 @@ func mergeErrors(errs []error) error {
 	if len(errs) == 0 {
 		return nil
 	}
-	
+
 	if len(errs) == 1 {
 		return errs[0]
 	}
-	
+
 	var msg string
 	for i, err := range errs {
 		if i > 0 {
@@ -217,7 +300,7 @@ func sanitizeFilename(filename string) string {
 	filename = strings.ReplaceAll(filename, "/", "_")
 	filename = strings.ReplaceAll(filename, "\\", "_")
 	filename = strings.ReplaceAll(filename, "..", "_")
-	
+
 	// Keep only safe characters
 	safe := regexp.MustCompile(`[^a-zA-Z0-9._-]`)
 	return safe.ReplaceAllString(filename, "_")

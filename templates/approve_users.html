@@ -4,204 +4,260 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Approve Users - Fleet Management System</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/accessible_design_system.css">
+  <link rel="stylesheet" href="/static/visual_hierarchy.css">
+  <link rel="stylesheet" href="/static/help_system.css">
+  <link rel="stylesheet" href="/static/accessible_forms.css">
   <style nonce="{{.CSPNonce}}">
-    :root {
-      --grad-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      --grad-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-      --grad-danger: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
-    }
-    
-    body {
-      background-color: #f8f9fa;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    }
-    
-    .page-header {
-      background: var(--grad-primary);
-      color: white;
-      padding: 1.5rem;
-      border-radius: 15px;
-      margin-bottom: 2rem;
-      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-    }
-    
-    .page-header .btn {
-      background: rgba(255,255,255,0.2);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.3);
-      transition: all 0.3s ease;
-    }
-    
-    .page-header .btn:hover {
-      background: rgba(255,255,255,0.3);
-      transform: translateY(-2px);
-      color: white;
-    }
-    
+    /* Approve Users specific styles */
     .approval-card {
       border: none;
-      border-radius: 15px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-      transition: all 0.3s ease;
+      border-radius: var(--border-radius-lg);
+      box-shadow: var(--shadow-sm);
+      transition: all var(--transition-base);
       overflow: hidden;
-      margin-bottom: 1rem;
+      margin-bottom: var(--space-md);
+      background: var(--color-bg-primary);
     }
     
     .approval-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
     }
     
     .user-avatar {
-      width: 50px;
-      height: 50px;
-      background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+      width: 60px;
+      height: 60px;
+      background: var(--color-warning);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1.5rem;
-      color: white;
-      margin-right: 1rem;
+      color: var(--color-text-inverse);
+      margin-right: var(--space-md);
     }
     
     .btn-approve {
-      background: var(--grad-success);
+      background: var(--color-success);
+      color: var(--color-text-inverse);
       border: none;
-      color: white;
-      padding: 0.5rem 1.5rem;
-      border-radius: 8px;
-      transition: all 0.3s ease;
+      padding: var(--space-sm) var(--space-lg);
+      border-radius: var(--border-radius-base);
+      transition: all var(--transition-base);
+      font-weight: 600;
+      min-height: var(--touch-target-min);
     }
     
     .btn-approve:hover {
+      background: var(--color-success-dark);
       transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(17, 153, 142, 0.3);
-      color: white;
+      box-shadow: var(--shadow-md);
     }
     
     .btn-reject {
-      background: var(--grad-danger);
+      background: var(--color-danger);
+      color: var(--color-text-inverse);
       border: none;
-      color: white;
-      padding: 0.5rem 1.5rem;
-      border-radius: 8px;
-      transition: all 0.3s ease;
+      padding: var(--space-sm) var(--space-lg);
+      border-radius: var(--border-radius-base);
+      transition: all var(--transition-base);
+      font-weight: 600;
+      min-height: var(--touch-target-min);
     }
     
     .btn-reject:hover {
+      background: var(--color-danger-dark);
       transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
-      color: white;
-    }
-    
-    .empty-state {
-      text-align: center;
-      padding: 3rem 1rem;
-      color: #6c757d;
-    }
-    
-    .empty-state i {
-      font-size: 4rem;
-      margin-bottom: 1rem;
-      opacity: 0.3;
+      box-shadow: var(--shadow-md);
     }
     
     .pending-badge {
-      background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
-      color: white;
-      padding: 0.25rem 0.75rem;
-      border-radius: 20px;
-      font-size: 0.8rem;
+      background: var(--color-warning);
+      color: var(--color-text-inverse);
+      padding: var(--space-xs) var(--space-md);
+      border-radius: var(--border-radius-base);
+      font-size: var(--font-size-base);
       font-weight: 500;
+      display: inline-block;
+    }
+    
+    .user-info h3 {
+      font-size: var(--font-size-large);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .user-info .text-muted {
+      font-size: var(--font-size-base);
+      color: var(--color-text-secondary);
+    }
+    
+    .approval-actions {
+      display: flex;
+      gap: var(--space-md);
+      align-items: center;
+    }
+    
+    @media (max-width: 768px) {
+      .approval-card .card-body {
+        flex-direction: column;
+      }
+      
+      .approval-actions {
+        margin-top: var(--space-md);
+        width: 100%;
+        justify-content: center;
+      }
+      
+      .approval-actions form {
+        flex: 1;
+      }
+      
+      .approval-actions button {
+        width: 100%;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container-fluid py-4">
-    <!-- Header -->
-    <header class="page-header">
-      <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <div>
-          <h1 class="fs-3 mb-1">
-            <i class="bi bi-person-check me-2"></i>Approve New Users
-          </h1>
-          <p class="mb-0 opacity-75">Review and approve pending driver registrations</p>
-        </div>
-        <nav class="btn-group btn-group-sm" role="group">
-          <a href="/manager-dashboard" class="btn">
-            <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
-          </a>
-          <a href="/logout" class="btn">
-            <i class="bi bi-box-arrow-right me-1"></i>Logout
-          </a>
+  <div class="page-wrapper">
+    <!-- Navigation Component -->
+    {{template "navigation" (dict "Navigation" .Navigation "CSPNonce" .CSPNonce "ShowHelpButton" .ShowHelpButton "PageDescription" "Review and approve pending driver registrations")}}
+    
+    <!-- Page Actions -->
+    <header class="page-actions">
+      <div class="page-header-content">
+        <nav class="page-header-nav">
+          <button class="btn btn-outline-primary" onclick="toggleHelpMode()">
+            <i class="bi bi-question-circle" aria-hidden="true"></i>
+            Help
+          </button>
         </nav>
       </div>
     </header>
-
-    <!-- Pending Users -->
-    <div class="row">
-      <div class="col-12">
-        {{if .Data.PendingUsers}}
-          <h5 class="mb-3">
-            <span class="pending-badge">{{len .Data.PendingUsers}} Pending</span>
-          </h5>
+    
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+      {{if .Data.PendingUsers}}
+      <section aria-labelledby="pending-heading">
+        <h2 id="pending-heading" class="mb-3">
+          <span class="pending-badge">
+            <i class="bi bi-clock-history" aria-hidden="true"></i>
+            {{len .Data.PendingUsers}} Pending Approval{{if gt (len .Data.PendingUsers) 1}}s{{end}}
+          </span>
+        </h2>
+        
+        <div class="approvals-list">
           {{range .Data.PendingUsers}}
           <div class="approval-card">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                  <div class="user-avatar">
-                    <i class="bi bi-person"></i>
-                  </div>
-                  <div>
-                    <h6 class="mb-1">{{.Username}}</h6>
-                    <small class="text-muted">
+            <div class="card-body d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center">
+                <div class="user-avatar">
+                  <i class="bi bi-person" aria-hidden="true"></i>
+                </div>
+                <div class="user-info">
+                  <h3>{{.Username}}</h3>
+                  <div class="text-muted">
+                    <div>
+                      <i class="bi bi-calendar" aria-hidden="true"></i>
                       Registered: {{.CreatedAt}}
-                      <br>
+                    </div>
+                    <div>
+                      <i class="bi bi-shield" aria-hidden="true"></i>
                       Role: Driver (default)
-                    </small>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <form method="POST" action="/approve-user" class="d-inline">
-                    <input type="hidden" name="csrf_token" value="{{$.Data.CSRFToken}}">
-                    <input type="hidden" name="username" value="{{.Username}}">
-                    <input type="hidden" name="action" value="approve">
-                    <button type="submit" class="btn btn-approve">
-                      <i class="bi bi-check-circle me-1"></i>Approve
-                    </button>
-                  </form>
-                  <form method="POST" action="/approve-user" class="d-inline ms-2">
-                    <input type="hidden" name="csrf_token" value="{{$.Data.CSRFToken}}">
-                    <input type="hidden" name="username" value="{{.Username}}">
-                    <input type="hidden" name="action" value="reject">
-                    <button type="submit" class="btn btn-reject">
-                      <i class="bi bi-x-circle me-1"></i>Reject
-                    </button>
-                  </form>
-                </div>
+              </div>
+              <div class="approval-actions">
+                <form method="POST" action="/approve-user" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{$.Data.CSRFToken}}">
+                  <input type="hidden" name="username" value="{{.Username}}">
+                  <input type="hidden" name="action" value="approve">
+                  <button type="submit" class="btn btn-approve" aria-label="Approve {{.Username}}">
+                    <i class="bi bi-check-circle" aria-hidden="true"></i>
+                    Approve
+                  </button>
+                </form>
+                <form method="POST" action="/approve-user" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{$.Data.CSRFToken}}">
+                  <input type="hidden" name="username" value="{{.Username}}">
+                  <input type="hidden" name="action" value="reject">
+                  <button type="submit" class="btn btn-reject" aria-label="Reject {{.Username}}">
+                    <i class="bi bi-x-circle" aria-hidden="true"></i>
+                    Reject
+                  </button>
+                </form>
               </div>
             </div>
           </div>
           {{end}}
-        {{else}}
-          <div class="card">
-            <div class="card-body">
-              <div class="empty-state">
-                <i class="bi bi-check-circle"></i>
-                <h5>No Pending Approvals</h5>
-                <p class="mb-0">All user registrations have been reviewed</p>
-              </div>
-            </div>
-          </div>
-        {{end}}
+        </div>
+      </section>
+      {{else}}
+      <div class="empty-state">
+        <i class="bi bi-check-circle" aria-hidden="true"></i>
+        <h2>No Pending Approvals</h2>
+        <p>All user registrations have been reviewed</p>
+        <a href="/manager-dashboard" class="btn btn-primary">
+          <i class="bi bi-arrow-left" aria-hidden="true"></i>
+          Back to Dashboard
+        </a>
       </div>
-    </div>
+      {{end}}
+      
+      <!-- Info Box -->
+      <div class="info-box mt-5" data-help="approval-process">
+        <h3>
+          <i class="bi bi-info-circle" aria-hidden="true"></i>
+          About the Approval Process
+        </h3>
+        <p>When new drivers register for the system, they need manager approval before they can access their dashboard. This ensures only authorized personnel can manage routes and students.</p>
+        <ul>
+          <li><strong>Approve:</strong> Grants the user access to the driver dashboard and all driver features</li>
+          <li><strong>Reject:</strong> Denies access and removes the user from the pending list</li>
+        </ul>
+        <p class="mb-0">Approved drivers will receive the standard "driver" role. For manager access, use the User Management page after approval.</p>
+      </div>
+    </main>
   </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script src="/static/help_system.js"></script>
+  <script src="/static/accessible_forms.js"></script>
+  
+  <script nonce="{{.CSPNonce}}">
+    document.addEventListener('DOMContentLoaded', function() {
+      // Add confirmation to reject buttons
+      const rejectButtons = document.querySelectorAll('.btn-reject');
+      rejectButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+          const username = this.closest('form').querySelector('input[name="username"]').value;
+          if (!confirm(`Are you sure you want to reject the registration for "${username}"? This action cannot be undone.`)) {
+            e.preventDefault();
+          }
+        });
+      });
+      
+      // Add confirmation to approve buttons for clarity
+      const approveButtons = document.querySelectorAll('.btn-approve');
+      approveButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+          const username = this.closest('form').querySelector('input[name="username"]').value;
+          if (!confirm(`Approve "${username}" as a driver?`)) {
+            e.preventDefault();
+          }
+        });
+      });
+      
+      // Add help content
+      if (window.helpSystem) {
+        window.helpSystem.addHelpContent('approval-process', {
+          title: 'User Approval Process',
+          content: 'Review each pending registration carefully. Approved users gain access to driver features. You can manage user roles after approval.'
+        });
+      }
+    });
+  </script>
 </body>
 </html>

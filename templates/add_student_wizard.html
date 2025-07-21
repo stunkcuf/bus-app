@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add New Student - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/accessible_design_system.css">
+  <link rel="stylesheet" href="/static/visual_hierarchy.css">
+  <link rel="stylesheet" href="/static/help_system.css">
+  <link rel="stylesheet" href="/static/accessible_forms.css">
+  <style nonce="{{.CSPNonce}}">
+    /* Wizard specific styles */
+    .wizard-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    .wizard-step {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    .wizard-step.active {
+      display: block;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .form-section {
+      background: var(--color-bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-lg);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .form-section-title {
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-md);
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    
+    .location-container {
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-base);
+      padding: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+    
+    .add-location-btn {
+      margin-top: var(--space-md);
+    }
+    
+    .time-input-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-md);
+    }
+    
+    .preview-section {
+      background: var(--color-info-light);
+      border: 2px solid var(--color-info);
+      border-radius: var(--border-radius-lg);
+      padding: var(--space-lg);
+    }
+    
+    .preview-item {
+      display: flex;
+      justify-content: space-between;
+      padding: var(--space-sm) 0;
+      border-bottom: 1px solid var(--color-info);
+    }
+    
+    .preview-item:last-child {
+      border-bottom: none;
+    }
+    
+    .preview-label {
+      font-weight: 600;
+      color: var(--color-text-secondary);
+    }
+    
+    .preview-value {
+      color: var(--color-text-primary);
+    }
+    
+    .location-badge {
+      display: inline-block;
+      padding: var(--space-xs) var(--space-sm);
+      margin: var(--space-xs);
+      border-radius: var(--border-radius-base);
+      font-size: var(--font-size-small);
+      background: var(--color-bg-tertiary);
+    }
+    
+    .location-badge.pickup {
+      background: var(--color-info-light);
+      color: var(--color-info-dark);
+    }
+    
+    .location-badge.dropoff {
+      background: var(--color-warning-light);
+      color: var(--color-warning-dark);
+    }
+    
+    @media (max-width: 768px) {
+      .time-input-group {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <!-- Navigation Component -->
+    {{template "navigation" (dict "Navigation" .Navigation "CSPNonce" .CSPNonce "ShowHelpButton" .ShowHelpButton "PageDescription" "Add a new student to the system")}}
+    
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+      <div class="wizard-container">
+        <!-- Progress Indicator -->
+        {{$steps := slice 
+          (dict "Title" "Basic Info" "Description" "Student details")
+          (dict "Title" "Contact Info" "Description" "Guardian & phone")
+          (dict "Title" "Locations" "Description" "Pickup & dropoff")
+          (dict "Title" "Route Info" "Description" "Bus assignment")
+          (dict "Title" "Review" "Description" "Confirm details")
+        }}
+        {{template "progress-indicator" (dict 
+          "Steps" $steps 
+          "CurrentStep" 1 
+          "TotalSteps" 5 
+          "ProgressPercent" 20
+          "ShowNavigation" true
+          "PreviousAction" "previousStep()"
+          "NextAction" "nextStep()"
+          "CompleteAction" "submitStudent()"
+          "CSPNonce" .CSPNonce
+        )}}
+        
+        <!-- Wizard Form -->
+        <form id="addStudentForm" method="POST" action="/add-student" class="wizard-form">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          
+          <!-- Step 1: Basic Information -->
+          <div class="wizard-step active" data-step="1">
+            <div class="form-section">
+              <h2 class="form-section-title">
+                <i class="bi bi-person-fill" aria-hidden="true"></i>
+                Basic Student Information
+              </h2>
+              
+              <div class="form-group">
+                <label for="studentID" class="form-label required">
+                  <i class="bi bi-hash" aria-hidden="true"></i>
+                  Student ID
+                </label>
+                <input type="text" 
+                       class="form-control form-control-lg" 
+                       id="studentID" 
+                       name="student_id" 
+                       required
+                       placeholder="e.g., STU-001"
+                       aria-describedby="studentIDHelp">
+                <small id="studentIDHelp" class="form-text">
+                  Enter a unique identifier for this student
+                </small>
+              </div>
+              
+              <div class="form-group">
+                <label for="studentName" class="form-label required">
+                  <i class="bi bi-person-badge" aria-hidden="true"></i>
+                  Full Name
+                </label>
+                <input type="text" 
+                       class="form-control form-control-lg" 
+                       id="studentName" 
+                       name="name" 
+                       required
+                       placeholder="e.g., John Smith">
+              </div>
+              
+              <div class="form-group">
+                <label for="positionNumber" class="form-label">
+                  <i class="bi bi-123" aria-hidden="true"></i>
+                  Position Number
+                </label>
+                <input type="number" 
+                       class="form-control form-control-lg" 
+                       id="positionNumber" 
+                       name="position_number" 
+                       min="1"
+                       max="100"
+                       placeholder="e.g., 5"
+                       aria-describedby="positionHelp">
+                <small id="positionHelp" class="form-text">
+                  Student's seating position on the bus (optional)
+                </small>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Step 2: Contact Information -->
+          <div class="wizard-step" data-step="2">
+            <div class="form-section">
+              <h2 class="form-section-title">
+                <i class="bi bi-telephone-fill" aria-hidden="true"></i>
+                Contact Information
+              </h2>
+              
+              <div class="form-group">
+                <label for="guardianName" class="form-label required">
+                  <i class="bi bi-person-heart" aria-hidden="true"></i>
+                  Guardian Name
+                </label>
+                <input type="text" 
+                       class="form-control form-control-lg" 
+                       id="guardianName" 
+                       name="guardian" 
+                       required
+                       placeholder="e.g., Jane Smith">
+              </div>
+              
+              <div class="form-group">
+                <label for="phoneNumber" class="form-label required">
+                  <i class="bi bi-phone" aria-hidden="true"></i>
+                  Primary Phone Number
+                </label>
+                <input type="tel" 
+                       class="form-control form-control-lg" 
+                       id="phoneNumber" 
+                       name="phone_number" 
+                       required
+                       placeholder="(555) 123-4567"
+                       pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}|[0-9]{10}|\([0-9]{3}\) [0-9]{3}-[0-9]{4}">
+              </div>
+              
+              <div class="form-group">
+                <label for="altPhoneNumber" class="form-label">
+                  <i class="bi bi-phone-fill" aria-hidden="true"></i>
+                  Alternative Phone Number
+                </label>
+                <input type="tel" 
+                       class="form-control form-control-lg" 
+                       id="altPhoneNumber" 
+                       name="alt_phone_number" 
+                       placeholder="(555) 987-6543">
+              </div>
+            </div>
+          </div>
+          
+          <!-- Step 3: Locations -->
+          <div class="wizard-step" data-step="3">
+            <div class="form-section">
+              <h2 class="form-section-title">
+                <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                Pickup & Dropoff Locations
+              </h2>
+              
+              <div id="locationsContainer">
+                <!-- Pickup Location -->
+                <div class="location-container">
+                  <h3 class="subsection-heading">
+                    <i class="bi bi-arrow-up-circle-fill text-info" aria-hidden="true"></i>
+                    Pickup Location
+                  </h3>
+                  <div class="form-group">
+                    <label for="pickupAddress" class="form-label required">
+                      Address
+                    </label>
+                    <input type="text" 
+                           class="form-control form-control-lg" 
+                           id="pickupAddress" 
+                           name="pickup_address" 
+                           required
+                           placeholder="123 Main St, City, State ZIP">
+                  </div>
+                  <div class="form-group">
+                    <label for="pickupDescription" class="form-label">
+                      Location Notes
+                    </label>
+                    <textarea class="form-control" 
+                              id="pickupDescription" 
+                              name="pickup_description" 
+                              rows="2"
+                              placeholder="e.g., Blue house with white fence"></textarea>
+                  </div>
+                </div>
+                
+                <!-- Dropoff Location -->
+                <div class="location-container">
+                  <h3 class="subsection-heading">
+                    <i class="bi bi-arrow-down-circle-fill text-warning" aria-hidden="true"></i>
+                    Dropoff Location
+                  </h3>
+                  <div class="form-group">
+                    <label class="form-check">
+                      <input type="checkbox" 
+                             class="form-check-input" 
+                             id="sameAsPickup" 
+                             onchange="toggleDropoffFields()">
+                      <span class="form-check-label">Same as pickup location</span>
+                    </label>
+                  </div>
+                  <div id="dropoffFields">
+                    <div class="form-group">
+                      <label for="dropoffAddress" class="form-label required">
+                        Address
+                      </label>
+                      <input type="text" 
+                             class="form-control form-control-lg" 
+                             id="dropoffAddress" 
+                             name="dropoff_address" 
+                             required
+                             placeholder="123 School Rd, City, State ZIP">
+                    </div>
+                    <div class="form-group">
+                      <label for="dropoffDescription" class="form-label">
+                        Location Notes
+                      </label>
+                      <textarea class="form-control" 
+                                id="dropoffDescription" 
+                                name="dropoff_description" 
+                                rows="2"
+                                placeholder="e.g., Main school entrance"></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Step 4: Route Information -->
+          <div class="wizard-step" data-step="4">
+            <div class="form-section">
+              <h2 class="form-section-title">
+                <i class="bi bi-diagram-3-fill" aria-hidden="true"></i>
+                Route Assignment
+              </h2>
+              
+              <div class="form-group">
+                <label for="routeID" class="form-label">
+                  <i class="bi bi-map" aria-hidden="true"></i>
+                  Select Route
+                </label>
+                <select class="form-control form-control-lg" id="routeID" name="route_id">
+                  <option value="">-- Select a route (optional) --</option>
+                  {{range .Routes}}
+                    <option value="{{.RouteID}}">{{.RouteName}} - {{.Description}}</option>
+                  {{end}}
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="driverSelect" class="form-label">
+                  <i class="bi bi-person-badge-fill" aria-hidden="true"></i>
+                  Assigned Driver
+                </label>
+                <select class="form-control form-control-lg" id="driverSelect" name="driver">
+                  <option value="">-- Select a driver (optional) --</option>
+                  {{range .Drivers}}
+                    <option value="{{.Username}}">{{.Username}}</option>
+                  {{end}}
+                </select>
+              </div>
+              
+              <div class="time-input-group">
+                <div class="form-group">
+                  <label for="pickupTime" class="form-label">
+                    <i class="bi bi-clock" aria-hidden="true"></i>
+                    Pickup Time
+                  </label>
+                  <input type="time" 
+                         class="form-control form-control-lg" 
+                         id="pickupTime" 
+                         name="pickup_time">
+                </div>
+                
+                <div class="form-group">
+                  <label for="dropoffTime" class="form-label">
+                    <i class="bi bi-clock-fill" aria-hidden="true"></i>
+                    Dropoff Time
+                  </label>
+                  <input type="time" 
+                         class="form-control form-control-lg" 
+                         id="dropoffTime" 
+                         name="dropoff_time">
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-check">
+                  <input type="checkbox" 
+                         class="form-check-input" 
+                         name="active" 
+                         value="true" 
+                         checked>
+                  <span class="form-check-label">
+                    <i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i>
+                    Student is active
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Step 5: Review and Confirm -->
+          <div class="wizard-step" data-step="5">
+            <div class="form-section preview-section">
+              <h2 class="form-section-title">
+                <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+                Review Student Information
+              </h2>
+              
+              <div id="reviewContent">
+                <!-- Preview content will be populated by JavaScript -->
+              </div>
+              
+              <div class="alert alert-info mt-3" role="alert">
+                <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+                <strong>Please review all information carefully.</strong> 
+                You can go back to make changes or click "Complete" to add this student to the system.
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+  
+  <script src="/static/help_system.js"></script>
+  <script nonce="{{.CSPNonce}}">
+    let currentStep = 1;
+    const totalSteps = 5;
+    
+    function updateProgress() {
+      const percent = (currentStep / totalSteps) * 100;
+      
+      // Update progress indicator
+      const progressBar = document.querySelector('.progress-bar');
+      if (progressBar) {
+        progressBar.style.width = percent + '%';
+      }
+      
+      // Update step markers
+      document.querySelectorAll('.progress-step').forEach((step, index) => {
+        const stepNum = index + 1;
+        step.classList.remove('active', 'completed', 'pending');
+        
+        if (stepNum < currentStep) {
+          step.classList.add('completed');
+        } else if (stepNum === currentStep) {
+          step.classList.add('active');
+        } else {
+          step.classList.add('pending');
+        }
+      });
+      
+      // Update navigation buttons
+      const prevBtn = document.querySelector('[onclick="previousStep()"]');
+      const nextBtn = document.querySelector('[onclick="nextStep()"]');
+      const completeBtn = document.querySelector('[onclick="submitStudent()"]');
+      
+      if (prevBtn) prevBtn.style.visibility = currentStep > 1 ? 'visible' : 'hidden';
+      if (nextBtn) nextBtn.style.display = currentStep < totalSteps ? 'inline-flex' : 'none';
+      if (completeBtn) completeBtn.style.display = currentStep === totalSteps ? 'inline-flex' : 'none';
+      
+      // Update progress text
+      document.querySelector('.progress-text').textContent = `Step ${currentStep} of ${totalSteps}`;
+      document.querySelector('.progress-percentage').textContent = `${Math.round(percent)}% Complete`;
+    }
+    
+    function showStep(step) {
+      document.querySelectorAll('.wizard-step').forEach(s => {
+        s.classList.remove('active');
+      });
+      
+      const targetStep = document.querySelector(`.wizard-step[data-step="${step}"]`);
+      if (targetStep) {
+        targetStep.classList.add('active');
+        
+        // Focus first input in the step
+        const firstInput = targetStep.querySelector('input:not([type="hidden"]), select, textarea');
+        if (firstInput) {
+          setTimeout(() => firstInput.focus(), 100);
+        }
+      }
+      
+      // Update review content on last step
+      if (step === 5) {
+        updateReview();
+      }
+    }
+    
+    function validateStep(step) {
+      const stepElement = document.querySelector(`.wizard-step[data-step="${step}"]`);
+      const requiredFields = stepElement.querySelectorAll('[required]:not(:disabled)');
+      
+      for (let field of requiredFields) {
+        if (!field.value.trim()) {
+          field.classList.add('is-invalid');
+          field.focus();
+          alert('Please fill in all required fields before proceeding.');
+          return false;
+        }
+        field.classList.remove('is-invalid');
+      }
+      
+      // Special validation for phone numbers
+      if (step === 2) {
+        const phoneField = document.getElementById('phoneNumber');
+        const phoneRegex = /^[0-9]{3}-[0-9]{3}-[0-9]{4}$|^[0-9]{10}$|^\([0-9]{3}\) [0-9]{3}-[0-9]{4}$/;
+        if (!phoneRegex.test(phoneField.value)) {
+          phoneField.classList.add('is-invalid');
+          phoneField.focus();
+          alert('Please enter a valid phone number (e.g., 555-123-4567)');
+          return false;
+        }
+      }
+      
+      return true;
+    }
+    
+    function nextStep() {
+      if (validateStep(currentStep) && currentStep < totalSteps) {
+        currentStep++;
+        showStep(currentStep);
+        updateProgress();
+      }
+    }
+    
+    function previousStep() {
+      if (currentStep > 1) {
+        currentStep--;
+        showStep(currentStep);
+        updateProgress();
+      }
+    }
+    
+    function toggleDropoffFields() {
+      const sameAsPickup = document.getElementById('sameAsPickup').checked;
+      const dropoffFields = document.getElementById('dropoffFields');
+      const dropoffInputs = dropoffFields.querySelectorAll('input, textarea');
+      
+      if (sameAsPickup) {
+        dropoffFields.style.opacity = '0.5';
+        dropoffInputs.forEach(input => {
+          input.disabled = true;
+          input.removeAttribute('required');
+        });
+      } else {
+        dropoffFields.style.opacity = '1';
+        dropoffInputs.forEach(input => {
+          input.disabled = false;
+          if (input.id === 'dropoffAddress') {
+            input.setAttribute('required', '');
+          }
+        });
+      }
+    }
+    
+    function updateReview() {
+      const form = document.getElementById('addStudentForm');
+      const formData = new FormData(form);
+      
+      const reviewContent = document.getElementById('reviewContent');
+      
+      // Format locations
+      let locations = '';
+      if (formData.get('pickup_address')) {
+        locations += `<div class="location-badge pickup">
+          <i class="bi bi-arrow-up-circle" aria-hidden="true"></i> 
+          Pickup: ${formData.get('pickup_address')}
+        </div>`;
+      }
+      
+      if (!document.getElementById('sameAsPickup').checked && formData.get('dropoff_address')) {
+        locations += `<div class="location-badge dropoff">
+          <i class="bi bi-arrow-down-circle" aria-hidden="true"></i> 
+          Dropoff: ${formData.get('dropoff_address')}
+        </div>`;
+      } else if (document.getElementById('sameAsPickup').checked) {
+        locations += `<div class="location-badge dropoff">
+          <i class="bi bi-arrow-down-circle" aria-hidden="true"></i> 
+          Dropoff: Same as pickup
+        </div>`;
+      }
+      
+      reviewContent.innerHTML = `
+        <div class="preview-item">
+          <span class="preview-label">Student ID:</span>
+          <span class="preview-value">${formData.get('student_id') || 'Not specified'}</span>
+        </div>
+        <div class="preview-item">
+          <span class="preview-label">Name:</span>
+          <span class="preview-value">${formData.get('name') || 'Not specified'}</span>
+        </div>
+        <div class="preview-item">
+          <span class="preview-label">Guardian:</span>
+          <span class="preview-value">${formData.get('guardian') || 'Not specified'}</span>
+        </div>
+        <div class="preview-item">
+          <span class="preview-label">Primary Phone:</span>
+          <span class="preview-value">${formData.get('phone_number') || 'Not specified'}</span>
+        </div>
+        ${formData.get('alt_phone_number') ? `
+        <div class="preview-item">
+          <span class="preview-label">Alt Phone:</span>
+          <span class="preview-value">${formData.get('alt_phone_number')}</span>
+        </div>
+        ` : ''}
+        <div class="preview-item">
+          <span class="preview-label">Locations:</span>
+          <span class="preview-value">${locations}</span>
+        </div>
+        ${formData.get('route_id') ? `
+        <div class="preview-item">
+          <span class="preview-label">Route:</span>
+          <span class="preview-value">${document.querySelector('#routeID option:checked').textContent}</span>
+        </div>
+        ` : ''}
+        ${formData.get('driver') ? `
+        <div class="preview-item">
+          <span class="preview-label">Driver:</span>
+          <span class="preview-value">${formData.get('driver')}</span>
+        </div>
+        ` : ''}
+        <div class="preview-item">
+          <span class="preview-label">Status:</span>
+          <span class="preview-value">${formData.get('active') ? 'Active' : 'Inactive'}</span>
+        </div>
+      `;
+    }
+    
+    function submitStudent() {
+      if (confirm('Are you sure you want to add this student to the system?')) {
+        document.getElementById('addStudentForm').submit();
+      }
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      updateProgress();
+      
+      // Add validation feedback
+      document.querySelectorAll('input[required], select[required]').forEach(field => {
+        field.addEventListener('blur', function() {
+          if (!this.value.trim()) {
+            this.classList.add('is-invalid');
+          } else {
+            this.classList.remove('is-invalid');
+          }
+        });
+      });
+      
+      // Format phone numbers
+      document.querySelectorAll('input[type="tel"]').forEach(input => {
+        input.addEventListener('input', function(e) {
+          let value = e.target.value.replace(/\D/g, '');
+          if (value.length >= 6) {
+            value = value.slice(0, 3) + '-' + value.slice(3, 6) + '-' + value.slice(6, 10);
+          } else if (value.length >= 3) {
+            value = value.slice(0, 3) + '-' + value.slice(3);
+          }
+          e.target.value = value;
+        });
+      });
+    });
+  </script>
+</body>
+</html>

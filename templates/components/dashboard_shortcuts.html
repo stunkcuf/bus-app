@@ -1,0 +1,269 @@
+{{define "dashboard-shortcuts"}}
+<!-- Dashboard Shortcuts Component -->
+<div class="dashboard-shortcuts" data-help="dashboard-shortcuts">
+  <div class="shortcuts-header">
+    <h3 class="shortcuts-title">
+      <i class="bi bi-star-fill" aria-hidden="true"></i>
+      Frequent Tasks
+    </h3>
+    <p class="shortcuts-description">Quick access to your most-used features</p>
+  </div>
+  
+  {{if eq .UserRole "manager"}}
+  <!-- Manager Shortcuts -->
+  <div class="shortcuts-grid">
+    <!-- Daily Operations -->
+    <div class="shortcut-card card-primary">
+      <div class="shortcut-icon">
+        <i class="bi bi-calendar-check-fill" aria-hidden="true"></i>
+      </div>
+      <h4 class="shortcut-title">Daily Operations</h4>
+      <div class="shortcut-actions">
+        <a href="/assign-routes" class="btn btn-sm btn-primary">
+          <i class="bi bi-diagram-3" aria-hidden="true"></i>
+          Assign Routes
+        </a>
+        <a href="/view-mileage-reports" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-speedometer2" aria-hidden="true"></i>
+          View Mileage
+        </a>
+      </div>
+    </div>
+    
+    <!-- Fleet Management -->
+    <div class="shortcut-card card-primary">
+      <div class="shortcut-icon">
+        <i class="bi bi-bus-front-fill" aria-hidden="true"></i>
+      </div>
+      <h4 class="shortcut-title">Fleet Management</h4>
+      <div class="shortcut-actions">
+        <a href="/fleet" class="btn btn-sm btn-primary">
+          <i class="bi bi-list-check" aria-hidden="true"></i>
+          View Fleet
+        </a>
+        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addBusModal">
+          <i class="bi bi-plus-circle" aria-hidden="true"></i>
+          Add Bus
+        </button>
+      </div>
+    </div>
+    
+    <!-- Reports & Data -->
+    <div class="shortcut-card card-primary">
+      <div class="shortcut-icon">
+        <i class="bi bi-file-earmark-text-fill" aria-hidden="true"></i>
+      </div>
+      <h4 class="shortcut-title">Reports & Data</h4>
+      <div class="shortcut-actions">
+        <a href="/import-mileage" class="btn btn-sm btn-primary">
+          <i class="bi bi-upload" aria-hidden="true"></i>
+          Import Data
+        </a>
+        <a href="/report-builder" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-file-pdf" aria-hidden="true"></i>
+          Generate Report
+        </a>
+      </div>
+    </div>
+    
+    <!-- User Management -->
+    <div class="shortcut-card card-primary">
+      <div class="shortcut-icon">
+        <i class="bi bi-people-fill" aria-hidden="true"></i>
+      </div>
+      <h4 class="shortcut-title">User Management</h4>
+      <div class="shortcut-actions">
+        <a href="/approve-users" class="btn btn-sm btn-primary">
+          <i class="bi bi-person-check" aria-hidden="true"></i>
+          Approve Users
+        </a>
+        <a href="/users" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-person-gear" aria-hidden="true"></i>
+          Manage Users
+        </a>
+      </div>
+    </div>
+  </div>
+  {{else}}
+  <!-- Driver Shortcuts -->
+  <div class="shortcuts-grid">
+    <!-- Daily Tasks -->
+    <div class="shortcut-card card-primary">
+      <div class="shortcut-icon">
+        <i class="bi bi-journal-text" aria-hidden="true"></i>
+      </div>
+      <h4 class="shortcut-title">Daily Tasks</h4>
+      <div class="shortcut-actions">
+        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#logTripModal">
+          <i class="bi bi-plus-circle" aria-hidden="true"></i>
+          Log Trip
+        </button>
+        <a href="#recent-logs" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-clock-history" aria-hidden="true"></i>
+          View Logs
+        </a>
+      </div>
+    </div>
+    
+    <!-- Student Management -->
+    <div class="shortcut-card card-primary">
+      <div class="shortcut-icon">
+        <i class="bi bi-people-fill" aria-hidden="true"></i>
+      </div>
+      <h4 class="shortcut-title">Students</h4>
+      <div class="shortcut-actions">
+        <a href="/students" class="btn btn-sm btn-primary">
+          <i class="bi bi-list" aria-hidden="true"></i>
+          View Roster
+        </a>
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="takeAttendance()">
+          <i class="bi bi-check2-square" aria-hidden="true"></i>
+          Take Attendance
+        </button>
+      </div>
+    </div>
+    
+    <!-- Vehicle Status -->
+    <div class="shortcut-card card-primary">
+      <div class="shortcut-icon">
+        <i class="bi bi-bus-front" aria-hidden="true"></i>
+      </div>
+      <h4 class="shortcut-title">Vehicle</h4>
+      <div class="shortcut-actions">
+        <a href="/fleet" class="btn btn-sm btn-primary">
+          <i class="bi bi-info-circle" aria-hidden="true"></i>
+          Bus Info
+        </a>
+        <button type="button" class="btn btn-sm btn-outline-danger" onclick="reportIssue()">
+          <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+          Report Issue
+        </button>
+      </div>
+    </div>
+  </div>
+  {{end}}
+</div>
+
+<style nonce="{{.CSPNonce}}">
+/* Dashboard Shortcuts Styles */
+.dashboard-shortcuts {
+  background: var(--color-bg-secondary);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.shortcuts-header {
+  text-align: center;
+  margin-bottom: var(--space-lg);
+}
+
+.shortcuts-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.shortcuts-title i {
+  color: var(--color-warning);
+}
+
+.shortcuts-description {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-lg);
+}
+
+.shortcut-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-base);
+  padding: var(--space-md);
+  text-align: center;
+  transition: all var(--transition-base);
+}
+
+.shortcut-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary);
+}
+
+.shortcut-icon {
+  font-size: 2.5rem;
+  color: var(--color-primary);
+  margin-bottom: var(--space-sm);
+}
+
+.shortcut-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-md);
+}
+
+.shortcut-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.shortcut-actions .btn {
+  min-width: 120px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .shortcuts-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .shortcut-actions {
+    flex-direction: column;
+  }
+  
+  .shortcut-actions .btn {
+    width: 100%;
+  }
+}
+
+/* Help tooltip for shortcuts */
+.dashboard-shortcuts[data-help-active="true"] {
+  outline: 3px dashed var(--color-info);
+  outline-offset: 4px;
+}
+</style>
+
+<script nonce="{{.CSPNonce}}">
+// Placeholder functions for driver actions
+function takeAttendance() {
+  alert('Attendance feature coming soon!');
+}
+
+function reportIssue() {
+  alert('Issue reporting feature coming soon!');
+}
+
+// Add help content for shortcuts
+document.addEventListener('DOMContentLoaded', function() {
+  if (window.helpSystem) {
+    window.helpSystem.addHelpContent('dashboard-shortcuts', {
+      title: 'Dashboard Shortcuts',
+      content: 'These shortcuts provide quick access to frequently used tasks. Click any button to navigate directly to that feature.'
+    });
+  }
+});
+</script>
+{{end}}

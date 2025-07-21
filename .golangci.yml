@@ -1,0 +1,196 @@
+# golangci-lint configuration
+# https://golangci-lint.run/usage/configuration/
+
+run:
+  timeout: 5m
+  tests: true
+  skip-dirs:
+    - utilities
+    - vendor
+    - testdata
+  skip-files:
+    - ".*_test.go"
+
+linters:
+  enable:
+    - bodyclose
+    - deadcode
+    - depguard
+    - dogsled
+    - dupl
+    - errcheck
+    - exhaustive
+    - gochecknoinits
+    - goconst
+    - gocritic
+    - gocyclo
+    - gofmt
+    - goimports
+    - gomnd
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - nakedret
+    - noctx
+    - nolintlint
+    - revive
+    - staticcheck
+    - structcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - varcheck
+    - whitespace
+
+  disable:
+    - gochecknoglobals  # We use some globals for sessions
+    - godox             # Allow TODO/FIXME comments
+    - funlen            # Some handlers are necessarily long
+
+linters-settings:
+  dupl:
+    threshold: 150
+  
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  
+  exhaustive:
+    default-signifies-exhaustive: false
+  
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - dupImport
+      - ifElseChain
+      - octalLiteral
+      - whyNoLint
+  
+  gocyclo:
+    min-complexity: 15
+  
+  goimports:
+    local-prefixes: github.com/hs-bus
+  
+  gomnd:
+    settings:
+      mnd:
+        checks:
+          - argument
+          - case
+          - condition
+          - return
+        ignored-numbers:
+          - '0'
+          - '1'
+          - '2'
+          - '3'
+          - '10'
+          - '100'
+  
+  govet:
+    check-shadowing: true
+  
+  lll:
+    line-length: 140
+  
+  misspell:
+    locale: US
+  
+  nolintlint:
+    allow-leading-space: true
+    allow-unused: false
+    require-explanation: false
+    require-specific: false
+  
+  revive:
+    ignore-generated-header: true
+    severity: warning
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unused-parameter
+      - name: unreachable-code
+      - name: redefines-builtin-id
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+        - gomnd
+    
+    # Exclude known issues in vendor
+    - path: vendor/
+      linters:
+        - typecheck
+        - unused
+    
+    # Exclude lll issues for long lines with go:generate
+    - linters:
+        - lll
+      source: "^//go:generate "
+    
+    # Exclude some revive rules for main package
+    - path: main\.go
+      linters:
+        - revive
+      text: "exported|package-comments"
+  
+  # Maximum issues count per one linter
+  max-issues-per-linter: 50
+  
+  # Maximum count of issues with the same text
+  max-same-issues: 10
+  
+  # Show only new issues
+  new: false
+
+severity:
+  default-severity: error
+  case-sensitive: false
+  rules:
+    - linters:
+        - gomnd
+        - goconst
+        - gocyclo
+        - dupl
+      severity: warning

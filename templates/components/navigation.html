@@ -1,0 +1,247 @@
+{{define "navigation"}}
+<!-- Navigation Component with Breadcrumbs and Back Button -->
+<nav class="navigation-component" aria-label="Main navigation">
+  <!-- Skip Links -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  
+  <!-- Breadcrumb Navigation -->
+  <div class="breadcrumb-container">
+    <nav aria-label="Breadcrumb">
+      <ol class="breadcrumb">
+        {{range $index, $crumb := .Navigation.Breadcrumbs}}
+          {{if eq $index (sub (len $.Navigation.Breadcrumbs) 1)}}
+            <li class="breadcrumb-item active" aria-current="page">
+              <i class="{{$crumb.Icon}}" aria-hidden="true"></i>
+              <span>{{$crumb.Title}}</span>
+            </li>
+          {{else}}
+            <li class="breadcrumb-item">
+              <a href="{{$crumb.URL}}">
+                <i class="{{$crumb.Icon}}" aria-hidden="true"></i>
+                <span>{{$crumb.Title}}</span>
+              </a>
+            </li>
+          {{end}}
+        {{end}}
+      </ol>
+    </nav>
+  </div>
+
+  <!-- Back Button and Page Header -->
+  <div class="page-header-wrapper">
+    {{if .Navigation.ShowBack}}
+      <a href="{{.Navigation.BackURL}}" class="btn-back" aria-label="Go back to {{.Navigation.BackTitle}}">
+        <i class="bi bi-arrow-left-circle" aria-hidden="true"></i>
+        <span>Back to {{.Navigation.BackTitle}}</span>
+      </a>
+    {{end}}
+    
+    <div class="page-header-content">
+      <h1 class="page-title">
+        <i class="{{.Navigation.PageIcon}}" aria-hidden="true"></i>
+        {{.Navigation.PageTitle}}
+      </h1>
+      {{if .PageDescription}}
+        <p class="page-description">{{.PageDescription}}</p>
+      {{end}}
+    </div>
+
+    <!-- User Actions -->
+    <div class="page-header-actions">
+      {{if .ShowHelpButton}}
+        <button class="btn btn-outline-primary" onclick="toggleHelpMode()" aria-label="Toggle help mode">
+          <i class="bi bi-question-circle" aria-hidden="true"></i>
+          <span class="btn-text">Help</span>
+        </button>
+      {{end}}
+      
+      <a href="/logout" class="btn btn-outline-danger" aria-label="Logout">
+        <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+        <span class="btn-text">Logout</span>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<style nonce="{{.CSPNonce}}">
+/* Navigation Component Styles */
+.navigation-component {
+  background: var(--color-bg-primary, #ffffff);
+  border-bottom: 2px solid var(--border-color, #e5e7eb);
+  margin-bottom: var(--space-lg, 1.5rem);
+  padding: var(--space-md, 1rem) 0;
+}
+
+/* Breadcrumb Styles */
+.breadcrumb-container {
+  padding: 0 var(--space-md, 1rem);
+  margin-bottom: var(--space-sm, 0.5rem);
+}
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  background: transparent;
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+  content: "/";
+  padding: 0 var(--space-xs, 0.5rem);
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.breadcrumb-item a {
+  color: var(--color-primary, #3b82f6);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs, 0.25rem);
+  transition: color var(--transition-base, 0.2s ease);
+}
+
+.breadcrumb-item a:hover {
+  color: var(--color-primary-dark, #2563eb);
+  text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+  color: var(--color-text-primary, #374151);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs, 0.25rem);
+}
+
+.breadcrumb-item i {
+  font-size: var(--font-size-base, 1rem);
+}
+
+/* Page Header Wrapper */
+.page-header-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-md, 1rem);
+  gap: var(--space-md, 1rem);
+}
+
+/* Back Button */
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm, 0.5rem);
+  padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+  background: var(--color-bg-secondary, #f3f4f6);
+  color: var(--color-text-primary, #374151);
+  text-decoration: none;
+  border: 2px solid var(--border-color, #e5e7eb);
+  border-radius: var(--border-radius-lg, 0.5rem);
+  font-size: var(--font-size-base, 1rem);
+  font-weight: 500;
+  transition: all var(--transition-base, 0.2s ease);
+  min-height: var(--touch-target-min, 44px);
+}
+
+.btn-back:hover {
+  background: var(--color-primary-light, #eff6ff);
+  border-color: var(--color-primary, #3b82f6);
+  color: var(--color-primary, #3b82f6);
+  transform: translateX(-2px);
+}
+
+.btn-back i {
+  font-size: 1.25rem;
+}
+
+/* Page Title */
+.page-header-content {
+  flex: 1;
+}
+
+.page-title {
+  font-size: var(--font-size-xl, 1.875rem);
+  font-weight: 700;
+  color: var(--color-text-primary, #111827);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 0.5rem);
+}
+
+.page-title i {
+  color: var(--color-primary, #3b82f6);
+  font-size: var(--font-size-xl, 1.875rem);
+}
+
+.page-description {
+  color: var(--color-text-secondary, #6b7280);
+  margin: var(--space-xs, 0.25rem) 0 0;
+  font-size: var(--font-size-base, 1rem);
+}
+
+/* Page Actions */
+.page-header-actions {
+  display: flex;
+  gap: var(--space-sm, 0.5rem);
+  align-items: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .breadcrumb {
+    font-size: var(--font-size-xs, 0.75rem);
+  }
+  
+  .page-header-wrapper {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .btn-back {
+    order: -1;
+    margin-bottom: var(--space-sm, 0.5rem);
+  }
+  
+  .page-title {
+    font-size: var(--font-size-lg, 1.5rem);
+  }
+  
+  .page-header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .btn-text {
+    display: none;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .breadcrumb-item a {
+    text-decoration: underline;
+  }
+  
+  .btn-back {
+    border-width: 3px;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .btn-back,
+  .breadcrumb-item a {
+    transition: none;
+  }
+}
+</style>
+{{end}}

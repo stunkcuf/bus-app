@@ -1,0 +1,387 @@
+/* Help System - Accessible Tooltips and Contextual Help
+   Optimized for older and non-technical users */
+
+/* Help Tooltip System */
+.help-tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  margin-left: var(--space-sm);
+  cursor: help;
+}
+
+.help-tooltip-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: var(--color-info);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: 50%;
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  transition: all var(--transition-base);
+  cursor: help;
+}
+
+.help-tooltip-trigger:hover,
+.help-tooltip-trigger:focus {
+  background-color: var(--color-info-dark);
+  transform: scale(1.1);
+}
+
+.help-tooltip-content {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: var(--space-sm);
+  padding: var(--space-md);
+  min-width: 250px;
+  max-width: 350px;
+  background-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  border-radius: var(--border-radius-base);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-base);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.help-tooltip-content::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-top-color: var(--color-text-primary);
+}
+
+.help-tooltip:hover .help-tooltip-content,
+.help-tooltip-trigger:focus + .help-tooltip-content,
+.help-tooltip-content:hover {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Help Panel System */
+.help-panel {
+  background-color: var(--color-info-light);
+  border: var(--border-width) solid var(--color-info);
+  border-radius: var(--border-radius-base);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.help-panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.help-panel-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: var(--color-info);
+  color: var(--color-text-inverse);
+  border-radius: 50%;
+  font-size: var(--font-size-large);
+  flex-shrink: 0;
+}
+
+.help-panel-title {
+  font-size: var(--font-size-large);
+  font-weight: 600;
+  color: var(--color-info);
+  margin: 0;
+}
+
+.help-panel-content {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+}
+
+.help-panel-content ul {
+  margin: var(--space-sm) 0;
+  padding-left: var(--space-lg);
+}
+
+.help-panel-content li {
+  margin-bottom: var(--space-xs);
+}
+
+/* Form Help - Inline help text */
+.form-help {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-xs);
+  line-height: var(--line-height-base);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.form-help-icon {
+  color: var(--color-info);
+  font-size: var(--font-size-base);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* Help Toggle Button */
+.help-toggle {
+  position: fixed;
+  bottom: var(--space-lg);
+  right: var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target-large);
+  height: var(--touch-target-large);
+  background-color: var(--color-info);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: 50%;
+  font-size: var(--font-size-large);
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  z-index: 999;
+}
+
+.help-toggle:hover,
+.help-toggle:focus {
+  background-color: var(--color-info-dark);
+  transform: scale(1.1);
+  box-shadow: var(--shadow-lg), var(--shadow-focus);
+}
+
+.help-toggle.active {
+  background-color: var(--color-success);
+}
+
+/* Help Mode - Shows all help elements */
+body.help-mode .help-tooltip-content {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+body.help-mode .help-panel {
+  border-color: var(--color-success);
+  background-color: var(--color-success-light);
+}
+
+body.help-mode .help-panel-icon {
+  background-color: var(--color-success);
+}
+
+body.help-mode .help-panel-title {
+  color: var(--color-success);
+}
+
+/* Contextual Help Sections */
+.help-section {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-base);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.help-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  cursor: pointer;
+  padding: var(--space-sm);
+  border-radius: var(--border-radius-sm);
+  transition: all var(--transition-base);
+}
+
+.help-section-header:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+.help-section-icon {
+  color: var(--color-info);
+  font-size: var(--font-size-large);
+}
+
+.help-section-title {
+  font-size: var(--font-size-large);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.help-section-toggle {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-large);
+  transition: transform var(--transition-base);
+}
+
+.help-section.expanded .help-section-toggle {
+  transform: rotate(180deg);
+}
+
+.help-section-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--transition-base);
+}
+
+.help-section.expanded .help-section-content {
+  max-height: 500px; /* Adjust as needed */
+}
+
+.help-section-body {
+  padding-top: var(--space-md);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+}
+
+/* Step-by-step guides */
+.help-steps {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-md) 0;
+}
+
+.help-step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-base);
+  margin-bottom: var(--space-sm);
+  background-color: var(--color-bg-primary);
+}
+
+.help-step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-radius: 50%;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.help-step-content {
+  flex: 1;
+}
+
+.help-step-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.help-step-description {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-base);
+}
+
+/* Warning and tips */
+.help-warning {
+  background-color: var(--color-warning-light);
+  border: var(--border-width) solid var(--color-warning);
+  border-radius: var(--border-radius-base);
+  padding: var(--space-md);
+  margin: var(--space-md) 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.help-warning-icon {
+  color: var(--color-warning);
+  font-size: var(--font-size-large);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.help-tip {
+  background-color: var(--color-success-light);
+  border: var(--border-width) solid var(--color-success);
+  border-radius: var(--border-radius-base);
+  padding: var(--space-md);
+  margin: var(--space-md) 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.help-tip-icon {
+  color: var(--color-success);
+  font-size: var(--font-size-large);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .help-tooltip-content {
+    position: fixed;
+    bottom: var(--space-lg);
+    left: var(--space-md);
+    right: var(--space-md);
+    transform: none;
+    margin-bottom: 0;
+    max-width: none;
+  }
+  
+  .help-tooltip-content::after {
+    display: none;
+  }
+  
+  .help-toggle {
+    bottom: var(--space-md);
+    right: var(--space-md);
+  }
+  
+  .help-panel,
+  .help-section {
+    margin-left: calc(-1 * var(--space-md));
+    margin-right: calc(-1 * var(--space-md));
+    border-radius: 0;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .help-tooltip-content,
+  .help-toggle,
+  .help-section-content,
+  .help-section-toggle {
+    transition: none !important;
+  }
+}

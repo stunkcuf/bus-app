@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 )
@@ -112,7 +113,7 @@ func validateMileageEntry(vehicleID string, newMileage float64) MileageValidatio
 	// Check for unrealistic jumps
 	if lastMileage > 0 {
 		mileageDiff := newMileage - lastMileage
-		
+
 		// Warning for large jumps (>1000 miles)
 		if mileageDiff > 1000 {
 			return MileageValidation{
@@ -120,7 +121,7 @@ func validateMileageEntry(vehicleID string, newMileage float64) MileageValidatio
 				Warning: fmt.Sprintf("Large mileage increase detected: %.0f miles. Please verify this is correct.", mileageDiff),
 			}
 		}
-		
+
 		// Warning for suspicious daily mileage (>500 miles in one day)
 		if mileageDiff > 500 {
 			return MileageValidation{
@@ -176,10 +177,18 @@ func loadBusesFromDB() ([]Bus, error) {
 		return nil, fmt.Errorf("database not initialized")
 	}
 
+	log.Printf("DEBUG: Executing SELECT * FROM buses ORDER BY bus_id")
 	var buses []Bus
 	err := db.Select(&buses, "SELECT * FROM buses ORDER BY bus_id")
 	if err != nil {
 		return nil, fmt.Errorf("failed to load buses: %w", err)
+	}
+
+	log.Printf("DEBUG: Successfully loaded %d buses from database", len(buses))
+	for i, bus := range buses {
+		if i < 3 { // Log first 3 buses for debugging
+			log.Printf("DEBUG: Bus %d: ID=%s, Status=%s, Model=%s", i, bus.BusID, bus.Status, bus.GetModel())
+		}
 	}
 
 	return buses, nil
@@ -197,6 +206,266 @@ func loadVehiclesFromDB() ([]Vehicle, error) {
 	}
 
 	return vehicles, nil
+}
+
+// loadConsolidatedVehiclesFromDB loads all vehicles from the buses and vehicles tables
+func loadConsolidatedVehiclesFromDB() ([]ConsolidatedVehicle, error) {
+	// Just use the existing function that already does this
+	return loadAllFleetVehiclesFromDB()
+}
+
+// loadConsolidatedBusesFromDB loads only buses from the buses table
+func loadConsolidatedBusesFromDB() ([]ConsolidatedVehicle, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	
+	// Load buses
+	buses, err := loadBusesFromDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load buses: %w", err)
+	}
+	
+	var consolidatedBuses []ConsolidatedVehicle
+	
+	// Convert buses to ConsolidatedVehicle
+	for _, bus := range buses {
+		vehicle := ConsolidatedVehicle{
+			ID:               bus.ID,
+			VehicleID:        bus.BusID,
+			VehicleType:      "bus",
+			Status:           bus.Status,
+			Model:            bus.Model,
+			Capacity:         bus.Capacity,
+			OilStatus:        bus.OilStatus,
+			TireStatus:       bus.TireStatus,
+			MaintenanceNotes: bus.MaintenanceNotes,
+			UpdatedAt:        bus.UpdatedAt,
+			CreatedAt:        bus.CreatedAt,
+			BusID:            bus.BusID, // For backward compatibility
+			Assignment:       getVehicleAssignment(bus.BusID),
+		}
+		consolidatedBuses = append(consolidatedBuses, vehicle)
+	}
+	
+	log.Printf("Loaded %d buses", len(consolidatedBuses))
+	return consolidatedBuses, nil
+}
+
+// loadConsolidatedNonBusVehiclesFromDB loads only non-bus vehicles from the vehicles table  
+func loadConsolidatedNonBusVehiclesFromDB() ([]ConsolidatedVehicle, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	
+	// Load vehicles
+	vehicles, err := loadVehiclesFromDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load vehicles: %w", err)
+	}
+	
+	var consolidatedVehicles []ConsolidatedVehicle
+	
+	// Convert vehicles to ConsolidatedVehicle
+	for _, veh := range vehicles {
+		// Parse year as int
+		year := 0
+		if veh.Year.Valid && veh.Year.String != "" {
+			fmt.Sscanf(veh.Year.String, "%d", &year)
+		}
+		
+		// Convert year int to string  
+		yearStr := sql.NullString{Valid: false}
+		if year > 0 {
+			yearStr = sql.NullString{String: fmt.Sprintf("%d", year), Valid: true}
+		}
+		
+		vehicle := ConsolidatedVehicle{
+			ID:               veh.ID,
+			VehicleID:        veh.VehicleID,
+			VehicleType:      "vehicle",
+			Status:           func() string {
+				if veh.Status.Valid {
+					return veh.Status.String
+				}
+				return "active"
+			}(),
+			Model:            veh.Model,
+			Year:             yearStr,
+			TireSize:         veh.TireSize,
+			License:          veh.License,
+			Description:      veh.Description,
+			SerialNumber:     veh.SerialNumber,
+			Base:             veh.Base,
+			ServiceInterval:  veh.ServiceInterval,
+			OilStatus:        veh.OilStatus,
+			TireStatus:       veh.TireStatus,
+			MaintenanceNotes: veh.MaintenanceNotes,
+			UpdatedAt:        veh.UpdatedAt,
+			CreatedAt:        veh.CreatedAt,
+			BusID:            veh.VehicleID, // For backward compatibility
+		}
+		consolidatedVehicles = append(consolidatedVehicles, vehicle)
+	}
+	
+	log.Printf("Loaded %d non-bus vehicles", len(consolidatedVehicles))
+	return consolidatedVehicles, nil
+}
+
+// loadAllFleetVehiclesFromDB loads ALL vehicles from the buses and vehicles tables
+func loadAllFleetVehiclesFromDB() ([]ConsolidatedVehicle, error) {
+	log.Printf("DEBUG: loadAllFleetVehiclesFromDB - Starting")
+	if db == nil {
+		log.Printf("ERROR: loadAllFleetVehiclesFromDB - Database is nil")
+		return nil, fmt.Errorf("database not initialized")
+	}
+	
+	var allVehicles []ConsolidatedVehicle
+	
+	// Load buses
+	buses, err := loadBusesFromDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load buses: %w", err)
+	}
+	
+	// Convert buses to ConsolidatedVehicle
+	for _, bus := range buses {
+		vehicle := ConsolidatedVehicle{
+			ID:               bus.ID,
+			VehicleID:        bus.BusID,
+			VehicleType:      "bus",
+			Status:           bus.Status,
+			Model:            bus.Model,
+			Capacity:         bus.Capacity,
+			OilStatus:        bus.OilStatus,
+			TireStatus:       bus.TireStatus,
+			MaintenanceNotes: bus.MaintenanceNotes,
+			UpdatedAt:        bus.UpdatedAt,
+			CreatedAt:        bus.CreatedAt,
+			BusID:            bus.BusID, // For backward compatibility
+			Assignment:       getVehicleAssignment(bus.BusID),
+		}
+		allVehicles = append(allVehicles, vehicle)
+	}
+	
+	// Load vehicles
+	vehicles, err := loadVehiclesFromDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load vehicles: %w", err)
+	}
+	
+	// Convert vehicles to ConsolidatedVehicle
+	for _, veh := range vehicles {
+		// Parse year as int
+		year := 0
+		if veh.Year.Valid && veh.Year.String != "" {
+			fmt.Sscanf(veh.Year.String, "%d", &year)
+		}
+		
+		// Convert year int to string  
+		yearStr := sql.NullString{Valid: false}
+		if year > 0 {
+			yearStr = sql.NullString{String: fmt.Sprintf("%d", year), Valid: true}
+		}
+		
+		vehicle := ConsolidatedVehicle{
+			ID:               veh.ID,
+			VehicleID:        veh.VehicleID,
+			VehicleType:      "vehicle",
+			Status:           func() string {
+				if veh.Status.Valid {
+					return veh.Status.String
+				}
+				return "active"
+			}(),
+			Model:            veh.Model,
+			Year:             yearStr,
+			TireSize:         veh.TireSize,
+			License:          veh.License,
+			Description:      veh.Description,
+			SerialNumber:     veh.SerialNumber,
+			Base:             veh.Base,
+			ServiceInterval:  veh.ServiceInterval,
+			OilStatus:        veh.OilStatus,
+			TireStatus:       veh.TireStatus,
+			MaintenanceNotes: veh.MaintenanceNotes,
+			UpdatedAt:        veh.UpdatedAt,
+			CreatedAt:        veh.CreatedAt,
+			BusID:            veh.VehicleID, // For backward compatibility
+		}
+		allVehicles = append(allVehicles, vehicle)
+	}
+	
+	log.Printf("Loaded %d total vehicles (buses: %d, vehicles: %d)", len(allVehicles), len(buses), len(vehicles))
+	return allVehicles, nil
+}
+
+// loadFleetVehiclesByType loads vehicles grouped by type
+func loadFleetVehiclesByType() (map[string][]ConsolidatedVehicle, error) {
+	vehicles, err := loadAllFleetVehiclesFromDB()
+	if err != nil {
+		return nil, err
+	}
+	
+	// Group by vehicle type
+	grouped := make(map[string][]ConsolidatedVehicle)
+	for _, v := range vehicles {
+		vType := v.VehicleType
+		if vType == "" {
+			vType = "other"
+		}
+		grouped[vType] = append(grouped[vType], v)
+	}
+	
+	// Log grouped counts
+	for vType, vehicles := range grouped {
+		log.Printf("Vehicle type '%s': %d vehicles", vType, len(vehicles))
+	}
+	
+	return grouped, nil
+}
+
+// loadRouteAssignments loads all route assignments from the database
+func loadRouteAssignments() ([]RouteAssignment, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	
+	var assignments []RouteAssignment
+	err := db.Select(&assignments, `
+		SELECT ra.driver, ra.bus_id, ra.route_id, r.route_name, ra.assigned_date
+		FROM route_assignments ra
+		JOIN routes r ON ra.route_id = r.route_id
+		ORDER BY ra.assigned_date DESC
+	`)
+	
+	if err != nil {
+		return nil, fmt.Errorf("failed to load route assignments: %w", err)
+	}
+	
+	return assignments, nil
+}
+
+// getVehicleAssignment gets the current route assignment for a vehicle
+func getVehicleAssignment(vehicleID string) *RouteAssignment {
+	if db == nil {
+		return nil
+	}
+	
+	var assignment RouteAssignment
+	err := db.Get(&assignment, `
+		SELECT ra.driver, ra.bus_id, ra.route_id, r.route_name, ra.assigned_date
+		FROM route_assignments ra
+		JOIN routes r ON ra.route_id = r.route_id
+		WHERE ra.bus_id = $1
+		LIMIT 1
+	`, vehicleID)
+	
+	if err != nil {
+		return nil
+	}
+	
+	return &assignment
 }
 
 func loadRoutesFromDB() ([]Route, error) {
@@ -248,12 +517,19 @@ func saveBusMaintenanceLog(busLog BusMaintenanceLog) error {
 		return fmt.Errorf("database not initialized")
 	}
 
+	// Insert into the consolidated maintenance_records table
 	query := `
-		INSERT INTO bus_maintenance_logs (bus_id, date, category, notes, mileage, cost)
-		VALUES (:bus_id, :date, :category, :notes, :mileage, :cost)
+		INSERT INTO maintenance_records (vehicle_id, service_date, work_description, mileage, cost, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 	`
 
-	_, err := db.NamedExec(query, busLog)
+	// Combine category and notes for work_description
+	workDescription := busLog.Category
+	if busLog.Notes != "" {
+		workDescription = busLog.Category + ": " + busLog.Notes
+	}
+
+	_, err := db.Exec(query, busLog.BusID, busLog.Date, workDescription, busLog.Mileage, busLog.Cost)
 	if err != nil {
 		return fmt.Errorf("failed to save bus maintenance log: %w", err)
 	}
@@ -290,12 +566,19 @@ func saveVehicleMaintenanceLog(vehicleLog VehicleMaintenanceLog) error {
 		return fmt.Errorf("database not initialized")
 	}
 
+	// Insert into the consolidated maintenance_records table
 	query := `
-		INSERT INTO vehicle_maintenance_logs (vehicle_id, date, category, notes, mileage, cost)
-		VALUES (:vehicle_id, :date, :category, :notes, :mileage, :cost)
+		INSERT INTO maintenance_records (vehicle_id, service_date, work_description, mileage, cost, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 	`
 
-	_, err := db.NamedExec(query, vehicleLog)
+	// Combine category and notes for work_description
+	workDescription := vehicleLog.Category
+	if vehicleLog.Notes != "" {
+		workDescription = vehicleLog.Category + ": " + vehicleLog.Notes
+	}
+
+	_, err := db.Exec(query, vehicleLog.VehicleID, vehicleLog.Date, workDescription, vehicleLog.Mileage, vehicleLog.Cost)
 	if err != nil {
 		return fmt.Errorf("failed to save vehicle maintenance log: %w", err)
 	}
@@ -325,4 +608,354 @@ func saveVehicleMaintenanceLog(vehicleLog VehicleMaintenanceLog) error {
 	dataCache.invalidateVehicles()
 
 	return nil
+}
+
+// loadMonthlyMileageReportsFromDB loads all monthly mileage reports from database
+func loadMonthlyMileageReportsFromDB() ([]MonthlyMileageReport, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	var reports []MonthlyMileageReport
+	query := `
+		SELECT id, report_month, report_year, bus_year, bus_make, 
+		       license_plate, bus_id, located_at, beginning_miles, 
+		       ending_miles, total_miles, created_at, updated_at
+		FROM monthly_mileage_reports 
+		ORDER BY report_year DESC, 
+		         CASE report_month 
+		             WHEN 'January' THEN 1 WHEN 'February' THEN 2 WHEN 'March' THEN 3
+		             WHEN 'April' THEN 4 WHEN 'May' THEN 5 WHEN 'June' THEN 6
+		             WHEN 'July' THEN 7 WHEN 'August' THEN 8 WHEN 'September' THEN 9
+		             WHEN 'October' THEN 10 WHEN 'November' THEN 11 WHEN 'December' THEN 12
+		             ELSE 0 
+		         END DESC,
+		         bus_id`
+
+	err := db.Select(&reports, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load monthly mileage reports: %w", err)
+	}
+
+	return reports, nil
+}
+
+// loadMonthlyMileageReportsByFilters loads filtered monthly mileage reports
+func loadMonthlyMileageReportsByFilters(year int, month string, busID string) ([]MonthlyMileageReport, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	var reports []MonthlyMileageReport
+	var conditions []string
+	var args []interface{}
+
+	baseQuery := `
+		SELECT id, report_month, report_year, bus_year, bus_make, 
+		       license_plate, bus_id, located_at, beginning_miles, 
+		       ending_miles, total_miles, created_at, updated_at
+		FROM monthly_mileage_reports WHERE 1=1`
+
+	if year > 0 {
+		conditions = append(conditions, " AND report_year = $"+fmt.Sprintf("%d", len(args)+1))
+		args = append(args, year)
+	}
+
+	if month != "" {
+		conditions = append(conditions, " AND report_month = $"+fmt.Sprintf("%d", len(args)+1))
+		args = append(args, month)
+	}
+
+	if busID != "" {
+		conditions = append(conditions, " AND bus_id = $"+fmt.Sprintf("%d", len(args)+1))
+		args = append(args, busID)
+	}
+
+	query := baseQuery
+	for _, condition := range conditions {
+		query += condition
+	}
+
+	query += ` ORDER BY report_year DESC, 
+	              CASE report_month 
+	                  WHEN 'January' THEN 1 WHEN 'February' THEN 2 WHEN 'March' THEN 3
+	                  WHEN 'April' THEN 4 WHEN 'May' THEN 5 WHEN 'June' THEN 6
+	                  WHEN 'July' THEN 7 WHEN 'August' THEN 8 WHEN 'September' THEN 9
+	                  WHEN 'October' THEN 10 WHEN 'November' THEN 11 WHEN 'December' THEN 12
+	                  ELSE 0 
+	              END DESC,
+	              bus_id`
+
+	err := db.Select(&reports, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load filtered monthly mileage reports: %w", err)
+	}
+
+	return reports, nil
+}
+
+// loadFleetVehiclesFromDB loads all fleet vehicles from database
+func loadFleetVehiclesFromDB() ([]FleetVehicle, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	var vehicles []FleetVehicle
+	query := `
+		SELECT id, vehicle_number, sheet_name, year, make, model, 
+		       description, serial_number, license, location, tire_size,
+		       created_at, updated_at
+		FROM fleet_vehicles 
+		ORDER BY 
+			CASE WHEN vehicle_number IS NOT NULL THEN vehicle_number ELSE 999999 END,
+			year DESC, make, model`
+
+	err := db.Select(&vehicles, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load fleet vehicles: %w", err)
+	}
+
+	return vehicles, nil
+}
+
+// loadFleetVehiclesByFilters loads filtered fleet vehicles
+func loadFleetVehiclesByFilters(year int, make string, location string) ([]FleetVehicle, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	var vehicles []FleetVehicle
+	var conditions []string
+	var args []interface{}
+
+	baseQuery := `
+		SELECT id, vehicle_number, sheet_name, year, make, model, 
+		       description, serial_number, license, location, tire_size,
+		       created_at, updated_at
+		FROM fleet_vehicles WHERE 1=1`
+
+	if year > 0 {
+		conditions = append(conditions, " AND year = $"+fmt.Sprintf("%d", len(args)+1))
+		args = append(args, year)
+	}
+
+	if make != "" {
+		conditions = append(conditions, " AND UPPER(make) LIKE UPPER($"+fmt.Sprintf("%d", len(args)+1)+")")
+		args = append(args, "%"+make+"%")
+	}
+
+	if location != "" {
+		conditions = append(conditions, " AND UPPER(location) LIKE UPPER($"+fmt.Sprintf("%d", len(args)+1)+")")
+		args = append(args, "%"+location+"%")
+	}
+
+	query := baseQuery
+	for _, condition := range conditions {
+		query += condition
+	}
+
+	query += ` ORDER BY 
+		CASE WHEN vehicle_number IS NOT NULL THEN vehicle_number ELSE 999999 END,
+		year DESC, make, model`
+
+	err := db.Select(&vehicles, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load filtered fleet vehicles: %w", err)
+	}
+
+	return vehicles, nil
+}
+
+// loadMaintenanceRecordsFromDB loads all maintenance records from database
+func loadMaintenanceRecordsFromDB() ([]MaintenanceRecord, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	var records []MaintenanceRecord
+	query := `
+		SELECT id, vehicle_number, service_date, mileage, po_number, cost, 
+		       work_description, raw_data, created_at, updated_at, vehicle_id, date
+		FROM maintenance_records 
+		ORDER BY 
+			COALESCE(service_date, date, created_at) DESC,
+			vehicle_number, id`
+
+	err := db.Select(&records, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load maintenance records: %w", err)
+	}
+
+	return records, nil
+}
+
+// loadMaintenanceRecordsByFilters loads filtered maintenance records
+func loadMaintenanceRecordsByFilters(vehicleNumber int, startDate, endDate string) ([]MaintenanceRecord, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	var records []MaintenanceRecord
+	var conditions []string
+	var args []interface{}
+
+	baseQuery := `
+		SELECT id, vehicle_number, service_date, mileage, po_number, cost, 
+		       work_description, raw_data, created_at, updated_at, vehicle_id, date
+		FROM maintenance_records WHERE 1=1`
+
+	if vehicleNumber > 0 {
+		conditions = append(conditions, " AND vehicle_number = $"+fmt.Sprintf("%d", len(args)+1))
+		args = append(args, vehicleNumber)
+	}
+
+	if startDate != "" {
+		conditions = append(conditions, " AND (service_date >= $"+fmt.Sprintf("%d", len(args)+1)+" OR date >= $"+fmt.Sprintf("%d", len(args)+1)+")")
+		args = append(args, startDate)
+	}
+
+	if endDate != "" {
+		conditions = append(conditions, " AND (service_date <= $"+fmt.Sprintf("%d", len(args)+1)+" OR date <= $"+fmt.Sprintf("%d", len(args)+1)+")")
+		args = append(args, endDate)
+	}
+
+	query := baseQuery
+	for _, condition := range conditions {
+		query += condition
+	}
+
+	query += ` ORDER BY 
+		COALESCE(service_date, date, created_at) DESC,
+		vehicle_number, id`
+
+	err := db.Select(&records, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load filtered maintenance records: %w", err)
+	}
+
+	return records, nil
+}
+
+// loadServiceRecordsFromDB loads all service records from database
+func loadServiceRecordsFromDB() ([]ServiceRecord, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	var records []ServiceRecord
+	query := `
+		SELECT id, unnamed_0, unnamed_1, unnamed_2, unnamed_3, unnamed_4, unnamed_5, 
+		       unnamed_6, unnamed_7, unnamed_8, unnamed_9, unnamed_10, unnamed_11, 
+		       unnamed_12, unnamed_13, created_at, updated_at, maintenance_date
+		FROM service_records 
+		ORDER BY 
+			COALESCE(maintenance_date, created_at) DESC,
+			id`
+
+	err := db.Select(&records, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load service records: %w", err)
+	}
+
+	return records, nil
+}
+
+// loadServiceRecordsByFilters loads filtered service records
+func loadServiceRecordsByFilters(vehicleFilter string, startDate, endDate string) ([]ServiceRecord, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	var records []ServiceRecord
+	var conditions []string
+	var args []interface{}
+
+	baseQuery := `
+		SELECT id, unnamed_0, unnamed_1, unnamed_2, unnamed_3, unnamed_4, unnamed_5, 
+		       unnamed_6, unnamed_7, unnamed_8, unnamed_9, unnamed_10, unnamed_11, 
+		       unnamed_12, unnamed_13, created_at, updated_at, maintenance_date
+		FROM service_records WHERE 1=1`
+
+	if vehicleFilter != "" {
+		// Search across multiple fields that might contain vehicle info
+		conditions = append(conditions, " AND (UPPER(unnamed_0) LIKE UPPER($"+fmt.Sprintf("%d", len(args)+1)+") OR UPPER(unnamed_1) LIKE UPPER($"+fmt.Sprintf("%d", len(args)+1)+") OR UPPER(unnamed_2) LIKE UPPER($"+fmt.Sprintf("%d", len(args)+1)+"))")
+		args = append(args, "%"+vehicleFilter+"%")
+	}
+
+	if startDate != "" {
+		conditions = append(conditions, " AND (maintenance_date >= $"+fmt.Sprintf("%d", len(args)+1)+" OR created_at >= $"+fmt.Sprintf("%d", len(args)+1)+")")
+		args = append(args, startDate)
+	}
+
+	if endDate != "" {
+		conditions = append(conditions, " AND (maintenance_date <= $"+fmt.Sprintf("%d", len(args)+1)+" OR created_at <= $"+fmt.Sprintf("%d", len(args)+1)+")")
+		args = append(args, endDate)
+	}
+
+	query := baseQuery
+	for _, condition := range conditions {
+		query += condition
+	}
+
+	query += ` ORDER BY 
+		COALESCE(maintenance_date, created_at) DESC,
+		id`
+
+	err := db.Select(&records, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load filtered service records: %w", err)
+	}
+
+	return records, nil
+}
+
+// loadFuelRecordsFromDB loads all fuel records from database
+func loadFuelRecordsFromDB() ([]FuelRecord, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	var records []FuelRecord
+	query := `
+		SELECT id, vehicle_id, date, gallons, price_per_gallon, cost, 
+		       odometer, location, driver, notes, created_at
+		FROM fuel_records 
+		ORDER BY date DESC, id DESC`
+	err := db.Select(&records, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load fuel records: %w", err)
+	}
+	return records, nil
+}
+
+// getStudentCountsByRoute returns a map of route IDs to student counts
+func getStudentCountsByRoute() (map[string]int, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	studentCounts := make(map[string]int)
+	
+	// Get student counts per route
+	rows, err := db.Query(`
+		SELECT route_id, COUNT(*) as student_count
+		FROM students
+		WHERE route_id IS NOT NULL AND route_id != ''
+		GROUP BY route_id
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get student counts: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var routeID string
+		var count int
+		if err := rows.Scan(&routeID, &count); err != nil {
+			log.Printf("Error scanning student count: %v", err)
+			continue
+		}
+		studentCounts[routeID] = count
+	}
+
+	return studentCounts, nil
 }

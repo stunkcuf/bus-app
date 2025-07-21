@@ -2,396 +2,276 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Assign Routes - Manager Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>Assign Routes - Fleet Management System</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/accessible_design_system.css">
+  <link rel="stylesheet" href="/static/visual_hierarchy.css">
+  <link rel="stylesheet" href="/static/responsive_tables.css">
+  <link rel="stylesheet" href="/static/help_system.css">
+  <link rel="stylesheet" href="/static/accessible_forms.css">
+  <link rel="stylesheet" href="/static/workflow_guides.css">
+  <link rel="stylesheet" href="/static/enhanced_help_system.css">
+  <link rel="stylesheet" href="/static/wizard.css">
+  <link rel="stylesheet" href="/static/autocomplete.css">
   <style nonce="{{.CSPNonce}}">
-    :root {
-      --grad-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      --grad-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-      --grad-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      --grad-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-      --grad-danger: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
-    }
-    
-    body {
-      background-color: #f8f9fa;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    }
-    
-    .page-header {
-      background: var(--grad-primary);
-      color: white;
-      padding: 1.5rem;
-      border-radius: 15px;
-      margin-bottom: 2rem;
-      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-    }
-    
-    .page-header .btn {
-      background: rgba(255,255,255,0.2);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.3);
-      transition: all 0.3s ease;
-    }
-    
-    .page-header .btn:hover {
-      background: rgba(255,255,255,0.3);
-      transform: translateY(-2px);
-      color: white;
-    }
-    
-    .enhanced-card {
-      border: none;
-      border-radius: 15px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-      transition: all 0.3s ease;
-      overflow: hidden;
-    }
-    
-    .enhanced-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-    }
-    
-    .enhanced-card .card-header {
-      background: linear-gradient(45deg, #f8f9fa, #e9ecef);
-      border-bottom: 2px solid #dee2e6;
-      padding: 1.25rem;
-    }
-    
-    .enhanced-card .card-header h5 {
-      margin: 0;
-      font-weight: 600;
-      color: #495057;
-    }
-    
-    .status-badge {
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .status-available {
-      background: var(--grad-success);
-      color: white;
-    }
-    
-    .status-assigned {
-      background: var(--grad-info);
-      color: white;
-    }
-    
-    .status-maintenance {
-      background: var(--grad-warning);
-      color: white;
-    }
-    
-    .btn[disabled] {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    
+    /* Route Assignment specific styles */
     .assignment-row {
-      transition: all 0.2s ease;
+      transition: all var(--transition-base);
       border-left: 4px solid transparent;
     }
     
     .assignment-row:hover {
-      background-color: rgba(102, 126, 234, 0.05);
-      border-left-color: #667eea;
-      transform: translateX(5px);
+      background-color: var(--color-bg-tertiary);
+      border-left-color: var(--color-primary);
     }
     
-    .form-control, .form-select {
-      border: 2px solid #e9ecef;
-      border-radius: 10px;
-      padding: 0.75rem 1rem;
-      transition: all 0.3s ease;
-    }
-    
-    .form-control:focus, .form-select:focus {
-      border-color: #667eea;
-      box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-    }
-    
-    /* New CSS classes for dynamic styles to replace inline styles */
-    .form-select.valid {
-      border-color: #28a745 !important;
-    }
-    
-    .form-control.valid {
-      border-color: #28a745 !important;
-    }
-    
-    /* Animation classes */
-    .card-animate-initial {
-      opacity: 0;
-      transform: translateY(20px);
-      transition: all 0.5s ease;
-    }
-    
-    .card-animate-final {
-      opacity: 1 !important;
-      transform: translateY(0) !important;
-    }
-    
-    .btn-primary {
-      background: var(--grad-primary);
-      border: none;
-      padding: 0.75rem 2rem;
-      border-radius: 10px;
+    .status-available {
+      background: var(--color-success-light);
+      color: var(--color-success-dark);
+      padding: var(--space-xs) var(--space-md);
+      border-radius: var(--border-radius-base);
       font-weight: 600;
-      transition: all 0.3s ease;
+      display: inline-block;
     }
     
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-      background: var(--grad-primary);
-    }
-    
-    .btn-success {
-      background: var(--grad-success);
-      border: none;
-      padding: 0.75rem 2rem;
-      border-radius: 10px;
+    .status-assigned {
+      background: var(--color-info-light);
+      color: var(--color-info-dark);
+      padding: var(--space-xs) var(--space-md);
+      border-radius: var(--border-radius-base);
       font-weight: 600;
-      transition: all 0.3s ease;
+      display: inline-block;
     }
     
-    .btn-success:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
-      background: var(--grad-success);
-    }
-    
-    .btn-outline-danger {
-      border: 2px solid #dc3545;
-      color: #dc3545;
-      border-radius: 8px;
-      padding: 0.375rem 0.75rem;
-      transition: all 0.3s ease;
-    }
-    
-    .btn-outline-danger:hover {
-      background: var(--grad-danger);
-      border-color: transparent;
-      transform: translateY(-1px);
-    }
-    
-    .bus-item {
-      padding: 1rem;
-      margin-bottom: 0.5rem;
-      background: white;
-      border-radius: 10px;
-      border-left: 4px solid #28a745;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    
-    .bus-item:hover {
-      transform: translateX(5px);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-    
-    .bus-item.assigned {
-      border-left-color: #17a2b8;
-      opacity: 0.7;
-    }
-    
-    .bus-item.maintenance {
-      border-left-color: #ffc107;
-    }
-    
-    .stats-row {
-      background: linear-gradient(45deg, #f8f9fa, #e9ecef);
-      border-radius: 15px;
-      padding: 1.5rem;
-      margin-bottom: 2rem;
-    }
-    
-    .stat-item {
-      text-align: center;
-      padding: 1rem;
-    }
-    
-    .stat-number {
-      font-size: 2rem;
-      font-weight: 700;
-      color: #667eea;
-      display: block;
-    }
-    
-    .stat-label {
-      font-size: 0.9rem;
-      color: #6c757d;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .empty-state {
-      text-align: center;
-      padding: 3rem 1rem;
-      color: #6c757d;
-    }
-    
-    .empty-state i {
-      font-size: 4rem;
-      margin-bottom: 1rem;
-      opacity: 0.3;
+    .status-maintenance {
+      background: var(--color-warning-light);
+      color: var(--color-warning-dark);
+      padding: var(--space-xs) var(--space-md);
+      border-radius: var(--border-radius-base);
+      font-weight: 600;
+      display: inline-block;
     }
     
     .assignment-icon {
-      width: 40px;
-      height: 40px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      margin-right: 1rem;
+      margin-right: var(--space-md);
       font-size: 1.2rem;
     }
     
     .driver-icon {
-      background: var(--grad-success);
-      color: white;
+      background: var(--color-success);
+      color: var(--color-text-inverse);
     }
     
     .bus-icon {
-      background: var(--grad-info);
-      color: white;
+      background: var(--color-info);
+      color: var(--color-text-inverse);
     }
     
     .route-icon {
-      background: var(--grad-warning);
-      color: white;
+      background: var(--color-warning);
+      color: var(--color-text-inverse);
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-lg);
+      margin-bottom: var(--space-xl);
+    }
+    
+    .stat-card {
+      background: var(--color-bg-primary);
+      padding: var(--space-lg);
+      border-radius: var(--border-radius-lg);
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .stat-number {
+      font-size: var(--font-size-xxl);
+      font-weight: 700;
+      color: var(--color-primary);
+      display: block;
+      margin-bottom: var(--space-sm);
+    }
+    
+    .stat-label {
+      font-size: var(--font-size-base);
+      color: var(--color-text-secondary);
+    }
+    
+    .bus-item {
+      padding: var(--space-md);
+      margin-bottom: var(--space-sm);
+      background: var(--color-bg-primary);
+      border-radius: var(--border-radius-base);
+      border-left: 4px solid var(--color-success);
+      transition: all var(--transition-base);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .bus-item:hover {
+      transform: translateX(5px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .bus-item.assigned {
+      border-left-color: var(--color-info);
+      opacity: 0.7;
+    }
+    
+    .bus-item.maintenance {
+      border-left-color: var(--color-warning);
+    }
+    
+    .route-table {
+      margin: 0;
+    }
+    
+    .route-table th {
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      border-bottom: 2px solid var(--border-color);
+    }
+    
+    .route-table td {
+      vertical-align: middle;
+      padding: var(--space-md);
+    }
+    
+    .edit-form-container {
+      background: var(--color-bg-tertiary);
+      padding: var(--space-lg);
+      border-radius: var(--border-radius-base);
+      margin-top: var(--space-md);
     }
   </style>
 </head>
 <body>
-  <div class="container-fluid py-4">
-    <!-- Header -->
-    <header class="page-header">
-      <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <div>
-          <h1 class="fs-3 mb-1">
-            <i class="bi bi-map-fill me-2"></i>Route Assignment Center
+  <div class="page-wrapper">
+    <!-- Navigation Component -->
+    {{template "navigation" (dict "Navigation" .Navigation "CSPNonce" .CSPNonce "ShowHelpButton" .ShowHelpButton "PageDescription" "Assign drivers to bus routes")}}
+    
+    <!-- Page Actions -->
+    <header class="page-actions">
+      <div class="page-header-content">
+        <div class="page-header-text">
+          <h1>
+            <i class="bi bi-diagram-3-fill" aria-hidden="true"></i>
+            Route Management
           </h1>
-          <p class="mb-0 opacity-75">Manage driver, bus, and route assignments</p>
+          <p class="page-description">Assign drivers to bus routes and manage route definitions</p>
         </div>
-        <nav class="btn-group btn-group-sm" role="group">
-          <a href="/manager-dashboard" class="btn">
-            <i class="bi bi-speedometer2 me-1"></i>Dashboard
-          </a>
-          <a href="/fleet" class="btn">
-            <i class="bi bi-bus-front-fill me-1"></i>Fleet
-          </a>
-          <a href="/logout" class="btn">
-            <i class="bi bi-box-arrow-right me-1"></i>Logout
+        <nav class="page-header-nav">
+          <a href="/route-assignment-wizard" class="btn btn-primary btn-lg" 
+             data-help="route-wizard" 
+             data-help-title="Route Assignment Wizard" 
+             data-help-content="Use the step-by-step wizard to assign routes with automatic conflict detection and validation.">
+            <i class="bi bi-magic" aria-hidden="true"></i>
+            Assignment Wizard
           </a>
         </nav>
       </div>
     </header>
-
-    <!-- ============= STATISTICS OVERVIEW WITH CALCULATED VALUES ============= -->
-    <!-- Uses pre-calculated values from the backend instead of template array lengths -->
-    <div class="stats-row">
-      <div class="row g-4">
-        <div class="col-md-3">
-          <div class="stat-item">
-            <span class="stat-number" id="totalAssignments">{{.Data.TotalAssignments}}</span>
+    
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+      <!-- Statistics Overview -->
+      <section aria-labelledby="stats-heading">
+        <h2 id="stats-heading" class="sr-only">Assignment Statistics</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-number">{{.Data.TotalAssignments}}</span>
             <div class="stat-label">Driver Assignments</div>
           </div>
-        </div>
-        <div class="col-md-3">
-          <div class="stat-item">
-            <span class="stat-number" id="totalRoutes">{{.Data.TotalRoutes}}</span>
+          <div class="stat-card">
+            <span class="stat-number">{{.Data.TotalRoutes}}</span>
             <div class="stat-label">Route Definitions</div>
           </div>
-        </div>
-        <div class="col-md-3">
-          <div class="stat-item">
-            <span class="stat-number" id="availableDrivers">{{.Data.AvailableDriversCount}}</span>
+          <div class="stat-card">
+            <span class="stat-number">{{.Data.AvailableDriversCount}}</span>
             <div class="stat-label">Available Drivers</div>
           </div>
-        </div>
-        <div class="col-md-3">
-          <div class="stat-item">
-            <span class="stat-number" id="availableBuses">{{.Data.AvailableBusesCount}}</span>
+          <div class="stat-card">
+            <span class="stat-number">{{.Data.AvailableBusesCount}}</span>
             <div class="stat-label">Available Buses</div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Route Definitions Section -->
-    <div class="row g-4 mb-4">
-      <div class="col-12">
-        <div class="enhanced-card">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <h5><i class="bi bi-signpost-2-fill me-2"></i>Route Definitions</h5>
-            <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addRouteForm" aria-expanded="false">
-              <i class="bi bi-plus-lg me-1"></i>Create New Route
-            </button>
+      </section>
+      
+      <!-- Route Definitions Section -->
+      <section aria-labelledby="routes-heading">
+        <div class="card">
+          <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+              <h2 id="routes-heading">Route Definitions</h2>
+              <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addRouteForm" aria-expanded="false" aria-controls="addRouteForm">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                Create New Route
+              </button>
+            </div>
           </div>
           
           <!-- Add Route Form (Collapsed) -->
           <div class="collapse" id="addRouteForm">
-            <div class="border-bottom p-3 bg-light">
-              <form method="POST" action="/assign-routes/add" id="routeForm">
+            <div class="card-body">
+              <form method="POST" action="/add-route" class="accessible-form">
                 <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
                 <div class="row">
                   <div class="col-md-6">
-                    <label for="route_name" class="form-label">
-                      <i class="bi bi-signpost me-2"></i>Route Name
-                    </label>
-                    <input type="text" id="route_name" name="route_name" class="form-control" 
-                           placeholder="e.g., Downtown Loop, Airport Express" required>
+                    <div class="form-group">
+                      <label for="route_name" class="form-label required">Route Name</label>
+                      <input type="text" id="route_name" name="route_name" class="form-control" 
+                             placeholder="e.g., Downtown Loop, Airport Express" required>
+                    </div>
                   </div>
                   <div class="col-md-6">
-                    <label for="description" class="form-label">
-                      <i class="bi bi-card-text me-2"></i>Description
-                    </label>
-                    <input type="text" id="description" name="description" class="form-control" 
-                           placeholder="Brief description of the route">
+                    <div class="form-group">
+                      <label for="description" class="form-label">Description</label>
+                      <input type="text" id="description" name="description" class="form-control" 
+                             placeholder="Brief description of the route">
+                    </div>
                   </div>
                 </div>
-                <div class="mt-3">
+                <div class="form-actions">
                   <button type="submit" class="btn btn-success">
-                    <i class="bi bi-plus-circle me-2"></i>Create Route
+                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                    Create Route
                   </button>
-                  <button type="button" class="btn btn-outline-secondary ms-2" data-bs-toggle="collapse" data-bs-target="#addRouteForm">
+                  <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#addRouteForm">
                     Cancel
                   </button>
                 </div>
               </form>
             </div>
           </div>
-
-          <!-- ============= ROUTES LIST WITH ASSIGNMENT STATUS ============= -->
-          <div class="card-body p-0">
+          
+          <!-- Routes List -->
+          <div class="card-body">
             {{if .Data.RoutesWithStatus}}
-            <div class="table-responsive">
-              <table class="table table-hover mb-0">
-                <thead class="table-light">
+            <div class="table-responsive" data-responsive-table>
+              <table class="table route-table" aria-label="Route definitions">
+                <thead>
                   <tr>
-                    <th class="px-4 py-3">Route Information</th>
-                    <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3 text-center">Actions</th>
+                    <th scope="col">Route Information</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {{range .Data.RoutesWithStatus}}
                   <tr class="assignment-row">
-                    <td class="px-4 py-3">
+                    <td data-label="Route">
                       <div class="d-flex align-items-center">
                         <div class="assignment-icon route-icon">
-                          <i class="bi bi-signpost-2"></i>
+                          <i class="bi bi-signpost-2" aria-hidden="true"></i>
                         </div>
                         <div>
                           <div class="fw-semibold">{{.RouteName}}</div>
@@ -399,30 +279,33 @@
                         </div>
                       </div>
                     </td>
-                    <td class="px-4 py-3">
-                      <!-- DYNAMIC STATUS BADGE BASED ON ASSIGNMENT -->
+                    <td data-label="Status">
                       {{if .IsAssigned}}
-                      <span class="status-badge status-assigned">Assigned</span>
+                      <span class="status-assigned">
+                        <i class="bi bi-check-circle" aria-hidden="true"></i> Assigned
+                      </span>
                       {{else}}
-                      <span class="status-badge status-available">Available</span>
+                      <span class="status-available">
+                        <i class="bi bi-circle" aria-hidden="true"></i> Available
+                      </span>
                       {{end}}
                     </td>
-                    <td class="px-4 py-3 text-center">
-                      <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-primary js-edit-route" 
+                    <td data-label="Actions">
+                      <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary js-edit-route" 
                                 data-route-id="{{.RouteID}}" 
                                 data-route-name="{{.RouteName}}" 
                                 data-description="{{.Description}}"
                                 aria-label="Edit {{.RouteName}}">
-                          <i class="bi bi-pencil"></i>
+                          <i class="bi bi-pencil" aria-hidden="true"></i>
+                          Edit
                         </button>
-                        <!-- DELETE BUTTON DISABLED FOR ASSIGNED ROUTES -->
-                        <button class="btn btn-outline-danger js-delete-route" 
+                        <button class="btn btn-sm btn-outline-danger js-delete-route" 
                                 data-route-id="{{.RouteID}}" 
                                 data-route-name="{{.RouteName}}"
-                                {{if .IsAssigned}}disabled title="Cannot delete assigned route"{{end}}
-                                aria-label="Delete {{.RouteName}}">
-                          <i class="bi bi-trash"></i>
+                                {{if .IsAssigned}}disabled aria-label="Cannot delete assigned route"{{else}}aria-label="Delete {{.RouteName}}"{{end}}>
+                          <i class="bi bi-trash" aria-hidden="true"></i>
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -433,225 +316,344 @@
             </div>
             {{else}}
             <div class="empty-state">
-              <i class="bi bi-signpost-2"></i>
-              <h6>No Routes Defined</h6>
-              <p class="mb-0">Create your first route definition to enable driver assignments</p>
-            </div>
-            {{end}}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Assignments Section -->
-    <div class="row g-4">
-      <!-- Current Route Assignments -->
-      <div class="col-lg-8">
-        <div class="enhanced-card">
-          <div class="card-header">
-            <h5><i class="bi bi-person-lines-fill me-2"></i>Current Driver Assignments</h5>
-          </div>
-          <div class="card-body p-0">
-            {{if .Data.Assignments}}
-            <div class="table-responsive">
-              <table class="table table-hover mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th class="px-4 py-3">Driver Assignment</th>
-                    <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3 text-center">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {{range .Data.Assignments}}
-                  <tr class="assignment-row">
-                    <td class="px-4 py-3">
-                      <div class="d-flex align-items-center">
-                        <div class="assignment-icon driver-icon">
-                          <i class="bi bi-person-badge"></i>
-                        </div>
-                        <div>
-                          <div class="fw-semibold">{{.Driver}}</div>
-                          <small class="text-muted">
-                            <i class="bi bi-bus-front me-1"></i>Bus {{.BusID}} • 
-                            <i class="bi bi-signpost-2 me-1"></i>{{.RouteName}}
-                          </small>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-4 py-3">
-                      <span class="status-badge status-assigned">Active</span>
-                    </td>
-                    <td class="px-4 py-3 text-center">
-                      <form method="POST" action="/unassign-route" class="d-inline">
-                        <input type="hidden" name="csrf_token" value="{{$.Data.CSRFToken}}">
-                        <input type="hidden" name="driver" value="{{.Driver}}">
-                        <input type="hidden" name="bus_id" value="{{.BusID}}">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                          <i class="bi bi-x-circle me-1"></i>Unassign
-                        </button>
-                      </form>
-                    </td>
-                  </tr>
-                  {{end}}
-                </tbody>
-              </table>
-            </div>
-            {{else}}
-            <div class="empty-state">
-              <i class="bi bi-clipboard-x"></i>
-              <h6>No Driver Assignments</h6>
-              <p class="mb-0">Assign drivers to routes using the form on the right</p>
-            </div>
-            {{end}}
-          </div>
-        </div>
-      </div>
-
-      <!-- Create Assignment Form -->
-      <div class="col-lg-4">
-        <div class="enhanced-card">
-          <div class="card-header">
-            <h5><i class="bi bi-plus-circle-fill me-2"></i>Assign Driver to Route</h5>
-          </div>
-          <div class="card-body">
-            <form method="POST" action="/assign-route" id="assignmentForm">
-              <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
-              <div class="mb-4">
-                <label for="driver" class="form-label">
-                  <i class="bi bi-person-badge me-2"></i>Select Driver
-                </label>
-                <select id="driver" name="driver" class="form-select" required>
-                  <option value="">Choose a driver...</option>
-                  {{range .Data.Drivers}}
-                  <option value="{{.Username}}">{{.Username}}</option>
-                  {{end}}
-                </select>
-              </div>
-
-              <div class="mb-4">
-                <label for="route_id" class="form-label">
-                  <i class="bi bi-signpost-2 me-2"></i>Select Route
-                </label>
-                <select id="route_id" name="route_id" class="form-select" required>
-                  <option value="">Choose a route...</option>
-                  {{range .Data.AvailableRoutes}}
-                  <option value="{{.RouteID}}">{{.RouteName}}</option>
-                  {{end}}
-                </select>
-              </div>
-
-              <div class="mb-4">
-                <label for="bus_id" class="form-label">
-                  <i class="bi bi-bus-front me-2"></i>Select Bus
-                </label>
-                <select id="bus_id" name="bus_id" class="form-select" required>
-                  <option value="">Choose a bus...</option>
-                  {{range .Data.AvailableBuses}}
-                  <option value="{{.BusID}}">Bus #{{.BusID}} ({{.Status}})</option>
-                  {{end}}
-                </select>
-              </div>
-
-              <button type="submit" class="btn btn-primary w-100">
-                <i class="bi bi-check-circle me-2"></i>Create Assignment
+              <i class="bi bi-signpost-2" aria-hidden="true"></i>
+              <h3>No Routes Defined</h3>
+              <p>Create your first route definition to enable driver assignments</p>
+              <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addRouteForm">
+                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                Create First Route
               </button>
-            </form>
+            </div>
+            {{end}}
           </div>
         </div>
-
-        <!-- ============= AVAILABLE BUSES SECTION ============= -->
-        <!-- Only shows buses that are active AND not assigned -->
-        <div class="enhanced-card mt-4">
-          <div class="card-header">
-            <h5><i class="bi bi-bus-front me-2"></i>Fleet Status</h5>
-          </div>
-          <div class="card-body">
-            {{if .Data.AvailableBuses}}
-            <div class="bus-list">
-              {{range .Data.AvailableBuses}}
-              <div class="bus-item">
+      </section>
+      
+      <!-- Assignments Section -->
+      <div class="row g-4 mt-4">
+        <!-- Current Route Assignments -->
+        <div class="col-lg-8">
+          <section aria-labelledby="assignments-heading">
+            <div class="card">
+              <div class="card-header">
+                <h2 id="assignments-heading">Current Driver Assignments</h2>
+              </div>
+              <div class="card-body">
+                {{if .Data.Assignments}}
+                <div class="table-responsive" data-responsive-table>
+                  <table class="table" aria-label="Current driver assignments">
+                    <thead>
+                      <tr>
+                        <th scope="col">Driver Assignment</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {{range .Data.Assignments}}
+                      <tr class="assignment-row">
+                        <td data-label="Assignment">
+                          <div class="d-flex align-items-center">
+                            <div class="assignment-icon driver-icon">
+                              <i class="bi bi-person-badge" aria-hidden="true"></i>
+                            </div>
+                            <div>
+                              <div class="fw-semibold">{{.Driver}}</div>
+                              <small class="text-muted">
+                                <i class="bi bi-bus-front" aria-hidden="true"></i> Bus {{.BusID}} • 
+                                <i class="bi bi-signpost-2" aria-hidden="true"></i> {{.RouteName}}
+                              </small>
+                            </div>
+                          </div>
+                        </td>
+                        <td data-label="Status">
+                          <span class="status-assigned">Active</span>
+                        </td>
+                        <td data-label="Action">
+                          <form method="POST" action="/unassign-route" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{$.Data.CSRFToken}}">
+                            <input type="hidden" name="driver" value="{{.Driver}}">
+                            <input type="hidden" name="bus_id" value="{{.BusID}}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Unassign {{.Driver}} from route">
+                              <i class="bi bi-x-circle" aria-hidden="true"></i>
+                              Unassign
+                            </button>
+                          </form>
+                        </td>
+                      </tr>
+                      {{end}}
+                    </tbody>
+                  </table>
+                </div>
+                {{else}}
+                <div class="empty-state">
+                  <i class="bi bi-clipboard-x" aria-hidden="true"></i>
+                  <h3>No Driver Assignments</h3>
+                  <p>Assign drivers to routes using the form on the right</p>
+                </div>
+                {{end}}
+              </div>
+            </div>
+          </section>
+        </div>
+        
+        <!-- Create Assignment Form -->
+        <div class="col-lg-4">
+          <section aria-labelledby="assign-heading">
+            <div class="card">
+              <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center">
-                  <div class="d-flex align-items-center">
-                    <div class="assignment-icon bus-icon">
-                      <i class="bi bi-bus-front"></i>
-                    </div>
-                    <div>
-                      <div class="fw-semibold">Bus #{{.BusID}}</div>
-                      <small class="text-muted">{{if .Model}}{{.Model}}{{else}}Fleet Vehicle{{end}}</small>
-                    </div>
-                  </div>
-                  <!-- ALL AVAILABLE BUSES SHOW AS AVAILABLE -->
-                  <span class="status-badge status-available">
-                    Available
-                  </span>
+                  <h2 id="assign-heading">Assign Driver to Route</h2>
+                  <button type="button" class="btn btn-primary" onclick="showAssignmentWizard()">
+                    <i class="bi bi-magic"></i> Use Assignment Wizard
+                  </button>
                 </div>
               </div>
-              {{end}}
+              <div class="card-body">
+                <!-- Wizard Container (hidden by default) -->
+                <div id="wizardContainer" style="display: none;"></div>
+                
+                <!-- Traditional Form -->
+                <form method="POST" action="/assign-route" class="accessible-form" data-help="assignment-form">
+                  <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
+                  
+                  <div class="form-group">
+                    <label for="driver" class="form-label required">Select Driver</label>
+                    <input type="text" id="driver" name="driver" class="form-control" 
+                           placeholder="Start typing driver name..." required
+                           list="driver-list">
+                    <datalist id="driver-list">
+                      {{range .Data.Drivers}}
+                      <option value="{{.Username}}">{{.Username}}</option>
+                      {{end}}
+                    </datalist>
+                    <small class="form-text text-muted">Type to search for available drivers</small>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="route_id" class="form-label required">Select Route</label>
+                    <input type="text" id="route_id" name="route_id" class="form-control" 
+                           placeholder="Start typing route name or ID..." required
+                           list="route-list">
+                    <datalist id="route-list">
+                      {{range .Data.AvailableRoutes}}
+                      <option value="{{.RouteID}}">{{.RouteName}}</option>
+                      {{end}}
+                    </datalist>
+                    <small class="form-text text-muted">Type to search for available routes</small>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="bus_id" class="form-label required">Select Bus</label>
+                    <input type="text" id="bus_id" name="bus_id" class="form-control" 
+                           placeholder="Start typing bus ID..." required
+                           list="bus-list">
+                    <datalist id="bus-list">
+                      {{range .Data.AvailableBuses}}
+                      <option value="{{.BusID}}">Bus #{{.BusID}} ({{.Status}})</option>
+                      {{end}}
+                    </datalist>
+                    <small class="form-text text-muted">Type to search for available buses</small>
+                  </div>
+                  
+                  <button type="submit" class="btn btn-primary btn-block">
+                    <i class="bi bi-check-circle" aria-hidden="true"></i>
+                    Create Assignment
+                  </button>
+                </form>
+              </div>
             </div>
-            {{else}}
-            <div class="empty-state">
-              <i class="bi bi-bus-front"></i>
-              <h6>No Available Buses</h6>
-              <p class="mb-0">All buses are currently assigned or in maintenance</p>
+            
+            <!-- Fleet Status -->
+            <div class="card mt-4">
+              <div class="card-header">
+                <h3>Fleet Status</h3>
+              </div>
+              <div class="card-body">
+                {{if .Data.AvailableBuses}}
+                <div class="bus-list">
+                  {{range .Data.AvailableBuses}}
+                  <div class="bus-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div class="d-flex align-items-center">
+                        <div class="assignment-icon bus-icon">
+                          <i class="bi bi-bus-front" aria-hidden="true"></i>
+                        </div>
+                        <div>
+                          <div class="fw-semibold">Bus #{{.BusID}}</div>
+                          <small class="text-muted">{{if .Model}}{{.Model}}{{else}}Fleet Vehicle{{end}}</small>
+                        </div>
+                      </div>
+                      <span class="status-available">Available</span>
+                    </div>
+                  </div>
+                  {{end}}
+                </div>
+                {{else}}
+                <div class="empty-state">
+                  <i class="bi bi-bus-front" aria-hidden="true"></i>
+                  <h4>No Available Buses</h4>
+                  <p>All buses are currently assigned or in maintenance</p>
+                </div>
+                {{end}}
+              </div>
             </div>
-            {{end}}
-          </div>
+          </section>
         </div>
       </div>
-    </div>
+    </main>
   </div>
-
+  
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/responsive_tables.js"></script>
+  <script src="/static/help_system.js"></script>
+  <script src="/static/accessible_forms.js"></script>
+  <script src="/static/workflow_guides.js"></script>
+  <script src="/static/enhanced_help_system.js"></script>
+  <script src="/static/wizard.js"></script>
+  <script src="/static/route_assignment_wizard.js"></script>
+  <script src="/static/autocomplete.js"></script>
+  
   <script nonce="{{.CSPNonce}}">
+    // Store CSRF token for dynamic forms
+    const csrfToken = '{{.Data.CSRFToken}}';
+    
+    // Show assignment wizard
+    function showAssignmentWizard() {
+      const container = document.getElementById('wizardContainer');
+      const form = document.querySelector('form[action="/assign-route"]');
+      
+      // Hide traditional form
+      form.style.display = 'none';
+      
+      // Show wizard container
+      container.style.display = 'block';
+      
+      // Initialize the wizard
+      initRouteAssignmentWizard();
+    }
+    
+    // Initialize auto-complete for assignment form
     document.addEventListener('DOMContentLoaded', function() {
-      // Store CSRF token for dynamic forms
-      const csrfToken = '{{.Data.CSRFToken}}';
+      // Driver auto-complete with status indicator
+      const driverAuto = new AutoComplete('driver', {
+        source: function(query) {
+          const drivers = [
+            {{range .Data.Drivers}}
+            { value: '{{.Username}}', label: '{{.Username}}', status: 'available' },
+            {{end}}
+          ];
+          
+          return drivers.filter(driver => 
+            driver.value.toLowerCase().includes(query.toLowerCase())
+          );
+        },
+        minChars: 1,
+        template: function(item) {
+          return `
+            <div class="autocomplete-item-custom">
+              <i class="bi bi-person-circle autocomplete-item-icon"></i>
+              <div class="autocomplete-item-content">
+                <div class="autocomplete-item-title">${item.label}</div>
+                <div class="autocomplete-item-subtitle">Available for assignment</div>
+              </div>
+            </div>
+          `;
+        }
+      });
       
-      // Form validation feedback for assignment form
-      const assignmentForm = document.getElementById('assignmentForm');
-      const assignmentSelects = assignmentForm.querySelectorAll('select');
+      // Route auto-complete with description
+      const routeAuto = new AutoComplete('route_id', {
+        source: function(query) {
+          const routes = [
+            {{range .Data.AvailableRoutes}}
+            { value: '{{.RouteID}}', label: '{{.RouteName}}', id: '{{.RouteID}}' },
+            {{end}}
+          ];
+          
+          return routes.filter(route => 
+            route.value.toLowerCase().includes(query.toLowerCase()) ||
+            route.label.toLowerCase().includes(query.toLowerCase())
+          );
+        },
+        minChars: 1,
+        template: function(item) {
+          return `
+            <div class="autocomplete-item-custom">
+              <i class="bi bi-map autocomplete-item-icon"></i>
+              <div class="autocomplete-item-content">
+                <div class="autocomplete-item-title">${item.label}</div>
+                <div class="autocomplete-item-subtitle">Route ID: ${item.id}</div>
+              </div>
+            </div>
+          `;
+        },
+        onSelect: function(item) {
+          document.getElementById('route_id').value = item.value;
+        }
+      });
       
-      assignmentSelects.forEach(select => {
-        select.addEventListener('change', function() {
-          if (this.value) {
-            this.classList.add('valid');
-            this.classList.remove('form-control');
-            this.classList.add('form-control');
-          } else {
-            this.classList.remove('valid');
-          }
+      // Bus auto-complete with status
+      const busAuto = new AutoComplete('bus_id', {
+        source: function(query) {
+          const buses = [
+            {{range .Data.AvailableBuses}}
+            { value: '{{.BusID}}', label: 'Bus #{{.BusID}}', status: '{{.Status}}' },
+            {{end}}
+          ];
+          
+          return buses.filter(bus => 
+            bus.value.toLowerCase().includes(query.toLowerCase())
+          );
+        },
+        minChars: 1,
+        template: function(item) {
+          const statusClass = item.status === 'active' ? 'text-success' : 'text-warning';
+          return `
+            <div class="autocomplete-item-custom">
+              <i class="bi bi-bus-front autocomplete-item-icon"></i>
+              <div class="autocomplete-item-content">
+                <div class="autocomplete-item-title">${item.label}</div>
+                <div class="autocomplete-item-subtitle ${statusClass}">Status: ${item.status}</div>
+              </div>
+            </div>
+          `;
+        }
+      });
+      
+      // Add smart formatting for Bus ID
+      const smartFields = new SmartFieldSuggestions();
+      smartFields.enhance('bus_id', 'busId');
+      
+      // Form validation with real-time feedback
+      const form = document.querySelector('form[action="/assign-route"]');
+      const inputs = form.querySelectorAll('input[required]');
+      
+      inputs.forEach(input => {
+        input.addEventListener('blur', function() {
+          validateField(this);
         });
       });
-
-      // Form validation feedback for route form
-      const routeForm = document.getElementById('routeForm');
-      const routeInputs = routeForm.querySelectorAll('input[required], textarea');
       
-      routeInputs.forEach(input => {
-        input.addEventListener('input', function() {
-          if (this.value.trim()) {
-            this.classList.add('valid');
-          } else {
-            this.classList.remove('valid');
-          }
-        });
+      function validateField(field) {
+        const value = field.value.trim();
+        if (!value) {
+          field.classList.add('is-invalid');
+          field.classList.remove('is-valid');
+        } else {
+          field.classList.add('is-valid');
+          field.classList.remove('is-invalid');
+        }
+      }
+    });
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize responsive tables
+      const tables = document.querySelectorAll('[data-responsive-table]');
+      tables.forEach(table => {
+        new ResponsiveTable(table.querySelector('table'));
       });
-
-      // Add loading state to assignment form submission
-      assignmentForm.addEventListener('submit', function(e) {
-        const submitBtn = assignmentForm.querySelector('button[type="submit"]');
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating Assignment...';
-        submitBtn.disabled = true;
-      });
-
-      // Add loading state to route form submission
-      routeForm.addEventListener('submit', function(e) {
-        const submitBtn = routeForm.querySelector('button[type="submit"]');
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating Route...';
-        submitBtn.disabled = true;
-      });
-
+      
       // Add confirmation to remove buttons
       const removeButtons = document.querySelectorAll('button[type="submit"][class*="btn-outline-danger"]');
       removeButtons.forEach(button => {
@@ -661,21 +663,20 @@
           }
         });
       });
-
+      
       // Auto-expand route form if no routes available
       {{if not .Data.RoutesWithStatus}}
       const addRouteCollapse = new bootstrap.Collapse(document.getElementById('addRouteForm'), {
         show: true
       });
       {{end}}
-
-      // ============= ENHANCED DELETE CONFIRMATION WITH VALIDATION =============
+      
+      // Delete route functionality
       const deleteButtons = document.querySelectorAll('.js-delete-route');
       deleteButtons.forEach(button => {
         button.addEventListener('click', function(e) {
           e.preventDefault();
           
-          // Check if button is disabled (route is assigned)
           if (this.disabled) {
             alert('Cannot delete a route that is currently assigned to a driver.');
             return;
@@ -685,10 +686,9 @@
           const routeName = this.dataset.routeName;
           
           if (confirm(`Are you sure you want to delete route "${routeName}"? This action cannot be undone.`)) {
-            // Create a form and submit it
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = '/assign-routes/delete';
+            form.action = '/delete-route';
             form.style.display = 'none';
             
             const csrfInput = document.createElement('input');
@@ -708,8 +708,8 @@
           }
         });
       });
-
-      // Add edit functionality
+      
+      // Edit route functionality
       const editButtons = document.querySelectorAll('.js-edit-route');
       editButtons.forEach(button => {
         button.addEventListener('click', function(e) {
@@ -718,29 +718,34 @@
           const routeName = this.dataset.routeName;
           const description = this.dataset.description || '';
           
-          // Create an edit form (you can also use a modal for this)
+          // Create edit form
           const editForm = document.createElement('form');
           editForm.method = 'POST';
-          editForm.action = '/assign-routes/edit';
-          editForm.className = 'p-3 bg-light border-top';
+          editForm.action = '/edit-route';
+          editForm.className = 'accessible-form edit-form-container';
           editForm.innerHTML = `
             <input type="hidden" name="csrf_token" value="${csrfToken}">
             <input type="hidden" name="route_id" value="${routeId}">
             <div class="row">
               <div class="col-md-6">
-                <label class="form-label">Route Name</label>
-                <input type="text" name="route_name" class="form-control" value="${routeName}" required>
+                <div class="form-group">
+                  <label for="edit_route_name_${routeId}" class="form-label required">Route Name</label>
+                  <input type="text" id="edit_route_name_${routeId}" name="route_name" class="form-control" value="${routeName}" required>
+                </div>
               </div>
               <div class="col-md-6">
-                <label class="form-label">Description</label>
-                <input type="text" name="description" class="form-control" value="${description}">
+                <div class="form-group">
+                  <label for="edit_description_${routeId}" class="form-label">Description</label>
+                  <input type="text" id="edit_description_${routeId}" name="description" class="form-control" value="${description}">
+                </div>
               </div>
             </div>
-            <div class="mt-3">
+            <div class="form-actions">
               <button type="submit" class="btn btn-primary">
-                <i class="bi bi-check-circle me-2"></i>Save Changes
+                <i class="bi bi-check-circle" aria-hidden="true"></i>
+                Save Changes
               </button>
-              <button type="button" class="btn btn-outline-secondary ms-2 cancel-edit">
+              <button type="button" class="btn btn-secondary cancel-edit">
                 Cancel
               </button>
             </div>
@@ -755,9 +760,12 @@
           
           // Focus on the route name input
           editForm.querySelector('input[name="route_name"]').focus();
+          
+          // Initialize form validation
+          new AccessibleForm(editForm);
         });
       });
-
+      
       // Handle cancel edit button clicks
       document.addEventListener('click', function(e) {
         if (e.target.classList.contains('cancel-edit') || e.target.closest('.cancel-edit')) {
@@ -768,17 +776,14 @@
           }
         }
       });
-
-      // Add animation to cards - REFACTORED TO USE CSS CLASSES
-      const cards = document.querySelectorAll('.enhanced-card');
-      cards.forEach((card, index) => {
-        setTimeout(() => {
-          card.classList.add('card-animate-initial');
-          setTimeout(() => {
-            card.classList.add('card-animate-final');
-          }, 100);
-        }, index * 200);
-      });
+      
+      // Add help content
+      if (window.helpSystem) {
+        window.helpSystem.addHelpContent('assignment-form', {
+          title: 'Creating Route Assignments',
+          content: 'Select a driver, route, and bus to create a new assignment. Only available drivers and buses are shown.'
+        });
+      }
     });
   </script>
 </body>
