@@ -10,6 +10,7 @@ import (
 
 // User represents a user in the system
 type User struct {
+	// NO ID field - username is the primary key
 	Username         string           `json:"username" db:"username"`
 	Password         string           `json:"password,omitempty" db:"password"`
 	Role             string           `json:"role" db:"role"`
@@ -21,7 +22,7 @@ type User struct {
 
 // Bus represents a school bus
 type Bus struct {
-	ID               int              `json:"id" db:"id"`
+	// NO ID field in database - bus_id is the primary key
 	BusID            string           `json:"bus_id" db:"bus_id"`
 	Status           string           `json:"status" db:"status"`
 	Model            sql.NullString   `json:"model" db:"model"`
@@ -75,7 +76,7 @@ func (b Bus) GetMaintenanceNotes() string {
 
 // Vehicle represents a company vehicle
 type Vehicle struct {
-	ID               int            `json:"id" db:"id"`
+	// NO ID field in database - vehicle_id is the primary key
 	VehicleID        string         `json:"vehicle_id" db:"vehicle_id"`
 	Model            sql.NullString `json:"model" db:"model"`
 	Description      sql.NullString `json:"description" db:"description"`
@@ -240,6 +241,7 @@ type MileageValidation struct {
 
 // Route represents a bus route
 type Route struct {
+	// NO ID field - route_id is the primary key
 	RouteID     string    `json:"route_id" db:"route_id"`
 	RouteName   string    `json:"route_name" db:"route_name"`
 	Description string    `json:"description" db:"description"`
@@ -249,7 +251,7 @@ type Route struct {
 
 // RouteAssignment represents a driver-bus-route assignment
 type RouteAssignment struct {
-	ID           int       `json:"id" db:"id"`
+	ID           int       `json:"id" db:"id"` // This table DOES have an id field
 	Driver       string    `json:"driver" db:"driver"`
 	BusID        string    `json:"bus_id" db:"bus_id"`
 	RouteID      string    `json:"route_id" db:"route_id"`
@@ -260,6 +262,7 @@ type RouteAssignment struct {
 
 // Student represents a student
 type Student struct {
+	// NO ID field - student_id is the primary key
 	StudentID      string    `json:"student_id" db:"student_id"`
 	Name           string    `json:"name" db:"name"`
 	Locations      string    `json:"locations" db:"locations"`
@@ -291,10 +294,9 @@ type DriverLog struct {
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 }
 
-// Replace the ECSEStudent struct in models.go with this updated version
-
 // ECSEStudent represents a special education student
 type ECSEStudent struct {
+	// NO ID field - student_id is the primary key
 	StudentID              string         `json:"student_id" db:"student_id"`
 	FirstName              string         `json:"first_name" db:"first_name"`
 	LastName               string         `json:"last_name" db:"last_name"`
@@ -321,57 +323,15 @@ type ECSEStudent struct {
 
 // MileageReport represents imported mileage data
 type MileageReport struct {
-    ID               int       `json:"id" db:"id"`
-    VehicleID        string    `json:"vehicle_id" db:"vehicle_id"`
-    Driver           string    `json:"driver" db:"driver"`
-    Month            int       `json:"month" db:"month"`  // INTEGER in DB, not string
-    Year             int       `json:"year" db:"year"`
-    BeginningMileage float64   `json:"beginning_mileage" db:"beginning_mileage"` // column name is beginning_mileage
-    EndingMileage    float64   `json:"ending_mileage" db:"ending_mileage"`       // column name is ending_mileage
-    TotalMiles       float64   `json:"total_miles" db:"total_miles"`             // DOUBLE PRECISION in DB
-    CreatedAt        time.Time `json:"created_at" db:"created_at"`
-}
-
-// Import-specific structs for mileage reports
-// AgencyVehicleRecord represents a record from the Agency Vehicle Report
-type AgencyVehicleRecord struct {
-	ReportMonth    string
-	ReportYear     int
-	VehicleYear    int
-	MakeModel      string
-	LicensePlate   string
-	VehicleID      string
-	Location       string
-	BeginningMiles int
-	EndingMiles    int
-	TotalMiles     int
-	Status         string
-	Notes          string
-}
-
-// SchoolBusRecord represents a record from the School Bus Report
-type SchoolBusRecord struct {
-	ReportMonth    string
-	ReportYear     int
-	BusYear        int
-	BusMake        string
-	LicensePlate   string
-	BusID          string
-	Location       string
-	BeginningMiles int
-	EndingMiles    int
-	TotalMiles     int
-	Status         string
-	Notes          string
-}
-
-// ProgramStaffRecord represents a record from the Program Staff Report
-type ProgramStaffRecord struct {
-	ReportMonth string
-	ReportYear  int
-	ProgramType string
-	StaffCount1 int
-	StaffCount2 int
+	ID               int       `json:"id" db:"id"`
+	VehicleID        string    `json:"vehicle_id" db:"vehicle_id"`
+	Driver           string    `json:"driver" db:"driver"`
+	Month            int       `json:"month" db:"month"`
+	Year             int       `json:"year" db:"year"`
+	BeginningMileage float64   `json:"beginning_mileage" db:"beginning_mileage"`
+	EndingMileage    float64   `json:"ending_mileage" db:"ending_mileage"`
+	TotalMiles       float64   `json:"total_miles" db:"total_miles"`
+	CreatedAt        time.Time `json:"created_at" db:"created_at"`
 }
 
 // ECSEService represents services provided to ECSE students
@@ -666,11 +626,8 @@ func (fv FleetVehicle) GetTireSize() string {
 }
 
 // GetVehicleIdentifier returns the best available identifier for the vehicle
-// This should return the actual vehicle ID for maintenance URLs to work correctly
 func (fv FleetVehicle) GetVehicleIdentifier() string {
-	// First check if we have a proper vehicle ID format
 	if fv.VehicleNumber.Valid && fv.VehicleNumber.Int32 > 0 {
-		// Return just the number without # prefix for URL compatibility
 		return fmt.Sprintf("%d", fv.VehicleNumber.Int32)
 	}
 	if fv.License.Valid && fv.License.String != "" {
@@ -684,11 +641,9 @@ func (fv FleetVehicle) GetVehicleIdentifier() string {
 
 // GetVehicleIDForMaintenance returns a properly formatted vehicle ID for maintenance URLs
 func (fv FleetVehicle) GetVehicleIDForMaintenance() string {
-	// Construct a vehicle ID that matches what's expected in the vehicles table
 	if fv.VehicleNumber.Valid && fv.VehicleNumber.Int32 > 0 {
 		return fmt.Sprintf("%d", fv.VehicleNumber.Int32)
 	}
-	// Fallback to using the primary key
 	return fmt.Sprintf("fleet-%d", fv.ID)
 }
 
@@ -908,7 +863,6 @@ func (sr ServiceRecord) GetField(index int) string {
 
 // GetVehicleInfo attempts to extract vehicle information from the data
 func (sr ServiceRecord) GetVehicleInfo() string {
-	// Based on sample data, vehicle info might be in unnamed_0 or unnamed_1
 	vehicleInfo := sr.GetField(0)
 	if vehicleInfo == "" {
 		vehicleInfo = sr.GetField(1)
@@ -921,13 +875,11 @@ func (sr ServiceRecord) GetVehicleInfo() string {
 
 // GetVehicleNumber attempts to extract vehicle number from the data
 func (sr ServiceRecord) GetVehicleNumber() string {
-	// From sample data, vehicle number might be in unnamed_2
 	return sr.GetField(2)
 }
 
 // GetServicedMiles attempts to extract serviced miles
 func (sr ServiceRecord) GetServicedMiles() string {
-	// From sample data, this might be in unnamed_3 or unnamed_4
 	miles := sr.GetField(3)
 	if miles == "" {
 		miles = sr.GetField(4)
@@ -937,25 +889,21 @@ func (sr ServiceRecord) GetServicedMiles() string {
 
 // GetLastMileage attempts to extract last mileage
 func (sr ServiceRecord) GetLastMileage() string {
-	// From sample data, this might be in unnamed_4 or unnamed_5
 	return sr.GetField(5)
 }
 
 // GetNeedsService attempts to extract needs service info
 func (sr ServiceRecord) GetNeedsService() string {
-	// From sample data, this might be in unnamed_6
 	return sr.GetField(6)
 }
 
 // GetMilesToService attempts to extract miles to service
 func (sr ServiceRecord) GetMilesToService() string {
-	// From sample data, this might be in unnamed_8
 	return sr.GetField(8)
 }
 
 // GetServiceAt attempts to extract service at mileage
 func (sr ServiceRecord) GetServiceAt() string {
-	// From sample data, this might be in unnamed_9
 	return sr.GetField(9)
 }
 
@@ -992,4 +940,70 @@ type StudentAttendance struct {
 	Position   int    `json:"position"`
 	Present    bool   `json:"present"`
 	PickupTime string `json:"pickup_time"`
+}
+
+// Import-specific structs for mileage reports
+
+// AgencyVehicleRecord represents a record from the Agency Vehicle Report
+type AgencyVehicleRecord struct {
+	ReportMonth    string
+	ReportYear     int
+	VehicleYear    int
+	MakeModel      string
+	LicensePlate   string
+	VehicleID      string
+	Location       string
+	BeginningMiles int
+	EndingMiles    int
+	TotalMiles     int
+	Status         string
+	Notes          string
+}
+
+// SchoolBusRecord represents a record from the School Bus Report
+type SchoolBusRecord struct {
+	ReportMonth    string
+	ReportYear     int
+	BusYear        int
+	BusMake        string
+	LicensePlate   string
+	BusID          string
+	Location       string
+	BeginningMiles int
+	EndingMiles    int
+	TotalMiles     int
+	Status         string
+	Notes          string
+}
+
+// ProgramStaffRecord represents a record from the Program Staff Report
+type ProgramStaffRecord struct {
+	ReportMonth string
+	ReportYear  int
+	ProgramType string
+	StaffCount1 int
+	StaffCount2 int
+}
+
+// FuelRecord represents a fuel purchase record
+type FuelRecord struct {
+	ID             int       `json:"id" db:"id"`
+	VehicleID      string    `json:"vehicle_id" db:"vehicle_id"`
+	Date           time.Time `json:"date" db:"date"`
+	Gallons        float64   `json:"gallons" db:"gallons"`
+	PricePerGallon float64   `json:"price_per_gallon" db:"price_per_gallon"`
+	Cost           float64   `json:"cost" db:"cost"`
+	Odometer       int       `json:"odometer" db:"odometer"`
+	Location       string    `json:"location" db:"location"`
+	Driver         string    `json:"driver" db:"driver"`
+	Notes          string    `json:"notes" db:"notes"`
+	CreatedAt      time.Time `json:"created_at" db:"created_at"`
+}
+
+// Helper function for minimum value
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
