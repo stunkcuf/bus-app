@@ -538,6 +538,11 @@ func setupRoutes() *http.ServeMux {
 		// Remove /static/ prefix
 		path := r.URL.Path[8:]
 
+		// Set cache control headers to prevent caching during development
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+
 		// Set content type based on file extension
 		switch {
 		case strings.HasSuffix(path, ".css"):

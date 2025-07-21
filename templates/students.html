@@ -4,30 +4,56 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Management - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="/static/accessible_design_system.css">
+  <link rel="stylesheet" href="/static/modern_theme.css">
   <link rel="stylesheet" href="/static/responsive_tables.css">
   <link rel="stylesheet" href="/static/help_system.css">
-  <link rel="stylesheet" href="/static/accessible_forms.css">
   <link rel="stylesheet" href="/static/enhanced_help_system.css">
-  <link rel="stylesheet" href="/static/mobile_responsive.css">
   <link rel="stylesheet" href="/static/autocomplete.css">
   <style nonce="{{.CSPNonce}}">
-    /* Students specific styles */
+    /* Students page with purple theme */
+    .students-header {
+      color: white !important;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      margin-bottom: 2rem;
+    }
+    
+    .students-header i {
+      color: white !important;
+    }
+    
+    /* Student cards with gradient accents */
     .student-card {
       position: relative;
       height: 100%;
-      transition: transform var(--transition-base);
+      transition: all 0.3s ease;
+      background: rgba(255, 255, 255, 0.98);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .student-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
     
     .student-card:hover {
-      transform: translateY(-2px);
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     }
     
+    /* Student avatar with gradient */
     .student-avatar {
       width: 60px;
       height: 60px;
-      background: var(--color-info);
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
       color: var(--color-text-inverse);
       border-radius: 50%;
       display: flex;
@@ -37,24 +63,27 @@
       margin-right: var(--space-md);
     }
     
+    /* Student status badges with gradients */
     .student-status {
       display: inline-flex;
       align-items: center;
-      gap: var(--space-xs);
-      padding: var(--space-xs) var(--space-md);
-      border-radius: var(--border-radius-base);
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
       font-weight: 600;
-      font-size: var(--font-size-small);
+      font-size: 0.875rem;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
     
     .student-status.active {
-      background: var(--color-success-light);
-      color: var(--color-success-dark);
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      box-shadow: 0 2px 8px rgba(17, 153, 142, 0.3);
     }
     
     .student-status.inactive {
-      background: var(--color-danger-light);
-      color: var(--color-danger-dark);
+      background: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
+      box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
     }
     
     .location-badge {

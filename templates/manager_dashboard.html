@@ -4,70 +4,376 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Manager Dashboard - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="/static/accessible_design_system.css">
-  <link rel="stylesheet" href="/static/visual_hierarchy.css">
+  <link rel="stylesheet" href="/static/modern_theme.css">
   <link rel="stylesheet" href="/static/help_system.css">
   <link rel="stylesheet" href="/static/enhanced_help_system.css">
-  <link rel="stylesheet" href="/static/mobile_responsive.css">
   <link rel="stylesheet" href="/static/autocomplete.css">
   <style nonce="{{.CSPNonce}}">
-    /* Dashboard specific styles */
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: var(--space-lg);
-      margin-bottom: var(--space-xl);
+    /* Beautiful gradient background like login page */
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     }
     
-    .metric-icon {
-      font-size: 2.5rem;
-      opacity: 0.9;
+    /* Main content wrapper with glass effect */
+    .page-wrapper {
+      min-height: 100vh;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
     }
     
-    .metric-value {
-      font-size: var(--font-size-xl);
-      font-weight: 700;
-      margin: var(--space-sm) 0;
+    .main-content {
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
     }
     
-    .metric-label {
-      font-size: var(--font-size-base);
-      color: var(--color-text-secondary);
+    /* Navigation override for purple theme */
+    .navbar {
+      background: rgba(255, 255, 255, 0.95) !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     }
     
+    .navbar-brand, .navbar-nav .nav-link {
+      color: #667eea !important;
+    }
+    
+    /* Enhanced card styling */
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+      backdrop-filter: blur(4px);
+    }
+    
+    /* Colorful metric cards with different gradients */
+    .metric-card {
+      background: rgba(255, 255, 255, 0.95);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .metric-card:nth-child(1) .metric-icon {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .metric-card:nth-child(2) .metric-icon {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .metric-card:nth-child(3) .metric-icon {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .metric-card:nth-child(4) .metric-icon {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .metric-card:nth-child(1)::before {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .metric-card:nth-child(2)::before {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+    
+    .metric-card:nth-child(3)::before {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .metric-card:nth-child(4)::before {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+    
+    /* Section headings with white text on purple background */
+    .section-heading {
+      color: white !important;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .section-heading i {
+      color: white !important;
+    }
+    
+    /* Quick actions grid for dashboard */
     .quick-actions {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: var(--space-md);
-      margin-bottom: var(--space-xl);
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
     }
     
+    /* Quick action cards with beautiful gradients */
     .quick-action {
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      padding: var(--space-lg);
-      background: var(--color-bg-secondary);
-      border: 2px solid var(--border-color);
-      border-radius: var(--border-radius-lg);
+      padding: 2rem 1.5rem;
+      background: white;
+      border: none;
+      border-radius: 20px;
       text-decoration: none;
-      color: var(--color-text-primary);
-      transition: all var(--transition-base);
-      min-height: var(--touch-target-large);
+      color: white;
+      transition: all 0.3s ease;
+      min-height: 160px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Different gradient backgrounds for each quick action */
+    .quick-action:nth-child(1) {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .quick-action:nth-child(2) {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    .quick-action:nth-child(3) {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .quick-action:nth-child(4) {
+      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+    
+    .quick-action:nth-child(5) {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+    
+    .quick-action:nth-child(6) {
+      background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+    }
+    
+    .quick-action:nth-child(7) {
+      background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    }
+    
+    .quick-action:nth-child(8) {
+      background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+    }
+    
+    .quick-action:nth-child(9) {
+      background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    }
+    
+    /* Shimmer effect on hover */
+    .quick-action::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%);
+      transform: rotate(45deg) translateX(-100%);
+      transition: transform 0.6s;
+    }
+    
+    .quick-action:hover::before {
+      transform: rotate(45deg) translateX(100%);
     }
     
     .quick-action:hover {
-      background: var(--color-primary-light);
-      border-color: var(--color-primary);
-      transform: translateY(-2px);
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
     }
     
     .quick-action i {
-      font-size: 2rem;
-      margin-bottom: var(--space-sm);
-      color: var(--color-primary);
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      color: white;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+      transition: all 0.3s ease;
+      z-index: 1;
+      position: relative;
+    }
+    
+    .quick-action:hover i {
+      transform: scale(1.2) rotate(5deg);
+    }
+    
+    .quick-action span {
+      font-weight: 600;
+      font-size: 1.15rem;
+      color: white;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      z-index: 1;
+      position: relative;
+    }
+    
+    /* Data grid for metrics */
+    .data-grid-primary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    /* Activity list */
+    .activity-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .activity-item {
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+      border-bottom: 1px solid #e9ecef;
+      transition: background var(--transition-fast);
+    }
+    
+    .activity-item:hover {
+      background: #f8f9fa;
+    }
+    
+    .activity-item:last-child {
+      border-bottom: none;
+    }
+    
+    .activity-item i {
+      font-size: 1.25rem;
+      margin-right: 1rem;
+      flex-shrink: 0;
+    }
+    
+    .activity-time {
+      margin-left: auto;
+      color: var(--color-text-secondary);
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    
+    /* Alert header */
+    .alert-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+    
+    /* Beautiful alert styling */
+    .alert-warning {
+      background: linear-gradient(135deg, #fff3cd 0%, #ffe8a1 100%);
+      border: none;
+      color: #664d03;
+      box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2);
+    }
+    
+    /* Enhanced form controls */
+    .form-control {
+      background: rgba(255, 255, 255, 0.9);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-control:focus {
+      background: white;
+      border-color: #667eea;
+      box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+    }
+    
+    /* Beautiful section backgrounds */
+    .content-section {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      backdrop-filter: blur(5px);
+    }
+    
+    /* Text colors for visibility */
+    .text-success { color: #10b981 !important; }
+    .text-info { color: #3b82f6 !important; }
+    .text-warning { color: #f59e0b !important; }
+    
+    /* Animations with staggered delays */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.05);
+      }
+    }
+    
+    .metric-card {
+      animation: fadeInUp 0.5s ease-out;
+      animation-fill-mode: both;
+    }
+    
+    .metric-card:nth-child(1) { animation-delay: 0.1s; }
+    .metric-card:nth-child(2) { animation-delay: 0.2s; }
+    .metric-card:nth-child(3) { animation-delay: 0.3s; }
+    .metric-card:nth-child(4) { animation-delay: 0.4s; }
+    
+    .quick-action {
+      animation: fadeInUp 0.6s ease-out;
+      animation-fill-mode: both;
+    }
+    
+    .quick-action:nth-child(1) { animation-delay: 0.1s; }
+    .quick-action:nth-child(2) { animation-delay: 0.15s; }
+    .quick-action:nth-child(3) { animation-delay: 0.2s; }
+    .quick-action:nth-child(4) { animation-delay: 0.25s; }
+    .quick-action:nth-child(5) { animation-delay: 0.3s; }
+    .quick-action:nth-child(6) { animation-delay: 0.35s; }
+    .quick-action:nth-child(7) { animation-delay: 0.4s; }
+    .quick-action:nth-child(8) { animation-delay: 0.45s; }
+    .quick-action:nth-child(9) { animation-delay: 0.5s; }
+    
+    /* Floating animation for metrics */
+    .metric-card:hover {
+      animation: pulse 2s infinite;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .quick-actions {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+      }
+      
+      .quick-action {
+        padding: 1.5rem 1rem;
+        min-height: 130px;
+      }
+      
+      .quick-action i {
+        font-size: 2.5rem;
+      }
+      
+      .quick-action span {
+        font-size: 1rem;
+      }
     }
   </style>
 </head>
@@ -111,36 +417,36 @@
         </h2>
         <div class="data-grid-primary">
           <!-- Total Buses -->
-          <div class="card">
-            <div class="card-body text-center">
-              <i class="bi bi-bus-front-fill metric-icon" style="color: var(--color-primary);" aria-hidden="true"></i>
+          <div class="metric-card">
+            <div class="text-center">
+              <i class="bi bi-bus-front-fill metric-icon" style="color: #667eea;" aria-hidden="true"></i>
               <div class="metric-value">{{.TotalBuses}}</div>
               <div class="metric-label">Total Buses</div>
             </div>
           </div>
           
           <!-- Active Drivers -->
-          <div class="card">
-            <div class="card-body text-center">
-              <i class="bi bi-people-fill metric-icon" style="color: var(--color-success);" aria-hidden="true"></i>
+          <div class="metric-card">
+            <div class="text-center">
+              <i class="bi bi-people-fill metric-icon" style="color: #11998e;" aria-hidden="true"></i>
               <div class="metric-value">{{.TotalDrivers}}</div>
               <div class="metric-label">Active Drivers</div>
             </div>
           </div>
           
           <!-- Total Students -->
-          <div class="card">
-            <div class="card-body text-center">
-              <i class="bi bi-person-badge-fill metric-icon" style="color: var(--color-info);" aria-hidden="true"></i>
+          <div class="metric-card">
+            <div class="text-center">
+              <i class="bi bi-person-badge-fill metric-icon" style="color: #4facfe;" aria-hidden="true"></i>
               <div class="metric-value">{{.TotalStudents}}</div>
               <div class="metric-label">Total Students</div>
             </div>
           </div>
           
           <!-- Active Routes -->
-          <div class="card">
-            <div class="card-body text-center">
-              <i class="bi bi-map-fill metric-icon" style="color: var(--color-warning);" aria-hidden="true"></i>
+          <div class="metric-card">
+            <div class="text-center">
+              <i class="bi bi-map-fill metric-icon" style="color: #fa709a;" aria-hidden="true"></i>
               <div class="metric-value">{{.ActiveRoutes}}</div>
               <div class="metric-label">Active Routes</div>
             </div>

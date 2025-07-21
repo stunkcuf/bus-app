@@ -4,53 +4,106 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Assign Routes - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="/static/accessible_design_system.css">
-  <link rel="stylesheet" href="/static/visual_hierarchy.css">
+  <link rel="stylesheet" href="/static/modern_theme.css">
   <link rel="stylesheet" href="/static/responsive_tables.css">
   <link rel="stylesheet" href="/static/help_system.css">
-  <link rel="stylesheet" href="/static/accessible_forms.css">
   <link rel="stylesheet" href="/static/workflow_guides.css">
   <link rel="stylesheet" href="/static/enhanced_help_system.css">
   <link rel="stylesheet" href="/static/wizard.css">
   <link rel="stylesheet" href="/static/autocomplete.css">
   <style nonce="{{.CSPNonce}}">
-    /* Route Assignment specific styles */
+    /* Route Assignment with purple theme */
+    .routes-header {
+      color: white !important;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      margin-bottom: 2rem;
+    }
+    
+    .routes-header i {
+      color: white !important;
+    }
+    
+    /* Assignment rows with hover effects */
     .assignment-row {
-      transition: all var(--transition-base);
+      transition: all 0.3s ease;
       border-left: 4px solid transparent;
+      background: rgba(255, 255, 255, 0.95);
     }
     
     .assignment-row:hover {
-      background-color: var(--color-bg-tertiary);
-      border-left-color: var(--color-primary);
+      background: rgba(255, 255, 255, 1);
+      border-left-color: #667eea;
+      transform: translateX(5px);
+      box-shadow: 0 3px 15px rgba(102, 126, 234, 0.2);
     }
     
+    /* Status badges with gradients */
     .status-available {
-      background: var(--color-success-light);
-      color: var(--color-success-dark);
-      padding: var(--space-xs) var(--space-md);
-      border-radius: var(--border-radius-base);
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
       font-weight: 600;
       display: inline-block;
+      box-shadow: 0 2px 8px rgba(17, 153, 142, 0.3);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
     
     .status-assigned {
-      background: var(--color-info-light);
-      color: var(--color-info-dark);
-      padding: var(--space-xs) var(--space-md);
-      border-radius: var(--border-radius-base);
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
       font-weight: 600;
       display: inline-block;
+      box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
     
     .status-maintenance {
-      background: var(--color-warning-light);
-      color: var(--color-warning-dark);
-      padding: var(--space-xs) var(--space-md);
-      border-radius: var(--border-radius-base);
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
       font-weight: 600;
       display: inline-block;
+      box-shadow: 0 2px 8px rgba(250, 112, 154, 0.3);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Gradient buttons for actions */
+    .btn-assign {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      color: white;
+      padding: 0.5rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-assign:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-unassign {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
+      border: none;
+      color: white;
+      padding: 0.5rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+    }
+    
+    .btn-unassign:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
     }
     
     .assignment-icon {

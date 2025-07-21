@@ -123,10 +123,10 @@ func CSPMiddleware(next http.Handler) http.Handler {
 		// Set CSP header
 		csp := fmt.Sprintf(
 			"default-src 'self'; "+
-				"script-src 'self' 'nonce-%s' https://cdnjs.cloudflare.com; "+
-				"style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "+
+				"script-src 'self' 'unsafe-inline' 'nonce-%s' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "+
+				"style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "+
 				"img-src 'self' data: https:; "+
-				"font-src 'self' https://cdnjs.cloudflare.com; "+
+				"font-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "+
 				"connect-src 'self'; "+
 				"frame-ancestors 'none'; "+
 				"base-uri 'self'; "+
