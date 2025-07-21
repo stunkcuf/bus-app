@@ -4,248 +4,773 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Import ECSE Report - Fleet Management System</title>
-  <!-- Bootstrap 5 CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <!-- Modern Theme CSS - Primary styling -->
-  <link rel="stylesheet" href="/static/modern_theme.css">
-  <!-- Help System CSS -->
-  <link rel="stylesheet" href="/static/help_system.css">
-  <link rel="stylesheet" href="/static/enhanced_help_system.css">
-  <!-- Auto-complete CSS -->
-  <link rel="stylesheet" href="/static/autocomplete.css">
   <style nonce="{{.CSPNonce}}">
-    /* Custom file upload styling */
-    .file-upload-area {
-      border: 3px dashed var(--border-color);
-      border-radius: var(--border-radius-lg);
-      padding: var(--space-xxl);
+    /* Ultimate beautiful design system */
+    :root {
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-upload: linear-gradient(135deg, #4facfe 0%, #43e97b 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
+      color: white;
+    }
+    
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(79, 172, 254, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(67, 233, 123, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(240, 147, 251, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 40s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      25% { transform: translate(40px, -40px) rotate(90deg); }
+      50% { transform: translate(-30px, 30px) rotate(180deg); }
+      75% { transform: translate(-40px, -30px) rotate(270deg); }
+    }
+    
+    /* Floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: 0.5;
+      animation: float 35s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.8), transparent);
+      top: -250px;
+      right: -250px;
+    }
+    
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(67, 233, 123, 0.6), transparent);
+      bottom: -200px;
+      left: -200px;
+      animation-delay: -12s;
+    }
+    
+    .orb3 {
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -24s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+      25% { transform: translate(70px, -70px) scale(1.1) rotate(90deg); }
+      50% { transform: translate(-50px, 50px) scale(0.9) rotate(180deg); }
+      75% { transform: translate(-70px, -50px) scale(1.05) rotate(270deg); }
+    }
+    
+    /* Glassmorphism navigation */
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+      transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    }
+    
+    .navbar-brand i {
+      font-size: 2rem;
+      background: var(--gradient-3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 3rem 0 2rem;
       text-align: center;
-      transition: all var(--transition-base);
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #4facfe, #43e97b, #fa709a, #4facfe);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-size: 200% auto;
+      animation: shimmer 3s ease infinite;
+    }
+    
+    @keyframes shimmer {
+      to {
+        background-position: 200% center;
+      }
+    }
+    
+    /* Info box */
+    .ecse-info-box {
+      background: rgba(79, 172, 254, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      border: 1px solid rgba(79, 172, 254, 0.3);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .ecse-info-box::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      right: -100px;
+      width: 300px;
+      height: 300px;
+      background: var(--gradient-3);
+      opacity: 0.1;
+      border-radius: 50%;
+    }
+    
+    .ecse-info-box h2 {
+      color: white;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .ecse-info-box i {
+      background: var(--gradient-3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    /* Alerts */
+    .alert {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid;
+      color: white;
+    }
+    
+    .alert-danger {
+      border-color: rgba(245, 87, 108, 0.5);
+      background: rgba(245, 87, 108, 0.1);
+    }
+    
+    .alert-success {
+      border-color: rgba(67, 233, 123, 0.5);
+      background: rgba(67, 233, 123, 0.1);
+    }
+    
+    /* Main upload card */
+    .upload-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+      margin-bottom: 2rem;
+    }
+    
+    .upload-card-header {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .upload-card-header h2 {
+      margin: 0;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .upload-card-header i {
+      background: var(--gradient-upload);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .upload-card-body {
+      padding: 2rem;
+    }
+    
+    /* File upload area */
+    .file-upload-area {
+      border: 3px dashed rgba(79, 172, 254, 0.5);
+      border-radius: 25px;
+      padding: 4rem 2rem;
+      text-align: center;
+      background: rgba(79, 172, 254, 0.05);
+      transition: all 0.3s ease;
       cursor: pointer;
-      background: var(--color-bg-secondary);
-      min-height: var(--touch-target-large);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .file-upload-area::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 300px;
+      height: 300px;
+      background: var(--gradient-upload);
+      opacity: 0.1;
+      border-radius: 50%;
+      filter: blur(100px);
+      transition: all 0.5s ease;
     }
     
     .file-upload-area:hover {
-      border-color: var(--color-primary);
-      background: var(--color-primary-light);
+      border-color: rgba(79, 172, 254, 0.8);
+      background: rgba(79, 172, 254, 0.1);
+      transform: scale(1.02);
+    }
+    
+    .file-upload-area:hover::before {
+      width: 400px;
+      height: 400px;
+      opacity: 0.2;
     }
     
     .file-upload-area.drag-over {
-      border-color: var(--color-success);
-      background: var(--color-success-light);
-      transform: scale(1.02);
+      border-color: rgba(67, 233, 123, 0.8);
+      background: rgba(67, 233, 123, 0.1);
+      animation: pulse 1s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+    
+    .file-upload-area i {
+      font-size: 5rem;
+      background: var(--gradient-upload);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 1.5rem;
+      display: inline-block;
+      animation: iconFloat 3s ease-in-out infinite;
+    }
+    
+    @keyframes iconFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+    
+    .file-upload-area h3 {
+      font-size: 1.75rem;
+      margin-bottom: 0.5rem;
+      color: white;
+    }
+    
+    .file-upload-area p {
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 1.5rem;
+    }
+    
+    .btn-upload {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(79, 172, 254, 0.5);
+      color: white;
+      padding: 0.75rem 2rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-upload:hover {
+      background: var(--gradient-3);
+      border-color: transparent;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(79, 172, 254, 0.5);
+      color: white;
     }
     
     .file-input {
       display: none;
     }
     
+    /* File info */
     .file-info {
-      background: var(--color-bg-tertiary);
-      border-radius: var(--border-radius-base);
-      padding: var(--space-lg);
-      margin-top: var(--space-md);
+      background: rgba(67, 233, 123, 0.1);
+      border: 1px solid rgba(67, 233, 123, 0.3);
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
       display: none;
     }
     
     .file-info.show {
       display: block;
+      animation: slideIn 0.5s ease;
     }
     
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .file-info-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .file-info-main {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .file-info-main i {
+      font-size: 2rem;
+      color: #43e97b;
+    }
+    
+    /* Submit button */
+    .btn-import {
+      background: var(--gradient-upload);
+      border: none;
+      color: white;
+      padding: 1rem 3rem;
+      border-radius: 30px;
+      font-weight: 600;
+      font-size: 1.1rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-import:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(79, 172, 254, 0.6);
+    }
+    
+    .btn-import:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-reset {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 1rem 2rem;
+      border-radius: 30px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-reset:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+      color: white;
+    }
+    
+    /* Instructions section */
+    .instructions-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+    
+    .instructions-card h3 {
+      color: white;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .instructions-card i {
+      background: var(--gradient-5);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    /* Table styling */
     .format-table {
-      font-size: var(--font-size-base);
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 0.5rem;
     }
     
-    .format-table th {
-      background: var(--color-bg-tertiary);
+    .format-table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      font-size: 0.85rem;
+      border: none;
+    }
+    
+    .format-table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .format-table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(5px);
+    }
+    
+    .format-table td,
+    .format-table th[scope="row"] {
+      padding: 1rem;
+      color: white;
+      border: none;
+    }
+    
+    .format-table th[scope="row"] {
       font-weight: 600;
     }
     
-    .ecse-info-box {
-      background: var(--color-info-light);
-      border-radius: var(--border-radius-lg);
-      padding: var(--space-xl);
-      margin-bottom: var(--space-xl);
-      border: 1px solid var(--color-info);
+    /* Info box lists */
+    .info-box {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
     }
     
-    .ecse-info-box h5 {
-      color: var(--color-info-dark);
-      margin-bottom: var(--space-sm);
+    .info-box h4 {
+      color: white;
+      margin-bottom: 1rem;
+    }
+    
+    .checklist {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .checklist li {
+      padding: 0.5rem 0;
+      color: rgba(255, 255, 255, 0.9);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .checklist li::before {
+      content: '✓';
+      width: 24px;
+      height: 24px;
+      background: var(--gradient-4);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .fade-in:nth-child(1) { animation-delay: 0.1s; }
+    .fade-in:nth-child(2) { animation-delay: 0.2s; }
+    .fade-in:nth-child(3) { animation-delay: 0.3s; }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero-content h1 {
+        font-size: 2rem;
+      }
+      
+      .file-upload-area {
+        padding: 3rem 1.5rem;
+      }
+      
+      .file-upload-area i {
+        font-size: 3.5rem;
+      }
+      
+      .format-table {
+        font-size: 0.9rem;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="page-wrapper">
-    <!-- Navigation Component -->
-    {{template "navigation" (dict "Navigation" .Navigation "CSPNonce" .CSPNonce "ShowHelpButton" .ShowHelpButton "PageDescription" "Import ECSE student data from Excel")}}
-    
-    <!-- Page Actions -->
-    <header class="page-actions">
-
+  <!-- Floating orbs -->
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  
+  <!-- Navigation -->
+  <nav class="navbar-glass">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <a href="/manager-dashboard" class="navbar-brand">
+          <i class="bi bi-bus-front-fill"></i>
+          <span>Fleet Management</span>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+          <a href="/ecse-dashboard" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-arrow-left"></i> ECSE Dashboard
+          </a>
+          <form method="POST" action="/logout" class="m-0">
+            <button type="submit" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="fade-in">Import ECSE Data</h1>
+        <p class="lead fade-in" style="opacity: 0.9;">Upload Excel files with special education student information</p>
+      </div>
+    </div>
+  </section>
+  
+  <div class="container">
     <!-- ECSE Info Box -->
-    <div class="ecse-info-box">
-      <h2><i class="bi bi-info-circle" aria-hidden="true"></i>What is ECSE?</h2>
+    <div class="ecse-info-box fade-in">
+      <h2><i class="bi bi-info-circle"></i>What is ECSE?</h2>
       <p>Early Childhood Special Education (ECSE) reports contain data about special education services provided to young children, including student information, enrollment status, services received, and transportation details.</p>
     </div>
 
     <!-- Alerts -->
     {{if .Data.Error}}
-    <div class="alert alert-danger" role="alert">
+    <div class="alert alert-danger fade-in" role="alert">
       <div class="alert-header">
-        <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+        <i class="bi bi-exclamation-triangle-fill"></i>
         <strong>Import Error</strong>
       </div>
-      <p>{{.Data.Error}}</p>
+      <p class="mb-0">{{.Data.Error}}</p>
     </div>
     {{end}}
     
     {{if .Data.Success}}
-    <div class="alert alert-success" role="alert">
+    <div class="alert alert-success fade-in" role="alert">
       <div class="alert-header">
-        <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+        <i class="bi bi-check-circle-fill"></i>
         <strong>Success!</strong>
       </div>
-      <p>{{.Data.Success}}</p>
+      <p class="mb-0">{{.Data.Success}}</p>
     </div>
     {{end}}
 
     <!-- Main Import Card -->
-    <main id="main-content" class="main-content">
-      <div class="card">
-        <div class="card-header">
-          <h2>
-            <i class="bi bi-file-earmark-excel" aria-hidden="true"></i>
-            Upload ECSE Report
-          </h2>
-          <p class="card-description">Select your Excel file to import ECSE student data</p>
-        </div>
-        
-        <div class="card-body">
-          <form method="POST" action="/import-ecse" enctype="multipart/form-data" id="importForm" class="accessible-form">
-            <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
-            
-            <div class="form-group">
-              <label for="fileInput" class="form-label required">
-                <i class="bi bi-file-earmark-excel" aria-hidden="true"></i>
-                Excel File
-              </label>
-              <div class="form-help">
-                <i class="bi bi-info-circle form-help-icon" aria-hidden="true"></i>
-                Choose your ECSE data file in Excel format (.xlsx or .xls)
-              </div>
-              
-              <div class="file-upload-area" id="uploadArea">
-                <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
-                <h3>Drag & Drop Excel File Here</h3>
-                <p>or click to browse for file</p>
-                <input type="file" name="excel_file" id="fileInput" class="file-input" accept=".xlsx,.xls" required>
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">
-                  <i class="bi bi-folder2-open" aria-hidden="true"></i>
-                  Choose File
-                </button>
-              </div>
-              
-              <div class="file-info" id="fileInfo">
-                <div class="file-info-content">
-                  <div class="file-info-main">
-                    <i class="bi bi-file-earmark-excel" aria-hidden="true"></i>
-                    <span id="fileName"></span>
-                  </div>
-                  <span class="file-info-size" id="fileSize"></span>
+    <div class="upload-card fade-in">
+      <div class="upload-card-header">
+        <h2>
+          <i class="bi bi-file-earmark-excel"></i>
+          Upload ECSE Report
+        </h2>
+        <p class="mb-0" style="opacity: 0.8;">Select your Excel file to import ECSE student data</p>
+      </div>
+      
+      <div class="upload-card-body">
+        <form method="POST" action="/import-ecse" enctype="multipart/form-data" id="importForm">
+          <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
+          
+          <div class="file-upload-area" id="uploadArea">
+            <i class="bi bi-cloud-arrow-up"></i>
+            <h3>Drag & Drop Excel File Here</h3>
+            <p>or click to browse for file</p>
+            <input type="file" name="excel_file" id="fileInput" class="file-input" accept=".xlsx,.xls" required>
+            <button type="button" class="btn-upload" onclick="document.getElementById('fileInput').click()">
+              <i class="bi bi-folder2-open"></i>
+              Choose File
+            </button>
+          </div>
+          
+          <div class="file-info" id="fileInfo">
+            <div class="file-info-content">
+              <div class="file-info-main">
+                <i class="bi bi-file-earmark-excel"></i>
+                <div>
+                  <div id="fileName" style="font-weight: 600;"></div>
+                  <div id="fileSize" style="opacity: 0.8; font-size: 0.9rem;"></div>
                 </div>
               </div>
-            </div>
-            
-            <div class="form-buttons">
-              <button type="submit" class="form-btn form-btn-primary" id="importBtn" disabled>
-                <i class="bi bi-upload" aria-hidden="true"></i>
-                Import ECSE Data
-              </button>
-              <button type="reset" class="form-btn form-btn-secondary" id="resetBtn">
-                <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
-                Reset Form
-              </button>
-            </div>
-          </form>
-
-          <!-- Instructions -->
-          <div class="card-section">
-            <h3>
-              <i class="bi bi-info-circle" aria-hidden="true"></i>
-              Excel File Format Requirements
-            </h3>
-            
-            <div class="info-box">
-              <p>Your ECSE Excel file should contain the following types of data:</p>
-              <div class="table-responsive">
-                <table class="table format-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Data Category</th>
-                      <th scope="col">Description</th>
-                      <th scope="col">Examples</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <th scope="row">Student Information</th>
-                      <td>Basic student demographics</td>
-                      <td>Name, ID, DOB, Grade</td>
-                    </tr>
-                    <tr>
-                      <th scope="row">Enrollment Status</th>
-                      <td>Current enrollment information</td>
-                      <td>Active, Inactive, Transfer</td>
-                    </tr>
-                    <tr>
-                      <th scope="row">Service Details</th>
-                      <td>Special education services</td>
-                      <td>IEP, Speech, OT, PT</td>
-                    </tr>
-                    <tr>
-                      <th scope="row">Transportation</th>
-                      <td>Transportation requirements</td>
-                      <td>Bus Route, Special Needs</td>
-                    </tr>
-                    <tr>
-                      <th scope="row">Contact Information</th>
-                      <td>Parent/Guardian contacts</td>
-                      <td>Phone, Email, Address</td>
-                    </tr>
-                    <tr>
-                      <th scope="row">Assessment Data</th>
-                      <td>Evaluation and progress data</td>
-                      <td>Test scores, Goals, Progress</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            
-            <div class="info-box">
-              <h4>Important Notes:</h4>
-              <ul class="checklist">
-                <li>The system will automatically detect column headers</li>
-                <li>Student IDs must be unique</li>
-                <li>Dates should be in MM/DD/YYYY or similar format</li>
-                <li>The system will validate data and report any issues</li>
-                <li>Maximum file size: 10MB</li>
-                <li>Supported formats: .xlsx and .xls</li>
-                <li>Multiple sheets will be processed if present</li>
-              </ul>
+              <i class="bi bi-check-circle-fill" style="color: #43e97b; font-size: 1.5rem;"></i>
             </div>
           </div>
+          
+          <div class="d-flex gap-3 justify-content-center mt-4">
+            <button type="submit" class="btn-import" id="importBtn" disabled>
+              <i class="bi bi-upload"></i>
+              Import ECSE Data
+            </button>
+            <button type="reset" class="btn-reset" id="resetBtn">
+              <i class="bi bi-arrow-clockwise"></i>
+              Reset Form
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="instructions-card fade-in">
+      <h3>
+        <i class="bi bi-info-circle"></i>
+        Excel File Format Requirements
+      </h3>
+      
+      <div class="info-box">
+        <p>Your ECSE Excel file should contain the following types of data:</p>
+        <div class="table-responsive">
+          <table class="format-table">
+            <thead>
+              <tr>
+                <th scope="col">Data Category</th>
+                <th scope="col">Description</th>
+                <th scope="col">Examples</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Student Information</th>
+                <td>Basic student demographics</td>
+                <td style="opacity: 0.8;">Name, ID, DOB, Grade</td>
+              </tr>
+              <tr>
+                <th scope="row">Enrollment Status</th>
+                <td>Current enrollment information</td>
+                <td style="opacity: 0.8;">Active, Inactive, Transfer</td>
+              </tr>
+              <tr>
+                <th scope="row">Service Details</th>
+                <td>Special education services</td>
+                <td style="opacity: 0.8;">IEP, Speech, OT, PT</td>
+              </tr>
+              <tr>
+                <th scope="row">Transportation</th>
+                <td>Transportation requirements</td>
+                <td style="opacity: 0.8;">Bus Route, Special Needs</td>
+              </tr>
+              <tr>
+                <th scope="row">Contact Information</th>
+                <td>Parent/Guardian contacts</td>
+                <td style="opacity: 0.8;">Phone, Email, Address</td>
+              </tr>
+              <tr>
+                <th scope="row">Assessment Data</th>
+                <td>Evaluation and progress data</td>
+                <td style="opacity: 0.8;">Test scores, Goals, Progress</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
-    </main>
+      
+      <div class="info-box">
+        <h4>Important Notes:</h4>
+        <ul class="checklist">
+          <li>The system will automatically detect column headers</li>
+          <li>Student IDs must be unique</li>
+          <li>Dates should be in MM/DD/YYYY or similar format</li>
+          <li>The system will validate data and report any issues</li>
+          <li>Maximum file size: 10MB</li>
+          <li>Supported formats: .xlsx and .xls</li>
+          <li>Multiple sheets will be processed if present</li>
+        </ul>
+      </div>
+    </div>
   </div>
 
-  <script src="/static/accessible_forms.js"></script>
-  <script src="/static/workflow_guides.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="{{.CSPNonce}}">
     document.addEventListener('DOMContentLoaded', function() {
       const fileInput = document.getElementById('fileInput');
@@ -256,31 +781,6 @@
       const importBtn = document.getElementById('importBtn');
       const importForm = document.getElementById('importForm');
       const resetBtn = document.getElementById('resetBtn');
-      
-      // Initialize accessible form
-      const accessibleForm = new AccessibleForm(importForm, {
-        customValidators: {
-          'excel_file': function(value, field) {
-            if (!field.files || field.files.length === 0) {
-              return 'Please select an Excel file';
-            }
-            
-            const file = field.files[0];
-            const validExtensions = ['.xls', '.xlsx'];
-            const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-            
-            if (!validExtensions.includes(fileExtension)) {
-              return 'Please select a valid Excel file (.xlsx or .xls)';
-            }
-            
-            if (file.size > 10 * 1024 * 1024) {
-              return 'File size must be less than 10MB';
-            }
-            
-            return null;
-          }
-        }
-      });
       
       // File input change handler
       fileInput.addEventListener('change', function(e) {
@@ -324,21 +824,32 @@
         if (files.length > 0) {
           const file = files[0];
           
+          // Validate file type
+          const validExtensions = ['.xls', '.xlsx'];
+          const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+          
+          if (!validExtensions.includes(fileExtension)) {
+            showNotification('Please select a valid Excel file (.xlsx or .xls)', 'error');
+            return;
+          }
+          
+          // Validate file size (10MB max)
+          if (file.size > 10 * 1024 * 1024) {
+            showNotification('File size must be less than 10MB', 'error');
+            return;
+          }
+          
           // Update UI
           fileName.textContent = file.name;
           fileSize.textContent = formatFileSize(file.size);
           fileInfo.classList.add('show');
           importBtn.disabled = false;
           
-          // Update upload area text
+          // Update upload area
           uploadArea.querySelector('h3').textContent = 'File Selected';
           uploadArea.querySelector('p').textContent = 'Click to change file';
-          
-          // Announce to screen readers
-          const liveRegion = document.getElementById('form-live-region');
-          if (liveRegion) {
-            liveRegion.textContent = `File selected: ${file.name}, size: ${formatFileSize(file.size)}`;
-          }
+          uploadArea.style.borderColor = 'rgba(67, 233, 123, 0.5)';
+          uploadArea.style.background = 'rgba(67, 233, 123, 0.05)';
         }
       }
       
@@ -354,7 +865,8 @@
       // Form submission
       importForm.addEventListener('submit', function(e) {
         importBtn.disabled = true;
-        importBtn.innerHTML = '<i class="bi bi-hourglass-split" aria-hidden="true"></i> Processing ECSE Data...';
+        importBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing ECSE Data...';
+        importBtn.style.background = 'var(--gradient-5)';
       });
       
       // Reset form handler
@@ -365,15 +877,63 @@
         importBtn.disabled = true;
         uploadArea.querySelector('h3').textContent = 'Drag & Drop Excel File Here';
         uploadArea.querySelector('p').textContent = 'or click to browse for file';
-        
-        // Reset validation
-        accessibleForm.reset();
+        uploadArea.style.borderColor = '';
+        uploadArea.style.background = '';
       });
       
-      // Initialize workflow guides for this page
-      if (window.workflowGuides) {
-        window.workflowGuides.autoShowGuide();
+      // Show notification
+      function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = 'notification-toast';
+        notification.style.cssText = `
+          position: fixed;
+          top: 2rem;
+          right: 2rem;
+          background: ${type === 'error' ? 'rgba(245, 87, 108, 0.9)' : 'rgba(67, 233, 123, 0.9)'};
+          backdrop-filter: blur(10px);
+          color: white;
+          padding: 1rem 2rem;
+          border-radius: 50px;
+          box-shadow: 0 10px 30px ${type === 'error' ? 'rgba(245, 87, 108, 0.5)' : 'rgba(67, 233, 123, 0.5)'};
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          z-index: 9999;
+          animation: slideIn 0.5s ease-out;
+        `;
+        notification.innerHTML = `
+          <i class="bi bi-${type === 'error' ? 'x' : 'check'}-circle-fill"></i>
+          <span>${message}</span>
+        `;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+          notification.style.animation = 'slideOut 0.5s ease-out forwards';
+          setTimeout(() => notification.remove(), 500);
+        }, 3000);
       }
+      
+      // Add animations
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes slideIn {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        @keyframes slideOut {
+          to {
+            transform: translateX(120%);
+            opacity: 0;
+          }
+        }
+      `;
+      document.head.appendChild(style);
     });
   </script>
 </body>
