@@ -104,7 +104,7 @@ func ecseDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	
 	log.Printf("ECSE Dashboard data - Total Students: %d, Students array length: %d", totalStudents, len(students))
 
-	renderTemplate(w, r, "ecse_dashboard_modern.html", data)
+	renderTemplate(w, r, "ecse_dashboard.html", data)
 }
 
 // ecseStudentDetailsHandler shows individual ECSE student details
