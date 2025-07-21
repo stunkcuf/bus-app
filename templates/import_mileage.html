@@ -6,6 +6,7 @@
   <title>Import Mileage Report - Fleet Management System</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/wizard.css">
   <style nonce="{{.CSPNonce}}">
     :root {
       --grad-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -236,6 +237,17 @@
             </div>
             
             <h3 class="text-center mb-4">Upload Mileage Report</h3>
+            
+            <!-- Wizard Container (hidden by default) -->
+            <div id="wizardContainer" style="display: none;"></div>
+            
+            <!-- Wizard Button -->
+            <div class="text-center mb-4" id="wizardButtonContainer">
+              <button type="button" class="btn btn-primary btn-lg" onclick="showImportWizard()">
+                <i class="bi bi-magic me-2"></i>Use Import Wizard
+              </button>
+              <p class="text-muted mt-2">Or use the traditional form below</p>
+            </div>
             
             <form method="POST" action="/import-mileage" enctype="multipart/form-data" id="importForm">
               <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
@@ -469,6 +481,27 @@
         }, index * 200);
       });
     });
+  </script>
+  
+  <script src="/static/wizard.js"></script>
+  <script src="/static/import_wizard.js"></script>
+  <script nonce="{{.CSPNonce}}">
+    // Show import wizard
+    function showImportWizard() {
+      const container = document.getElementById('wizardContainer');
+      const form = document.getElementById('importForm');
+      const buttonContainer = document.getElementById('wizardButtonContainer');
+      
+      // Hide traditional form and button
+      form.style.display = 'none';
+      buttonContainer.style.display = 'none';
+      
+      // Show wizard container
+      container.style.display = 'block';
+      
+      // Initialize the wizard
+      initImportWizard('mileage');
+    }
   </script>
 </body>
 </html>

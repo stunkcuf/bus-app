@@ -11,11 +11,11 @@ import (
 
 // ExportTemplate represents an Excel template configuration
 type ExportTemplate struct {
-	Name        string
-	ImportType  ImportType
-	Description string
-	Headers     []string
-	SampleData  [][]string
+	Name         string
+	ImportType   ImportType
+	Description  string
+	Headers      []string
+	SampleData   [][]string
 	Instructions string
 }
 
@@ -83,7 +83,7 @@ func exportTemplateHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	// Find the requested template
 	var template *ExportTemplate
 	for _, t := range getExportTemplates() {
@@ -92,19 +92,19 @@ func exportTemplateHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	
+
 	if template == nil {
 		SendError(w, ErrNotFound("Template not found"))
 		return
 	}
-	
+
 	// Create Excel file
 	f := excelize.NewFile()
-	
+
 	// Set up the main data sheet
 	sheetName := "Data"
 	f.SetSheetName("Sheet1", sheetName)
-	
+
 	// Style for headers
 	headerStyle, _ := f.NewStyle(&excelize.Style{
 		Font: &excelize.Font{
@@ -128,7 +128,7 @@ func exportTemplateHandler(w http.ResponseWriter, r *http.Request) {
 			{Type: "bottom", Color: "000000", Style: 1},
 		},
 	})
-	
+
 	// Style for sample data
 	dataStyle, _ := f.NewStyle(&excelize.Style{
 		Fill: excelize.Fill{
@@ -147,14 +147,14 @@ func exportTemplateHandler(w http.ResponseWriter, r *http.Request) {
 			{Type: "bottom", Color: "CCCCCC", Style: 1},
 		},
 	})
-	
+
 	// Write headers
 	for i, header := range template.Headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheetName, cell, header)
 		f.SetCellStyle(sheetName, cell, cell, headerStyle)
 	}
-	
+
 	// Write sample data
 	for rowIdx, row := range template.SampleData {
 		for colIdx, value := range row {
@@ -163,17 +163,17 @@ func exportTemplateHandler(w http.ResponseWriter, r *http.Request) {
 			f.SetCellStyle(sheetName, cell, cell, dataStyle)
 		}
 	}
-	
+
 	// Auto-size columns
 	for i := range template.Headers {
 		col, _ := excelize.ColumnNumberToName(i + 1)
 		f.SetColWidth(sheetName, col, col, 20)
 	}
-	
+
 	// Add instructions sheet
 	instructionsSheet := "Instructions"
 	f.NewSheet(instructionsSheet)
-	
+
 	// Title style
 	titleStyle, _ := f.NewStyle(&excelize.Style{
 		Font: &excelize.Font{
@@ -181,32 +181,32 @@ func exportTemplateHandler(w http.ResponseWriter, r *http.Request) {
 			Size: 16,
 		},
 	})
-	
+
 	// Write instructions
 	f.SetCellValue(instructionsSheet, "A1", template.Name)
 	f.SetCellStyle(instructionsSheet, "A1", "A1", titleStyle)
-	
+
 	f.SetCellValue(instructionsSheet, "A3", "Description:")
 	f.SetCellValue(instructionsSheet, "B3", template.Description)
-	
+
 	f.SetCellValue(instructionsSheet, "A5", "Instructions:")
-	
+
 	// Split instructions by line
 	lines := strings.Split(template.Instructions, "\n")
 	for i, line := range lines {
 		f.SetCellValue(instructionsSheet, fmt.Sprintf("A%d", 6+i), line)
 	}
-	
+
 	// Add metadata
 	f.SetCellValue(instructionsSheet, "A20", "Template Information:")
 	f.SetCellValue(instructionsSheet, "A21", fmt.Sprintf("Created: %s", time.Now().Format("2006-01-02")))
 	f.SetCellValue(instructionsSheet, "A22", "Version: 1.0")
 	f.SetCellValue(instructionsSheet, "A23", "System: Fleet Management System")
-	
+
 	// Set column width for instructions
 	f.SetColWidth(instructionsSheet, "A", "A", 20)
 	f.SetColWidth(instructionsSheet, "B", "B", 60)
-	
+
 	// Add data validation where applicable
 	switch importType {
 	case ImportTypeECSE, ImportTypeStudent:
@@ -220,7 +220,7 @@ func exportTemplateHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			f.AddDataValidation(fmt.Sprintf("%s2:%s1000", col, col), validation)
 		}
-		
+
 	case ImportTypeVehicle:
 		// Add status validation
 		validation := &excelize.DataValidation{
@@ -230,18 +230,18 @@ func exportTemplateHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		f.AddDataValidation("G2:G1000", validation)
 	}
-	
+
 	// Set active sheet
 	f.SetActiveSheet(0)
-	
+
 	// Set response headers
-	filename := fmt.Sprintf("%s_template_%s.xlsx", 
-		strings.ToLower(string(importType)), 
+	filename := fmt.Sprintf("%s_template_%s.xlsx",
+		strings.ToLower(string(importType)),
 		time.Now().Format("20060102"))
-	
+
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
-	
+
 	// Write file to response
 	if err := f.Write(w); err != nil {
 		LogRequest(r).Error("Failed to write Excel template", err)
@@ -256,18 +256,18 @@ func exportDataHandler(w http.ResponseWriter, r *http.Request) {
 	if format == "" {
 		format = "xlsx"
 	}
-	
+
 	// Get date range
 	startDate := r.URL.Query().Get("start_date")
 	endDate := r.URL.Query().Get("end_date")
-	
+
 	if startDate == "" || endDate == "" {
 		// Default to current month
 		now := time.Now()
 		startDate = now.Format("2006-01-02")
 		endDate = now.AddDate(0, 1, -1).Format("2006-01-02")
 	}
-	
+
 	switch exportType {
 	case "mileage":
 		exportMileageData(w, r, startDate, endDate, format)
@@ -301,7 +301,7 @@ func createExcelStyles(f *excelize.File) (headerStyle, dataStyle int) {
 			{Type: "bottom", Color: "000000", Style: 1},
 		},
 	})
-	
+
 	dataStyle, _ = f.NewStyle(&excelize.Style{
 		Border: []excelize.Border{
 			{Type: "left", Color: "CCCCCC", Style: 1},
@@ -310,6 +310,6 @@ func createExcelStyles(f *excelize.File) (headerStyle, dataStyle int) {
 			{Type: "bottom", Color: "CCCCCC", Style: 1},
 		},
 	})
-	
+
 	return headerStyle, dataStyle
 }

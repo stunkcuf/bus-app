@@ -1,20 +1,22 @@
 package main
 
 import (
+	"log"
 	"sync"
 	"time"
 )
 
 // DataCache provides thread-safe caching for frequently accessed data
 type DataCache struct {
-	mu        sync.RWMutex
-	buses     []Bus
-	vehicles  []Vehicle
-	routes    []Route
-	users     []User
-	students  []Student
-	lastFetch map[string]time.Time
-	ttl       time.Duration
+	mu                   sync.RWMutex
+	buses                []Bus
+	vehicles             []Vehicle
+	consolidatedVehicles []ConsolidatedVehicle
+	routes               []Route
+	users                []User
+	students             []Student
+	lastFetch            map[string]time.Time
+	ttl                  time.Duration
 }
 
 // NewDataCache creates a new data cache instance
@@ -34,14 +36,19 @@ func (c *DataCache) getBuses() ([]Bus, error) {
 
 	// If cache is valid, return cached data
 	if exists && time.Since(lastFetch) < c.ttl && len(cachedBuses) > 0 {
+		log.Printf("DEBUG: Returning %d buses from cache", len(cachedBuses))
 		return cachedBuses, nil
 	}
 
 	// Fetch from database
+	log.Printf("DEBUG: Loading buses from database")
 	buses, err := loadBusesFromDB()
 	if err != nil {
+		log.Printf("ERROR: Failed to load buses from DB: %v", err)
 		return nil, err
 	}
+	
+	log.Printf("DEBUG: Loaded %d buses from database", len(buses))
 
 	// Update cache
 	c.mu.Lock()
@@ -196,16 +203,109 @@ func (c *DataCache) invalidateStudents() {
 	c.students = nil
 }
 
+// getConsolidatedVehicles returns cached consolidated vehicles or fetches from database
+func (c *DataCache) getConsolidatedVehicles() ([]ConsolidatedVehicle, error) {
+	c.mu.RLock()
+	lastFetch, exists := c.lastFetch["consolidatedVehicles"]
+	cachedVehicles := c.consolidatedVehicles
+	c.mu.RUnlock()
+
+	// If cache is valid, return cached data
+	if exists && time.Since(lastFetch) < c.ttl && len(cachedVehicles) > 0 {
+		log.Printf("Returning %d consolidated vehicles from cache", len(cachedVehicles))
+		return cachedVehicles, nil
+	}
+
+	// Fetch from database
+	vehicles, err := loadConsolidatedVehiclesFromDB()
+	if err != nil {
+		return nil, err
+	}
+
+	// Update cache
+	c.mu.Lock()
+	c.consolidatedVehicles = vehicles
+	c.lastFetch["consolidatedVehicles"] = time.Now()
+	c.mu.Unlock()
+
+	return vehicles, nil
+}
+
+// invalidateConsolidatedVehicles clears the consolidated vehicles cache
+func (c *DataCache) invalidateConsolidatedVehicles() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	
+	c.consolidatedVehicles = nil
+	delete(c.lastFetch, "consolidatedVehicles")
+}
+
 // invalidateAll clears all cached data
 func (c *DataCache) invalidateAll() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.buses = nil
 	c.vehicles = nil
+	c.consolidatedVehicles = nil
 	c.routes = nil
 	c.users = nil
 	c.students = nil
 	c.lastFetch = make(map[string]time.Time)
+}
+
+// getStats returns cache statistics
+func (c *DataCache) getStats() map[string]interface{} {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	stats := map[string]interface{}{
+		"ttl_minutes":   c.ttl.Minutes(),
+		"cached_tables": make(map[string]interface{}),
+	}
+
+	tables := stats["cached_tables"].(map[string]interface{})
+
+	if len(c.buses) > 0 {
+		tables["buses"] = map[string]interface{}{
+			"count":      len(c.buses),
+			"last_fetch": c.lastFetch["buses"],
+		}
+	}
+
+	if len(c.vehicles) > 0 {
+		tables["vehicles"] = map[string]interface{}{
+			"count":      len(c.vehicles),
+			"last_fetch": c.lastFetch["vehicles"],
+		}
+	}
+
+	if len(c.routes) > 0 {
+		tables["routes"] = map[string]interface{}{
+			"count":      len(c.routes),
+			"last_fetch": c.lastFetch["routes"],
+		}
+	}
+
+	if len(c.users) > 0 {
+		tables["users"] = map[string]interface{}{
+			"count":      len(c.users),
+			"last_fetch": c.lastFetch["users"],
+		}
+	}
+
+	if len(c.students) > 0 {
+		tables["students"] = map[string]interface{}{
+			"count":      len(c.students),
+			"last_fetch": c.lastFetch["students"],
+		}
+	}
+
+	return stats
+}
+
+// clear removes all cached data (alias for invalidateAll)
+func (c *DataCache) clear() {
+	c.invalidateAll()
 }
 
 // Global cache instance

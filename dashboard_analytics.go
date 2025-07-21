@@ -40,29 +40,29 @@ func analyticsDashboardHandler(w http.ResponseWriter, r *http.Request) {
 
 // DashboardMetrics represents the analytics data for the dashboard
 type DashboardMetrics struct {
-	FleetOverview    FleetMetrics      `json:"fleet_overview"`
-	RouteAnalytics   RouteMetrics      `json:"route_analytics"`
-	MileageAnalytics MileageMetrics    `json:"mileage_analytics"`
-	MaintenanceCosts MaintenanceMetrics `json:"maintenance_costs"`
-	DriverPerformance []DriverMetric    `json:"driver_performance"`
-	TrendData        TrendMetrics      `json:"trend_data"`
+	FleetOverview     FleetMetrics       `json:"fleet_overview"`
+	RouteAnalytics    RouteMetrics       `json:"route_analytics"`
+	MileageAnalytics  MileageMetrics     `json:"mileage_analytics"`
+	MaintenanceCosts  MaintenanceMetrics `json:"maintenance_costs"`
+	DriverPerformance []DriverMetric     `json:"driver_performance"`
+	TrendData         TrendMetrics       `json:"trend_data"`
 }
 
 type FleetMetrics struct {
-	TotalBuses       int     `json:"total_buses"`
-	ActiveBuses      int     `json:"active_buses"`
-	MaintenanceBuses int     `json:"maintenance_buses"`
-	OutOfService     int     `json:"out_of_service"`
-	UtilizationRate  float64 `json:"utilization_rate"`
+	TotalBuses       int            `json:"total_buses"`
+	ActiveBuses      int            `json:"active_buses"`
+	MaintenanceBuses int            `json:"maintenance_buses"`
+	OutOfService     int            `json:"out_of_service"`
+	UtilizationRate  float64        `json:"utilization_rate"`
 	BusTypes         map[string]int `json:"bus_types"`
 }
 
 type RouteMetrics struct {
-	TotalRoutes     int                `json:"total_routes"`
-	ActiveRoutes    int                `json:"active_routes"`
-	StudentsPerRoute map[string]int    `json:"students_per_route"`
-	RouteEfficiency map[string]float64 `json:"route_efficiency"`
-	PeakHours       []HourlyActivity   `json:"peak_hours"`
+	TotalRoutes      int                `json:"total_routes"`
+	ActiveRoutes     int                `json:"active_routes"`
+	StudentsPerRoute map[string]int     `json:"students_per_route"`
+	RouteEfficiency  map[string]float64 `json:"route_efficiency"`
+	PeakHours        []HourlyActivity   `json:"peak_hours"`
 }
 
 type MileageMetrics struct {
@@ -91,10 +91,10 @@ type DriverMetric struct {
 }
 
 type TrendMetrics struct {
-	StudentGrowth   []MonthlyCount `json:"student_growth"`
-	FleetGrowth     []MonthlyCount `json:"fleet_growth"`
-	CostAnalysis    []MonthlyCost  `json:"cost_analysis"`
-	IncidentRate    []MonthlyCount `json:"incident_rate"`
+	StudentGrowth []MonthlyCount `json:"student_growth"`
+	FleetGrowth   []MonthlyCount `json:"fleet_growth"`
+	CostAnalysis  []MonthlyCost  `json:"cost_analysis"`
+	IncidentRate  []MonthlyCount `json:"incident_rate"`
 }
 
 type HourlyActivity struct {
@@ -103,8 +103,8 @@ type HourlyActivity struct {
 }
 
 type MonthlyMileage struct {
-	Month    string `json:"month"`
-	Mileage  int    `json:"mileage"`
+	Month   string `json:"month"`
+	Mileage int    `json:"mileage"`
 }
 
 type ServiceAlert struct {
@@ -324,9 +324,24 @@ func getMileageMetrics() (*MileageMetrics, error) {
 		return nil, err
 	}
 
-	// Calculate average daily miles
-	if now.Day() > 0 {
-		metrics.AverageDailyMiles = float64(metrics.TotalMileage) / float64(now.Day())
+	// Calculate average daily miles (only count weekdays as operational days)
+	operationalDays := 0
+	for d := 1; d <= now.Day(); d++ {
+		date := time.Date(now.Year(), now.Month(), d, 0, 0, 0, 0, now.Location())
+		weekday := date.Weekday()
+		// Count Monday through Friday as operational days
+		if weekday >= time.Monday && weekday <= time.Friday {
+			operationalDays++
+		}
+	}
+	
+	if operationalDays > 0 {
+		metrics.AverageDailyMiles = float64(metrics.TotalMileage) / float64(operationalDays)
+	} else {
+		// Fallback to calendar days if no operational days yet
+		if now.Day() > 0 {
+			metrics.AverageDailyMiles = float64(metrics.TotalMileage) / float64(now.Day())
+		}
 	}
 
 	// Mileage by vehicle
@@ -437,7 +452,7 @@ func getMaintenanceMetrics() (*MaintenanceMetrics, error) {
 			if err := rows.Scan(&vehicleID, &serviceType, &milesUntil); err == nil {
 				daysUntil := milesUntil / 100 // Rough estimate
 				dueDate := now.AddDate(0, 0, daysUntil).Format("2006-01-02")
-				
+
 				metrics.UpcomingServices = append(metrics.UpcomingServices, ServiceAlert{
 					VehicleID:    vehicleID,
 					ServiceType:  serviceType,
@@ -481,7 +496,7 @@ func getMaintenanceMetrics() (*MaintenanceMetrics, error) {
 		FROM mileage_reports
 		WHERE year = $1
 	`, now.Year()).Scan(&totalMiles)
-	
+
 	if totalMiles > 0 {
 		metrics.CostPerMile = metrics.TotalCost / float64(totalMiles)
 	}
@@ -558,7 +573,7 @@ func getTrendMetrics() (*TrendMetrics, error) {
 		if rows.Next() {
 			var currentCount int
 			rows.Scan(&currentCount)
-			
+
 			// Simulate historical data
 			for i := 5; i >= 0; i-- {
 				month := now.AddDate(0, -i, 0)
@@ -607,10 +622,10 @@ func fleetStatusWidgetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		Active      int `json:"active"`
-		Maintenance int `json:"maintenance"`
+		Active       int `json:"active"`
+		Maintenance  int `json:"maintenance"`
 		OutOfService int `json:"out_of_service"`
-		Total       int `json:"total"`
+		Total        int `json:"total"`
 	}{}
 
 	err = db.QueryRow(`
@@ -659,7 +674,7 @@ func maintenanceAlertsWidgetHandler(w http.ResponseWriter, r *http.Request) {
 			var milesSince, milesUntil int
 			if err := rows.Scan(&busID, &milesSince, &milesUntil); err == nil {
 				daysUntil := milesUntil / 100 // Rough estimate
-				
+
 				alerts = append(alerts, ServiceAlert{
 					VehicleID:    busID,
 					ServiceType:  "Oil Change",
@@ -712,7 +727,7 @@ func routeEfficiencyWidgetHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			var route RouteEfficiency
 			var avgTime *float64
-			
+
 			err := rows.Scan(&route.RouteName, &route.StudentCount, &route.Capacity, &avgTime)
 			if err == nil {
 				route.UtilizationRate = float64(route.StudentCount) / float64(route.Capacity) * 100

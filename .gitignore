@@ -30,3 +30,47 @@ Thumbs.db
 nul
 *.log
 *.tmp
+
+# Security - NEVER commit these
+*.sql
+*password*.go
+*secret*.go
+*admin*.go
+*admin*.sql
+create_admin*
+
+# Backup files
+*.bak
+*.backup
+*backup.sql
+*export.sql
+
+# Utility scripts that might contain sensitive data
+utilities/*password*
+utilities/*admin*
+utilities/*secret*
+utilities/*.sql
+
+# Test executables
+test.exe
+main.exe
+*.exe~
+
+# Local testing files
+check_*.go
+test_*.go
+fix_*.go
+verify_*.go
+
+# Compiled binary
+hs-bus
+hs-bus.exe
+main
+
+# Local data files
+*.xlsx
+*.xls
+*.csv
+data/
+uploads/
+exports/

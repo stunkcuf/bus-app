@@ -1,0 +1,36 @@
+Database Backup Summary
+=======================
+Backup Date: 2025-07-19 16:03:15
+Total Tables: 30
+
+Tables Backed Up:
+- activities
+- agency_vehicles
+- all_vehicle_mileage
+- bus_maintenance_logs
+- buses
+- driver_logs
+- ecse_assessments
+- ecse_attendance
+- ecse_services
+- ecse_students
+- fleet_vehicles
+- fuel_records
+- import_errors
+- import_history
+- maintenance_records
+- maintenance_sheets
+- mileage_records
+- mileage_reports
+- monthly_mileage_reports
+- program_staff
+- route_assignments
+- routes
+- scheduled_exports
+- school_buses
+- service_records
+- sessions
+- students
+- users
+- vehicle_maintenance_logs
+- vehicles

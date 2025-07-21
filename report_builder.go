@@ -1,8 +1,10 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -18,6 +20,9 @@ type ReportBuilder struct {
 	Fields      []ReportField          `json:"fields"`
 	Grouping    []string               `json:"grouping"`
 	Sorting     []SortConfig           `json:"sorting"`
+	SortBy      string                 `json:"sort_by"`
+	SortOrder   string                 `json:"sort_order"`
+	ChartType   string                 `json:"chart_type"`
 	ChartConfig *ChartConfig           `json:"chart_config,omitempty"`
 	CreatedBy   string                 `json:"created_by"`
 	CreatedAt   time.Time              `json:"created_at"`
@@ -168,6 +173,13 @@ func reportBuilderHandler(w http.ResponseWriter, r *http.Request) {
 		SendError(w, ErrForbidden("Manager access required"))
 		return
 	}
+	
+	// Load saved reports
+	savedReports, err := loadSavedReports(session.Username)
+	if err != nil {
+		log.Printf("Error loading saved reports: %v", err)
+		savedReports = []map[string]interface{}{}
+	}
 
 	data := struct {
 		User         *User                       `json:"user"`
@@ -175,14 +187,14 @@ func reportBuilderHandler(w http.ResponseWriter, r *http.Request) {
 		CSRFToken    string                      `json:"csrf_token"`
 		CSPNonce     string                      `json:"csp_nonce"`
 		DataSources  map[string]DataSourceConfig `json:"data_sources"`
-		SavedReports []ReportBuilder             `json:"saved_reports"`
+		SavedReports []map[string]interface{}    `json:"saved_reports"`
 	}{
 		User:         &User{Username: session.Username},
 		Role:         session.UserRole,
 		CSRFToken:    session.CSRFToken,
 		CSPNonce:     GenerateCSPNonce(),
 		DataSources:  reportDataSources,
-		SavedReports: []ReportBuilder{}, // TODO: Load from database
+		SavedReports: savedReports,
 	}
 
 	if err := templates.ExecuteTemplate(w, "report_builder.html", data); err != nil {
@@ -231,7 +243,7 @@ func handleGetReportData(w http.ResponseWriter, r *http.Request) {
 
 	// Parse filters
 	filters := parseFilters(r.URL.Query())
-	
+
 	// Parse fields
 	fieldsParam := r.URL.Query().Get("fields")
 	var fields []string
@@ -246,7 +258,7 @@ func handleGetReportData(w http.ResponseWriter, r *http.Request) {
 
 	// Build query
 	query := buildReportQuery(sourceConfig, fields, filters)
-	
+
 	// Execute query
 	rows, err := db.Query(query)
 	if err != nil {
@@ -307,33 +319,128 @@ func handleGetReportData(w http.ResponseWriter, r *http.Request) {
 
 // handleSaveReport saves a custom report configuration
 func handleSaveReport(w http.ResponseWriter, r *http.Request) {
+	session, _ := GetSession(r)
+	
 	var report ReportBuilder
 	if err := json.NewDecoder(r.Body).Decode(&report); err != nil {
 		SendError(w, ErrBadRequest("Invalid report data"))
 		return
 	}
-
-	// TODO: Save to database
-	// For now, return success
+	
+	// Validate report
+	if report.Name == "" {
+		SendError(w, ErrBadRequest("Report name is required"))
+		return
+	}
+	
+	if report.DataSource == "" {
+		SendError(w, ErrBadRequest("Data source is required"))
+		return
+	}
+	
+	// Convert fields and filters to JSON
+	fieldsJSON, _ := json.Marshal(report.Fields)
+	filtersJSON, _ := json.Marshal(report.Filters)
+	chartConfigJSON, _ := json.Marshal(report.ChartConfig)
+	
+	// Save to database
+	var reportID int
+	err := db.QueryRow(`
+		INSERT INTO saved_reports 
+		(name, description, data_source, fields, filters, sort_by, sort_order, 
+		 chart_type, chart_config, created_by, is_public)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		RETURNING id`,
+		report.Name,
+		report.Description,
+		report.DataSource,
+		string(fieldsJSON),
+		string(filtersJSON),
+		report.SortBy,
+		report.SortOrder,
+		report.ChartType,
+		string(chartConfigJSON),
+		session.Username,
+		false, // Default to private
+	).Scan(&reportID)
+	
+	if err != nil {
+		log.Printf("Error saving report: %v", err)
+		SendError(w, ErrInternal("Failed to save report", err))
+		return
+	}
+	
 	response := struct {
 		Success bool   `json:"success"`
 		Message string `json:"message"`
-		ID      string `json:"id"`
+		ID      int    `json:"id"`
 	}{
 		Success: true,
 		Message: "Report saved successfully",
-		ID:      fmt.Sprintf("report_%d", time.Now().Unix()),
+		ID:      reportID,
 	}
-
+	
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// loadSavedReports loads saved reports for a user
+func loadSavedReports(username string) ([]map[string]interface{}, error) {
+	query := `
+		SELECT id, name, description, data_source, chart_type, 
+		       created_at, updated_at, last_run, is_public
+		FROM saved_reports
+		WHERE created_by = $1 OR is_public = true
+		ORDER BY updated_at DESC
+	`
+	
+	rows, err := db.Query(query, username)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load saved reports: %w", err)
+	}
+	defer rows.Close()
+	
+	var reports []map[string]interface{}
+	for rows.Next() {
+		var id int
+		var name, dataSource string
+		var description, chartType sql.NullString
+		var createdAt, updatedAt time.Time
+		var lastRun sql.NullTime
+		var isPublic bool
+		
+		err := rows.Scan(&id, &name, &description, &dataSource, &chartType,
+			&createdAt, &updatedAt, &lastRun, &isPublic)
+		if err != nil {
+			continue
+		}
+		
+		report := map[string]interface{}{
+			"id":          id,
+			"name":        name,
+			"description": description.String,
+			"dataSource":  dataSource,
+			"chartType":   chartType.String,
+			"createdAt":   createdAt.Format("2006-01-02 15:04"),
+			"updatedAt":   updatedAt.Format("2006-01-02 15:04"),
+			"isPublic":    isPublic,
+		}
+		
+		if lastRun.Valid {
+			report["lastRun"] = lastRun.Time.Format("2006-01-02 15:04")
+		}
+		
+		reports = append(reports, report)
+	}
+	
+	return reports, nil
 }
 
 // buildReportQuery constructs SQL query based on configuration
 func buildReportQuery(source DataSourceConfig, fields []string, filters map[string]interface{}) string {
 	// Build SELECT clause
 	selectClause := strings.Join(fields, ", ")
-	
+
 	// Build FROM clause with JOINs
 	fromClause := source.Table
 	for _, join := range source.JoinTables {
@@ -358,7 +465,7 @@ func buildReportQuery(source DataSourceConfig, fields []string, filters map[stri
 	}
 
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s", selectClause, fromClause, whereClause)
-	
+
 	// Handle UNION tables
 	if len(source.UnionTables) > 0 {
 		for _, unionTable := range source.UnionTables {
@@ -367,12 +474,12 @@ func buildReportQuery(source DataSourceConfig, fields []string, filters map[stri
 			for i, field := range fields {
 				unionFields[i] = strings.Replace(field, source.Table, unionTable, 1)
 			}
-			
-			unionQuery := fmt.Sprintf("SELECT %s FROM %s WHERE %s", 
-				strings.Join(unionFields, ", "), 
-				unionTable, 
+
+			unionQuery := fmt.Sprintf("SELECT %s FROM %s WHERE %s",
+				strings.Join(unionFields, ", "),
+				unionTable,
 				strings.Replace(whereClause, source.Table, unionTable, -1))
-			
+
 			query += " UNION ALL " + unionQuery
 		}
 	}
@@ -383,7 +490,7 @@ func buildReportQuery(source DataSourceConfig, fields []string, filters map[stri
 // parseFilters extracts filter parameters from URL query
 func parseFilters(values map[string][]string) map[string]interface{} {
 	filters := make(map[string]interface{})
-	
+
 	for key, value := range values {
 		if strings.HasPrefix(key, "filter_") {
 			fieldName := strings.TrimPrefix(key, "filter_")
@@ -392,7 +499,7 @@ func parseFilters(values map[string][]string) map[string]interface{} {
 			}
 		}
 	}
-	
+
 	return filters
 }
 
@@ -416,27 +523,27 @@ func getReportDataSourcesHandler(w http.ResponseWriter, r *http.Request) {
 // Chart type configurations
 var chartTypes = map[string]ChartTypeConfig{
 	"line": {
-		Name:        "Line Chart",
-		Description: "Shows trends over time",
-		RequiredAxes: []string{"x", "y"},
+		Name:           "Line Chart",
+		Description:    "Shows trends over time",
+		RequiredAxes:   []string{"x", "y"},
 		SupportedTypes: []string{"date", "number", "string"},
 	},
 	"bar": {
-		Name:        "Bar Chart",
-		Description: "Compares categories",
-		RequiredAxes: []string{"x", "y"},
+		Name:           "Bar Chart",
+		Description:    "Compares categories",
+		RequiredAxes:   []string{"x", "y"},
 		SupportedTypes: []string{"string", "number"},
 	},
 	"pie": {
-		Name:        "Pie Chart",
-		Description: "Shows proportions",
-		RequiredAxes: []string{"label", "value"},
+		Name:           "Pie Chart",
+		Description:    "Shows proportions",
+		RequiredAxes:   []string{"label", "value"},
 		SupportedTypes: []string{"string", "number"},
 	},
 	"scatter": {
-		Name:        "Scatter Plot",
-		Description: "Shows correlation between variables",
-		RequiredAxes: []string{"x", "y"},
+		Name:           "Scatter Plot",
+		Description:    "Shows correlation between variables",
+		RequiredAxes:   []string{"x", "y"},
 		SupportedTypes: []string{"number"},
 	},
 }

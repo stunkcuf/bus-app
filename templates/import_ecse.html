@@ -4,89 +4,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Import ECSE Report - Fleet Management System</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/accessible_design_system.css">
+  <link rel="stylesheet" href="/static/visual_hierarchy.css">
+  <link rel="stylesheet" href="/static/accessible_forms.css">
+  <link rel="stylesheet" href="/static/workflow_guides.css">
   <style nonce="{{.CSPNonce}}">
-    :root {
-      --grad-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      --grad-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-      --grad-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      --grad-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-      --grad-danger: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
-    }
-    
-    body {
-      background-color: #f8f9fa;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    }
-    
-    .page-header {
-      background: var(--grad-info);
-      color: white;
-      padding: 1.5rem;
-      border-radius: 15px;
-      margin-bottom: 2rem;
-      box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
-    }
-    
-    .page-header .btn {
-      background: rgba(255,255,255,0.2);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.3);
-      transition: all 0.3s ease;
-    }
-    
-    .page-header .btn:hover {
-      background: rgba(255,255,255,0.3);
-      transform: translateY(-2px);
-      color: white;
-    }
-    
-    .import-card {
-      border: none;
-      border-radius: 15px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-      transition: all 0.3s ease;
-      overflow: hidden;
-      background: white;
-    }
-    
-    .import-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-    }
-    
-    .import-icon {
-      width: 100px;
-      height: 100px;
-      background: var(--grad-info);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 3rem;
-      color: white;
-      margin: 0 auto 2rem;
-    }
-    
+    /* Custom file upload styling */
     .file-upload-area {
-      border: 3px dashed #dee2e6;
-      border-radius: 15px;
-      padding: 3rem;
+      border: 3px dashed var(--border-color);
+      border-radius: var(--border-radius-lg);
+      padding: var(--space-xxl);
       text-align: center;
-      transition: all 0.3s ease;
+      transition: all var(--transition-base);
       cursor: pointer;
-      background: #f8f9fa;
+      background: var(--color-bg-secondary);
+      min-height: var(--touch-target-large);
     }
     
     .file-upload-area:hover {
-      border-color: #4facfe;
-      background: rgba(79, 172, 254, 0.05);
+      border-color: var(--color-primary);
+      background: var(--color-primary-light);
     }
     
     .file-upload-area.drag-over {
-      border-color: #11998e;
-      background: rgba(17, 153, 142, 0.1);
+      border-color: var(--color-success);
+      background: var(--color-success-light);
       transform: scale(1.02);
     }
     
@@ -94,33 +37,11 @@
       display: none;
     }
     
-    .btn-import {
-      background: var(--grad-success);
-      border: none;
-      padding: 0.75rem 2rem;
-      border-radius: 10px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      color: white;
-    }
-    
-    .btn-import:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
-      background: var(--grad-success);
-      color: white;
-    }
-    
-    .btn-import:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-    
     .file-info {
-      background: #e9ecef;
-      border-radius: 10px;
-      padding: 1rem;
-      margin-top: 1rem;
+      background: var(--color-bg-tertiary);
+      border-radius: var(--border-radius-base);
+      padding: var(--space-lg);
+      margin-top: var(--space-md);
       display: none;
     }
     
@@ -128,218 +49,197 @@
       display: block;
     }
     
-    .instructions-list {
-      text-align: left;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-    
-    .instructions-list li {
-      margin-bottom: 0.5rem;
-    }
-    
-    .alert-custom {
-      border-radius: 10px;
-      border: none;
-    }
-    
-    .spinner-border-sm {
-      width: 1rem;
-      height: 1rem;
-    }
-    
-    .sample-format {
-      background: #f8f9fa;
-      border-radius: 10px;
-      padding: 1rem;
-      margin-top: 1rem;
-      font-size: 0.9rem;
-    }
-    
     .format-table {
-      font-size: 0.85rem;
+      font-size: var(--font-size-base);
     }
     
     .format-table th {
-      background: #e9ecef;
+      background: var(--color-bg-tertiary);
       font-weight: 600;
     }
     
     .ecse-info-box {
-      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-      border-radius: 12px;
-      padding: 1.5rem;
-      margin-bottom: 2rem;
+      background: var(--color-info-light);
+      border-radius: var(--border-radius-lg);
+      padding: var(--space-xl);
+      margin-bottom: var(--space-xl);
+      border: 1px solid var(--color-info);
     }
     
     .ecse-info-box h5 {
-      color: #1565c0;
-      margin-bottom: 0.5rem;
+      color: var(--color-info-dark);
+      margin-bottom: var(--space-sm);
     }
   </style>
 </head>
 <body>
-  <div class="container-fluid py-4">
-    <!-- Header -->
-    <header class="page-header">
-      <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <div>
-          <h1 class="fs-3 mb-1">
-            <i class="bi bi-file-earmark-spreadsheet me-2"></i>Import ECSE Report
-          </h1>
-          <p class="mb-0 opacity-75">Upload Early Childhood Special Education data</p>
-        </div>
-        <nav class="btn-group btn-group-sm" role="group">
-          <a href="/view-ecse-reports" class="btn">
-            <i class="bi bi-table me-1"></i>View Reports
-          </a>
-          <a href="/manager-dashboard" class="btn">
-            <i class="bi bi-arrow-left me-1"></i>Dashboard
-          </a>
-          <a href="/logout" class="btn">
-            <i class="bi bi-box-arrow-right me-1"></i>Logout
-          </a>
-        </nav>
-      </div>
-    </header>
+  <div class="page-wrapper">
+    <!-- Navigation Component -->
+    {{template "navigation" (dict "Navigation" .Navigation "CSPNonce" .CSPNonce "ShowHelpButton" .ShowHelpButton "PageDescription" "Import ECSE student data from Excel")}}
+    
+    <!-- Page Actions -->
+    <header class="page-actions">
 
     <!-- ECSE Info Box -->
     <div class="ecse-info-box">
-      <h5><i class="bi bi-info-circle me-2"></i>What is ECSE?</h5>
-      <p class="mb-0">Early Childhood Special Education (ECSE) reports contain data about special education services provided to young children, including student information, enrollment status, services received, and transportation details.</p>
+      <h2><i class="bi bi-info-circle" aria-hidden="true"></i>What is ECSE?</h2>
+      <p>Early Childhood Special Education (ECSE) reports contain data about special education services provided to young children, including student information, enrollment status, services received, and transportation details.</p>
     </div>
 
     <!-- Alerts -->
     {{if .Data.Error}}
-    <div class="alert alert-danger alert-custom alert-dismissible fade show" role="alert">
-      <i class="bi bi-exclamation-triangle me-2"></i>
-      <strong>Import Error:</strong> {{.Data.Error}}
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="alert alert-danger" role="alert">
+      <div class="alert-header">
+        <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+        <strong>Import Error</strong>
+      </div>
+      <p>{{.Data.Error}}</p>
     </div>
     {{end}}
     
     {{if .Data.Success}}
-    <div class="alert alert-success alert-custom alert-dismissible fade show" role="alert">
-      <i class="bi bi-check-circle me-2"></i>
-      <strong>Success!</strong> {{.Data.Success}}
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="alert alert-success" role="alert">
+      <div class="alert-header">
+        <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+        <strong>Success!</strong>
+      </div>
+      <p>{{.Data.Success}}</p>
     </div>
     {{end}}
 
     <!-- Main Import Card -->
-    <div class="row justify-content-center">
-      <div class="col-lg-8">
-        <div class="import-card">
-          <div class="card-body p-5">
-            <div class="import-icon">
-              <i class="bi bi-file-earmark-excel"></i>
-            </div>
+    <main id="main-content" class="main-content">
+      <div class="card">
+        <div class="card-header">
+          <h2>
+            <i class="bi bi-file-earmark-excel" aria-hidden="true"></i>
+            Upload ECSE Report
+          </h2>
+          <p class="card-description">Select your Excel file to import ECSE student data</p>
+        </div>
+        
+        <div class="card-body">
+          <form method="POST" action="/import-ecse" enctype="multipart/form-data" id="importForm" class="accessible-form">
+            <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
             
-            <h3 class="text-center mb-4">Upload ECSE Report</h3>
-            
-            <form method="POST" action="/import-ecse" enctype="multipart/form-data" id="importForm">
-              <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
+            <div class="form-group">
+              <label for="fileInput" class="form-label required">
+                <i class="bi bi-file-earmark-excel" aria-hidden="true"></i>
+                Excel File
+              </label>
+              <div class="form-help">
+                <i class="bi bi-info-circle form-help-icon" aria-hidden="true"></i>
+                Choose your ECSE data file in Excel format (.xlsx or .xls)
+              </div>
               
               <div class="file-upload-area" id="uploadArea">
-                <i class="bi bi-cloud-arrow-up fs-1 text-muted mb-3 d-block"></i>
-                <h5>Drag & Drop Excel File Here</h5>
-                <p class="text-muted mb-3">or click to browse</p>
+                <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
+                <h3>Drag & Drop Excel File Here</h3>
+                <p>or click to browse for file</p>
                 <input type="file" name="excel_file" id="fileInput" class="file-input" accept=".xlsx,.xls" required>
-                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('fileInput').click()">
-                  <i class="bi bi-folder2-open me-2"></i>Choose File
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">
+                  <i class="bi bi-folder2-open" aria-hidden="true"></i>
+                  Choose File
                 </button>
               </div>
               
               <div class="file-info" id="fileInfo">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <i class="bi bi-file-earmark-excel me-2"></i>
+                <div class="file-info-content">
+                  <div class="file-info-main">
+                    <i class="bi bi-file-earmark-excel" aria-hidden="true"></i>
                     <span id="fileName"></span>
                   </div>
-                  <span class="badge bg-primary" id="fileSize"></span>
+                  <span class="file-info-size" id="fileSize"></span>
                 </div>
               </div>
-              
-              <div class="text-center mt-4">
-                <button type="submit" class="btn btn-import btn-lg" id="importBtn" disabled>
-                  <i class="bi bi-upload me-2"></i>Import ECSE Data
-                </button>
-              </div>
-            </form>
+            </div>
+            
+            <div class="form-buttons">
+              <button type="submit" class="form-btn form-btn-primary" id="importBtn" disabled>
+                <i class="bi bi-upload" aria-hidden="true"></i>
+                Import ECSE Data
+              </button>
+              <button type="reset" class="form-btn form-btn-secondary" id="resetBtn">
+                <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                Reset Form
+              </button>
+            </div>
+          </form>
 
-            <!-- Instructions -->
-            <div class="mt-5">
-              <h5 class="text-center mb-3">
-                <i class="bi bi-info-circle me-2"></i>Excel File Format
-              </h5>
-              
-              <div class="sample-format">
-                <p class="mb-3">Your ECSE Excel file should contain the following types of data:</p>
-                <div class="table-responsive">
-                  <table class="table table-sm format-table">
-                    <thead>
-                      <tr>
-                        <th>Data Category</th>
-                        <th>Description</th>
-                        <th>Examples</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>Student Information</td>
-                        <td>Basic student demographics</td>
-                        <td>Name, ID, DOB, Grade</td>
-                      </tr>
-                      <tr>
-                        <td>Enrollment Status</td>
-                        <td>Current enrollment information</td>
-                        <td>Active, Inactive, Transfer</td>
-                      </tr>
-                      <tr>
-                        <td>Service Details</td>
-                        <td>Special education services</td>
-                        <td>IEP, Speech, OT, PT</td>
-                      </tr>
-                      <tr>
-                        <td>Transportation</td>
-                        <td>Transportation requirements</td>
-                        <td>Bus Route, Special Needs</td>
-                      </tr>
-                      <tr>
-                        <td>Contact Information</td>
-                        <td>Parent/Guardian contacts</td>
-                        <td>Phone, Email, Address</td>
-                      </tr>
-                      <tr>
-                        <td>Assessment Data</td>
-                        <td>Evaluation and progress data</td>
-                        <td>Test scores, Goals, Progress</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+          <!-- Instructions -->
+          <div class="card-section">
+            <h3>
+              <i class="bi bi-info-circle" aria-hidden="true"></i>
+              Excel File Format Requirements
+            </h3>
+            
+            <div class="info-box">
+              <p>Your ECSE Excel file should contain the following types of data:</p>
+              <div class="table-responsive">
+                <table class="table format-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Data Category</th>
+                      <th scope="col">Description</th>
+                      <th scope="col">Examples</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th scope="row">Student Information</th>
+                      <td>Basic student demographics</td>
+                      <td>Name, ID, DOB, Grade</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">Enrollment Status</th>
+                      <td>Current enrollment information</td>
+                      <td>Active, Inactive, Transfer</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">Service Details</th>
+                      <td>Special education services</td>
+                      <td>IEP, Speech, OT, PT</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">Transportation</th>
+                      <td>Transportation requirements</td>
+                      <td>Bus Route, Special Needs</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">Contact Information</th>
+                      <td>Parent/Guardian contacts</td>
+                      <td>Phone, Email, Address</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">Assessment Data</th>
+                      <td>Evaluation and progress data</td>
+                      <td>Test scores, Goals, Progress</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              
-              <div class="instructions-list mt-4">
-                <h6>Important Notes:</h6>
-                <ul>
-                  <li>The system will automatically detect column headers</li>
-                  <li>Student IDs must be unique</li>
-                  <li>Dates should be in MM/DD/YYYY or similar format</li>
-                  <li>The system will validate data and report any issues</li>
-                  <li>Maximum file size: 10MB</li>
-                  <li>Supported formats: .xlsx and .xls</li>
-                  <li>Multiple sheets will be processed if present</li>
-                </ul>
-              </div>
+            </div>
+            
+            <div class="info-box">
+              <h4>Important Notes:</h4>
+              <ul class="checklist">
+                <li>The system will automatically detect column headers</li>
+                <li>Student IDs must be unique</li>
+                <li>Dates should be in MM/DD/YYYY or similar format</li>
+                <li>The system will validate data and report any issues</li>
+                <li>Maximum file size: 10MB</li>
+                <li>Supported formats: .xlsx and .xls</li>
+                <li>Multiple sheets will be processed if present</li>
+              </ul>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </main>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/accessible_forms.js"></script>
+  <script src="/static/workflow_guides.js"></script>
   <script nonce="{{.CSPNonce}}">
     document.addEventListener('DOMContentLoaded', function() {
       const fileInput = document.getElementById('fileInput');
@@ -349,6 +249,32 @@
       const fileSize = document.getElementById('fileSize');
       const importBtn = document.getElementById('importBtn');
       const importForm = document.getElementById('importForm');
+      const resetBtn = document.getElementById('resetBtn');
+      
+      // Initialize accessible form
+      const accessibleForm = new AccessibleForm(importForm, {
+        customValidators: {
+          'excel_file': function(value, field) {
+            if (!field.files || field.files.length === 0) {
+              return 'Please select an Excel file';
+            }
+            
+            const file = field.files[0];
+            const validExtensions = ['.xls', '.xlsx'];
+            const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            
+            if (!validExtensions.includes(fileExtension)) {
+              return 'Please select a valid Excel file (.xlsx or .xls)';
+            }
+            
+            if (file.size > 10 * 1024 * 1024) {
+              return 'File size must be less than 10MB';
+            }
+            
+            return null;
+          }
+        }
+      });
       
       // File input change handler
       fileInput.addEventListener('change', function(e) {
@@ -392,24 +318,6 @@
         if (files.length > 0) {
           const file = files[0];
           
-          // Validate file type
-          const validTypes = ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
-          const validExtensions = ['.xls', '.xlsx'];
-          const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-          
-          if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
-            alert('Please select a valid Excel file (.xlsx or .xls)');
-            fileInput.value = '';
-            return;
-          }
-          
-          // Validate file size (10MB max)
-          if (file.size > 10 * 1024 * 1024) {
-            alert('File size must be less than 10MB');
-            fileInput.value = '';
-            return;
-          }
-          
           // Update UI
           fileName.textContent = file.name;
           fileSize.textContent = formatFileSize(file.size);
@@ -417,8 +325,14 @@
           importBtn.disabled = false;
           
           // Update upload area text
-          uploadArea.querySelector('h5').textContent = 'File Selected';
+          uploadArea.querySelector('h3').textContent = 'File Selected';
           uploadArea.querySelector('p').textContent = 'Click to change file';
+          
+          // Announce to screen readers
+          const liveRegion = document.getElementById('form-live-region');
+          if (liveRegion) {
+            liveRegion.textContent = `File selected: ${file.name}, size: ${formatFileSize(file.size)}`;
+          }
         }
       }
       
@@ -434,22 +348,26 @@
       // Form submission
       importForm.addEventListener('submit', function(e) {
         importBtn.disabled = true;
-        importBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing ECSE Data...';
+        importBtn.innerHTML = '<i class="bi bi-hourglass-split" aria-hidden="true"></i> Processing ECSE Data...';
       });
       
-      // Add animation to cards
-      const cards = document.querySelectorAll('.import-card');
-      cards.forEach((card, index) => {
-        setTimeout(() => {
-          card.style.opacity = '0';
-          card.style.transform = 'translateY(20px)';
-          card.style.transition = 'all 0.5s ease';
-          setTimeout(() => {
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-          }, 100);
-        }, index * 200);
+      // Reset form handler
+      resetBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        fileInput.value = '';
+        fileInfo.classList.remove('show');
+        importBtn.disabled = true;
+        uploadArea.querySelector('h3').textContent = 'Drag & Drop Excel File Here';
+        uploadArea.querySelector('p').textContent = 'or click to browse for file';
+        
+        // Reset validation
+        accessibleForm.reset();
       });
+      
+      // Initialize workflow guides for this page
+      if (window.workflowGuides) {
+        window.workflowGuides.autoShowGuide();
+      }
     });
   </script>
 </body>

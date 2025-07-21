@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Route Assignment Wizard - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/accessible_design_system.css">
+  <link rel="stylesheet" href="/static/visual_hierarchy.css">
+  <link rel="stylesheet" href="/static/accessible_forms.css">
+  <link rel="stylesheet" href="/static/enhanced_help_system.css">
+  <style nonce="{{.CSPNonce}}">
+    /* Wizard specific styles */
+    .wizard-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .wizard-header {
+      text-align: center;
+      margin-bottom: var(--space-xl);
+    }
+    
+    .wizard-icon {
+      font-size: 3rem;
+      color: var(--color-primary);
+      margin-bottom: var(--space-md);
+    }
+    
+    .wizard-steps {
+      display: none;
+    }
+    
+    .wizard-steps.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .step-header {
+      background: var(--color-primary-light);
+      padding: var(--space-lg);
+      border-radius: var(--border-radius-lg);
+      margin-bottom: var(--space-xl);
+      text-align: center;
+    }
+    
+    .step-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: var(--color-primary);
+      color: var(--color-text-inverse);
+      border-radius: 50%;
+      font-weight: 700;
+      margin-right: var(--space-md);
+    }
+    
+    .conflict-warning {
+      background: var(--color-warning-light);
+      border: 2px solid var(--color-warning);
+      border-radius: var(--border-radius-base);
+      padding: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .conflict-warning h4 {
+      color: var(--color-warning-dark);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .assignment-preview {
+      background: var(--color-bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: var(--border-radius-lg);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .preview-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      padding: var(--space-md);
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .preview-item:last-child {
+      border-bottom: none;
+    }
+    
+    .preview-icon {
+      font-size: 1.5rem;
+      color: var(--color-primary);
+    }
+    
+    .availability-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      padding: var(--space-xs) var(--space-sm);
+      border-radius: var(--border-radius-base);
+      font-size: var(--font-size-small);
+      font-weight: 600;
+    }
+    
+    .availability-indicator.available {
+      background: var(--color-success-light);
+      color: var(--color-success-dark);
+    }
+    
+    .availability-indicator.assigned {
+      background: var(--color-warning-light);
+      color: var(--color-warning-dark);
+    }
+    
+    .route-requirements {
+      background: var(--color-info-light);
+      border: 1px solid var(--color-info);
+      border-radius: var(--border-radius-base);
+      padding: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .requirement-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .requirement-item:last-child {
+      margin-bottom: 0;
+    }
+    
+    .requirement-item i {
+      color: var(--color-info-dark);
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid page-container">
+    <!-- Navigation Component -->
+    {{template "navigation" (dict "Navigation" .Navigation "CSPNonce" .CSPNonce "ShowHelpButton" .ShowHelpButton "PageDescription" "Step-by-step route assignment wizard")}}
+    
+    <!-- Header -->
+    <header class="page-header">
+      <div class="page-header-content">
+        <div class="page-header-text">
+          <h1>
+            <i class="bi bi-diagram-3-fill" aria-hidden="true"></i>
+            Route Assignment Wizard
+          </h1>
+          <p class="page-description">Assign drivers to routes with automatic conflict detection</p>
+        </div>
+      </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+      <div class="wizard-container">
+        <!-- Progress Indicator -->
+        {{template "progress_indicator" (dict "CurrentStep" 1 "TotalSteps" 4 "Steps" (list "Select Route" "Choose Driver" "Assign Bus" "Review & Confirm"))}}
+        
+        <form id="routeAssignmentForm" method="POST" action="/assign-route-wizard" class="accessible-form">
+          <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
+          
+          <!-- Step 1: Select Route -->
+          <div class="wizard-steps active" id="step1">
+            <div class="step-header">
+              <h2>
+                <span class="step-number">1</span>
+                Select Route to Assign
+              </h2>
+              <p>Choose a route that needs a driver assignment</p>
+            </div>
+            
+            <div class="form-group">
+              <label for="route_id" class="form-label required">Available Routes</label>
+              <div class="form-help">
+                <i class="bi bi-info-circle form-help-icon" aria-hidden="true"></i>
+                Select the route you want to assign a driver to
+              </div>
+              <select id="route_id" name="route_id" class="form-control form-select" required 
+                      data-help="route-selection-wizard" 
+                      data-help-title="Route Selection" 
+                      data-help-content="Choose from available routes. Routes already assigned will show the current driver.">
+                <option value="">-- Select a Route --</option>
+                {{range .Data.Routes}}
+                <option value="{{.RouteID}}" data-students="{{len .Positions}}">
+                  {{.RouteName}} {{if .Description}}({{.Description}}){{end}}
+                </option>
+                {{end}}
+              </select>
+            </div>
+            
+            <div id="routeInfo" class="route-requirements" style="display: none;">
+              <h3>Route Requirements</h3>
+              <div class="requirement-item">
+                <i class="bi bi-people-fill" aria-hidden="true"></i>
+                <span>Number of students: <strong id="studentCount">0</strong></span>
+              </div>
+              <div class="requirement-item">
+                <i class="bi bi-clock" aria-hidden="true"></i>
+                <span>Estimated duration: <strong>45-60 minutes</strong></span>
+              </div>
+              <div class="requirement-item">
+                <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                <span>Coverage area: <strong id="coverageArea">Multiple neighborhoods</strong></span>
+              </div>
+            </div>
+            
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                Cancel
+              </button>
+              <button type="button" class="btn btn-primary" onclick="nextStep()" id="step1Next" disabled>
+                Next: Choose Driver
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Step 2: Choose Driver -->
+          <div class="wizard-steps" id="step2">
+            <div class="step-header">
+              <h2>
+                <span class="step-number">2</span>
+                Choose Driver
+              </h2>
+              <p>Select an available driver for this route</p>
+            </div>
+            
+            <div class="conflict-warning" id="driverConflictWarning" style="display: none;">
+              <h4><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Driver Availability Warning</h4>
+              <p id="conflictMessage"></p>
+            </div>
+            
+            <div class="form-group">
+              <label for="driver" class="form-label required">Available Drivers</label>
+              <div class="form-help">
+                <i class="bi bi-info-circle form-help-icon" aria-hidden="true"></i>
+                Drivers already assigned to routes will show a warning
+              </div>
+              <select id="driver" name="driver" class="form-control form-select" required
+                      data-help="driver-selection-wizard" 
+                      data-help-title="Driver Selection" 
+                      data-help-content="Choose a driver for this route. The system will check for conflicts and warn you if the driver is already assigned.">
+                <option value="">-- Select a Driver --</option>
+                {{range .Data.Drivers}}
+                <option value="{{.Username}}" data-assigned="{{if .Assignment}}true{{else}}false{{end}}">
+                  {{.Username}}
+                  {{if .Assignment}}
+                    <span class="text-warning">(Currently assigned to {{.Assignment.RouteName}})</span>
+                  {{else}}
+                    <span class="text-success">(Available)</span>
+                  {{end}}
+                </option>
+                {{end}}
+              </select>
+            </div>
+            
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" onclick="previousStep()">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                Previous
+              </button>
+              <button type="button" class="btn btn-primary" onclick="nextStep()" id="step2Next" disabled>
+                Next: Assign Bus
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Step 3: Assign Bus -->
+          <div class="wizard-steps" id="step3">
+            <div class="step-header">
+              <h2>
+                <span class="step-number">3</span>
+                Assign Bus
+              </h2>
+              <p>Select an available bus for this route</p>
+            </div>
+            
+            <div class="conflict-warning" id="busConflictWarning" style="display: none;">
+              <h4><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Bus Availability Warning</h4>
+              <p id="busConflictMessage"></p>
+            </div>
+            
+            <div class="form-group">
+              <label for="bus_id" class="form-label required">Available Buses</label>
+              <div class="form-help">
+                <i class="bi bi-info-circle form-help-icon" aria-hidden="true"></i>
+                Only active buses with sufficient capacity are shown
+              </div>
+              <select id="bus_id" name="bus_id" class="form-control form-select" required
+                      data-help="bus-selection-wizard" 
+                      data-help-title="Bus Selection" 
+                      data-help-content="Select a bus with enough capacity for the students on this route. The system will warn you if the bus is already assigned.">
+                <option value="">-- Select a Bus --</option>
+                {{range .Data.Buses}}
+                {{if eq .Status "active"}}
+                <option value="{{.BusID}}" data-capacity="{{.Capacity}}" data-assigned="{{if .Assignment}}true{{else}}false{{end}}">
+                  Bus {{.BusID}} - {{.Model}} (Capacity: {{.Capacity}})
+                  {{if .Assignment}}
+                    <span class="text-warning">(Assigned to {{.Assignment.RouteName}})</span>
+                  {{else}}
+                    <span class="text-success">(Available)</span>
+                  {{end}}
+                </option>
+                {{end}}
+                {{end}}
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="notes" class="form-label">Additional Notes</label>
+              <textarea id="notes" name="notes" class="form-control" rows="3" 
+                        placeholder="Any special instructions or notes for this assignment"
+                        data-help="assignment-notes" 
+                        data-help-title="Assignment Notes" 
+                        data-help-content="Add any special instructions or important information about this route assignment."></textarea>
+            </div>
+            
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" onclick="previousStep()">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                Previous
+              </button>
+              <button type="button" class="btn btn-primary" onclick="nextStep()" id="step3Next" disabled>
+                Next: Review
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Step 4: Review & Confirm -->
+          <div class="wizard-steps" id="step4">
+            <div class="step-header">
+              <h2>
+                <span class="step-number">4</span>
+                Review & Confirm Assignment
+              </h2>
+              <p>Please review the assignment details before confirming</p>
+            </div>
+            
+            <div class="assignment-preview">
+              <h3>Assignment Summary</h3>
+              
+              <div class="preview-item">
+                <i class="bi bi-diagram-3 preview-icon" aria-hidden="true"></i>
+                <div>
+                  <strong>Route:</strong>
+                  <span id="previewRoute">Not selected</span>
+                </div>
+              </div>
+              
+              <div class="preview-item">
+                <i class="bi bi-person-badge preview-icon" aria-hidden="true"></i>
+                <div>
+                  <strong>Driver:</strong>
+                  <span id="previewDriver">Not selected</span>
+                </div>
+              </div>
+              
+              <div class="preview-item">
+                <i class="bi bi-bus-front preview-icon" aria-hidden="true"></i>
+                <div>
+                  <strong>Bus:</strong>
+                  <span id="previewBus">Not selected</span>
+                </div>
+              </div>
+              
+              <div class="preview-item" id="previewNotesContainer" style="display: none;">
+                <i class="bi bi-journal-text preview-icon" aria-hidden="true"></i>
+                <div>
+                  <strong>Notes:</strong>
+                  <span id="previewNotes"></span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="alert alert-info" role="alert">
+              <div class="alert-header">
+                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                <strong>Important</strong>
+              </div>
+              <p>This assignment will take effect immediately. The driver will see this route in their dashboard.</p>
+            </div>
+            
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" onclick="previousStep()">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                Previous
+              </button>
+              <button type="submit" class="btn btn-success btn-lg"
+                      data-help="confirm-assignment" 
+                      data-help-title="Confirm Assignment" 
+                      data-help-content="Click to save this route assignment. The driver will be notified and can start using this route immediately.">
+                <i class="bi bi-check-circle" aria-hidden="true"></i>
+                Confirm Assignment
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/accessible_forms.js"></script>
+  <script src="/static/enhanced_help_system.js"></script>
+  
+  <script nonce="{{.CSPNonce}}">
+    let currentStep = 1;
+    const totalSteps = 4;
+    
+    // Store selections
+    let selections = {
+      route: null,
+      driver: null,
+      bus: null,
+      notes: ''
+    };
+    
+    // Route data for validation
+    const routeData = {
+      {{range .Data.Routes}}
+      '{{.RouteID}}': {
+        name: '{{.RouteName}}',
+        students: {{len .Positions}}
+      },
+      {{end}}
+    };
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      // Add change handlers
+      document.getElementById('route_id').addEventListener('change', handleRouteChange);
+      document.getElementById('driver').addEventListener('change', handleDriverChange);
+      document.getElementById('bus_id').addEventListener('change', handleBusChange);
+      document.getElementById('notes').addEventListener('input', handleNotesChange);
+      
+      // Handle form submission
+      document.getElementById('routeAssignmentForm').addEventListener('submit', handleSubmit);
+    });
+    
+    function handleRouteChange(e) {
+      const routeId = e.target.value;
+      selections.route = routeId;
+      
+      if (routeId) {
+        // Show route info
+        const routeInfo = document.getElementById('routeInfo');
+        const studentCount = document.getElementById('studentCount');
+        
+        if (routeData[routeId]) {
+          studentCount.textContent = routeData[routeId].students;
+          routeInfo.style.display = 'block';
+        }
+        
+        document.getElementById('step1Next').disabled = false;
+      } else {
+        document.getElementById('routeInfo').style.display = 'none';
+        document.getElementById('step1Next').disabled = true;
+      }
+    }
+    
+    function handleDriverChange(e) {
+      const driver = e.target.value;
+      const option = e.target.selectedOptions[0];
+      selections.driver = driver;
+      
+      if (driver) {
+        // Check for conflicts
+        const isAssigned = option.dataset.assigned === 'true';
+        const conflictWarning = document.getElementById('driverConflictWarning');
+        const conflictMessage = document.getElementById('conflictMessage');
+        
+        if (isAssigned) {
+          conflictMessage.textContent = 'This driver is already assigned to another route. Selecting them will remove their previous assignment.';
+          conflictWarning.style.display = 'block';
+        } else {
+          conflictWarning.style.display = 'none';
+        }
+        
+        document.getElementById('step2Next').disabled = false;
+      } else {
+        document.getElementById('driverConflictWarning').style.display = 'none';
+        document.getElementById('step2Next').disabled = true;
+      }
+    }
+    
+    function handleBusChange(e) {
+      const busId = e.target.value;
+      const option = e.target.selectedOptions[0];
+      selections.bus = busId;
+      
+      if (busId) {
+        // Check capacity
+        const capacity = parseInt(option.dataset.capacity);
+        const studentsOnRoute = routeData[selections.route].students;
+        const isAssigned = option.dataset.assigned === 'true';
+        
+        const conflictWarning = document.getElementById('busConflictWarning');
+        const conflictMessage = document.getElementById('busConflictMessage');
+        
+        if (capacity < studentsOnRoute) {
+          conflictMessage.textContent = `Warning: This bus has a capacity of ${capacity} but the route has ${studentsOnRoute} students.`;
+          conflictWarning.style.display = 'block';
+        } else if (isAssigned) {
+          conflictMessage.textContent = 'This bus is already assigned to another route. Selecting it will remove its previous assignment.';
+          conflictWarning.style.display = 'block';
+        } else {
+          conflictWarning.style.display = 'none';
+        }
+        
+        document.getElementById('step3Next').disabled = false;
+      } else {
+        document.getElementById('busConflictWarning').style.display = 'none';
+        document.getElementById('step3Next').disabled = true;
+      }
+    }
+    
+    function handleNotesChange(e) {
+      selections.notes = e.target.value;
+    }
+    
+    function nextStep() {
+      if (currentStep < totalSteps) {
+        // Hide current step
+        document.getElementById('step' + currentStep).classList.remove('active');
+        
+        // Show next step
+        currentStep++;
+        document.getElementById('step' + currentStep).classList.add('active');
+        
+        // Update progress indicator
+        updateProgressIndicator();
+        
+        // Update preview if on last step
+        if (currentStep === 4) {
+          updatePreview();
+        }
+        
+        // Focus on first input of new step
+        const firstInput = document.querySelector('#step' + currentStep + ' input, #step' + currentStep + ' select');
+        if (firstInput) {
+          firstInput.focus();
+        }
+      }
+    }
+    
+    function previousStep() {
+      if (currentStep > 1) {
+        // Hide current step
+        document.getElementById('step' + currentStep).classList.remove('active');
+        
+        // Show previous step
+        currentStep--;
+        document.getElementById('step' + currentStep).classList.add('active');
+        
+        // Update progress indicator
+        updateProgressIndicator();
+      }
+    }
+    
+    function updateProgressIndicator() {
+      // Update progress bar
+      const progressBar = document.querySelector('.progress-bar');
+      const percentage = (currentStep / totalSteps) * 100;
+      progressBar.style.width = percentage + '%';
+      progressBar.setAttribute('aria-valuenow', percentage);
+      
+      // Update step indicators
+      document.querySelectorAll('.progress-step').forEach((step, index) => {
+        if (index < currentStep) {
+          step.classList.add('completed');
+          step.classList.remove('active');
+        } else if (index === currentStep - 1) {
+          step.classList.add('active');
+          step.classList.remove('completed');
+        } else {
+          step.classList.remove('active', 'completed');
+        }
+      });
+    }
+    
+    function updatePreview() {
+      // Update route
+      const routeSelect = document.getElementById('route_id');
+      const routeText = routeSelect.selectedOptions[0] ? routeSelect.selectedOptions[0].text : 'Not selected';
+      document.getElementById('previewRoute').textContent = routeText;
+      
+      // Update driver
+      const driverSelect = document.getElementById('driver');
+      const driverText = driverSelect.selectedOptions[0] ? driverSelect.selectedOptions[0].value : 'Not selected';
+      document.getElementById('previewDriver').textContent = driverText;
+      
+      // Update bus
+      const busSelect = document.getElementById('bus_id');
+      const busText = busSelect.selectedOptions[0] ? busSelect.selectedOptions[0].text : 'Not selected';
+      document.getElementById('previewBus').textContent = busText;
+      
+      // Update notes
+      const notes = document.getElementById('notes').value;
+      if (notes) {
+        document.getElementById('previewNotes').textContent = notes;
+        document.getElementById('previewNotesContainer').style.display = 'flex';
+      } else {
+        document.getElementById('previewNotesContainer').style.display = 'none';
+      }
+    }
+    
+    function handleSubmit(e) {
+      e.preventDefault();
+      
+      // Validate all required fields
+      if (!selections.route || !selections.driver || !selections.bus) {
+        alert('Please complete all required fields before submitting.');
+        return;
+      }
+      
+      // Show loading state
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="bi bi-hourglass-split" aria-hidden="true"></i> Processing...';
+      
+      // Submit form
+      e.target.submit();
+    }
+  </script>
+</body>
+</html>

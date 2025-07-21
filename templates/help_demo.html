@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Help System Demo - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/help_tooltips.css">
+  <style nonce="{{.CSPNonce}}">
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f5f5f5;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .demo-card {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 8px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #5a67d8;
+    }
+    .demo-section {
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 1px solid #eee;
+    }
+    .feature-list {
+      list-style: none;
+      padding: 0;
+    }
+    .feature-list li {
+      padding: 10px 0;
+      display: flex;
+      align-items: flex-start;
+    }
+    .feature-list i {
+      color: #667eea;
+      margin-right: 10px;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="demo-card">
+      <h1><i class="bi bi-question-circle me-2"></i>Comprehensive Help System Demo</h1>
+      <p>This page demonstrates the new help tooltip system. Hover over the question mark icons to see contextual help.</p>
+
+      <div class="demo-section">
+        <h2>Sample Registration Form with Help</h2>
+        
+        <form>
+          <div class="form-group" data-help="Enter the username you'll use to log in. It must be unique and between 3-20 characters." data-help-title="Choosing a Username">
+            <label for="demo-username">Username</label>
+            <input type="text" id="demo-username" name="username" placeholder="johndoe" required>
+          </div>
+
+          <div class="form-group" data-help="Choose your role in the system. Managers have full access to all features, while drivers have access to daily operations and student management." data-help-title="User Roles">
+            <label for="demo-role">Role</label>
+            <select id="demo-role" name="role" required>
+              <option value="">Select a role</option>
+              <option value="driver">Driver</option>
+              <option value="manager">Manager</option>
+            </select>
+          </div>
+
+          <div class="form-group" data-help="Your password must be at least 6 characters long. We recommend using a mix of letters, numbers, and symbols for better security." data-help-title="Password Requirements">
+            <label for="demo-password">Password</label>
+            <input type="password" id="demo-password" name="password" placeholder="••••••••" required>
+          </div>
+
+          <div class="form-group" data-help="Enter a valid email address. This will be used for password recovery and important system notifications." data-help-title="Email Address">
+            <label for="demo-email">Email (Optional)</label>
+            <input type="email" id="demo-email" name="email" placeholder="john@example.com">
+          </div>
+
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-person-plus me-2"></i>Register
+          </button>
+        </form>
+      </div>
+
+      <div class="demo-section">
+        <h2>Help System Features</h2>
+        <ul class="feature-list">
+          <li>
+            <i class="bi bi-check-circle"></i>
+            <span><strong>Contextual Help:</strong> Each form field has specific help text relevant to that field</span>
+          </li>
+          <li>
+            <i class="bi bi-check-circle"></i>
+            <span><strong>Accessibility:</strong> Help tooltips are keyboard navigable and screen reader friendly</span>
+          </li>
+          <li>
+            <i class="bi bi-check-circle"></i>
+            <span><strong>Mobile Friendly:</strong> Tooltips adapt to mobile screens automatically</span>
+          </li>
+          <li>
+            <i class="bi bi-check-circle"></i>
+            <span><strong>Non-Intrusive:</strong> Help appears on demand, not cluttering the interface</span>
+          </li>
+          <li>
+            <i class="bi bi-check-circle"></i>
+            <span><strong>Consistent Design:</strong> Same help system throughout the application</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="demo-section">
+        <h2>Interactive Elements</h2>
+        
+        <p data-help="This paragraph demonstrates that help can be added to any element, not just form fields. The help system is flexible and can provide context anywhere it's needed." data-help-title="Flexible Help System">
+          Hover over elements with the <i class="bi bi-question-circle"></i> icon to see help text.
+        </p>
+
+        <div style="margin-top: 20px;">
+          <button class="btn btn-primary" data-help="This button would save your changes to the database. Always review your entries before clicking save." data-help-title="Save Button">
+            <i class="bi bi-save me-2"></i>Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="/manager-dashboard" class="btn btn-primary">
+        <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+      </a>
+    </div>
+  </div>
+
+  <script src="/static/help_tooltips.js"></script>
+  <script nonce="{{.CSPNonce}}">
+    // Additional initialization if needed
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Help system demo loaded');
+    });
+  </script>
+</body>
+</html>

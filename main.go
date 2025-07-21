@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -16,43 +17,43 @@ import (
 
 // Constants for better maintainability
 const (
-	DefaultPort         = "5000"
-	SessionCookieName   = "session_id"
-	CSRFTokenHeader     = "X-CSRF-Token"
-	TemplateGlob        = "templates/*.html"
-	
+	DefaultPort       = "5000"
+	SessionCookieName = "session_id"
+	CSRFTokenHeader   = "X-CSRF-Token"
+	TemplateGlob      = "templates/*.html"
+
 	// Timeouts
 	ReadTimeout    = 30 * time.Second
 	WriteTimeout   = 60 * time.Second
 	IdleTimeout    = 120 * time.Second
 	MaxHeaderBytes = 1 << 20
-	
+
 	// Roles
 	RoleManager       = "manager"
 	RoleDriver        = "driver"
 	RoleDriverPending = "driver_pending"
-	
+
 	// Status
 	StatusActive  = "active"
 	StatusPending = "pending"
-	
+
 	// Date format
 	DateFormat = "2006-01-02"
-	
+
 	// Minimum password length
 	MinPasswordLength = 6
 )
 
-
 // Templates variable
 var templates *template.Template
+var templateCache *TemplateCache
 
 func init() {
 	// Complete function map with all required functions including mul
 	funcMap := template.FuncMap{
 		// JSON marshaling
 		"json": jsonMarshal,
-		
+
 		// ADDED: seq function for generating number sequences (needed for year dropdowns)
 		"seq": func(start, end int) []int {
 			var result []int
@@ -61,7 +62,7 @@ func init() {
 			}
 			return result
 		},
-		
+
 		// ADDED: formatNumber for formatting numbers with commas
 		"formatNumber": func(n interface{}) string {
 			var num int
@@ -75,7 +76,7 @@ func init() {
 			default:
 				return fmt.Sprintf("%v", n)
 			}
-			
+
 			// Format with commas
 			str := fmt.Sprintf("%d", num)
 			if num < 0 {
@@ -84,7 +85,7 @@ func init() {
 			if num < 1000 {
 				return str
 			}
-			
+
 			// Add commas every 3 digits from the right
 			var result []string
 			for i := len(str); i > 0; i -= 3 {
@@ -96,15 +97,21 @@ func init() {
 			}
 			return strings.Join(result, ",")
 		},
-		
+
 		// ADDED: multiply function (handles interface{} types)
 		"multiply": func(a, b interface{}) float64 {
 			return toFloat64(a) * toFloat64(b)
 		},
-		
+
 		// Mathematical operations
-		"add": func(a, b interface{}) float64 {
-			return toFloat64(a) + toFloat64(b)
+		"add": func(a, b interface{}) interface{} {
+			// Support both float and int addition
+			switch a.(type) {
+			case int:
+				return int(toFloat64(a) + toFloat64(b))
+			default:
+				return toFloat64(a) + toFloat64(b)
+			}
 		},
 		"sub": func(a, b interface{}) float64 {
 			return toFloat64(a) - toFloat64(b)
@@ -122,7 +129,7 @@ func init() {
 		"mod": func(a, b interface{}) int {
 			return toInt(a) % toInt(b)
 		},
-		
+
 		// Comparison functions
 		"eq": func(a, b interface{}) bool {
 			return a == b
@@ -142,11 +149,11 @@ func init() {
 		"ge": func(a, b interface{}) bool {
 			return toFloat64(a) >= toFloat64(b)
 		},
-		
+
 		// Utility functions
 		"len":    getLength,
 		"printf": fmt.Sprintf,
-		
+
 		// Number formatting
 		"formatFloat": func(f interface{}, decimals int) string {
 			format := fmt.Sprintf("%%.%df", decimals)
@@ -155,11 +162,11 @@ func init() {
 		"formatCurrency": func(amount interface{}) string {
 			// UPDATED: Better currency formatting with commas
 			f := toFloat64(amount)
-			
+
 			// Format with 2 decimal places
 			str := fmt.Sprintf("%.2f", f)
 			parts := strings.Split(str, ".")
-			
+
 			// Handle the integer part
 			intPart := parts[0]
 			negative := false
@@ -167,7 +174,7 @@ func init() {
 				negative = true
 				intPart = intPart[1:]
 			}
-			
+
 			// Add commas to integer part
 			var result []string
 			for i := len(intPart); i > 0; i -= 3 {
@@ -177,12 +184,12 @@ func init() {
 				}
 				result = append([]string{intPart[start:i]}, result...)
 			}
-			
+
 			formattedInt := strings.Join(result, ",")
 			if negative {
 				formattedInt = "-" + formattedInt
 			}
-			
+
 			// Combine with decimal part
 			if len(parts) > 1 {
 				return formattedInt + "." + parts[1]
@@ -192,7 +199,7 @@ func init() {
 		"formatPercent": func(value interface{}) string {
 			return fmt.Sprintf("%.0f%%", toFloat64(value))
 		},
-		
+
 		// Date formatting
 		"formatDate": func(date string) string {
 			t, err := time.Parse("2006-01-02", date)
@@ -201,7 +208,7 @@ func init() {
 			}
 			return t.Format("Jan 2, 2006")
 		},
-		
+
 		// String functions
 		"hasPrefix": func(s, prefix string) bool {
 			return len(s) >= len(prefix) && s[:len(prefix)] == prefix
@@ -218,6 +225,12 @@ func init() {
 				}
 			}
 			return strings.Join(words, " ")
+		},
+		"upper": func(s string) string {
+			return strings.ToUpper(s)
+		},
+		"lower": func(s string) string {
+			return strings.ToLower(s)
 		},
 		"formatBytes": func(bytes int64) string {
 			const unit = 1024
@@ -250,16 +263,93 @@ func init() {
 			}
 			return s[:n-3] + "..."
 		},
+		"substr": func(s string, start, length int) string {
+			if start < 0 || start >= len(s) {
+				return ""
+			}
+			end := start + length
+			if end > len(s) {
+				end = len(s)
+			}
+			return s[start:end]
+		},
+
+		// Navigation functions for accessible design
+		"getNavigation": func(user *User, currentPage string) NavigationData {
+			if user == nil {
+				return NavigationData{CurrentPage: currentPage}
+			}
+			return getNavigationData(user, currentPage)
+		},
+		"isActive": func(current, page string) bool {
+			return strings.Contains(current, page)
+		},
+		"getBadgeClass": func(color string) string {
+			switch color {
+			case "primary":
+				return "badge-primary"
+			case "success":
+				return "badge-success"
+			case "warning":
+				return "badge-warning"
+			case "danger":
+				return "badge-danger"
+			default:
+				return "badge-secondary"
+			}
+		},
+		
+		// dict creates a map from alternating key/value pairs
+		"dict": func(values ...interface{}) (map[string]interface{}, error) {
+			if len(values)%2 != 0 {
+				return nil, fmt.Errorf("dict requires an even number of arguments")
+			}
+			dict := make(map[string]interface{})
+			for i := 0; i < len(values); i += 2 {
+				key, ok := values[i].(string)
+				if !ok {
+					return nil, fmt.Errorf("dict keys must be strings")
+				}
+				dict[key] = values[i+1]
+			}
+			return dict, nil
+		},
+		// list creates a slice from the provided values
+		"list": func(values ...interface{}) []interface{} {
+			return values
+		},
 	}
 
+	// Load templates with optimization
 	var err error
-	log.Printf("Loading templates from: %s", TemplateGlob)
-	templates, err = template.New("").Funcs(funcMap).ParseGlob(TemplateGlob)
-	if err != nil {
-		log.Fatalf("Failed to load templates: %v", err)
+	if os.Getenv("APP_ENV") == "production" {
+		// Use optimized template cache in production
+		log.Printf("Loading templates with optimization...")
+		templateCache, err = PrecompileTemplates("templates")
+		if err != nil {
+			log.Fatalf("Failed to load template cache: %v", err)
+		}
+		log.Printf("Successfully loaded optimized templates")
+	} else {
+		// Use standard templates in development for hot reload
+		log.Printf("Loading templates from: %s", TemplateGlob)
+		templates = template.New("").Funcs(funcMap)
+		
+		// First load component templates
+		componentGlob := "templates/components/*.html"
+		templates, err = templates.ParseGlob(componentGlob)
+		if err != nil {
+			log.Printf("Warning: Failed to load component templates: %v", err)
+		}
+		
+		// Then load page templates
+		templates, err = templates.ParseGlob(TemplateGlob)
+		if err != nil {
+			log.Fatalf("Failed to load templates: %v", err)
+		}
+		log.Printf("Successfully loaded %d templates", len(templates.Templates()))
 	}
-	log.Printf("Successfully loaded %d templates", len(templates.Templates()))
-	
+
 	// Start session cleanup in security.go
 	go periodicSessionCleanup()
 }
@@ -284,7 +374,7 @@ func toFloat64(v interface{}) float64 {
 	case float64:
 		return x
 	case string:
-		// Handle percentage strings like "75%" 
+		// Handle percentage strings like "75%"
 		if len(x) > 0 && x[len(x)-1] == '%' {
 			var val float64
 			if _, err := fmt.Sscanf(x[:len(x)-1], "%f", &val); err == nil {
@@ -379,7 +469,7 @@ func getLength(v interface{}) int {
 func main() {
 	// Initialize logger
 	InitLogger()
-	
+
 	// Database setup
 	LogInfo("🗄️  Setting up PostgreSQL database...")
 	if err := setupDatabase(); err != nil {
@@ -387,15 +477,32 @@ func main() {
 	}
 	defer closeDatabase()
 	
+	// Start test server in development mode
+	StartTestServer()
+
+	// Initialize session manager
+	LogInfo("🔐 Setting up session manager...")
+	if err := initializeSessionManager(); err != nil {
+		LogFatal("Failed to initialize session manager", err)
+	}
+
+	// Initialize query cache
+	LogInfo("🚀 Setting up query cache...")
+	initQueryCache()
+
 	// Reset rate limiter on startup to clear any previous blocks
 	LogInfo("🔄 Resetting rate limiter...")
 	rateLimiter.Reset()
 
 	mux := setupRoutes()
-	
-	// Chain middlewares: CSP -> Security -> Router
-	handler := CSPMiddleware(SecurityHeaders(mux))
-	
+
+	// Configure compression
+	compressionConfig := DefaultCompressionConfig()
+	compressionConfig.Enabled = os.Getenv("DISABLE_COMPRESSION") != "true"
+
+	// Chain middlewares: Test -> CSP -> Security -> Router (Compression disabled for now)
+	handler := testableHandler(CSPMiddleware(SecurityHeaders(mux)))
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = DefaultPort
@@ -412,7 +519,7 @@ func main() {
 
 	// Start background jobs
 	startScheduledExportsJob()
-	
+
 	// Graceful shutdown
 	go gracefulShutdown(server)
 
@@ -425,22 +532,67 @@ func main() {
 // setupRoutes configures all application routes
 func setupRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
+
+	// Static file server with proper content types
+	mux.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
+		// Remove /static/ prefix
+		path := r.URL.Path[8:]
+
+		// Set content type based on file extension
+		switch {
+		case strings.HasSuffix(path, ".css"):
+			w.Header().Set("Content-Type", "text/css; charset=utf-8")
+		case strings.HasSuffix(path, ".js"):
+			w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+		case strings.HasSuffix(path, ".png"):
+			w.Header().Set("Content-Type", "image/png")
+		case strings.HasSuffix(path, ".jpg"), strings.HasSuffix(path, ".jpeg"):
+			w.Header().Set("Content-Type", "image/jpeg")
+		case strings.HasSuffix(path, ".svg"):
+			w.Header().Set("Content-Type", "image/svg+xml")
+		}
+
+		// Serve the file
+		http.ServeFile(w, r, filepath.Join("static", path))
+	})
+
+	// Register public test routes FIRST (no middleware)
+	setupPublicTestRoutes(mux)
 	
-	// Public routes
-	mux.HandleFunc("/", withRecovery(RateLimitMiddleware(loginHandler)))
+	// Create a special handler for root that checks path first
+	mux.HandleFunc("/", withRecovery(func(w http.ResponseWriter, r *http.Request) {
+		// Only handle exact "/" path, let other paths fall through
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		RateLimitMiddleware(loginHandler)(w, r)
+	}))
 	mux.HandleFunc("/register", withRecovery(RateLimitMiddleware(registerHandler)))
 	mux.HandleFunc("/logout", withRecovery(logoutHandler))
 	mux.HandleFunc("/health", withRecovery(healthCheck))
+	mux.HandleFunc("/status", withRecovery(serverStatusHandler))
+	
+	// Test endpoint for ECSE dashboard (temporary - remove in production)
+	mux.HandleFunc("/test-ecse", withRecovery(testECSEHandler))
+	
+	// Debug endpoint for fleet issues (temporary - remove in production)
+	mux.HandleFunc("/debug-fleet", withRecovery(debugFleetHandler))
 
 	// Manager-only routes
 	setupManagerRoutes(mux)
 
 	// Driver routes
 	setupDriverRoutes(mux)
-	
+
 	// API routes (accessible by both managers and drivers)
 	setupAPIRoutes(mux)
 	
+	// Common protected routes for all authenticated users
+	mux.HandleFunc("/profile", withRecovery(requireAuth(requireDatabase(profileHandler))))
+	mux.HandleFunc("/settings", withRecovery(requireAuth(requireRole("manager")(requireDatabase(settingsHandler)))))
+	mux.HandleFunc("/help-demo", withRecovery(requireAuth(requireDatabase(helpDemoHandler))))
+
 	// Common protected routes
 	mux.HandleFunc("/dashboard", withRecovery(requireAuth(requireDatabase(dashboardHandler))))
 
@@ -452,17 +604,45 @@ func setupAPIRoutes(mux *http.ServeMux) {
 	// Maintenance API routes
 	mux.HandleFunc("/api/check-maintenance", withRecovery(requireAuth(requireDatabase(checkMaintenanceDueHandler))))
 	mux.HandleFunc("/api/debug-maintenance", withRecovery(requireAuth(requireRole("manager")(requireDatabase(debugMaintenanceRecordsHandler)))))
-	
+
 	// Dashboard Analytics API routes
 	mux.HandleFunc("/api/dashboard/analytics", withRecovery(requireAuth(requireRole("manager")(requireDatabase(dashboardAnalyticsHandler)))))
 	mux.HandleFunc("/api/dashboard/fleet-status", withRecovery(requireAuth(requireDatabase(fleetStatusWidgetHandler))))
 	mux.HandleFunc("/api/dashboard/maintenance-alerts", withRecovery(requireAuth(requireDatabase(maintenanceAlertsWidgetHandler))))
 	mux.HandleFunc("/api/dashboard/route-efficiency", withRecovery(requireAuth(requireDatabase(routeEfficiencyWidgetHandler))))
-	
+
 	// Report Builder API routes
 	mux.HandleFunc("/api/report-builder", withRecovery(requireAuth(requireRole("manager")(requireDatabase(reportBuilderAPIHandler)))))
 	mux.HandleFunc("/api/report-data-sources", withRecovery(requireAuth(requireRole("manager")(requireDatabase(getReportDataSourcesHandler)))))
 	mux.HandleFunc("/api/report-chart-types", withRecovery(requireAuth(requireRole("manager")(requireDatabase(reportChartTypesHandler)))))
+
+	// Database Optimization API routes
+	mux.HandleFunc("/api/database/stats", withRecovery(requireAuth(requireRole("manager")(requireDatabase(databaseStatsHandler)))))
+	mux.HandleFunc("/api/database/optimize", withRecovery(requireAuth(requireRole("manager")(requireDatabase(optimizeDatabaseHandler)))))
+	mux.HandleFunc("/api/cache/stats", withRecovery(requireAuth(requireRole("manager")(cacheStatsHandler))))
+
+	// Chart/Visualization API routes
+	mux.HandleFunc("/api/charts/data", withRecovery(requireAuth(requireDatabase(chartDataHandler))))
+	mux.HandleFunc("/api/charts/available", withRecovery(requireAuth(requireDatabase(availableChartsHandler))))
+
+	// Lazy Loading API routes
+	mux.HandleFunc("/api/lazy/monthly-mileage-reports", withRecovery(requireAuth(requireRole("manager")(requireDatabase(monthlyMileageReportsAPIHandler)))))
+	mux.HandleFunc("/api/lazy/maintenance-records", withRecovery(requireAuth(requireRole("manager")(requireDatabase(maintenanceRecordsAPIHandler)))))
+	mux.HandleFunc("/api/lazy/fleet-vehicles", withRecovery(requireAuth(requireRole("manager")(requireDatabase(fleetVehiclesAPIHandler)))))
+
+	// Comparative Analytics API routes
+	mux.HandleFunc("/api/analytics/comparison", withRecovery(requireAuth(requireRole("manager")(requireDatabase(comparativeAnalyticsHandler)))))
+	mux.HandleFunc("/api/analytics/trend", withRecovery(requireAuth(requireRole("manager")(requireDatabase(trendAnalysisHandler)))))
+
+	// Fuel Efficiency API routes
+	mux.HandleFunc("/api/fuel/record", withRecovery(requireAuth(requireDatabase(saveFuelRecordHandler))))
+	mux.HandleFunc("/api/fuel/efficiency", withRecovery(requireAuth(requireDatabase(vehicleFuelEfficiencyHandler))))
+	mux.HandleFunc("/api/fuel/summary", withRecovery(requireAuth(requireRole("manager")(requireDatabase(fleetFuelSummaryHandler)))))
+	mux.HandleFunc("/api/fuel/trend-chart", withRecovery(requireAuth(requireDatabase(fuelTrendChartHandler))))
+
+	// Driver Scorecard API routes
+	mux.HandleFunc("/api/scorecard/driver", withRecovery(requireAuth(requireDatabase(driverScorecardHandler))))
+	mux.HandleFunc("/api/scorecard/all", withRecovery(requireAuth(requireRole("manager")(requireDatabase(allDriverScorecardsHandler)))))
 }
 
 // setupManagerRoutes configures manager-specific routes
@@ -473,45 +653,95 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/manage-users", withRecovery(requireAuth(requireRole("manager")(requireDatabase(manageUsersHandler)))))
 	mux.HandleFunc("/edit-user", withRecovery(requireAuth(requireRole("manager")(requireDatabase(editUserHandler)))))
 	mux.HandleFunc("/delete-user", withRecovery(requireAuth(requireRole("manager")(requireDatabase(deleteUserHandler)))))
-	
+
 	// ECSE Management Routes
 	mux.HandleFunc("/import-ecse", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importECSEHandler)))))
 	mux.HandleFunc("/view-ecse-reports", withRecovery(requireAuth(requireRole("manager")(requireDatabase(viewECSEReportsHandler)))))
 	mux.HandleFunc("/ecse-student/", withRecovery(requireAuth(requireRole("manager")(requireDatabase(viewECSEStudentHandler)))))
 	mux.HandleFunc("/edit-ecse-student", withRecovery(requireAuth(requireRole("manager")(requireDatabase(editECSEStudentHandler)))))
 	mux.HandleFunc("/export-ecse", withRecovery(requireAuth(requireRole("manager")(requireDatabase(exportECSEHandler)))))
-	
+
 	// Dashboard
 	mux.HandleFunc("/manager-dashboard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(managerDashboardHandler)))))
 	mux.HandleFunc("/analytics-dashboard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(analyticsDashboardHandler)))))
 	mux.HandleFunc("/report-builder", withRecovery(requireAuth(requireRole("manager")(requireDatabase(reportBuilderHandler)))))
 	
+	// ECSE Management
+	mux.HandleFunc("/ecse-dashboard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(ecseDashboardHandler)))))
+	mux.HandleFunc("/ecse-student", withRecovery(requireAuth(requireRole("manager")(requireDatabase(ecseStudentDetailsHandler)))))
+	mux.HandleFunc("/add-ecse-service", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addECSEServiceHandler)))))
+	mux.HandleFunc("/add-sample-ecse-data", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addSampleECSEDataHandler)))))
+	mux.HandleFunc("/add-sample-fleet-data", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addSampleFleetDataHandler)))))
+	mux.HandleFunc("/add-sample-fuel-data", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addSampleFuelDataHandler)))))
+	mux.HandleFunc("/generate-mileage-reports", withRecovery(requireAuth(requireRole("manager")(requireDatabase(generateMileageReportsFromLogsHandler)))))
+	mux.HandleFunc("/fix-tables", withRecovery(requireAuth(requireRole("manager")(requireDatabase(fixTablesHandler)))))
+	mux.HandleFunc("/data-status", withRecovery(requireAuth(requireRole("manager")(requireDatabase(dataStatusHandler)))))
+	mux.HandleFunc("/check-db", withRecovery(requireAuth(requireRole("manager")(requireDatabase(checkDatabaseHandler)))))
+	
+	// Fuel Management
+	mux.HandleFunc("/fuel-records", withRecovery(requireAuth(requireDatabase(fuelRecordsHandler))))
+	mux.HandleFunc("/fuel-tracking", withRecovery(requireAuth(requireDatabase(fuelRecordsHandler))))
+	mux.HandleFunc("/add-fuel-record", withRecovery(requireAuth(requireDatabase(addFuelRecordHandler))))
+	mux.HandleFunc("/fuel-analytics", withRecovery(requireAuth(requireRole("manager")(requireDatabase(fuelAnalyticsHandler)))))
+
 	// Fleet management - Available to both managers and drivers with proper permissions
 	mux.HandleFunc("/fleet", withRecovery(requireAuth(requireDatabase(fleetHandler))))
 	mux.HandleFunc("/company-fleet", withRecovery(requireAuth(requireDatabase(companyFleetHandler))))
+	mux.HandleFunc("/fleet-vehicles", withRecovery(requireAuth(requireRole("manager")(requireDatabase(fleetVehiclesHandler)))))
 	mux.HandleFunc("/update-vehicle-status", withRecovery(requireAuth(requireDatabase(updateVehicleStatusHandler))))
 	mux.HandleFunc("/add-bus", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addBusHandler)))))
-	
+	mux.HandleFunc("/add-bus-wizard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addBusWizardHandler)))))
+
 	// Maintenance - Available to both managers and drivers
 	mux.HandleFunc("/bus-maintenance/", withRecovery(requireAuth(requireDatabase(busMaintenanceHandler))))
 	mux.HandleFunc("/vehicle-maintenance/", withRecovery(requireAuth(requireDatabase(vehicleMaintenanceHandler))))
+	mux.HandleFunc("/maintenance-records", withRecovery(requireAuth(requireRole("manager")(requireDatabase(maintenanceRecordsHandler)))))
+	mux.HandleFunc("/service-records", withRecovery(requireAuth(requireRole("manager")(requireDatabase(serviceRecordsHandler)))))
 	mux.HandleFunc("/save-maintenance-record", withRecovery(requireAuth(requireDatabase(saveMaintenanceRecordHandler))))
-	
+	mux.HandleFunc("/maintenance-wizard", withRecovery(requireAuth(requireDatabase(maintenanceWizardHandler))))
+	mux.HandleFunc("/save-maintenance-wizard", withRecovery(requireAuth(requireDatabase(saveMaintenanceWizardHandler))))
+
 	// Route management
 	mux.HandleFunc("/assign-routes", withRecovery(requireAuth(requireRole("manager")(requireDatabase(assignRoutesHandler)))))
+	mux.HandleFunc("/route-assignment-wizard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(routeAssignmentWizardHandler)))))
+	mux.HandleFunc("/assign-route-wizard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(assignRouteWizardHandler)))))
 	mux.HandleFunc("/assign-route", withRecovery(requireAuth(requireRole("manager")(requireDatabase(assignRouteHandler)))))
 	mux.HandleFunc("/unassign-route", withRecovery(requireAuth(requireRole("manager")(requireDatabase(unassignRouteHandler)))))
 	mux.HandleFunc("/add-route", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addRouteHandler)))))
 	mux.HandleFunc("/edit-route", withRecovery(requireAuth(requireRole("manager")(requireDatabase(editRouteHandler)))))
 	mux.HandleFunc("/delete-route", withRecovery(requireAuth(requireRole("manager")(requireDatabase(deleteRouteHandler)))))
 	
+	// Wizard API endpoints
+	mux.HandleFunc("/api/available-drivers", withRecovery(requireAuth(requireRole("manager")(requireDatabase(availableDriversHandler)))))
+	mux.HandleFunc("/api/available-buses", withRecovery(requireAuth(requireRole("manager")(requireDatabase(availableBusesHandler)))))
+	mux.HandleFunc("/api/available-routes", withRecovery(requireAuth(requireRole("manager")(requireDatabase(availableRoutesHandler)))))
+	mux.HandleFunc("/api/check-assignment-conflicts", withRecovery(requireAuth(requireRole("manager")(requireDatabase(checkAssignmentConflictsHandler)))))
+	mux.HandleFunc("/api/vehicle-mileage/", withRecovery(requireAuth(requireDatabase(vehicleMileageHandler))))
+	mux.HandleFunc("/api/maintenance-vendors", withRecovery(requireAuth(requireDatabase(maintenanceVendorsHandler))))
+	mux.HandleFunc("/api/analyze-import-file", withRecovery(requireAuth(requireRole("manager")(requireDatabase(analyzeImportFileHandler)))))
+	mux.HandleFunc("/api/preview-import", withRecovery(requireAuth(requireRole("manager")(requireDatabase(previewImportHandler)))))
+	
+	// Auto-complete API endpoints
+	mux.HandleFunc("/api/search-buses", withRecovery(requireAuth(requireDatabase(searchBusesHandler))))
+	mux.HandleFunc("/api/search-drivers", withRecovery(requireAuth(requireDatabase(searchDriversHandler))))
+	mux.HandleFunc("/api/search-students", withRecovery(requireAuth(requireDatabase(searchStudentsHandler))))
+	mux.HandleFunc("/api/search-addresses", withRecovery(requireAuth(requireDatabase(searchAddressesHandler))))
+	mux.HandleFunc("/api/suggest-models", withRecovery(requireAuth(requireDatabase(suggestModelsHandler))))
+
 	// Mileage reports
 	mux.HandleFunc("/import-mileage", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importMileageHandler)))))
 	mux.HandleFunc("/view-mileage-reports", withRecovery(requireAuth(requireRole("manager")(requireDatabase(viewMileageReportsHandler)))))
 	mux.HandleFunc("/export-mileage", withRecovery(requireAuth(requireRole("manager")(requireDatabase(exportMileageHandler)))))
 	mux.HandleFunc("/mileage-report-generator", withRecovery(requireAuth(requireRole("manager")(requireDatabase(mileageReportGeneratorHandler)))))
+	mux.HandleFunc("/monthly-mileage-reports", withRecovery(requireAuth(requireRole("manager")(requireDatabase(monthlyMileageReportsHandler)))))
+
+	// Enhanced Import System
+	mux.HandleFunc("/import-data-wizard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importDataWizardHandler)))))
+	mux.HandleFunc("/api/import/analyze", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importAnalyzeHandler)))))
+	mux.HandleFunc("/api/import/validate", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importValidateHandler)))))
+	mux.HandleFunc("/api/import/execute", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importExecuteHandler)))))
 	
-	// Enhanced Import System (temporarily disabled)
+	// Legacy Import System (temporarily disabled)
 	// mux.HandleFunc("/import", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importHandler)))))
 	// mux.HandleFunc("/import/mapping", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importMappingHandler)))))
 	// mux.HandleFunc("/import/preview", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importPreviewHandler)))))
@@ -521,7 +751,7 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	// mux.HandleFunc("/import/rollback", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importRollbackHandler)))))
 	// mux.HandleFunc("/api/import", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importAPIHandler)))))
 	// mux.HandleFunc("/api/import/auto-map", withRecovery(requireAuth(requireRole("manager")(requireDatabase(autoMapHandler)))))
-	
+
 	// Export System
 	mux.HandleFunc("/export/templates", withRecovery(requireAuth(requireRole("manager")(requireDatabase(exportTemplateHandler)))))
 	mux.HandleFunc("/export/template", withRecovery(requireAuth(requireRole("manager")(requireDatabase(exportTemplateHandler)))))
@@ -530,11 +760,11 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/export/scheduled/edit", withRecovery(requireAuth(requireRole("manager")(requireDatabase(scheduledExportEditHandler)))))
 	mux.HandleFunc("/export/scheduled/delete", withRecovery(requireAuth(requireRole("manager")(requireDatabase(scheduledExportDeleteHandler)))))
 	mux.HandleFunc("/export/scheduled/run", withRecovery(requireAuth(requireRole("manager")(requireDatabase(scheduledExportRunHandler)))))
-	
+
 	// PDF Reports
 	mux.HandleFunc("/api/reports/pdf", withRecovery(requireAuth(requireDatabase(pdfReportHandler))))
 	mux.HandleFunc("/api/reports/pdf/custom", withRecovery(requireAuth(requireRole("manager")(requireDatabase(pdfCustomReportHandler)))))
-	
+
 	// Driver profile
 	mux.HandleFunc("/driver/", withRecovery(requireAuth(requireRole("manager")(requireDatabase(driverProfileHandler)))))
 }
@@ -543,10 +773,11 @@ func setupManagerRoutes(mux *http.ServeMux) {
 func setupDriverRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/driver-dashboard", withRecovery(requireAuth(requireRole("driver")(requireDatabase(driverDashboardHandler)))))
 	mux.HandleFunc("/save-log", withRecovery(requireAuth(requireRole("driver")(requireDatabase(saveLogHandler)))))
-	
+
 	// Student management
 	mux.HandleFunc("/students", withRecovery(requireAuth(requireRole("driver")(requireDatabase(studentsHandler)))))
 	mux.HandleFunc("/add-student", withRecovery(requireAuth(requireRole("driver")(requireDatabase(addStudentHandler)))))
+	mux.HandleFunc("/add-student-wizard", withRecovery(requireAuth(requireRole("driver")(requireDatabase(addStudentWizardHandler)))))
 	mux.HandleFunc("/edit-student", withRecovery(requireAuth(requireRole("driver")(requireDatabase(editStudentHandler)))))
 	mux.HandleFunc("/remove-student", withRecovery(requireAuth(requireRole("driver")(requireDatabase(removeStudentHandler)))))
 }
@@ -555,16 +786,16 @@ func setupDriverRoutes(mux *http.ServeMux) {
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {
 	health := struct {
-		Status       string      `json:"status"`
-		Service      string      `json:"service"`
-		Timestamp    string      `json:"timestamp"`
-		Database     string      `json:"database"`
-		Version      string      `json:"version"`
-		SessionCount int         `json:"active_sessions"`
-		UserCount    *int        `json:"user_count,omitempty"`
-		AdminExists  *bool       `json:"admin_exists,omitempty"`
-		DBError      string      `json:"db_error,omitempty"`
-		TableExists  *bool       `json:"users_table_exists,omitempty"`
+		Status       string `json:"status"`
+		Service      string `json:"service"`
+		Timestamp    string `json:"timestamp"`
+		Database     string `json:"database"`
+		Version      string `json:"version"`
+		SessionCount int    `json:"active_sessions"`
+		UserCount    *int   `json:"user_count,omitempty"`
+		AdminExists  *bool  `json:"admin_exists,omitempty"`
+		DBError      string `json:"db_error,omitempty"`
+		TableExists  *bool  `json:"users_table_exists,omitempty"`
 	}{
 		Status:       "ok",
 		Service:      "bus-fleet-management",
@@ -573,7 +804,7 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 		Version:      "2.0.0",
 		SessionCount: GetActiveSessionCount(),
 	}
-	
+
 	// Check database connection
 	if db == nil {
 		health.Status = "degraded"
@@ -585,7 +816,7 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 		health.DBError = err.Error()
 	} else {
 		// Database is connected, run additional checks
-		
+
 		// Check if users table exists
 		var tableExists bool
 		if err := db.Get(&tableExists, `
@@ -597,7 +828,7 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 		`); err == nil {
 			health.TableExists = &tableExists
 		}
-		
+
 		// Count users
 		var userCount int
 		if err := db.Get(&userCount, "SELECT COUNT(*) FROM users"); err == nil {
@@ -605,22 +836,22 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 		} else if health.DBError == "" {
 			health.DBError = "Failed to count users: " + err.Error()
 		}
-		
+
 		// Check if admin exists
 		var adminExists bool
 		if err := db.Get(&adminExists, "SELECT EXISTS(SELECT 1 FROM users WHERE username = 'admin')"); err == nil {
 			health.AdminExists = &adminExists
 		}
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	if health.Status == "ok" {
 		w.WriteHeader(http.StatusOK)
 	} else {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
-	
+
 	json.NewEncoder(w).Encode(health)
 }
 
@@ -632,12 +863,12 @@ func getSessionCSRFToken(r *http.Request) string {
 	if err != nil {
 		return ""
 	}
-	
+
 	session, err := GetSecureSession(cookie.Value)
 	if err != nil {
 		return ""
 	}
-	
+
 	return session.CSRFToken
 }
 
@@ -650,7 +881,7 @@ func validateCSRF(r *http.Request) bool {
 		log.Printf("CSRF validation failed: no session cookie")
 		return false
 	}
-	
+
 	// Get session
 	session, err := GetSecureSession(cookie.Value)
 	if err != nil {
@@ -658,25 +889,25 @@ func validateCSRF(r *http.Request) bool {
 		log.Printf("CSRF validation failed: invalid session")
 		return false
 	}
-	
+
 	// Get submitted token from form or header
 	submittedToken := r.FormValue("csrf_token")
 	if submittedToken == "" {
 		// Also check header for AJAX requests
 		submittedToken = r.Header.Get("X-CSRF-Token")
 	}
-	
+
 	// Debug logging
 	if submittedToken == "" {
 		log.Printf("CSRF validation failed: no token submitted")
 		return false
 	}
-	
+
 	if session.CSRFToken != submittedToken {
 		log.Printf("CSRF validation failed: token mismatch - expected: %s, got: %s", session.CSRFToken, submittedToken)
 		return false
 	}
-	
+
 	return true
 }
 
@@ -686,17 +917,17 @@ func gracefulShutdown(server *http.Server) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	<-sigChan
-	
+
 	log.Println("Shutting down server...")
-	
+
 	// Give connections 30 seconds to finish
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	
+
 	if err := server.Shutdown(ctx); err != nil {
 		log.Printf("Server forced to shutdown: %v", err)
 	}
-	
+
 	log.Println("Server shutdown complete")
 }
 
@@ -708,7 +939,20 @@ func min(a, b int) int {
 	return b
 }
 
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 // Development mode check
 func isDevelopment() bool {
 	return os.Getenv("APP_ENV") == "development"
+}
+
+// initializeSessionManager sets up the session storage (simplified)
+func initializeSessionManager() error {
+	log.Println("Using in-memory session storage")
+	return nil
 }

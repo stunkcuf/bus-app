@@ -16,11 +16,14 @@ import (
 
 // Session represents a user session
 type Session struct {
-	Username    string
-	UserRole    string
-	CSRFToken   string
-	CreatedAt   time.Time
-	LastAccess  time.Time
+	SessionToken string
+	Username     string
+	UserRole     string
+	CSRFToken    string
+	CreatedAt    time.Time
+	LastAccess   time.Time
+	ExpiresAt    time.Time
+	ImportFiles  map[string]string // Temporary storage for import file paths
 }
 
 // Rate limiter
@@ -33,9 +36,10 @@ type RateLimiter struct {
 
 // Global variables
 var (
-	sessions      = make(map[string]*Session)
+	sessions      = make(map[string]*Session) // Kept for backward compatibility
 	sessionsMutex sync.RWMutex
-	rateLimiter   = NewRateLimiter(20, 15*time.Minute) // 20 attempts per 15 minutes (increased for development)
+	rateLimiter   = NewRateLimiter(100, 15*time.Minute) // 100 attempts per 15 minutes (increased for development)
+	// sessionManager removed - using simple in-memory sessions
 )
 
 // NewRateLimiter creates a new rate limiter
@@ -154,18 +158,18 @@ func getClientIP(r *http.Request) string {
 // authenticateUser verifies username and password
 func authenticateUser(username, password string) (*User, error) {
 	log.Printf("DEBUG: authenticateUser called for username: %s", username)
-	
+
 	if db == nil {
 		log.Printf("ERROR: Authentication failed - database connection is nil")
 		return nil, fmt.Errorf("database not initialized")
 	}
-	
+
 	// Test database connection
 	if err := db.Ping(); err != nil {
 		log.Printf("ERROR: Database ping failed: %v", err)
 		return nil, fmt.Errorf("database connection lost")
 	}
-	
+
 	// First, let's check if the users table exists
 	var tableExists bool
 	tableCheckErr := db.Get(&tableExists, `
@@ -180,7 +184,7 @@ func authenticateUser(username, password string) (*User, error) {
 	} else {
 		log.Printf("DEBUG: Users table exists: %v", tableExists)
 	}
-	
+
 	// Try to count total users
 	var userCount int
 	countErr := db.Get(&userCount, "SELECT COUNT(*) FROM users")
@@ -200,17 +204,18 @@ func authenticateUser(username, password string) (*User, error) {
 	if err != nil {
 		log.Printf("ERROR: Database query failed for user %s: %v", username, err)
 		log.Printf("ERROR: SQL Error Type: %T", err)
-		
-		// Try a simpler query to debug - just get password and role
+
+		// Try a simpler query to debug - just get password, role and status
 		var debugUser struct {
 			Username string `db:"username"`
 			Password string `db:"password"`
 			Role     string `db:"role"`
+			Status   string `db:"status"`
 		}
-		debugErr := db.Get(&debugUser, "SELECT username, password, role FROM users WHERE username = $1", username)
+		debugErr := db.Get(&debugUser, "SELECT username, password, role, status FROM users WHERE username = $1", username)
 		if debugErr != nil {
 			log.Printf("ERROR: Even simple query failed: %v", debugErr)
-			
+
 			// Let's list all users to see what's in the database
 			var allUsers []string
 			listErr := db.Select(&allUsers, "SELECT username FROM users")
@@ -220,15 +225,15 @@ func authenticateUser(username, password string) (*User, error) {
 				log.Printf("DEBUG: All users in database: %v", allUsers)
 			}
 		} else {
-			log.Printf("DEBUG: Found user via simple query: %s (role: %s)", debugUser.Username, debugUser.Role)
+			log.Printf("DEBUG: Found user via simple query: %s (role: %s, status: %s)", debugUser.Username, debugUser.Role, debugUser.Status)
 			// Use the debug user data for authentication
 			user.Username = debugUser.Username
 			user.Password = debugUser.Password
 			user.Role = debugUser.Role
-			user.Status = "active" // Default to active for now
-			err = nil // Clear the error since we got the data we need
+			user.Status = debugUser.Status
+			err = nil              // Clear the error since we got the data we need
 		}
-		
+
 		if err != nil {
 			return nil, fmt.Errorf("invalid credentials")
 		}
@@ -283,20 +288,24 @@ func generateCSRFToken() string {
 
 // storeSession stores a session for a user
 func storeSession(token string, user *User) {
+	// Use in-memory storage only (sessionManager disabled)
 	sessionsMutex.Lock()
 	defer sessionsMutex.Unlock()
 
 	sessions[token] = &Session{
-		Username:   user.Username,
-		UserRole:   user.Role,
-		CSRFToken:  generateCSRFToken(),
-		CreatedAt:  time.Now(),
-		LastAccess: time.Now(),
+		SessionToken: token,
+		Username:     user.Username,
+		UserRole:     user.Role,
+		CSRFToken:    generateCSRFToken(),
+		CreatedAt:    time.Now(),
+		LastAccess:   time.Now(),
+		ExpiresAt:    time.Now().Add(24 * time.Hour),
 	}
 }
 
 // GetSecureSession retrieves a session by token
 func GetSecureSession(token string) (*Session, error) {
+	// Use in-memory storage only (sessionManager disabled)
 	sessionsMutex.RLock()
 	defer sessionsMutex.RUnlock()
 
@@ -305,7 +314,7 @@ func GetSecureSession(token string) (*Session, error) {
 		return nil, fmt.Errorf("session not found")
 	}
 
-	// Check if session is expired (24 hours)
+	// Check if session is expired
 	if time.Since(session.CreatedAt) > 24*time.Hour {
 		return nil, fmt.Errorf("session expired")
 	}
@@ -321,12 +330,13 @@ func GetSession(r *http.Request) (*Session, error) {
 	if err != nil {
 		return nil, fmt.Errorf("no session cookie")
 	}
-	
+
 	return GetSecureSession(cookie.Value)
 }
 
 // deleteSession removes a session
 func deleteSession(token string) {
+	// Use in-memory storage only (sessionManager disabled)
 	sessionsMutex.Lock()
 	defer sessionsMutex.Unlock()
 	delete(sessions, token)
@@ -336,13 +346,19 @@ func deleteSession(token string) {
 func getUserFromSession(r *http.Request) *User {
 	cookie, err := r.Cookie(SessionCookieName)
 	if err != nil {
+		log.Printf("DEBUG: No session cookie found: %v", err)
 		return nil
 	}
 
+	log.Printf("DEBUG: Found session cookie: %s...", cookie.Value[:10])
+
 	session, err := GetSecureSession(cookie.Value)
 	if err != nil {
+		log.Printf("DEBUG: Failed to get session: %v", err)
 		return nil
 	}
+
+	log.Printf("DEBUG: Session found for user: %s (role: %s)", session.Username, session.UserRole)
 
 	return &User{
 		Username: session.Username,
@@ -377,7 +393,7 @@ func createUser(username, password, role, status string) error {
 		INSERT INTO users (username, password, role, status, registration_date)
 		VALUES ($1, $2, $3, $4, CURRENT_DATE)
 	`, username, string(hashedPassword), role, status)
-	
+
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "unique constraint") {
 			return fmt.Errorf("username already exists")
@@ -392,7 +408,7 @@ func createUser(username, password, role, status string) error {
 func GetActiveSessionCount() int {
 	sessionsMutex.RLock()
 	defer sessionsMutex.RUnlock()
-	
+
 	count := 0
 	now := time.Now()
 	for _, session := range sessions {
@@ -405,6 +421,7 @@ func GetActiveSessionCount() int {
 
 // periodicSessionCleanup removes expired sessions
 func periodicSessionCleanup() {
+	// In-memory only mode cleanup
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
 

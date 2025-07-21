@@ -2,10 +2,9 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"os"
-	
+
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -31,7 +30,7 @@ func main() {
 
 	username := "admin"
 	password := "Headstart1"
-	
+
 	log.Printf("Ensuring admin user exists with correct password...")
 
 	// Hash the password
@@ -57,7 +56,7 @@ func main() {
 		if err != nil {
 			log.Fatal("Failed to update admin user:", err)
 		}
-		
+
 		rows, _ := result.RowsAffected()
 		log.Printf("Admin user updated (rows affected: %d)", rows)
 	} else {

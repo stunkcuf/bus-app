@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"mime/multipart"
@@ -29,13 +30,13 @@ func processECSEExcelFile(file multipart.File, filename string) (int, error) {
 	// Process each sheet (each represents a school district)
 	for _, sheet := range sheets {
 		log.Printf("\n=== Processing ECSE sheet: '%s' ===", sheet)
-		
+
 		imported, err := processTransportationSheet(f, sheet)
 		if err != nil {
 			log.Printf("Error processing sheet %s: %v", sheet, err)
 			continue
 		}
-		
+
 		totalImported += imported
 		log.Printf("Sheet '%s' - Imported: %d student records", sheet, imported)
 	}
@@ -103,9 +104,9 @@ func processTransportationSheet(f *excelize.File, sheetName string) (int, error)
 	// Find student names section (usually after the table)
 	// Calculate where student section might start
 	studentsStartIndex := headerRowIndex + len(routes) + 2
-	
+
 	// Look for student section more intelligently
-	for i := studentsStartIndex; i < len(rows) && i < studentsStartIndex + 10; i++ {
+	for i := studentsStartIndex; i < len(rows) && i < studentsStartIndex+10; i++ {
 		if i < len(rows) && len(rows[i]) > 0 {
 			firstCell := strings.TrimSpace(rows[i][0])
 			if isProgramHeader(firstCell) || looksLikeStudentName(firstCell) {
@@ -115,7 +116,7 @@ func processTransportationSheet(f *excelize.File, sheetName string) (int, error)
 			}
 		}
 	}
-	
+
 	students := extractStudentNames(rows, studentsStartIndex)
 	log.Printf("Found %d students total", len(students))
 
@@ -126,12 +127,12 @@ func processTransportationSheet(f *excelize.File, sheetName string) (int, error)
 			StudentID:              fmt.Sprintf("ECSE-%s-%s-%04d", getDistrictCode(schoolDistrict), time.Now().Format("0102"), i+1),
 			FirstName:              studentData.FirstName,
 			LastName:               studentData.LastName,
-			Grade:                  "ECSE", // Default grade for ECSE students
-			EnrollmentStatus:       "Active",
-			TransportationRequired: studentData.HasTransportation,
-			BusRoute:               studentData.Route,
-			Notes:                  fmt.Sprintf("Program: %s, District: %s, Month: %s", studentData.Program, schoolDistrict, monthYear),
-			CreatedAt:              time.Now(),
+			Grade:                  sql.NullString{String: "ECSE", Valid: true}, // Default grade for ECSE students
+			EnrollmentStatus:       sql.NullString{String: "Active", Valid: true},
+			TransportationRequired: sql.NullBool{Bool: studentData.HasTransportation, Valid: true},
+			BusRoute:               sql.NullString{String: studentData.Route, Valid: studentData.Route != ""},
+			Notes:                  sql.NullString{String: fmt.Sprintf("Program: %s, District: %s, Month: %s", studentData.Program, schoolDistrict, monthYear), Valid: true},
+			CreatedAt:              sql.NullTime{Time: time.Now(), Valid: true},
 		}
 
 		err := saveECSEStudent(student)
@@ -149,71 +150,71 @@ func processTransportationSheet(f *excelize.File, sheetName string) (int, error)
 func containsTransportHeaders(row []string) bool {
 	requiredHeaders := []string{"Center", "Driver", "Students", "Cost", "Miles"}
 	foundCount := 0
-	
+
 	rowText := strings.Join(row, " ")
 	for _, header := range requiredHeaders {
 		if strings.Contains(rowText, header) {
 			foundCount++
 		}
 	}
-	
+
 	return foundCount >= 3
 }
 
 // TransportationRoute represents a route from the Excel file
 type TransportationRoute struct {
-	Center               string
-	Driver               string
-	TotalStudents        int
-	ECSEStudents         int
-	CostPerMile          float64
-	MilesPerRoute        float64
-	CostPerRoute         float64
-	RoutePercentage      int
+	Center                 string
+	Driver                 string
+	TotalStudents          int
+	ECSEStudents           int
+	CostPerMile            float64
+	MilesPerRoute          float64
+	CostPerRoute           float64
+	RoutePercentage        int
 	DistrictResponsibility string
-	DistrictCostPerRoute float64
-	NumberOfRoutes       int
-	TotalDistrictCost    float64
+	DistrictCostPerRoute   float64
+	NumberOfRoutes         int
+	TotalDistrictCost      float64
 }
 
 // parseTransportationRoutes extracts route data from the table
 func parseTransportationRoutes(rows [][]string, headerIndex int) []TransportationRoute {
 	var routes []TransportationRoute
-	
+
 	// Process rows after header until we hit an empty row or student section
 	for i := headerIndex + 1; i < len(rows); i++ {
 		row := rows[i]
-		
+
 		// Stop if we hit an empty row or a row with less than expected columns
 		if len(row) < 8 || strings.TrimSpace(row[0]) == "" {
 			break
 		}
-		
+
 		// Skip if this looks like a student name row
 		if looksLikeStudentName(row[0]) {
 			break
 		}
-		
+
 		route := TransportationRoute{
 			Center: strings.TrimSpace(row[0]),
 		}
-		
+
 		// Extract driver name (column 1)
 		if len(row) > 1 {
 			route.Driver = strings.TrimSpace(row[1])
 		}
-		
+
 		// Extract ECSE students count (usually column 3)
 		if len(row) > 3 {
 			fmt.Sscanf(row[3], "%d", &route.ECSEStudents)
 		}
-		
+
 		// Log the route for debugging
 		log.Printf("Route: %s, Driver: %s, ECSE Students: %d", route.Center, route.Driver, route.ECSEStudents)
-		
+
 		routes = append(routes, route)
 	}
-	
+
 	return routes
 }
 
@@ -231,16 +232,16 @@ type StudentInfo struct {
 func extractStudentNames(rows [][]string, startIndex int) []StudentInfo {
 	var students []StudentInfo
 	currentProgram := ""
-	
+
 	// Look for program headers and student names
 	for i := startIndex; i < len(rows); i++ {
 		row := rows[i]
-		
+
 		// Skip empty rows
 		if len(row) == 0 || (len(row) == 1 && strings.TrimSpace(row[0]) == "") {
 			continue
 		}
-		
+
 		// Check if this is a program header (e.g., "VICTORY SQUARE 2", "HCSR 3")
 		firstCell := strings.TrimSpace(row[0])
 		if isProgramHeader(firstCell) {
@@ -248,23 +249,23 @@ func extractStudentNames(rows [][]string, startIndex int) []StudentInfo {
 			log.Printf("Found program: %s", currentProgram)
 			continue
 		}
-		
+
 		// Extract student names from the row
 		for _, cell := range row {
 			name := strings.TrimSpace(cell)
 			if name != "" && looksLikeStudentName(name) {
 				studentInfo := parseStudentName(name)
 				studentInfo.Program = currentProgram
-				
+
 				// Determine if student has transportation based on program
 				studentInfo.HasTransportation = !strings.Contains(strings.ToUpper(currentProgram), "NO TRANSPORT")
 				studentInfo.Route = currentProgram
-				
+
 				students = append(students, studentInfo)
 			}
 		}
 	}
-	
+
 	return students
 }
 
@@ -275,16 +276,16 @@ func isProgramHeader(text string) bool {
 		"VICTORY SQUARE", "HCSR", "AWDC", "CWEL", "VS-", "RH-D",
 		"PROGRAM", "CENTER", "ROUTE",
 	}
-	
+
 	text = strings.ToUpper(text)
-	
+
 	// Check if it matches any pattern
 	for _, pattern := range programPatterns {
 		if strings.Contains(text, pattern) {
 			return true
 		}
 	}
-	
+
 	// Also check if it's a short code that might be a program (e.g., "VS 2", "HCSR 3")
 	if len(text) <= 20 && !looksLikeStudentName(text) && strings.Contains(text, " ") {
 		// Check if it has a number at the end (common for program codes)
@@ -296,7 +297,7 @@ func isProgramHeader(text string) bool {
 			}
 		}
 	}
-	
+
 	return false
 }
 
@@ -306,20 +307,20 @@ func looksLikeStudentName(text string) bool {
 	if len(text) < 3 || len(text) > 50 {
 		return false
 	}
-	
+
 	// Skip if it's a number or contains certain keywords
 	skipPatterns := []string{
 		"$", "%", "TRANSPORT", "TOTAL", "COST", "MILES", "ROUTE",
 		"DISTRICT", "CENTER", "DRIVER", "STUDENTS",
 	}
-	
+
 	textUpper := strings.ToUpper(text)
 	for _, pattern := range skipPatterns {
 		if strings.Contains(textUpper, pattern) {
 			return false
 		}
 	}
-	
+
 	// Check if it contains at least one space (likely first and last name)
 	// or follows common name patterns
 	return strings.Contains(text, " ") || isLikelyName(text)
@@ -331,7 +332,7 @@ func isLikelyName(text string) bool {
 	if len(text) == 0 || !isLetter(rune(text[0])) {
 		return false
 	}
-	
+
 	// Count letters vs non-letters
 	letterCount := 0
 	for _, r := range text {
@@ -339,7 +340,7 @@ func isLikelyName(text string) bool {
 			letterCount++
 		}
 	}
-	
+
 	// At least 80% should be letters or acceptable characters
 	return float64(letterCount)/float64(len(text)) > 0.8
 }
@@ -354,19 +355,19 @@ func parseStudentName(fullName string) StudentInfo {
 	info := StudentInfo{
 		Name: fullName,
 	}
-	
+
 	// Handle various name formats
 	// Remove extra spaces
 	fullName = regexp.MustCompile(`\s+`).ReplaceAllString(fullName, " ")
 	fullName = strings.TrimSpace(fullName)
-	
+
 	parts := strings.Split(fullName, " ")
-	
+
 	if len(parts) >= 2 {
 		// Assume first part is first name, last part is last name
 		info.FirstName = parts[0]
 		info.LastName = parts[len(parts)-1]
-		
+
 		// Handle middle names or complex last names
 		if len(parts) > 2 {
 			// Could be "First Middle Last" or "First Last-Part1 Last-Part2"
@@ -378,7 +379,7 @@ func parseStudentName(fullName string) StudentInfo {
 		info.LastName = parts[0]
 		info.FirstName = "Unknown"
 	}
-	
+
 	return info
 }
 
@@ -394,7 +395,7 @@ func generateStudentID(name, district string) string {
 	if len(districtCode) > 3 {
 		districtCode = districtCode[:3]
 	}
-	
+
 	// Create a unique ID with timestamp and random component
 	timestamp := time.Now().UnixNano() % 1000000
 	return fmt.Sprintf("ECSE-%s-%06d", strings.ToUpper(districtCode), timestamp)
@@ -405,7 +406,7 @@ func getDistrictCode(district string) string {
 	// Remove common suffixes
 	district = strings.TrimSuffix(district, " School District")
 	district = strings.TrimSuffix(district, "-SD")
-	
+
 	// Create initials
 	districtCode := ""
 	for _, word := range strings.Fields(district) {
@@ -413,14 +414,14 @@ func getDistrictCode(district string) string {
 			districtCode += string(word[0])
 		}
 	}
-	
+
 	// Ensure we have at least 3 characters
 	if len(districtCode) < 3 && len(district) >= 3 {
 		districtCode = strings.ToUpper(district[:3])
 	} else if len(districtCode) > 3 {
 		districtCode = districtCode[:3]
 	}
-	
+
 	return strings.ToUpper(districtCode)
 }
 
