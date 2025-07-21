@@ -6,222 +6,464 @@
   <title>Manager Dashboard - Fleet Management System</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="/static/modern_theme.css">
-  <link rel="stylesheet" href="/static/help_system.css">
-  <link rel="stylesheet" href="/static/enhanced_help_system.css">
-  <link rel="stylesheet" href="/static/autocomplete.css">
   <style nonce="{{.CSPNonce}}">
-    /* Beautiful gradient background like login page */
+    /* Ultimate beautiful design system */
+    :root {
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
     body {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
       min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
     }
     
-    /* Main content wrapper with glass effect */
-    .page-wrapper {
-      min-height: 100vh;
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
+    }
+    
+    /* Glassmorphism navigation */
+    .navbar-glass {
       background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-    }
-    
-    .main-content {
-      padding: 2rem;
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-    
-    /* Navigation override for purple theme */
-    .navbar {
-      background: rgba(255, 255, 255, 0.95) !important;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(20px);
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
     
-    .navbar-brand, .navbar-nav .nav-link {
-      color: #667eea !important;
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
     }
     
-    /* Enhanced card styling */
-    .card {
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
-      backdrop-filter: blur(4px);
+    .navbar-brand:hover {
+      transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
     }
     
-    /* Colorful metric cards with different gradients */
-    .metric-card {
-      background: rgba(255, 255, 255, 0.95);
+    .navbar-brand i {
+      font-size: 2rem;
+      background: var(--gradient-1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    /* Hero section with particles */
+    .hero-section {
       position: relative;
+      padding: 5rem 0 3rem;
+      text-align: center;
+      color: white;
       overflow: hidden;
     }
     
-    .metric-card:nth-child(1) .metric-icon {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .hero-content h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
+      text-shadow: 0 0 40px rgba(255, 255, 255, 0.2);
+    }
+    
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    .hero-stats {
+      display: flex;
+      gap: 3rem;
+      justify-content: center;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+    }
+    
+    .hero-stat {
+      text-align: center;
+    }
+    
+    .hero-stat-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: var(--gradient-3);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
     
-    .metric-card:nth-child(2) .metric-icon {
-      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    .hero-stat-label {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    /* Floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
+    }
+    
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
+    }
+    
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
+    }
+    
+    .orb4 {
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle, rgba(67, 233, 123, 0.5), transparent);
+      top: 20%;
+      right: 10%;
+      animation-delay: -15s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+    /* Search section */
+    .search-section {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      padding: 2rem;
+      margin-bottom: 3rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .search-input {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50px;
+      padding: 1rem 1.5rem;
+      color: white;
+      width: 100%;
+      transition: all 0.3s ease;
+    }
+    
+    .search-input:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      outline: none;
+    }
+    
+    .search-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+    
+    /* Ultra modern metric cards */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3rem;
+      padding: 0 1rem;
+    }
+    
+    .metric-card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      padding: 2.5rem;
+      text-align: center;
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--card-gradient);
+      opacity: 0.1;
+      transition: opacity 0.3s ease;
+    }
+    
+    .metric-card:hover::before {
+      opacity: 0.2;
+    }
+    
+    .metric-card:nth-child(1) { --card-gradient: var(--gradient-1); }
+    .metric-card:nth-child(2) { --card-gradient: var(--gradient-4); }
+    .metric-card:nth-child(3) { --card-gradient: var(--gradient-3); }
+    .metric-card:nth-child(4) { --card-gradient: var(--gradient-5); }
+    
+    .metric-card:hover {
+      transform: translateY(-10px) scale(1.02);
+      box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.3),
+        0 0 60px var(--card-gradient-glow);
+    }
+    
+    .metric-card:nth-child(1) { --card-gradient-glow: rgba(102, 126, 234, 0.3); }
+    .metric-card:nth-child(2) { --card-gradient-glow: rgba(67, 233, 123, 0.3); }
+    .metric-card:nth-child(3) { --card-gradient-glow: rgba(79, 172, 254, 0.3); }
+    .metric-card:nth-child(4) { --card-gradient-glow: rgba(250, 112, 154, 0.3); }
+    
+    .metric-icon {
+      font-size: 3.5rem;
+      margin-bottom: 1.5rem;
+      display: inline-block;
+      background: var(--card-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 4px 20px var(--card-gradient-glow));
+      animation: iconPulse 3s ease-in-out infinite;
+    }
+    
+    @keyframes iconPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    
+    .metric-value {
+      font-size: 3rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(to bottom, #fff, rgba(255, 255, 255, 0.8));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
     
-    .metric-card:nth-child(3) .metric-icon {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    .metric-label {
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      opacity: 0.8;
     }
     
-    .metric-card:nth-child(4) .metric-icon {
-      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    .metric-card:nth-child(1)::before {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    
-    .metric-card:nth-child(2)::before {
-      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-    }
-    
-    .metric-card:nth-child(3)::before {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    }
-    
-    .metric-card:nth-child(4)::before {
-      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-    }
-    
-    /* Section headings with white text on purple background */
-    .section-heading {
-      color: white !important;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    }
-    
-    .section-heading i {
-      color: white !important;
-    }
-    
-    /* Quick actions grid for dashboard */
+    /* Quick actions with neon effects */
     .quick-actions {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 1.5rem;
-      margin-bottom: 2.5rem;
+      margin-bottom: 3rem;
+      padding: 0 1rem;
     }
     
-    /* Quick action cards with beautiful gradients */
-    .quick-action {
+    .action-card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 2px solid transparent;
+      border-radius: 25px;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      color: white;
+      text-decoration: none;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      min-height: 180px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      text-align: center;
-      padding: 2rem 1.5rem;
-      background: white;
-      border: none;
-      border-radius: 20px;
-      text-decoration: none;
-      color: white;
-      transition: all 0.3s ease;
-      min-height: 160px;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      justify-content: center;
     }
     
-    /* Different gradient backgrounds for each quick action */
-    .quick-action:nth-child(1) {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    
-    .quick-action:nth-child(2) {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    }
-    
-    .quick-action:nth-child(3) {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    }
-    
-    .quick-action:nth-child(4) {
-      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-    }
-    
-    .quick-action:nth-child(5) {
-      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-    }
-    
-    .quick-action:nth-child(6) {
-      background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
-    }
-    
-    .quick-action:nth-child(7) {
-      background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-    }
-    
-    .quick-action:nth-child(8) {
-      background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-    }
-    
-    .quick-action:nth-child(9) {
-      background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-    }
-    
-    /* Shimmer effect on hover */
-    .quick-action::before {
+    .action-card::before {
       content: '';
       position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%);
-      transform: rotate(45deg) translateX(-100%);
-      transition: transform 0.6s;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--action-gradient);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: -1;
     }
     
-    .quick-action:hover::before {
-      transform: rotate(45deg) translateX(100%);
+    .action-card:hover::before {
+      opacity: 1;
     }
     
-    .quick-action:hover {
-      transform: translateY(-8px) scale(1.02);
-      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+    .action-card:nth-child(1) { 
+      --action-gradient: var(--gradient-1);
+      border-color: rgba(102, 126, 234, 0.3);
+    }
+    .action-card:nth-child(2) { 
+      --action-gradient: var(--gradient-2);
+      border-color: rgba(240, 147, 251, 0.3);
+    }
+    .action-card:nth-child(3) { 
+      --action-gradient: var(--gradient-3);
+      border-color: rgba(79, 172, 254, 0.3);
+    }
+    .action-card:nth-child(4) { 
+      --action-gradient: var(--gradient-4);
+      border-color: rgba(67, 233, 123, 0.3);
+    }
+    .action-card:nth-child(5) { 
+      --action-gradient: var(--gradient-5);
+      border-color: rgba(250, 112, 154, 0.3);
+    }
+    .action-card:nth-child(6) { 
+      --action-gradient: var(--gradient-6);
+      border-color: rgba(48, 207, 208, 0.3);
+    }
+    .action-card:nth-child(7) { 
+      --action-gradient: var(--gradient-7);
+      border-color: rgba(168, 237, 234, 0.3);
+    }
+    .action-card:nth-child(8) { 
+      --action-gradient: var(--gradient-8);
+      border-color: rgba(255, 154, 158, 0.3);
+    }
+    .action-card:nth-child(9) { 
+      --action-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+      border-color: rgba(252, 182, 159, 0.3);
     }
     
-    .quick-action i {
-      font-size: 3rem;
+    .action-card:hover {
+      transform: translateY(-10px) scale(1.05);
+      border-color: white;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      color: white;
+    }
+    
+    .action-card i {
+      font-size: 3.5rem;
       margin-bottom: 1rem;
-      color: white;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+      display: block;
       transition: all 0.3s ease;
-      z-index: 1;
-      position: relative;
+      filter: drop-shadow(0 4px 15px rgba(255, 255, 255, 0.3));
     }
     
-    .quick-action:hover i {
+    .action-card:hover i {
       transform: scale(1.2) rotate(5deg);
+      filter: drop-shadow(0 6px 20px rgba(255, 255, 255, 0.5));
     }
     
-    .quick-action span {
-      font-weight: 600;
-      font-size: 1.15rem;
-      color: white;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      z-index: 1;
-      position: relative;
+    .action-card span {
+      font-weight: 700;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.9;
     }
     
-    /* Data grid for metrics */
-    .data-grid-primary {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1.5rem;
+    /* Glass cards */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2.5rem;
       margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+    
+    .glass-card-header {
+      margin-bottom: 2rem;
+    }
+    
+    .glass-card-header h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 0;
+      background: var(--gradient-1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    /* Alerts section */
+    .alert-item {
+      background: rgba(255, 255, 255, 0.05);
+      border-left: 4px solid;
+      border-radius: 15px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .alert-warning {
+      border-left-color: #fee140;
+      background: linear-gradient(135deg, rgba(254, 225, 64, 0.1) 0%, rgba(250, 112, 154, 0.1) 100%);
+    }
+    
+    .alert-item:hover {
+      transform: translateX(10px);
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
     }
     
     /* Activity list */
@@ -234,390 +476,368 @@
     .activity-item {
       display: flex;
       align-items: center;
-      padding: 1rem;
-      border-bottom: 1px solid #e9ecef;
-      transition: background var(--transition-fast);
+      padding: 1.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      margin-bottom: 1rem;
+      transition: all 0.3s ease;
+      color: white;
     }
     
     .activity-item:hover {
-      background: #f8f9fa;
-    }
-    
-    .activity-item:last-child {
-      border-bottom: none;
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(5px);
     }
     
     .activity-item i {
-      font-size: 1.25rem;
+      font-size: 1.5rem;
       margin-right: 1rem;
       flex-shrink: 0;
     }
     
     .activity-time {
       margin-left: auto;
-      color: var(--color-text-secondary);
+      opacity: 0.7;
       font-size: 0.9rem;
       white-space: nowrap;
     }
     
-    /* Alert header */
-    .alert-header {
+    /* Section titles */
+    .section-title {
+      color: white;
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-      font-weight: 600;
+      gap: 1rem;
     }
     
-    /* Beautiful alert styling */
-    .alert-warning {
-      background: linear-gradient(135deg, #fff3cd 0%, #ffe8a1 100%);
-      border: none;
-      color: #664d03;
-      box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2);
+    .section-title i {
+      background: var(--gradient-1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
     
-    /* Enhanced form controls */
-    .form-control {
-      background: rgba(255, 255, 255, 0.9);
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
     }
     
-    .form-control:focus {
-      background: white;
-      border-color: #667eea;
-      box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
-    }
-    
-    /* Beautiful section backgrounds */
-    .content-section {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 20px;
-      padding: 1.5rem;
-      margin-bottom: 2rem;
-      backdrop-filter: blur(5px);
-    }
-    
-    /* Text colors for visibility */
-    .text-success { color: #10b981 !important; }
-    .text-info { color: #3b82f6 !important; }
-    .text-warning { color: #f59e0b !important; }
-    
-    /* Animations with staggered delays */
     @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
       to {
         opacity: 1;
         transform: translateY(0);
       }
     }
     
-    @keyframes pulse {
-      0%, 100% {
-        transform: scale(1);
-      }
-      50% {
-        transform: scale(1.05);
-      }
-    }
+    .fade-in:nth-child(1) { animation-delay: 0.1s; }
+    .fade-in:nth-child(2) { animation-delay: 0.2s; }
+    .fade-in:nth-child(3) { animation-delay: 0.3s; }
+    .fade-in:nth-child(4) { animation-delay: 0.4s; }
+    .fade-in:nth-child(5) { animation-delay: 0.5s; }
+    .fade-in:nth-child(6) { animation-delay: 0.6s; }
+    .fade-in:nth-child(7) { animation-delay: 0.7s; }
+    .fade-in:nth-child(8) { animation-delay: 0.8s; }
+    .fade-in:nth-child(9) { animation-delay: 0.9s; }
     
-    .metric-card {
-      animation: fadeInUp 0.5s ease-out;
-      animation-fill-mode: both;
-    }
-    
-    .metric-card:nth-child(1) { animation-delay: 0.1s; }
-    .metric-card:nth-child(2) { animation-delay: 0.2s; }
-    .metric-card:nth-child(3) { animation-delay: 0.3s; }
-    .metric-card:nth-child(4) { animation-delay: 0.4s; }
-    
-    .quick-action {
-      animation: fadeInUp 0.6s ease-out;
-      animation-fill-mode: both;
-    }
-    
-    .quick-action:nth-child(1) { animation-delay: 0.1s; }
-    .quick-action:nth-child(2) { animation-delay: 0.15s; }
-    .quick-action:nth-child(3) { animation-delay: 0.2s; }
-    .quick-action:nth-child(4) { animation-delay: 0.25s; }
-    .quick-action:nth-child(5) { animation-delay: 0.3s; }
-    .quick-action:nth-child(6) { animation-delay: 0.35s; }
-    .quick-action:nth-child(7) { animation-delay: 0.4s; }
-    .quick-action:nth-child(8) { animation-delay: 0.45s; }
-    .quick-action:nth-child(9) { animation-delay: 0.5s; }
-    
-    /* Floating animation for metrics */
-    .metric-card:hover {
-      animation: pulse 2s infinite;
-    }
-    
-    /* Responsive adjustments */
+    /* Responsive */
     @media (max-width: 768px) {
-      .quick-actions {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1rem;
-      }
-      
-      .quick-action {
-        padding: 1.5rem 1rem;
-        min-height: 130px;
-      }
-      
-      .quick-action i {
+      .hero-content h1 {
         font-size: 2.5rem;
       }
       
-      .quick-action span {
-        font-size: 1rem;
+      .metrics-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+      
+      .quick-actions {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+      }
+      
+      .hero-stats {
+        gap: 2rem;
+      }
+      
+      .hero-stat-value {
+        font-size: 2rem;
       }
     }
   </style>
 </head>
 <body>
-  <div class="page-wrapper">
-    <!-- Navigation Component -->
-    {{$pageDesc := printf "Welcome back, %s" .User.Username}}
-    {{template "navigation" (dict "Navigation" .Navigation "CSPNonce" .CSPNonce "ShowHelpButton" .ShowHelpButton "PageDescription" $pageDesc)}}
+  <!-- Floating orbs -->
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  <div class="orb orb4"></div>
+  
+  <!-- Navigation -->
+  <nav class="navbar-glass">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <a href="/manager-dashboard" class="navbar-brand">
+          <i class="bi bi-speedometer2"></i>
+          <span>Manager Dashboard</span>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+          <span class="text-white">
+            <i class="bi bi-person-circle me-2"></i>{{.User.Username}}
+          </span>
+          <form method="POST" action="/logout" class="m-0">
+            <button type="submit" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="fade-in">Welcome back, {{.User.Username}}!</h1>
+        <p class="lead fade-in" style="opacity: 0.9;">Fleet Command Center</p>
+        
+        <div class="hero-stats fade-in">
+          <div class="hero-stat">
+            <div class="hero-stat-value">{{.TotalBuses}}</div>
+            <div class="hero-stat-label">Total Fleet</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value">{{.TotalDrivers}}</div>
+            <div class="hero-stat-label">Active Drivers</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value">{{.ActiveRoutes}}</div>
+            <div class="hero-stat-label">Active Routes</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value">{{.TotalStudents}}</div>
+            <div class="hero-stat-label">Total Students</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <div class="container">
+    <!-- Quick Search -->
+    <div class="search-section fade-in">
+      <div class="row">
+        <div class="col-md-6 mb-3 mb-md-0">
+          <label class="form-label text-white mb-2">
+            <i class="bi bi-search me-2"></i>Search Bus
+          </label>
+          <input type="text" id="quickSearchBus" class="search-input" 
+                 placeholder="Type bus ID or model...">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label text-white mb-2">
+            <i class="bi bi-search me-2"></i>Search Driver
+          </label>
+          <input type="text" id="quickSearchDriver" class="search-input" 
+                 placeholder="Type driver name...">
+        </div>
+      </div>
+    </div>
     
-    <!-- Main Content -->
-    <main id="main-content" class="main-content">
-      <!-- Quick Search Bar -->
-      <section class="content-section" aria-labelledby="search-heading">
-        <h2 id="search-heading" class="section-heading sr-only">Quick Search</h2>
-        <div class="card">
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label for="quickSearchBus" class="form-label">Search Bus</label>
-                <input type="text" id="quickSearchBus" class="form-control" 
-                       placeholder="Type bus ID or model...">
-              </div>
-              <div class="col-md-6 mb-3">
-                <label for="quickSearchDriver" class="form-label">Search Driver</label>
-                <input type="text" id="quickSearchDriver" class="form-control" 
-                       placeholder="Type driver name...">
-              </div>
-            </div>
+    <!-- Metrics -->
+    <div class="metrics-grid">
+      <div class="metric-card fade-in">
+        <i class="bi bi-bus-front-fill metric-icon"></i>
+        <div class="metric-value">{{.TotalBuses}}</div>
+        <div class="metric-label">Total Buses</div>
+      </div>
+      
+      <div class="metric-card fade-in">
+        <i class="bi bi-people-fill metric-icon"></i>
+        <div class="metric-value">{{.TotalDrivers}}</div>
+        <div class="metric-label">Active Drivers</div>
+      </div>
+      
+      <div class="metric-card fade-in">
+        <i class="bi bi-person-badge-fill metric-icon"></i>
+        <div class="metric-value">{{.TotalStudents}}</div>
+        <div class="metric-label">Total Students</div>
+      </div>
+      
+      <div class="metric-card fade-in">
+        <i class="bi bi-map-fill metric-icon"></i>
+        <div class="metric-value">{{.ActiveRoutes}}</div>
+        <div class="metric-label">Active Routes</div>
+      </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <h2 class="section-title">
+      <i class="bi bi-lightning-charge-fill"></i>
+      Quick Actions
+    </h2>
+    
+    <div class="quick-actions">
+      <a href="/fleet" class="action-card fade-in">
+        <i class="bi bi-bus-front"></i>
+        <span>Manage Fleet</span>
+      </a>
+      
+      <a href="/assign-routes" class="action-card fade-in">
+        <i class="bi bi-diagram-3"></i>
+        <span>Assign Routes</span>
+      </a>
+      
+      <a href="/students" class="action-card fade-in">
+        <i class="bi bi-people"></i>
+        <span>Manage Students</span>
+      </a>
+      
+      <a href="/ecse-dashboard" class="action-card fade-in">
+        <i class="bi bi-mortarboard-fill"></i>
+        <span>ECSE Students</span>
+      </a>
+      
+      <a href="/import-ecse" class="action-card fade-in">
+        <i class="bi bi-file-earmark-excel"></i>
+        <span>Import ECSE</span>
+      </a>
+      
+      <a href="/import-data-wizard" class="action-card fade-in">
+        <i class="bi bi-cloud-upload"></i>
+        <span>Import Wizard</span>
+      </a>
+      
+      <a href="/monthly-mileage-reports" class="action-card fade-in">
+        <i class="bi bi-speedometer2"></i>
+        <span>Monthly Mileage</span>
+      </a>
+      
+      <a href="/view-mileage-reports" class="action-card fade-in">
+        <i class="bi bi-graph-up"></i>
+        <span>View Reports</span>
+      </a>
+      
+      <a href="/approve-users" class="action-card fade-in">
+        <i class="bi bi-person-check"></i>
+        <span>Approve Users</span>
+      </a>
+    </div>
+    
+    <!-- Maintenance Alerts -->
+    {{if .MaintenanceAlerts}}
+    <div class="glass-card fade-in">
+      <div class="glass-card-header">
+        <h2><i class="bi bi-exclamation-triangle-fill me-2"></i>Maintenance Alerts</h2>
+      </div>
+      {{range .MaintenanceAlerts}}
+      <div class="alert-item alert-warning">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 1.5rem;"></i>
+          <div>
+            <strong>Bus {{.BusID}}</strong>
+            <p class="mb-0 opacity-90">{{.Message}}</p>
           </div>
         </div>
-      </section>
-      
-      <!-- Dashboard Shortcuts -->
-      {{template "dashboard-shortcuts" (dict "UserRole" .User.Role "CSPNonce" .CSPNonce)}}
-      
-      <!-- Metrics Cards -->
-      <section class="content-section" aria-labelledby="metrics-heading">
-        <h2 id="metrics-heading" class="section-heading">
-          <i class="bi bi-speedometer2" aria-hidden="true"></i>
-          Fleet Overview
-        </h2>
-        <div class="data-grid-primary">
-          <!-- Total Buses -->
-          <div class="metric-card">
-            <div class="text-center">
-              <i class="bi bi-bus-front-fill metric-icon" style="color: #667eea;" aria-hidden="true"></i>
-              <div class="metric-value">{{.TotalBuses}}</div>
-              <div class="metric-label">Total Buses</div>
-            </div>
-          </div>
-          
-          <!-- Active Drivers -->
-          <div class="metric-card">
-            <div class="text-center">
-              <i class="bi bi-people-fill metric-icon" style="color: #11998e;" aria-hidden="true"></i>
-              <div class="metric-value">{{.TotalDrivers}}</div>
-              <div class="metric-label">Active Drivers</div>
-            </div>
-          </div>
-          
-          <!-- Total Students -->
-          <div class="metric-card">
-            <div class="text-center">
-              <i class="bi bi-person-badge-fill metric-icon" style="color: #4facfe;" aria-hidden="true"></i>
-              <div class="metric-value">{{.TotalStudents}}</div>
-              <div class="metric-label">Total Students</div>
-            </div>
-          </div>
-          
-          <!-- Active Routes -->
-          <div class="metric-card">
-            <div class="text-center">
-              <i class="bi bi-map-fill metric-icon" style="color: #fa709a;" aria-hidden="true"></i>
-              <div class="metric-value">{{.ActiveRoutes}}</div>
-              <div class="metric-label">Active Routes</div>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-      <!-- Quick Actions -->
-      <section class="content-section" aria-labelledby="actions-heading">
-        <h2 id="actions-heading" class="section-heading">
-          <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
-          Quick Actions
-        </h2>
-        <div class="quick-actions" data-help="quick-actions">
-          <a href="/fleet" class="quick-action" data-help="manage-fleet" data-help-title="Manage Fleet" data-help-content="View and manage all buses and vehicles in your fleet. Check maintenance status, update vehicle information, and track availability.">
-            <i class="bi bi-bus-front" aria-hidden="true"></i>
-            <span>Manage Fleet</span>
-          </a>
-          
-          <a href="/assign-routes" class="quick-action" data-help="assign-routes" data-help-title="Assign Routes" data-help-content="Assign drivers to specific bus routes. Ensure each route has a driver and vehicle assigned before the start of each day.">
-            <i class="bi bi-diagram-3" aria-hidden="true"></i>
-            <span>Assign Routes</span>
-          </a>
-          
-          <a href="/students" class="quick-action" data-help="manage-students" data-help-title="Manage Students" data-help-content="Add, edit, or remove students from the system. Manage student information, routes, and pickup/dropoff schedules.">
-            <i class="bi bi-people" aria-hidden="true"></i>
-            <span>Manage Students</span>
-          </a>
-          
-          <a href="/ecse-dashboard" class="quick-action" data-help="ecse-dashboard" data-help-title="ECSE Dashboard" data-help-content="View and manage Early Childhood Special Education students. Monitor transportation requirements and IEP statuses.">
-            <i class="bi bi-mortarboard-fill" aria-hidden="true"></i>
-            <span>ECSE Students</span>
-          </a>
-          
-          <a href="/import-ecse" class="quick-action" data-help="import-ecse" data-help-title="Import ECSE Data" data-help-content="Import Early Childhood Special Education student data from Excel files. This helps manage special needs transportation requirements.">
-            <i class="bi bi-file-earmark-excel" aria-hidden="true"></i>
-            <span>Import ECSE</span>
-          </a>
-          
-          <a href="/import-data-wizard" class="quick-action" data-help="import-wizard" data-help-title="Import Data Wizard" data-help-content="Use the step-by-step wizard to import any type of data with automatic column mapping and validation.">
-            <i class="bi bi-cloud-upload" aria-hidden="true"></i>
-            <span>Import Wizard</span>
-          </a>
-          
-          <a href="/monthly-mileage-reports" class="quick-action" data-help="monthly-mileage" data-help-title="Monthly Mileage" data-help-content="View monthly mileage reports for all buses. Track total miles driven, fuel consumption, and identify high-usage vehicles.">
-            <i class="bi bi-speedometer2" aria-hidden="true"></i>
-            <span>Monthly Mileage</span>
-          </a>
-          
-          <a href="/view-mileage-reports" class="quick-action" data-help="view-reports" data-help-title="View Reports" data-help-content="Access various reports including mileage, maintenance history, and driver performance. Export reports for record keeping.">
-            <i class="bi bi-graph-up" aria-hidden="true"></i>
-            <span>View Reports</span>
-          </a>
-          
-          <a href="/approve-users" class="quick-action" data-help="approve-users" data-help-title="Approve Users" data-help-content="Review and approve new driver registrations. New users cannot access the system until approved by a manager.">
-            <i class="bi bi-person-check" aria-hidden="true"></i>
-            <span>Approve Users</span>
-          </a>
-        </div>
-      </section>
-      
-      <!-- Maintenance Alerts -->
-      {{if .MaintenanceAlerts}}
-      <section aria-labelledby="alerts-heading">
-        <h2 id="alerts-heading">Maintenance Alerts</h2>
-        <div class="card">
-          <div class="card-body">
-            {{range .MaintenanceAlerts}}
-            <div class="alert alert-warning" role="alert">
-              <div class="alert-header">
-                <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
-                <strong>Maintenance Required</strong>
-              </div>
-              <p>Bus {{.BusID}} - {{.Message}}</p>
-            </div>
-            {{end}}
-          </div>
-        </div>
-      </section>
+      </div>
       {{end}}
-      
-      <!-- Recent Activity -->
-      <section aria-labelledby="activity-heading">
-        <h2 id="activity-heading">Recent Activity</h2>
-        <div class="card">
-          <div class="card-body">
-            <ul class="activity-list">
-              <li class="activity-item">
-                <i class="bi bi-check-circle text-success" aria-hidden="true"></i>
-                <span>All morning routes completed successfully</span>
-                <time class="activity-time">2 hours ago</time>
-              </li>
-              <li class="activity-item">
-                <i class="bi bi-person-plus text-info" aria-hidden="true"></i>
-                <span>New driver registration pending approval</span>
-                <time class="activity-time">3 hours ago</time>
-              </li>
-              <li class="activity-item">
-                <i class="bi bi-tools text-warning" aria-hidden="true"></i>
-                <span>Bus 105 scheduled for maintenance</span>
-                <time class="activity-time">Yesterday</time>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
-    </main>
+    </div>
+    {{end}}
+    
+    <!-- Recent Activity -->
+    <div class="glass-card fade-in">
+      <div class="glass-card-header">
+        <h2><i class="bi bi-activity me-2"></i>Recent Activity</h2>
+      </div>
+      <ul class="activity-list">
+        <li class="activity-item">
+          <i class="bi bi-check-circle text-success"></i>
+          <span>All morning routes completed successfully</span>
+          <time class="activity-time">2 hours ago</time>
+        </li>
+        <li class="activity-item">
+          <i class="bi bi-person-plus text-info"></i>
+          <span>New driver registration pending approval</span>
+          <time class="activity-time">3 hours ago</time>
+        </li>
+        <li class="activity-item">
+          <i class="bi bi-tools text-warning"></i>
+          <span>Bus 105 scheduled for maintenance</span>
+          <time class="activity-time">Yesterday</time>
+        </li>
+      </ul>
+    </div>
   </div>
   
-  <script src="/static/help_system.js"></script>
-  <script src="/static/enhanced_help_system.js"></script>
   <script src="/static/autocomplete.js"></script>
-  
-  {{template "error_prevention_scripts" .}}
   <script nonce="{{.CSPNonce}}">
-    // Add help content for quick actions
+    // Animate numbers on load
+    function animateValue(element, start, end, duration) {
+      let startTimestamp = null;
+      const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        element.textContent = Math.floor(progress * (end - start) + start);
+        if (progress < 1) {
+          window.requestAnimationFrame(step);
+        }
+      };
+      window.requestAnimationFrame(step);
+    }
+    
     document.addEventListener('DOMContentLoaded', function() {
-      if (window.helpSystem) {
-        window.helpSystem.addHelpContent('quick-actions', {
-          title: 'Quick Actions',
-          content: 'These buttons provide quick access to common management tasks. Click any action to navigate to that section.'
+      // Animate metric values
+      document.querySelectorAll('.metric-value').forEach(el => {
+        const value = parseInt(el.textContent);
+        if (!isNaN(value)) {
+          animateValue(el, 0, value, 1500);
+        }
+      });
+      
+      // Animate hero stat values
+      document.querySelectorAll('.hero-stat-value').forEach(el => {
+        const value = parseInt(el.textContent);
+        if (!isNaN(value)) {
+          animateValue(el, 0, value, 2000);
+        }
+      });
+      
+      // Initialize auto-complete for quick search
+      if (typeof AutoComplete !== 'undefined') {
+        // Bus search
+        const busSearch = new AutoComplete('quickSearchBus', {
+          source: '/api/search-buses',
+          minChars: 1,
+          onSelect: function(item) {
+            window.location.href = `/bus-maintenance/${item.value}`;
+          }
+        });
+        
+        // Driver search
+        const driverSearch = new AutoComplete('quickSearchDriver', {
+          source: '/api/search-drivers',
+          minChars: 2,
+          onSelect: function(item) {
+            window.location.href = `/driver/${item.value}`;
+          }
         });
       }
       
-      // Initialize auto-complete for quick search
-      initializeQuickSearch();
+      // Add hover effects
+      document.querySelectorAll('.metric-card, .action-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+          this.style.animation = 'none';
+          setTimeout(() => {
+            this.style.animation = '';
+          }, 10);
+        });
+      });
     });
-    
-    function initializeQuickSearch() {
-      // Bus search auto-complete
-      const busSearch = new AutoComplete('quickSearchBus', {
-        source: '/api/search-buses',
-        minChars: 1,
-        template: function(item) {
-          return `
-            <div class="autocomplete-item-custom">
-              <i class="bi ${item.icon || 'bi-bus-front'} autocomplete-item-icon"></i>
-              <div class="autocomplete-item-content">
-                <div class="autocomplete-item-title">${item.label}</div>
-                <div class="autocomplete-item-subtitle">${item.subtitle}</div>
-              </div>
-            </div>
-          `;
-        },
-        onSelect: function(item) {
-          // Navigate to bus details
-          window.location.href = `/bus-maintenance/${item.value}`;
-        }
-      });
-      
-      // Driver search auto-complete
-      const driverSearch = new AutoComplete('quickSearchDriver', {
-        source: '/api/search-drivers',
-        minChars: 2,
-        template: function(item) {
-          return `
-            <div class="autocomplete-item-custom">
-              <i class="bi ${item.icon || 'bi-person-circle'} autocomplete-item-icon"></i>
-              <div class="autocomplete-item-content">
-                <div class="autocomplete-item-title">${item.label}</div>
-                <div class="autocomplete-item-subtitle">${item.subtitle}</div>
-              </div>
-            </div>
-          `;
-        },
-        onSelect: function(item) {
-          // Navigate to driver profile
-          window.location.href = `/driver/${item.value}`;
-        }
-      });
-    }
   </script>
 </body>
 </html>
