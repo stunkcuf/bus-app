@@ -1,3 +1,4 @@
+// fleet_handler_fix.go
 package main
 
 import (
@@ -173,8 +174,9 @@ func fleetHandlerFixed(w http.ResponseWriter, r *http.Request) {
 		"FleetVehicles":      fleetVehicles,
 	}
 
-	log.Printf("DEBUG: Rendering fleet_modern.html template")
-	renderTemplate(w, r, "fleet_modern.html", data)
+	log.Printf("DEBUG: Rendering fleet.html template")
+	// CHANGED FROM fleet_modern.html TO fleet.html
+	renderTemplate(w, r, "fleet.html", data)
 }
 
 // Safe version that doesn't crash if assignment fails
