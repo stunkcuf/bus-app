@@ -177,9 +177,16 @@ func loadBusesFromDB() ([]Bus, error) {
 		return nil, fmt.Errorf("database not initialized")
 	}
 
-	log.Printf("DEBUG: Executing SELECT * FROM buses ORDER BY bus_id")
+	log.Printf("DEBUG: Loading buses from database")
 	var buses []Bus
-	err := db.Select(&buses, "SELECT * FROM buses ORDER BY bus_id")
+	// FIXED: Use explicit columns to avoid ID mapping issue
+	err := db.Select(&buses, `
+		SELECT bus_id, status, model, capacity, oil_status, tire_status, 
+		       maintenance_notes, current_mileage, last_oil_change, 
+		       last_tire_service, updated_at, created_at 
+		FROM buses 
+		ORDER BY bus_id
+	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load buses: %w", err)
 	}
@@ -200,7 +207,15 @@ func loadVehiclesFromDB() ([]Vehicle, error) {
 	}
 
 	var vehicles []Vehicle
-	err := db.Select(&vehicles, "SELECT * FROM vehicles ORDER BY vehicle_id")
+	// FIXED: Use explicit columns to avoid ID mapping issue
+	err := db.Select(&vehicles, `
+		SELECT vehicle_id, model, description, year, tire_size, license, 
+		       oil_status, tire_status, status, maintenance_notes, 
+		       serial_number, base, service_interval, current_mileage, 
+		       last_oil_change, last_tire_service, updated_at, created_at, import_id
+		FROM vehicles 
+		ORDER BY vehicle_id
+	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load vehicles: %w", err)
 	}
@@ -433,7 +448,7 @@ func loadRouteAssignments() ([]RouteAssignment, error) {
 	
 	var assignments []RouteAssignment
 	err := db.Select(&assignments, `
-		SELECT ra.driver, ra.bus_id, ra.route_id, r.route_name, ra.assigned_date
+		SELECT ra.id, ra.driver, ra.bus_id, ra.route_id, r.route_name, ra.assigned_date, ra.created_at
 		FROM route_assignments ra
 		JOIN routes r ON ra.route_id = r.route_id
 		ORDER BY ra.assigned_date DESC
@@ -454,7 +469,7 @@ func getVehicleAssignment(vehicleID string) *RouteAssignment {
 	
 	var assignment RouteAssignment
 	err := db.Get(&assignment, `
-		SELECT ra.driver, ra.bus_id, ra.route_id, r.route_name, ra.assigned_date
+		SELECT ra.id, ra.driver, ra.bus_id, ra.route_id, r.route_name, ra.assigned_date, ra.created_at
 		FROM route_assignments ra
 		JOIN routes r ON ra.route_id = r.route_id
 		WHERE ra.bus_id = $1
@@ -474,7 +489,12 @@ func loadRoutesFromDB() ([]Route, error) {
 	}
 
 	var routes []Route
-	err := db.Select(&routes, "SELECT * FROM routes ORDER BY route_id")
+	// FIXED: Select only columns that exist in the Route struct
+	err := db.Select(&routes, `
+		SELECT route_id, route_name, description, positions, created_at 
+		FROM routes 
+		ORDER BY route_id
+	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load routes: %w", err)
 	}
@@ -488,7 +508,12 @@ func loadUsersFromDB() ([]User, error) {
 	}
 
 	var users []User
-	err := db.Select(&users, "SELECT * FROM users ORDER BY username")
+	// FIXED: Select only columns that exist in the User struct
+	err := db.Select(&users, `
+		SELECT username, password, role, status, registration_date, created_at 
+		FROM users 
+		ORDER BY username
+	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load users: %w", err)
 	}
@@ -502,7 +527,15 @@ func loadStudentsFromDB() ([]Student, error) {
 	}
 
 	var students []Student
-	err := db.Select(&students, "SELECT * FROM students WHERE active = true ORDER BY name")
+	// FIXED: Explicitly list columns
+	err := db.Select(&students, `
+		SELECT student_id, name, locations, phone_number, alt_phone_number, 
+		       guardian, pickup_time, dropoff_time, position_number, 
+		       route_id, driver, active, created_at 
+		FROM students 
+		WHERE active = true 
+		ORDER BY name
+	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load students: %w", err)
 	}
