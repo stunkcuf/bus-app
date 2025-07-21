@@ -321,18 +321,15 @@ type ECSEStudent struct {
 
 // MileageReport represents imported mileage data
 type MileageReport struct {
-	ID          int       `json:"id" db:"id"`
-	Unit        string    `json:"unit" db:"unit"`
-	VehicleNo   string    `json:"vehicle_no" db:"vehicle_no"`
-	Driver      string    `json:"driver" db:"driver"`
-	Month       string    `json:"month" db:"month"`
-	Year        int       `json:"year" db:"year"`
-	BeginMiles  int       `json:"begin_miles" db:"begin_miles"`
-	EndMiles    int       `json:"end_miles" db:"end_miles"`
-	TotalMiles  int       `json:"total_miles" db:"total_miles"`
-	DailyMiles  string    `json:"daily_miles" db:"daily_miles"`
-	Utilization float64   `json:"utilization" db:"utilization"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+    ID               int       `json:"id" db:"id"`
+    VehicleID        string    `json:"vehicle_id" db:"vehicle_id"`
+    Driver           string    `json:"driver" db:"driver"`
+    Month            int       `json:"month" db:"month"`  // INTEGER in DB, not string
+    Year             int       `json:"year" db:"year"`
+    BeginningMileage float64   `json:"beginning_mileage" db:"beginning_mileage"` // column name is beginning_mileage
+    EndingMileage    float64   `json:"ending_mileage" db:"ending_mileage"`       // column name is ending_mileage
+    TotalMiles       float64   `json:"total_miles" db:"total_miles"`             // DOUBLE PRECISION in DB
+    CreatedAt        time.Time `json:"created_at" db:"created_at"`
 }
 
 // Import-specific structs for mileage reports
