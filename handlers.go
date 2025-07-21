@@ -332,7 +332,7 @@ func managerDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	data["ActiveRoutes"] = len(activeRoutesMap)
 	
-	// Use the regular manager dashboard template with mileage link
+	// Use the regular manager dashboard template
 	renderTemplate(w, r, "manager_dashboard.html", data)
 }
 
@@ -381,7 +381,8 @@ func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		"CurrentDate":       time.Now().Format("2006-01-02"),
 	}
 
-	renderTemplate(w, r, "driver_dashboard_modern.html", data)
+	// Changed from driver_dashboard_modern.html to driver_dashboard.html
+	renderTemplate(w, r, "driver_dashboard.html", data)
 }
 
 // fleetHandler shows the fleet overview with maintenance alerts
@@ -396,7 +397,7 @@ func fleetHandlerOLD(w http.ResponseWriter, r *http.Request) {
 	// OLD HANDLER REMOVED - See fleet_handler_clean.go for working version
 	http.Error(w, "Fleet handler is being fixed", http.StatusInternalServerError)
 	return
-	/* OLD CODE REMOVED
+	/* OLD CODE REMOVED - Note: If you re-enable this, change fleet_modern.html to fleet.html
 		// Try to load from old tables as fallback
 		log.Printf("Attempting to load from old bus/vehicle tables...")
 		
@@ -549,7 +550,8 @@ func fleetHandlerOLD(w http.ResponseWriter, r *http.Request) {
 		"TotalOtherVehicles": totalOtherVehicles,
 	}
 
-	renderTemplate(w, r, "fleet_modern.html", data)
+	// Changed from fleet_modern.html to fleet.html
+	renderTemplate(w, r, "fleet.html", data)
 	*/
 }
 
@@ -663,8 +665,8 @@ func companyFleetHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Company Fleet: Total=%d, Active=%d, Maintenance=%d, OutOfService=%d",
 		totalVehicles, activeCount, maintenanceCount, outOfServiceCount)
 
-	// Use the correct template
-	renderTemplate(w, r, "company_fleet_modern.html", data)
+	// Changed from company_fleet_modern.html to company_fleet.html
+	renderTemplate(w, r, "company_fleet.html", data)
 }
 
 // busMaintenanceHandler shows maintenance history for a bus
