@@ -175,7 +175,7 @@ func approveUsersHandler(w http.ResponseWriter, r *http.Request) {
 		"CSRFToken":    getSessionCSRFToken(r),
 	}
 
-	renderTemplate(w, r, "approve_users_modern.html", data)
+	renderTemplate(w, r, "approve_users.html", data)
 }
 
 // approveUserHandler approves a pending user
@@ -529,7 +529,7 @@ func studentsHandler(w http.ResponseWriter, r *http.Request) {
 		"CSRFToken":    getSessionCSRFToken(r),
 	}
 
-	renderTemplate(w, r, "students_modern.html", data)
+	renderTemplate(w, r, "students.html", data)
 }
 
 // assignRoutesHandler handles route assignment page
@@ -596,7 +596,7 @@ func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
 		"CSRFToken":     getSessionCSRFToken(r),
 	}
 
-	renderTemplate(w, r, "assign_routes_modern.html", data)
+	renderTemplate(w, r, "assign_routes.html", data)
 }
 
 // importMileageHandler handles mileage import page
@@ -729,7 +729,7 @@ func viewMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
 		"CSRFToken":         getSessionCSRFToken(r),
 	}
 
-	renderTemplate(w, r, "view_mileage_reports_modern.html", data)
+	renderTemplate(w, r, "view_mileage_reports.html", data)
 }
 
 // mileageReportGeneratorHandler shows mileage report generator
