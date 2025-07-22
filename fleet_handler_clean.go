@@ -22,16 +22,38 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 	vehiclesByType := make(map[string][]ConsolidatedVehicle)
 	allAlerts := make(map[string][]MaintenanceAlert) 
 	
-	// Load buses directly
-	buses, busErr := loadBusesFromDB()
+	// Get total counts for pagination
+	busCount, busCountErr := getBusCount()
+	if busCountErr != nil {
+		log.Printf("ERROR getting bus count: %v", busCountErr)
+		busCount = 0
+	}
+	log.Printf("DEBUG: Total bus count in database: %d", busCount)
+	totalCount := busCount // We'll add vehicle count later
+	
+	// Get pagination params (default 50 per page for fleet view)
+	pagination := GetPaginationParams(r, totalCount, 50)
+	log.Printf("DEBUG: Pagination - Page: %d, PerPage: %d, Offset: %d, TotalPages: %d", 
+		pagination.Page, pagination.PerPage, pagination.Offset, pagination.TotalPages)
+	
+	// Load buses with pagination
+	log.Printf("DEBUG: About to call loadBusesFromDBPaginated with pagination: page=%d, perPage=%d, offset=%d", 
+		pagination.Page, pagination.PerPage, pagination.Offset)
+	buses, busErr := loadBusesFromDBPaginated(pagination)
 	if busErr != nil {
 		log.Printf("ERROR loading buses: %v", busErr)
 	} else {
-		log.Printf("SUCCESS: Loaded %d buses", len(buses))
+		log.Printf("SUCCESS: Loaded %d buses (page %d of %d)", len(buses), pagination.Page, pagination.TotalPages)
+		for i, bus := range buses {
+			log.Printf("DEBUG: Bus[%d]: ID=%s, Model=%v, Status=%s", i, bus.BusID, bus.Model, bus.Status)
+		}
+		if len(buses) > 0 {
+			log.Printf("DEBUG: First bus: ID=%s, Status=%s", buses[0].BusID, buses[0].Status)
+		}
 		// Convert buses to ConsolidatedVehicle
 		for _, bus := range buses {
 			cv := ConsolidatedVehicle{
-				ID:               bus.ID,
+				ID:               bus.BusID,
 				VehicleID:        bus.BusID,
 				BusID:            bus.BusID,
 				VehicleType:      "bus",
@@ -60,41 +82,61 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Load vehicles directly
-	vehicles, vehErr := loadVehiclesFromDB()
+	// Get vehicle count and update total
+	vehicleCount, _ := getVehicleCount()
+	totalCount = busCount + vehicleCount
+	
+	// Update pagination with combined total
+	pagination.TotalItems = totalCount
+	pagination.TotalPages = (totalCount + pagination.PerPage - 1) / pagination.PerPage
+	
+	// Load vehicles using the consolidated approach that works with proper null handling
+	var vehErr error
+	consolidatedVehicles, vehErr := loadConsolidatedNonBusVehiclesFromDB()
 	if vehErr != nil {
 		log.Printf("ERROR loading vehicles: %v", vehErr)
 	} else {
-		log.Printf("SUCCESS: Loaded %d vehicles", len(vehicles))
-		// Convert vehicles to ConsolidatedVehicle
-		for _, veh := range vehicles {
-			// Safe status handling
-			status := "active"
-			if veh.Status.Valid {
-				status = veh.Status.String
+		log.Printf("SUCCESS: Loaded %d vehicles", len(consolidatedVehicles))
+		
+		// Apply pagination to vehicles if needed
+		// For combined view, we need to calculate which vehicles to show
+		// based on buses already shown
+		remainingSlots := pagination.PerPage - len(buses)
+		if remainingSlots > 0 && pagination.Page == 1 {
+			// Show first N vehicles to fill the remaining slots on page 1
+			end := remainingSlots
+			if end > len(consolidatedVehicles) {
+				end = len(consolidatedVehicles)
+			}
+			consolidatedVehicles = consolidatedVehicles[:end]
+		} else if pagination.Page > 1 {
+			// Calculate vehicle offset for subsequent pages
+			vehicleOffset := 0
+			if pagination.Page > 1 {
+				// Account for vehicles shown on previous pages
+				vehicleOffset = (pagination.Page-1)*pagination.PerPage - busCount
+				if vehicleOffset < 0 {
+					vehicleOffset = 0
+				}
 			}
 			
-			cv := ConsolidatedVehicle{
-				ID:               veh.ID,
-				VehicleID:        veh.VehicleID,
-				BusID:            veh.VehicleID,
-				VehicleType:      "vehicle",
-				Status:           status,
-				Model:            veh.Model,
-				Year:             veh.Year,
-				TireSize:         veh.TireSize,
-				License:          veh.License,
-				OilStatus:        veh.OilStatus,
-				TireStatus:       veh.TireStatus,
-				Description:      veh.Description,
-				SerialNumber:     veh.SerialNumber,
-				Base:             veh.Base,
-				ServiceInterval:  veh.ServiceInterval,
-				MaintenanceNotes: veh.MaintenanceNotes,
-				UpdatedAt:        veh.UpdatedAt,
-				CreatedAt:        veh.CreatedAt,
+			// Apply pagination to vehicles
+			end := vehicleOffset + pagination.PerPage
+			if vehicleOffset >= len(consolidatedVehicles) {
+				consolidatedVehicles = []ConsolidatedVehicle{}
+			} else {
+				if end > len(consolidatedVehicles) {
+					end = len(consolidatedVehicles)
+				}
+				consolidatedVehicles = consolidatedVehicles[vehicleOffset:end]
 			}
-			
+		} else {
+			// Page 1 and buses filled the entire page, no vehicles to show
+			consolidatedVehicles = []ConsolidatedVehicle{}
+		}
+		
+		// Add vehicles to the combined list
+		for _, cv := range consolidatedVehicles {
 			allVehicles = append(allVehicles, cv)
 			vehiclesByType["vehicle"] = append(vehiclesByType["vehicle"], cv)
 		}
@@ -172,6 +214,7 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 	if busesSlice == nil {
 		busesSlice = []ConsolidatedVehicle{}
 	}
+	log.Printf("DEBUG: busesSlice has %d items for template", len(busesSlice))
 	
 	activeBuses := 0
 	maintenanceBuses := 0
@@ -190,14 +233,15 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Create dummy pagination
-	pagination := PaginationParams{
-		Page:       1,
-		PerPage:    len(allVehicles),
-		TotalPages: 1,
-		Offset:     0,
-		HasPrev:    false,
-		HasNext:    false,
+	// Update pagination with actual page numbers
+	pagination.PageNumbers = generatePageNumbers(pagination.Page, pagination.TotalPages)
+	pagination.StartItem = pagination.Offset + 1
+	pagination.EndItem = pagination.Offset + len(allVehicles)
+	if pagination.EndItem > pagination.TotalItems {
+		pagination.EndItem = pagination.TotalItems
+	}
+	if pagination.StartItem > pagination.TotalItems {
+		pagination.StartItem = pagination.TotalItems
 	}
 
 	// Calculate totals
@@ -235,6 +279,21 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("DEBUG: Rendering fleet.html with %d vehicles", totalVehicles)
+	log.Printf("DEBUG: Template data - Buses: %d items, AllVehicles: %d items", len(busesSlice), len(allVehicles))
+	log.Printf("DEBUG: Stats - Active: %d, Maintenance: %d, OutOfService: %d", activeBuses, maintenanceBuses, outOfServiceBuses)
+	
+	// Debug: Check if Buses key is correctly set
+	if dataB, ok := data["Buses"].([]ConsolidatedVehicle); ok {
+		log.Printf("DEBUG: data[\"Buses\"] is correctly set with %d items", len(dataB))
+	} else {
+		log.Printf("DEBUG: data[\"Buses\"] type issue or not set correctly")
+	}
+	
+	log.Printf("DEBUG: Before rendering - Data.Buses count: %d", len(busesSlice))
+	log.Printf("DEBUG: Before rendering - Data.AllVehicles count: %d", len(allVehicles))
+	if len(busesSlice) > 0 {
+		log.Printf("DEBUG: First bus in data: ID=%s", busesSlice[0].BusID)
+	}
 	// CHANGED FROM fleet_modern.html TO fleet.html
 	renderTemplate(w, r, "fleet.html", data)
 }

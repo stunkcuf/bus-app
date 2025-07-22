@@ -9,6 +9,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	
+	"github.com/lib/pq"
+	"github.com/jmoiron/sqlx"
 )
 
 // loginHandler handles the login page and authentication
@@ -27,7 +30,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		// Parse form data
 		if err := r.ParseForm(); err != nil {
 			log.Printf("Failed to parse form: %v", err)
-			http.Error(w, "Failed to parse form", http.StatusBadRequest)
+			SendError(w, ErrBadRequest("Failed to parse form data"))
 			return
 		}
 
@@ -101,7 +104,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 // logoutHandler handles user logout
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -125,7 +128,9 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 func registerHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		data := map[string]interface{}{
-			"CSRFToken": generateCSRFToken(),
+			"Data": map[string]interface{}{
+				"CSRFToken": generateCSRFToken(),
+			},
 		}
 		renderTemplate(w, r, "register.html", data)
 		return
@@ -134,22 +139,14 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		username := r.FormValue("username")
 		password := r.FormValue("password")
-		confirmPassword := r.FormValue("confirm_password")
-
-		if password != confirmPassword {
-			data := map[string]interface{}{
-				"Error":     "Passwords do not match",
-				"CSRFToken": generateCSRFToken(),
-			}
-			renderTemplate(w, r, "register.html", data)
-			return
-		}
 
 		err := createUser(username, password, "driver", "pending")
 		if err != nil {
 			data := map[string]interface{}{
-				"Error":     "Username already exists",
-				"CSRFToken": generateCSRFToken(),
+				"Data": map[string]interface{}{
+					"Error":     "Username already exists",
+					"CSRFToken": generateCSRFToken(),
+				},
 			}
 			renderTemplate(w, r, "register.html", data)
 			return
@@ -357,15 +354,17 @@ func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		maintenanceAlerts = []MaintenanceAlert{} // Empty slice on error
 	}
 
-	// Get students for assigned routes
-	studentsMap := make(map[string][]Student)
+	// Get students for assigned routes (batch loading to avoid N+1 queries)
+	var routeIDs []string
 	for _, assignment := range assignments {
-		students, err := getStudentsByRoute(assignment.RouteID)
-		if err != nil {
-			log.Printf("Error loading students for route %s: %v", assignment.RouteID, err)
-			continue
-		}
-		studentsMap[assignment.RouteID] = students
+		routeIDs = append(routeIDs, assignment.RouteID)
+	}
+	
+	studentsMap, err := getStudentsByMultipleRoutes(routeIDs)
+	if err != nil {
+		log.Printf("Error loading students for routes: %v", err)
+		// Fallback to empty map on error
+		studentsMap = make(map[string][]Student)
 	}
 
 	// Check for success message
@@ -385,176 +384,6 @@ func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, r, "driver_dashboard.html", data)
 }
 
-// fleetHandler shows the fleet overview with maintenance alerts
-// NOTE: Original handler had issues - replaced with fleetHandlerClean
-func fleetHandlerOLD(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	// OLD HANDLER REMOVED - See fleet_handler_clean.go for working version
-	http.Error(w, "Fleet handler is being fixed", http.StatusInternalServerError)
-	return
-	/* OLD CODE REMOVED - Note: If you re-enable this, change fleet_modern.html to fleet.html
-		// Try to load from old tables as fallback
-		log.Printf("Attempting to load from old bus/vehicle tables...")
-		
-		// Load buses from old table
-		buses, busErr := dataCache.getBuses()
-		if busErr != nil {
-			log.Printf("Error loading buses: %v", busErr)
-			buses = []Bus{}
-		}
-		
-		// Load vehicles from old table
-		vehicles, vehErr := dataCache.getVehicles()
-		if vehErr != nil {
-			log.Printf("Error loading vehicles: %v", vehErr)
-			vehicles = []Vehicle{}
-		}
-		
-		// Convert to ConsolidatedVehicle format
-		allVehicles = []ConsolidatedVehicle{}
-		
-		// Convert buses
-		for _, bus := range buses {
-			cv := ConsolidatedVehicle{
-				ID:               bus.ID,
-				VehicleID:        bus.BusID,
-				BusID:            bus.BusID,
-				VehicleType:      "bus",
-				Status:           bus.Status,
-				Model:            bus.Model,
-				Capacity:         bus.Capacity,
-				OilStatus:        bus.OilStatus,
-				TireStatus:       bus.TireStatus,
-				MaintenanceNotes: bus.MaintenanceNotes,
-				UpdatedAt:        bus.UpdatedAt,
-				Assignment:       getVehicleAssignment(bus.BusID),
-			}
-			allVehicles = append(allVehicles, cv)
-		}
-		
-		// Convert vehicles
-		for _, veh := range vehicles {
-			cv := ConsolidatedVehicle{
-				ID:               veh.ID,
-				VehicleID:        veh.VehicleID,
-				VehicleType:      "vehicle",
-				Status:           func() string {
-					if veh.Status.Valid {
-						return veh.Status.String
-					}
-					return "active"
-				}(),
-				Model:            veh.Model,
-				Year:             veh.Year,
-				TireSize:         veh.TireSize,
-				License:          veh.License,
-				OilStatus:        veh.OilStatus,
-				TireStatus:       veh.TireStatus,
-				Description:      veh.Description,
-				SerialNumber:     veh.SerialNumber,
-				Base:             veh.Base,
-				ServiceInterval:  veh.ServiceInterval,
-				MaintenanceNotes: veh.MaintenanceNotes,
-			}
-			allVehicles = append(allVehicles, cv)
-		}
-		
-		log.Printf("Loaded %d vehicles from old tables (%d buses, %d vehicles)", 
-			len(allVehicles), len(buses), len(vehicles))
-		
-		// If still no vehicles, provide better error info
-		if len(allVehicles) == 0 && busErr != nil && vehErr != nil {
-			data := map[string]interface{}{
-				"User":         user,
-				"Error":        "Unable to load fleet data from any source.",
-				"ErrorDetails": fmt.Sprintf("Fleet vehicles error: %v\nBuses error: %v\nVehicles error: %v", err, busErr, vehErr),
-				"CSRFToken":    getSessionCSRFToken(r),
-			}
-			renderTemplate(w, r, "error.html", data)
-			return
-		}
-	}
-	
-	log.Printf("DEBUG: fleetHandler - Successfully loaded %d vehicles", len(allVehicles))
-
-	// Group vehicles by type
-	vehiclesByType, err := loadFleetVehiclesByType()
-	if err != nil {
-		log.Printf("Error grouping vehicles by type: %v", err)
-		vehiclesByType = make(map[string][]ConsolidatedVehicle)
-	}
-
-	// Get just buses for backward compatibility
-	buses := vehiclesByType["bus"]
-	if buses == nil {
-		buses = []ConsolidatedVehicle{}
-	}
-
-	// Calculate bus statistics
-	activeBuses := 0
-	maintenanceBuses := 0
-	outOfServiceBuses := 0
-	
-	for _, bus := range buses {
-		switch bus.Status {
-		case "active":
-			activeBuses++
-		case "maintenance":
-			maintenanceBuses++
-		case "out-of-service", "out_of_service":
-			outOfServiceBuses++
-		}
-	}
-
-	// No pagination when showing all vehicles
-	// Create a dummy pagination object for template compatibility
-	pagination := PaginationParams{
-		Page:       1,
-		PerPage:    len(allVehicles),
-		TotalPages: 1,
-		Offset:     0,
-		HasPrev:    false,
-		HasNext:    false,
-	}
-	
-	// Use all buses, not paginated
-	paginatedBuses := buses
-
-	// Maintenance alerts disabled - required columns not in database
-	allAlerts := make(map[string][]MaintenanceAlert)
-
-	// Calculate total vehicle statistics
-	totalVehicles := len(allVehicles)
-	totalBuses := len(buses)
-	totalOtherVehicles := totalVehicles - totalBuses
-
-	data := map[string]interface{}{
-		"User":              user,
-		"CSRFToken":         getSessionCSRFToken(r),
-		"Pagination":        pagination,
-		"Buses":             paginatedBuses,
-		"AllBuses":          buses, // For statistics
-		"AllVehicles":       allVehicles,
-		"VehiclesByType":    vehiclesByType,
-		"MaintenanceAlerts": allAlerts,
-		"ActiveBuses":       activeBuses,
-		"MaintenanceBuses":  maintenanceBuses,
-		"OutOfServiceBuses": outOfServiceBuses,
-		"TotalVehicles":     totalVehicles,
-		"TotalBuses":        totalBuses,
-		"TotalOtherVehicles": totalOtherVehicles,
-	}
-
-	// Changed from fleet_modern.html to fleet.html
-	renderTemplate(w, r, "fleet.html", data)
-	*/
-}
-
 // companyFleetHandler shows company vehicles with maintenance alerts
 func companyFleetHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
@@ -563,11 +392,16 @@ func companyFleetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("Company fleet page requested by %s", user.Username)
+	start := time.Now()
+
 	// Load all vehicles (non-bus vehicles from vehicles table)
 	vehicles, err := loadVehiclesFromDB()
 	if err != nil {
-		log.Printf("Error loading vehicles: %v", err)
+		log.Printf("Error loading vehicles after %v: %v", time.Since(start), err)
 		vehicles = []Vehicle{}
+	} else {
+		log.Printf("Loaded %d vehicles in %v", len(vehicles), time.Since(start))
 	}
 
 	// Convert Vehicle structs to ConsolidatedVehicle for template compatibility
@@ -580,7 +414,7 @@ func companyFleetHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		consolidatedVehicles[i] = ConsolidatedVehicle{
-			ID:               v.ID,
+			ID:               v.VehicleID,
 			VehicleID:        v.VehicleID,
 			BusID:            v.VehicleID, // For backward compatibility
 			VehicleType:      "vehicle",
@@ -636,27 +470,28 @@ func companyFleetHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Get maintenance alerts for vehicles
+	// Skip maintenance alerts for now - they're causing timeouts
+	// These can be loaded asynchronously via AJAX if needed
 	allAlerts := make(map[string][]MaintenanceAlert)
-	for _, v := range consolidatedVehicles {
-		alerts, err := checkMaintenanceDue(v.VehicleID)
-		if err == nil && len(alerts) > 0 {
-			allAlerts[v.VehicleID] = alerts
-		}
-	}
 
-	// Prepare data for template
+	log.Printf("Preparing template data: %d total vehicles, %d paginated", len(consolidatedVehicles), len(paginatedVehicles))
+	
+	// Prepare data for template - wrap in Data structure like template expects
 	data := map[string]interface{}{
-		"User":              user,
-		"CSRFToken":         getSessionCSRFToken(r),
-		"Pagination":        pagination,
-		"Vehicles":          paginatedVehicles,
-		"AllVehicles":       consolidatedVehicles,
-		"MaintenanceAlerts": allAlerts,
-		"TotalVehicles":     totalVehicles,
+		"User":      user,
+		"CSRFToken": getSessionCSRFToken(r),
+		"Data": map[string]interface{}{
+			"Vehicles":          paginatedVehicles,
+			"CSRFToken":         getSessionCSRFToken(r),
+			"Pagination":        pagination,
+			"AllVehicles":       consolidatedVehicles,
+			"MaintenanceAlerts": allAlerts,
+			"TotalVehicles":     totalVehicles,
+		},
 		"ActiveCount":       activeCount,
 		"MaintenanceCount":  maintenanceCount,
 		"OutOfServiceCount": outOfServiceCount,
+		"TotalVehicles":     totalVehicles,
 		// Remove FleetVehicles - we don't need it
 		"FleetVehicles":    []FleetVehicle{},
 		"AllFleetVehicles": []FleetVehicle{},
@@ -852,7 +687,7 @@ func vehicleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 // saveMaintenanceRecordHandler handles saving maintenance records
 func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -863,14 +698,14 @@ func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !validateCSRF(r) {
-		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		SendError(w, ErrForbidden("Invalid CSRF token"))
 		return
 	}
 
 	// Parse form
 	err := r.ParseForm()
 	if err != nil {
-		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		SendError(w, ErrBadRequest("Failed to parse form data"))
 		return
 	}
 
@@ -956,7 +791,7 @@ func saveMaintenanceRecordHandler(w http.ResponseWriter, r *http.Request) {
 // updateVehicleStatusHandler handles status updates with validation
 func updateVehicleStatusHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -1030,7 +865,7 @@ func updateVehicleStatusHandler(w http.ResponseWriter, r *http.Request) {
 // saveLogHandler with mileage validation
 func saveLogHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -1041,14 +876,14 @@ func saveLogHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !validateCSRF(r) {
-		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		SendError(w, ErrForbidden("Invalid CSRF token"))
 		return
 	}
 
 	// Parse form
 	err := r.ParseForm()
 	if err != nil {
-		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		SendError(w, ErrBadRequest("Failed to parse form data"))
 		return
 	}
 
@@ -1131,29 +966,39 @@ func saveLogHandler(w http.ResponseWriter, r *http.Request) {
 		Attendance:   string(attendanceJSON),
 	}
 
-	// Save to database
-	query := `
-		INSERT INTO driver_logs (driver, bus_id, route_id, date, period, departure_time, arrival_time, begin_mileage, end_mileage, attendance)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-	`
+	// Save to database using transaction
+	err = withTransaction(func(tx *sqlx.Tx) error {
+		// Save driver log
+		query := `
+			INSERT INTO driver_logs (driver, bus_id, route_id, date, period, departure_time, arrival_time, begin_mileage, end_mileage, attendance)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		`
 
-	_, err = db.Exec(query, driverLog.Driver, driverLog.BusID, driverLog.RouteID,
-		driverLog.Date, driverLog.Period, driverLog.Departure, driverLog.Arrival,
-		driverLog.BeginMileage, driverLog.EndMileage, driverLog.Attendance)
+		_, err := tx.Exec(query, driverLog.Driver, driverLog.BusID, driverLog.RouteID,
+			driverLog.Date, driverLog.Period, driverLog.Departure, driverLog.Arrival,
+			driverLog.BeginMileage, driverLog.EndMileage, driverLog.Attendance)
+
+		if err != nil {
+			return fmt.Errorf("failed to save driver log: %w", err)
+		}
+
+		// Update vehicle mileage
+		if err := updateVehicleMileageInTx(tx, busID, int(endMileage)); err != nil {
+			return fmt.Errorf("failed to update vehicle mileage: %w", err)
+		}
+
+		// Update maintenance status based on mileage
+		if err := updateMaintenanceStatusBasedOnMileageInTx(tx, busID); err != nil {
+			return fmt.Errorf("failed to update maintenance status: %w", err)
+		}
+
+		return nil
+	})
 
 	if err != nil {
-		log.Printf("Error saving driver log: %v", err)
+		log.Printf("Error saving driver log transaction: %v", err)
 		http.Error(w, "Failed to save log", http.StatusInternalServerError)
 		return
-	}
-
-	// Update vehicle mileage and check maintenance status
-	if err := updateVehicleMileage(busID, int(endMileage)); err != nil {
-		log.Printf("Warning: failed to update vehicle mileage: %v", err)
-	}
-
-	if err := updateMaintenanceStatusBasedOnMileage(busID); err != nil {
-		log.Printf("Warning: failed to update maintenance status: %v", err)
 	}
 
 	// Check if we should show any maintenance alerts
@@ -1292,6 +1137,70 @@ func getStudentsByRoute(routeID string) ([]Student, error) {
 	return students, err
 }
 
+// getStudentsByMultipleRoutes gets all active students for multiple routes in a single query
+func getStudentsByMultipleRoutes(routeIDs []string) (map[string][]Student, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	
+	if len(routeIDs) == 0 {
+		return make(map[string][]Student), nil
+	}
+
+	// Build query with proper parameter placeholders
+	query := `
+		SELECT * FROM students 
+		WHERE route_id = ANY($1) AND active = true 
+		ORDER BY route_id, position_number, pickup_time
+	`
+
+	var students []Student
+	err := db.Select(&students, query, pq.StringArray(routeIDs))
+	if err != nil {
+		return nil, err
+	}
+
+	// Group students by route ID
+	studentsMap := make(map[string][]Student)
+	for _, student := range students {
+		studentsMap[student.RouteID] = append(studentsMap[student.RouteID], student)
+	}
+
+	return studentsMap, nil
+}
+
+// getStudentsByMultipleRoutesIncludingInactive gets all students for multiple routes in a single query (including inactive)
+func getStudentsByMultipleRoutesIncludingInactive(routeIDs []string) (map[string][]Student, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	
+	if len(routeIDs) == 0 {
+		return make(map[string][]Student), nil
+	}
+
+	// Build query with proper parameter placeholders
+	query := `
+		SELECT * FROM students 
+		WHERE route_id = ANY($1)
+		ORDER BY route_id, active DESC, position_number, pickup_time
+	`
+
+	var students []Student
+	err := db.Select(&students, query, pq.StringArray(routeIDs))
+	if err != nil {
+		return nil, err
+	}
+
+	// Group students by route ID
+	studentsMap := make(map[string][]Student)
+	for _, student := range students {
+		studentsMap[student.RouteID] = append(studentsMap[student.RouteID], student)
+	}
+
+	return studentsMap, nil
+}
+
 // getStudentsByRouteIncludingInactive gets all students for a route including inactive ones
 func getStudentsByRouteIncludingInactive(routeID string) ([]Student, error) {
 	if db == nil {
@@ -1326,12 +1235,35 @@ func updateBusField(busID, fieldName, fieldValue string) error {
 		return fmt.Errorf("field update not allowed: %s", fieldName)
 	}
 
-	// Update in the consolidated fleet_vehicles table
-	query := fmt.Sprintf("UPDATE fleet_vehicles SET %s = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'bus'", fieldName)
+	// Use parameterized queries based on field name
+	var query string
+	switch fieldName {
+	case "status":
+		query = "UPDATE fleet_vehicles SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'bus'"
+	case "oil_status":
+		query = "UPDATE fleet_vehicles SET oil_status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'bus'"
+	case "tire_status":
+		query = "UPDATE fleet_vehicles SET tire_status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'bus'"
+	case "maintenance_notes":
+		query = "UPDATE fleet_vehicles SET maintenance_notes = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'bus'"
+	default:
+		return fmt.Errorf("invalid field name: %s", fieldName)
+	}
+	
 	_, err := db.Exec(query, fieldValue, busID)
 	if err != nil {
 		// Fallback to old buses table
-		oldQuery := fmt.Sprintf("UPDATE buses SET %s = $1, updated_at = CURRENT_TIMESTAMP WHERE bus_id = $2", fieldName)
+		var oldQuery string
+		switch fieldName {
+		case "status":
+			oldQuery = "UPDATE buses SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE bus_id = $2"
+		case "oil_status":
+			oldQuery = "UPDATE buses SET oil_status = $1, updated_at = CURRENT_TIMESTAMP WHERE bus_id = $2"
+		case "tire_status":
+			oldQuery = "UPDATE buses SET tire_status = $1, updated_at = CURRENT_TIMESTAMP WHERE bus_id = $2"
+		case "maintenance_notes":
+			oldQuery = "UPDATE buses SET maintenance_notes = $1, updated_at = CURRENT_TIMESTAMP WHERE bus_id = $2"
+		}
 		_, oldErr := db.Exec(oldQuery, fieldValue, busID)
 		return oldErr
 	}
@@ -1354,12 +1286,35 @@ func updateVehicleField(vehicleID, fieldName, fieldValue string) error {
 		return fmt.Errorf("field update not allowed: %s", fieldName)
 	}
 
-	// Update in the consolidated fleet_vehicles table
-	query := fmt.Sprintf("UPDATE fleet_vehicles SET %s = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'vehicle'", fieldName)
+	// Use parameterized queries based on field name
+	var query string
+	switch fieldName {
+	case "status":
+		query = "UPDATE fleet_vehicles SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'vehicle'"
+	case "oil_status":
+		query = "UPDATE fleet_vehicles SET oil_status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'vehicle'"
+	case "tire_status":
+		query = "UPDATE fleet_vehicles SET tire_status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'vehicle'"
+	case "maintenance_notes":
+		query = "UPDATE fleet_vehicles SET maintenance_notes = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'vehicle'"
+	default:
+		return fmt.Errorf("invalid field name: %s", fieldName)
+	}
+	
 	_, err := db.Exec(query, fieldValue, vehicleID)
 	if err != nil {
 		// Fallback to old vehicles table
-		oldQuery := fmt.Sprintf("UPDATE vehicles SET %s = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2", fieldName)
+		var oldQuery string
+		switch fieldName {
+		case "status":
+			oldQuery = "UPDATE vehicles SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2"
+		case "oil_status":
+			oldQuery = "UPDATE vehicles SET oil_status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2"
+		case "tire_status":
+			oldQuery = "UPDATE vehicles SET tire_status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2"
+		case "maintenance_notes":
+			oldQuery = "UPDATE vehicles SET maintenance_notes = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2"
+		}
 		_, oldErr := db.Exec(oldQuery, fieldValue, vehicleID)
 		return oldErr
 	}
@@ -1726,8 +1681,10 @@ func maintenanceRecordsHandler(w http.ResponseWriter, r *http.Request) {
 
 	if vehicleNumber > 0 || startDate != "" || endDate != "" {
 		records, err = loadMaintenanceRecordsByFilters(vehicleNumber, startDate, endDate)
+		log.Printf("DEBUG: Loading maintenance records with filters - vehicle: %d, start: %s, end: %s", vehicleNumber, startDate, endDate)
 	} else {
 		records, err = loadMaintenanceRecordsFromDB()
+		log.Printf("DEBUG: Loading all maintenance records")
 	}
 
 	if err != nil {
@@ -1735,6 +1692,8 @@ func maintenanceRecordsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to load maintenance records", http.StatusInternalServerError)
 		return
 	}
+	
+	log.Printf("DEBUG: Loaded %d maintenance records", len(records))
 
 	// Pagination setup
 	perPage := 25
@@ -1752,6 +1711,8 @@ func maintenanceRecordsHandler(w http.ResponseWriter, r *http.Request) {
 	if start < totalRecords {
 		paginatedRecords = records[start:end]
 	}
+	log.Printf("DEBUG: Pagination - page %d, showing records %d-%d of %d total", page, start+1, end, totalRecords)
+	log.Printf("DEBUG: Paginated records count: %d", len(paginatedRecords))
 
 	// Create pagination object
 	pagination := struct {
