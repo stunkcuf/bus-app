@@ -1826,8 +1826,10 @@ func serviceRecordsHandler(w http.ResponseWriter, r *http.Request) {
 
 	if vehicleFilter != "" || startDate != "" || endDate != "" {
 		records, err = loadServiceRecordsByFilters(vehicleFilter, startDate, endDate)
+		log.Printf("DEBUG: Loading service records with filters - vehicle: %s, start: %s, end: %s", vehicleFilter, startDate, endDate)
 	} else {
 		records, err = loadServiceRecordsFromDB()
+		log.Printf("DEBUG: Loading all service records")
 	}
 
 	if err != nil {
@@ -1835,6 +1837,8 @@ func serviceRecordsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to load service records", http.StatusInternalServerError)
 		return
 	}
+	
+	log.Printf("DEBUG: Loaded %d service records", len(records))
 
 	// Pagination setup
 	perPage := 20
@@ -1852,6 +1856,8 @@ func serviceRecordsHandler(w http.ResponseWriter, r *http.Request) {
 	if start < totalRecords {
 		paginatedRecords = records[start:end]
 	}
+	log.Printf("DEBUG: Service records pagination - page %d, showing records %d-%d of %d total", page, start+1, end, totalRecords)
+	log.Printf("DEBUG: Paginated service records count: %d", len(paginatedRecords))
 
 	// Create pagination object
 	pagination := struct {
