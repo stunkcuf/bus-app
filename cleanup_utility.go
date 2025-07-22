@@ -1,3 +1,5 @@
+// +build ignore
+
 package main
 
 import (
@@ -7,6 +9,7 @@ import (
 	"strings"
 )
 
+// Run this file with: go run cleanup_utility.go
 func main() {
 	fmt.Println("🧹 Cleaning up project folder...")
 	fmt.Println("================================")
