@@ -256,7 +256,7 @@ class AutoSaveSystem {
       formData.hasChanges = false;
       formData.lastSave = Date.now();
     } catch (e) {
-      console.error('Auto-save failed:', e);
+      devLog.error('Auto-save failed:', e);
     }
   }
 
@@ -286,7 +286,7 @@ class AutoSaveSystem {
             localStorage.removeItem(savedDataKey);
           }
         } catch (e) {
-          console.error('Failed to parse saved data:', e);
+          devLog.error('Failed to parse saved data:', e);
           localStorage.removeItem(savedDataKey);
         }
       }
@@ -355,7 +355,7 @@ class AutoSaveSystem {
       // Show success message
       this.showMessage('Data restored successfully', 'success');
     } catch (e) {
-      console.error('Failed to restore data:', e);
+      devLog.error('Failed to restore data:', e);
       this.showMessage('Failed to restore data', 'error');
     }
   }
@@ -435,7 +435,7 @@ class AutoSaveSystem {
 
   showMessage(message, type = 'info') {
     // You can integrate this with your existing notification system
-    console.log(`[AutoSave] ${type}: ${message}`);
+    devLog.log(`[AutoSave] ${type}: ${message}`);
   }
 }
 

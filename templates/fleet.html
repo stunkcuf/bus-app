@@ -6,6 +6,7 @@
   <title>Fleet Management - Fleet Management System</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  
   <style nonce="{{.CSPNonce}}">
     /* Ultimate beautiful design system */
     :root {
@@ -84,38 +85,6 @@
       text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
     }
     
-    .navbar-brand i {
-      font-size: 2rem;
-      background: var(--gradient-1);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    /* Hero section */
-    .hero-section {
-      position: relative;
-      padding: 4rem 0 2rem;
-      text-align: center;
-      color: white;
-      overflow: hidden;
-    }
-    
-    .hero-content h1 {
-      font-size: 3rem;
-      font-weight: 800;
-      margin-bottom: 1rem;
-      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: gradientShift 8s ease-in-out infinite;
-      text-shadow: 0 0 40px rgba(255, 255, 255, 0.2);
-    }
-    
-    @keyframes gradientShift {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
-    
     /* Floating orbs */
     .orb {
       position: absolute;
@@ -157,78 +126,64 @@
       66% { transform: translate(-20px, 20px) scale(0.9); }
     }
     
-    /* Action buttons with neon glow */
-    .action-buttons {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      margin-bottom: 3rem;
-      flex-wrap: wrap;
-      padding: 0 1rem;
+    /* Glass cards */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
     }
     
-    .btn-neon {
+    /* Form styling */
+    .form-control,
+    .form-select {
       background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border: 2px solid;
-      padding: 1rem 2rem;
-      border-radius: 50px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
       color: white;
-      text-decoration: none;
-      position: relative;
-      overflow: hidden;
+      padding: 0.75rem 1rem;
       transition: all 0.3s ease;
     }
     
-    .btn-neon-primary {
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
       border-color: #667eea;
-      box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
     }
     
-    .btn-neon-primary:hover {
+    /* Button styling */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
       background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
       transform: translateY(-3px);
       box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
-      color: white;
     }
     
-    .btn-neon-success {
-      border-color: #38ef7d;
-      box-shadow: 0 0 20px rgba(56, 239, 125, 0.5);
-    }
-    
-    .btn-neon-success:hover {
-      background: var(--gradient-4);
-      transform: translateY(-3px);
-      box-shadow: 0 10px 40px rgba(56, 239, 125, 0.7);
-      color: white;
-    }
-    
-    .btn-neon-info {
-      border-color: #00f2fe;
-      box-shadow: 0 0 20px rgba(0, 242, 254, 0.5);
-    }
-    
-    .btn-neon-info:hover {
-      background: var(--gradient-3);
-      transform: translateY(-3px);
-      box-shadow: 0 10px 40px rgba(0, 242, 254, 0.7);
-      color: white;
-    }
-    
-    /* Stats cards */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 2rem;
-      margin-bottom: 3rem;
-      padding: 0 1rem;
-    }
-    
-    .stat-card {
+    /* Metric cards */
+    .metric-card {
       position: relative;
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(20px);
@@ -241,275 +196,53 @@
       transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: var(--card-gradient);
-      opacity: 0.1;
-      transition: opacity 0.3s ease;
-    }
-    
-    .stat-card:hover::before {
-      opacity: 0.2;
-    }
-    
-    .stat-card:nth-child(1) { --card-gradient: var(--gradient-4); }
-    .stat-card:nth-child(2) { --card-gradient: var(--gradient-5); }
-    .stat-card:nth-child(3) { --card-gradient: var(--gradient-2); }
-    
-    .stat-card:hover {
+    .metric-card:hover {
       transform: translateY(-10px) scale(1.02);
-      box-shadow: 
-        0 20px 40px rgba(0, 0, 0, 0.3),
-        0 0 60px var(--card-gradient-glow);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     }
     
-    .stat-card:nth-child(1) { --card-gradient-glow: rgba(67, 233, 123, 0.3); }
-    .stat-card:nth-child(2) { --card-gradient-glow: rgba(250, 112, 154, 0.3); }
-    .stat-card:nth-child(3) { --card-gradient-glow: rgba(240, 147, 251, 0.3); }
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 5rem 0 3rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
     
-    .stat-icon {
+    .hero-content h1 {
       font-size: 3.5rem;
-      margin-bottom: 1.5rem;
-      display: inline-block;
-      background: var(--card-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      filter: drop-shadow(0 4px 20px var(--card-gradient-glow));
-      animation: iconPulse 3s ease-in-out infinite;
-    }
-    
-    @keyframes iconPulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-    }
-    
-    .stat-value {
-      font-size: 3rem;
       font-weight: 800;
-      margin-bottom: 0.5rem;
-      background: linear-gradient(to bottom, #fff, rgba(255, 255, 255, 0.8));
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
     }
     
-    .stat-label {
-      font-size: 1.1rem;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      opacity: 0.8;
-    }
-    
-    /* Fleet table */
-    .glass-card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      border-radius: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 2rem;
-      margin-bottom: 2rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    /* Tables */
+    .table {
       color: white;
     }
     
-    .glass-card-header {
-      margin-bottom: 2rem;
-      text-align: center;
-    }
-    
-    .glass-card-header h2 {
-      font-size: 2rem;
-      font-weight: 700;
-      margin: 0;
-      background: linear-gradient(to right, #667eea, #764ba2);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    /* Table styling */
-    .fleet-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0 0.5rem;
-    }
-    
-    .fleet-table thead th {
+    .table thead th {
       background: rgba(255, 255, 255, 0.15);
       color: white;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
       padding: 1rem;
-      font-size: 0.9rem;
       border: none;
     }
     
-    .fleet-table tbody tr {
+    .table tbody tr {
       background: rgba(255, 255, 255, 0.05);
       transition: all 0.3s ease;
     }
     
-    .fleet-table tbody tr:hover {
+    .table tbody tr:hover {
       background: rgba(255, 255, 255, 0.1);
-      transform: translateX(5px);
-      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-    }
-    
-    .fleet-table td {
-      padding: 1rem;
-      color: white;
-      border: none;
-    }
-    
-    /* Status badges */
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      border-radius: 50px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      color: white;
-    }
-    
-    .status-active {
-      background: var(--gradient-4);
-      box-shadow: 0 4px 15px rgba(67, 233, 123, 0.3);
-    }
-    
-    .status-maintenance {
-      background: var(--gradient-5);
-      box-shadow: 0 4px 15px rgba(250, 112, 154, 0.3);
-    }
-    
-    .status-out-of-service {
-      background: var(--gradient-2);
-      box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
-    }
-    
-    /* Oil/Tire status indicators */
-    .maintenance-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    
-    .status-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      animation: statusPulse 2s ease-in-out infinite;
-    }
-    
-    .status-good {
-      background: #38ef7d;
-      box-shadow: 0 0 10px rgba(56, 239, 125, 0.8);
-    }
-    
-    .status-due_soon, .status-needs_service {
-      background: #fee140;
-      box-shadow: 0 0 10px rgba(254, 225, 64, 0.8);
-    }
-    
-    .status-overdue {
-      background: #f5576c;
-      box-shadow: 0 0 10px rgba(245, 87, 108, 0.8);
-    }
-    
-    @keyframes statusPulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.6; transform: scale(0.8); }
-    }
-    
-    /* Action buttons in table */
-    .btn-group-neon {
-      display: flex;
-      gap: 0.5rem;
-    }
-    
-    .btn-table {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      color: white;
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      transition: all 0.3s ease;
-      text-decoration: none;
-    }
-    
-    .btn-table:hover {
-      background: rgba(255, 255, 255, 0.2);
-      transform: translateY(-2px);
-      color: white;
-      box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
-    }
-    
-    /* Modal styling */
-    .modal-content {
-      background: #1a1a2e;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 20px;
-      color: white;
-    }
-    
-    .modal-header {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      background: var(--gradient-1);
-      border-radius: 20px 20px 0 0;
-    }
-    
-    .modal-body {
-      padding: 2rem;
-    }
-    
-    .modal-footer {
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    /* Form styling */
-    .form-control, .form-select {
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      border-radius: 15px;
-      color: white;
-      padding: 1rem 1.5rem;
-      transition: all 0.3s ease;
-    }
-    
-    .form-control:focus, .form-select:focus {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
-      color: white;
-      outline: none;
-    }
-    
-    .form-control::placeholder {
-      color: rgba(255, 255, 255, 0.5);
-    }
-    
-    .form-select option {
-      background: #302b63;
-      color: white;
-    }
-    
-    .form-label {
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-      color: rgba(255, 255, 255, 0.9);
-      text-transform: uppercase;
-      font-size: 0.9rem;
-      letter-spacing: 1px;
-    }
-    
-    .btn-close {
-      filter: invert(1);
+      transform: translateX(10px);
     }
     
     /* Animations */
@@ -525,32 +258,270 @@
         transform: translateY(0);
       }
     }
-    
-    .fade-in:nth-child(1) { animation-delay: 0.1s; }
-    .fade-in:nth-child(2) { animation-delay: 0.2s; }
-    .fade-in:nth-child(3) { animation-delay: 0.3s; }
-    
-    /* Responsive */
+
+    /* Action buttons */
+    .action-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* Neon buttons */
+    .btn-neon {
+      padding: 1rem 2rem;
+      border-radius: 50px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+      color: white;
+      border: 2px solid transparent;
+    }
+
+    .btn-neon::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+      z-index: -1;
+    }
+
+    .btn-neon:hover::before {
+      left: 100%;
+    }
+
+    .btn-neon-primary {
+      background: var(--gradient-1);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .btn-neon-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.7);
+      color: white;
+    }
+
+    .btn-neon-success {
+      background: var(--gradient-4);
+      box-shadow: 0 5px 20px rgba(67, 233, 123, 0.5);
+    }
+
+    .btn-neon-success:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(67, 233, 123, 0.7);
+      color: white;
+    }
+
+    .btn-neon-info {
+      background: var(--gradient-3);
+      box-shadow: 0 5px 20px rgba(79, 172, 254, 0.5);
+    }
+
+    .btn-neon-info:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(79, 172, 254, 0.7);
+      color: white;
+    }
+
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 2rem;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .stat-icon {
+      font-size: 2.5rem;
+      color: #667eea;
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Glass card header */
+    .glass-card-header {
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .glass-card-header h2 {
+      color: white;
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Fleet table styling */
+    .fleet-table {
+      width: 100%;
+      color: white;
+    }
+
+    .fleet-table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+      font-size: 0.85rem;
+    }
+
+    .fleet-table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .fleet-table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(5px);
+    }
+
+    .fleet-table td {
+      padding: 1rem;
+      vertical-align: middle;
+    }
+
+    /* Status badges */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .status-badge.status-active {
+      background: rgba(67, 233, 123, 0.2);
+      color: #43e97b;
+      border: 1px solid #43e97b;
+    }
+
+    .status-badge.status-maintenance {
+      background: rgba(250, 112, 154, 0.2);
+      color: #fa709a;
+      border: 1px solid #fa709a;
+    }
+
+    .status-badge.status-out-of-service,
+    .status-badge.status-out_of_service {
+      background: rgba(245, 87, 108, 0.2);
+      color: #f5576c;
+      border: 1px solid #f5576c;
+    }
+
+    /* Maintenance status */
+    .maintenance-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-dot.status-good {
+      background: #43e97b;
+      box-shadow: 0 0 10px #43e97b;
+    }
+
+    .status-dot.status-due {
+      background: #fee140;
+      box-shadow: 0 0 10px #fee140;
+    }
+
+    .status-dot.status-overdue {
+      background: #f5576c;
+      box-shadow: 0 0 10px #f5576c;
+    }
+
+    /* Button group */
+    .btn-group-neon {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-table {
+      padding: 0.5rem 1rem;
+      background: rgba(102, 126, 234, 0.2);
+      border: 1px solid rgba(102, 126, 234, 0.5);
+      color: white;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .btn-table:hover {
+      background: rgba(102, 126, 234, 0.4);
+      transform: translateY(-2px);
+      color: white;
+    }
+
+    /* Table responsive */
+    .table-responsive {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
     @media (max-width: 768px) {
-      .hero-content h1 {
-        font-size: 2rem;
-      }
-      
-      .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-      }
-      
-      .action-buttons {
-        flex-direction: column;
-      }
-      
       .fleet-table {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
       }
       
-      .btn-group-neon {
-        flex-direction: column;
+      .fleet-table td {
+        padding: 0.75rem 0.5rem;
       }
     }
   </style>
@@ -562,9 +533,9 @@
   <div class="orb orb3"></div>
   
   <!-- Navigation -->
-  <nav class="navbar-glass">
+  <nav class="navbar navbar-glass">
     <div class="container">
-      <div class="d-flex justify-content-between align-items-center">
+      <div class="d-flex justify-content-between align-items-center w-100">
         <a href="/manager-dashboard" class="navbar-brand">
           <i class="bi bi-bus-front-fill"></i>
           <span>Fleet Management</span>
@@ -703,6 +674,10 @@
         <p class="opacity-75">Add your first bus to get started</p>
       </div>
       {{end}}
+      
+      <!-- Pagination Controls -->
+      {{template "pagination" .}}
+      
     </div>
   </div>
   

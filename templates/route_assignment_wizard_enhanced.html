@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Route Assignment Wizard - Fleet Management</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/enhanced_ui.css">
+  
+  <style nonce="{{.CSPNonce}}">
+    /* Wizard-specific styles */
+    .wizard-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    .wizard-progress {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3rem;
+      position: relative;
+    }
+    
+    .wizard-progress::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.2);
+      z-index: -1;
+    }
+    
+    .wizard-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .wizard-step-number {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      transition: all 0.3s;
+    }
+    
+    .wizard-step.active .wizard-step-number {
+      background: var(--gradient-1);
+      border-color: transparent;
+      box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .wizard-step.completed .wizard-step-number {
+      background: var(--gradient-4);
+      border-color: transparent;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    
+    .wizard-content {
+      min-height: 400px;
+      position: relative;
+    }
+    
+    .wizard-page {
+      display: none;
+      animation: fadeInUp 0.5s ease-out;
+    }
+    
+    .wizard-page.active {
+      display: block;
+    }
+    
+    /* Interactive cards */
+    .selectable-card {
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .selectable-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, transparent, rgba(102, 126, 234, 0.2));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .selectable-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(102, 126, 234, 0.5);
+    }
+    
+    .selectable-card.selected {
+      border-color: #667eea;
+      box-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+    }
+    
+    .selectable-card.selected::before {
+      opacity: 1;
+    }
+    
+    /* Smart suggestions */
+    .suggestion-badge {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: var(--gradient-2);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      animation: bounce 2s ease-in-out infinite;
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+    
+    /* Drag and drop */
+    .draggable {
+      cursor: move;
+    }
+    
+    .draggable.dragging {
+      opacity: 0.5;
+    }
+    
+    .drop-zone {
+      border: 2px dashed rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      padding: 2rem;
+      min-height: 200px;
+      transition: all 0.3s;
+    }
+    
+    .drop-zone.drag-over {
+      border-color: #667eea;
+      background: rgba(102, 126, 234, 0.1);
+    }
+    
+    /* Real-time validation */
+    .validation-feedback {
+      margin-top: 0.5rem;
+      font-size: 0.875rem;
+      transition: all 0.3s;
+    }
+    
+    .validation-success {
+      color: #43e97b;
+    }
+    
+    .validation-error {
+      color: #f5576c;
+    }
+    
+    /* Summary visualization */
+    .assignment-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    
+    .summary-item {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 1.5rem;
+      position: relative;
+    }
+    
+    .summary-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      border-radius: 20px 20px 0 0;
+    }
+    
+    .summary-driver::before { background: var(--gradient-1); }
+    .summary-bus::before { background: var(--gradient-3); }
+    .summary-route::before { background: var(--gradient-4); }
+  </style>
+</head>
+<body>
+  <!-- Particle system will be added by JavaScript -->
+  
+  <!-- Navigation -->
+  <nav class="navbar navbar-glass">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center w-100">
+        <a href="/assign-routes" class="navbar-brand">
+          <i class="bi bi-magic"></i>
+          <span>Smart Assignment Wizard</span>
+        </a>
+        <button class="btn btn-outline-light btn-sm" onclick="window.location.href='/assign-routes'">
+          <i class="bi bi-x-lg"></i> Exit Wizard
+        </button>
+      </div>
+    </div>
+  </nav>
+  
+  <div class="wizard-container">
+    <!-- Progress Bar -->
+    <div class="wizard-progress">
+      <div class="wizard-step active" data-step="1">
+        <div class="wizard-step-number">1</div>
+        <span class="text-white">Select Driver</span>
+      </div>
+      <div class="wizard-step" data-step="2">
+        <div class="wizard-step-number">2</div>
+        <span class="text-white">Choose Bus</span>
+      </div>
+      <div class="wizard-step" data-step="3">
+        <div class="wizard-step-number">3</div>
+        <span class="text-white">Assign Route</span>
+      </div>
+      <div class="wizard-step" data-step="4">
+        <div class="wizard-step-number">4</div>
+        <span class="text-white">Review & Confirm</span>
+      </div>
+    </div>
+    
+    <!-- Wizard Content -->
+    <div class="wizard-content">
+      <!-- Step 1: Select Driver -->
+      <div class="wizard-page active" data-page="1">
+        <div class="glass-card">
+          <h2 class="text-white mb-4">
+            <i class="bi bi-person-badge"></i> Select a Driver
+          </h2>
+          
+          <div class="mb-4">
+            <input type="search" class="form-control form-control-glass" 
+                   placeholder="Search drivers by name..." 
+                   id="driverSearch">
+          </div>
+          
+          <div class="row g-3" id="driverList">
+            {{range .AvailableDrivers}}
+            <div class="col-md-6 col-lg-4">
+              <div class="selectable-card glass-card p-3" data-driver="{{.Username}}">
+                {{if .IsRecommended}}
+                <span class="suggestion-badge">Recommended</span>
+                {{end}}
+                <div class="d-flex align-items-center mb-3">
+                  <div class="avatar-circle me-3" style="width: 50px; height: 50px; background: var(--gradient-1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-person text-white fs-4"></i>
+                  </div>
+                  <div>
+                    <h5 class="mb-0 text-white">{{.Username}}</h5>
+                    <small class="text-white-50">{{.Role | title}} Driver</small>
+                  </div>
+                </div>
+                <div class="driver-stats">
+                  <div class="d-flex justify-content-between mb-2">
+                    <span class="text-white-50">Experience</span>
+                    <span class="text-white">{{.ExperienceYears}} years</span>
+                  </div>
+                  <div class="d-flex justify-content-between mb-2">
+                    <span class="text-white-50">Safety Rating</span>
+                    <span class="text-white">
+                      {{range $i := seq 5}}
+                        <i class="bi bi-star-fill" style="color: {{if le $i $.SafetyRating}}#ffd700{{else}}#333{{end}}"></i>
+                      {{end}}
+                    </span>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span class="text-white-50">Availability</span>
+                    <span class="status-active">Available</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {{end}}
+          </div>
+          
+          <div class="validation-feedback" id="driverValidation"></div>
+        </div>
+      </div>
+      
+      <!-- Step 2: Choose Bus -->
+      <div class="wizard-page" data-page="2">
+        <div class="glass-card">
+          <h2 class="text-white mb-4">
+            <i class="bi bi-bus-front"></i> Choose a Bus
+          </h2>
+          
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <select class="form-select form-control-glass" id="busFilter">
+                <option value="">All Buses</option>
+                <option value="excellent">Excellent Condition</option>
+                <option value="good">Good Condition</option>
+                <option value="maintenance-soon">Maintenance Soon</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <select class="form-select form-control-glass" id="capacityFilter">
+                <option value="">Any Capacity</option>
+                <option value="small">Small (< 30 seats)</option>
+                <option value="medium">Medium (30-50 seats)</option>
+                <option value="large">Large (> 50 seats)</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="row g-3" id="busList">
+            {{range .AvailableBuses}}
+            <div class="col-md-6">
+              <div class="selectable-card glass-card p-4" data-bus="{{.BusID}}" data-capacity="{{.Capacity}}">
+                {{if .IsOptimal}}
+                <span class="suggestion-badge">Best Match</span>
+                {{end}}
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                  <div>
+                    <h4 class="text-white mb-1">Bus #{{.BusID}}</h4>
+                    <p class="text-white-50 mb-0">{{.Model}}</p>
+                  </div>
+                  <div class="text-end">
+                    <div class="status-indicator status-{{.Status}}">
+                      <i class="bi bi-circle-fill"></i> {{.Status | title}}
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="bus-details">
+                  <div class="row g-3">
+                    <div class="col-6">
+                      <div class="metric-mini">
+                        <i class="bi bi-people-fill text-primary"></i>
+                        <span class="ms-2">{{.Capacity}} seats</span>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="metric-mini">
+                        <i class="bi bi-speedometer2 text-info"></i>
+                        <span class="ms-2">{{.Mileage}} mi</span>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="metric-mini">
+                        <i class="bi bi-droplet-fill {{if eq .OilStatus "good"}}text-success{{else}}text-warning{{end}}"></i>
+                        <span class="ms-2">Oil: {{.OilStatus}}</span>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="metric-mini">
+                        <i class="bi bi-circle {{if eq .TireStatus "good"}}text-success{{else}}text-warning{{end}}"></i>
+                        <span class="ms-2">Tires: {{.TireStatus}}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="mt-3">
+                    <div class="progress progress-glass" style="height: 8px;">
+                      <div class="progress-bar-animated" style="width: {{.ConditionScore}}%"></div>
+                    </div>
+                    <small class="text-white-50">Overall Condition: {{.ConditionScore}}%</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {{end}}
+          </div>
+          
+          <div class="validation-feedback" id="busValidation"></div>
+        </div>
+      </div>
+      
+      <!-- Step 3: Assign Route -->
+      <div class="wizard-page" data-page="3">
+        <div class="glass-card">
+          <h2 class="text-white mb-4">
+            <i class="bi bi-map"></i> Assign a Route
+          </h2>
+          
+          <div class="alert alert-info glass-card border-0 mb-4">
+            <i class="bi bi-lightbulb"></i>
+            <strong>Smart Suggestion:</strong> Based on the driver's location and bus capacity, 
+            we recommend routes with <span id="suggestedStudentCount">30-40</span> students.
+          </div>
+          
+          <div class="mb-4">
+            <input type="search" class="form-control form-control-glass" 
+                   placeholder="Search routes by name or area..." 
+                   id="routeSearch">
+          </div>
+          
+          <div class="route-grid">
+            {{range .AvailableRoutes}}
+            <div class="selectable-card glass-card p-4 mb-3" data-route="{{.RouteID}}">
+              {{if .IsOptimalMatch}}
+              <span class="suggestion-badge">Perfect Match</span>
+              {{end}}
+              
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <h4 class="text-white mb-1">{{.RouteName}}</h4>
+                  <p class="text-white-50 mb-0">{{.Description}}</p>
+                </div>
+                <div>
+                  <span class="badge bg-primary">{{.StudentCount}} students</span>
+                </div>
+              </div>
+              
+              <div class="route-details">
+                <div class="row g-3 mb-3">
+                  <div class="col-4">
+                    <small class="text-white-50 d-block">Distance</small>
+                    <strong class="text-white">{{.Distance}} mi</strong>
+                  </div>
+                  <div class="col-4">
+                    <small class="text-white-50 d-block">Est. Time</small>
+                    <strong class="text-white">{{.EstimatedTime}} min</strong>
+                  </div>
+                  <div class="col-4">
+                    <small class="text-white-50 d-block">Stops</small>
+                    <strong class="text-white">{{.StopCount}}</strong>
+                  </div>
+                </div>
+                
+                <div class="route-map-preview">
+                  <!-- Placeholder for route visualization -->
+                  <div style="height: 150px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-geo-alt text-white-50 fs-1"></i>
+                  </div>
+                </div>
+                
+                <div class="mt-3">
+                  <small class="text-white-50">Key Areas: {{.KeyAreas}}</small>
+                </div>
+              </div>
+            </div>
+            {{end}}
+          </div>
+          
+          <div class="validation-feedback" id="routeValidation"></div>
+        </div>
+      </div>
+      
+      <!-- Step 4: Review & Confirm -->
+      <div class="wizard-page" data-page="4">
+        <div class="glass-card">
+          <h2 class="text-white mb-4">
+            <i class="bi bi-check-circle"></i> Review Assignment
+          </h2>
+          
+          <div class="assignment-summary">
+            <div class="summary-item summary-driver">
+              <h5 class="text-white mb-3">
+                <i class="bi bi-person-badge"></i> Driver
+              </h5>
+              <div id="selectedDriverSummary">
+                <!-- Populated by JavaScript -->
+              </div>
+            </div>
+            
+            <div class="summary-item summary-bus">
+              <h5 class="text-white mb-3">
+                <i class="bi bi-bus-front"></i> Bus
+              </h5>
+              <div id="selectedBusSummary">
+                <!-- Populated by JavaScript -->
+              </div>
+            </div>
+            
+            <div class="summary-item summary-route">
+              <h5 class="text-white mb-3">
+                <i class="bi bi-map"></i> Route
+              </h5>
+              <div id="selectedRouteSummary">
+                <!-- Populated by JavaScript -->
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-4">
+            <h5 class="text-white mb-3">Assignment Impact Analysis</h5>
+            <div class="impact-analysis glass-card p-3">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <div class="impact-item">
+                    <i class="bi bi-clock text-success"></i>
+                    <span class="ms-2">Estimated daily runtime: <strong id="estimatedRuntime">2.5 hours</strong></span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="impact-item">
+                    <i class="bi bi-fuel-pump text-info"></i>
+                    <span class="ms-2">Estimated fuel usage: <strong id="estimatedFuel">8 gallons/day</strong></span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="impact-item">
+                    <i class="bi bi-people text-primary"></i>
+                    <span class="ms-2">Students served: <strong id="studentsServed">35</strong></span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="impact-item">
+                    <i class="bi bi-shield-check text-success"></i>
+                    <span class="ms-2">Safety score: <strong id="safetyScore">Excellent</strong></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="alert alert-success glass-card border-0 mt-4">
+            <i class="bi bi-check-circle-fill"></i>
+            <strong>Ready to assign!</strong> This combination meets all safety and efficiency requirements.
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Navigation Buttons -->
+    <div class="d-flex justify-content-between mt-4">
+      <button class="btn btn-outline-light" id="prevBtn" onclick="changeStep(-1)" disabled>
+        <i class="bi bi-arrow-left"></i> Previous
+      </button>
+      
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-light" onclick="saveAsDraft()">
+          <i class="bi bi-save"></i> Save Draft
+        </button>
+        <button class="btn btn-primary" id="nextBtn" onclick="changeStep(1)">
+          Next <i class="bi bi-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/app.js"></script>
+  <script nonce="{{.CSPNonce}}">
+    let currentStep = 1;
+    const totalSteps = 4;
+    const selectedData = {
+      driver: null,
+      bus: null,
+      route: null
+    };
+    
+    function changeStep(direction) {
+      const newStep = currentStep + direction;
+      
+      if (newStep < 1 || newStep > totalSteps) return;
+      
+      // Validate current step before moving
+      if (direction > 0 && !validateCurrentStep()) {
+        return;
+      }
+      
+      // Update step
+      currentStep = newStep;
+      updateWizardUI();
+      
+      // Update data for review step
+      if (currentStep === 4) {
+        populateSummary();
+      }
+    }
+    
+    function validateCurrentStep() {
+      switch(currentStep) {
+        case 1:
+          if (!selectedData.driver) {
+            showValidationError('driverValidation', 'Please select a driver');
+            return false;
+          }
+          break;
+        case 2:
+          if (!selectedData.bus) {
+            showValidationError('busValidation', 'Please select a bus');
+            return false;
+          }
+          break;
+        case 3:
+          if (!selectedData.route) {
+            showValidationError('routeValidation', 'Please select a route');
+            return false;
+          }
+          break;
+      }
+      return true;
+    }
+    
+    function showValidationError(elementId, message) {
+      const element = document.getElementById(elementId);
+      element.className = 'validation-feedback validation-error';
+      element.textContent = message;
+      setTimeout(() => {
+        element.textContent = '';
+      }, 3000);
+    }
+    
+    function updateWizardUI() {
+      // Update progress steps
+      document.querySelectorAll('.wizard-step').forEach(step => {
+        const stepNum = parseInt(step.dataset.step);
+        step.classList.remove('active', 'completed');
+        
+        if (stepNum === currentStep) {
+          step.classList.add('active');
+        } else if (stepNum < currentStep) {
+          step.classList.add('completed');
+        }
+      });
+      
+      // Update pages
+      document.querySelectorAll('.wizard-page').forEach(page => {
+        const pageNum = parseInt(page.dataset.page);
+        page.classList.toggle('active', pageNum === currentStep);
+      });
+      
+      // Update buttons
+      document.getElementById('prevBtn').disabled = currentStep === 1;
+      const nextBtn = document.getElementById('nextBtn');
+      
+      if (currentStep === totalSteps) {
+        nextBtn.innerHTML = '<i class="bi bi-check-circle"></i> Confirm Assignment';
+        nextBtn.onclick = confirmAssignment;
+      } else {
+        nextBtn.innerHTML = 'Next <i class="bi bi-arrow-right"></i>';
+        nextBtn.onclick = () => changeStep(1);
+      }
+    }
+    
+    function populateSummary() {
+      // Populate driver summary
+      if (selectedData.driver) {
+        document.getElementById('selectedDriverSummary').innerHTML = `
+          <h6 class="text-white">${selectedData.driver}</h6>
+          <p class="text-white-50 mb-0">5 years experience • 5-star safety rating</p>
+        `;
+      }
+      
+      // Populate bus summary
+      if (selectedData.bus) {
+        document.getElementById('selectedBusSummary').innerHTML = `
+          <h6 class="text-white">Bus #${selectedData.bus}</h6>
+          <p class="text-white-50 mb-0">50 seats • Excellent condition</p>
+        `;
+      }
+      
+      // Populate route summary
+      if (selectedData.route) {
+        document.getElementById('selectedRouteSummary').innerHTML = `
+          <h6 class="text-white">Morning Route A</h6>
+          <p class="text-white-50 mb-0">35 students • 25 miles</p>
+        `;
+      }
+    }
+    
+    async function confirmAssignment() {
+      const btn = document.getElementById('nextBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating Assignment...';
+      
+      try {
+        const response = await window.fleetApp.apiCall('/api/assign-route', {
+          method: 'POST',
+          body: JSON.stringify({
+            driver: selectedData.driver,
+            bus_id: selectedData.bus,
+            route_id: selectedData.route
+          })
+        });
+        
+        window.fleetApp.showNotification('success', 'Route assignment created successfully!');
+        setTimeout(() => {
+          window.location.href = '/assign-routes';
+        }, 1500);
+      } catch (error) {
+        window.fleetApp.showNotification('error', 'Failed to create assignment');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle"></i> Confirm Assignment';
+      }
+    }
+    
+    function saveAsDraft() {
+      localStorage.setItem('routeAssignmentDraft', JSON.stringify({
+        ...selectedData,
+        savedAt: new Date().toISOString()
+      }));
+      window.fleetApp.showNotification('success', 'Draft saved successfully');
+    }
+    
+    // Initialize selection handlers
+    document.addEventListener('DOMContentLoaded', function() {
+      // Driver selection
+      document.querySelectorAll('[data-driver]').forEach(card => {
+        card.addEventListener('click', function() {
+          document.querySelectorAll('[data-driver]').forEach(c => c.classList.remove('selected'));
+          this.classList.add('selected');
+          selectedData.driver = this.dataset.driver;
+          document.getElementById('driverValidation').className = 'validation-feedback validation-success';
+          document.getElementById('driverValidation').textContent = '✓ Driver selected';
+        });
+      });
+      
+      // Bus selection
+      document.querySelectorAll('[data-bus]').forEach(card => {
+        card.addEventListener('click', function() {
+          document.querySelectorAll('[data-bus]').forEach(c => c.classList.remove('selected'));
+          this.classList.add('selected');
+          selectedData.bus = this.dataset.bus;
+          document.getElementById('busValidation').className = 'validation-feedback validation-success';
+          document.getElementById('busValidation').textContent = '✓ Bus selected';
+        });
+      });
+      
+      // Route selection
+      document.querySelectorAll('[data-route]').forEach(card => {
+        card.addEventListener('click', function() {
+          document.querySelectorAll('[data-route]').forEach(c => c.classList.remove('selected'));
+          this.classList.add('selected');
+          selectedData.route = this.dataset.route;
+          document.getElementById('routeValidation').className = 'validation-feedback validation-success';
+          document.getElementById('routeValidation').textContent = '✓ Route selected';
+        });
+      });
+      
+      // Search functionality
+      document.getElementById('driverSearch')?.addEventListener('input', function(e) {
+        const search = e.target.value.toLowerCase();
+        document.querySelectorAll('[data-driver]').forEach(card => {
+          const name = card.dataset.driver.toLowerCase();
+          card.parentElement.style.display = name.includes(search) ? '' : 'none';
+        });
+      });
+      
+      // Load draft if exists
+      const draft = localStorage.getItem('routeAssignmentDraft');
+      if (draft) {
+        const data = JSON.parse(draft);
+        const savedDate = new Date(data.savedAt);
+        const hoursSince = (new Date() - savedDate) / (1000 * 60 * 60);
+        
+        if (hoursSince < 24) {
+          if (confirm('Resume from saved draft?')) {
+            selectedData.driver = data.driver;
+            selectedData.bus = data.bus;
+            selectedData.route = data.route;
+            
+            // Pre-select saved items
+            if (data.driver) {
+              document.querySelector(`[data-driver="${data.driver}"]`)?.classList.add('selected');
+            }
+            if (data.bus) {
+              document.querySelector(`[data-bus="${data.bus}"]`)?.classList.add('selected');
+            }
+            if (data.route) {
+              document.querySelector(`[data-route="${data.route}"]`)?.classList.add('selected');
+            }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

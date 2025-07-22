@@ -4,7 +4,152 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	
+	"github.com/lib/pq"
+	"github.com/jmoiron/sqlx"
 )
+
+// Transaction utility functions
+type TransactionFunc func(*sqlx.Tx) error
+
+// withTransaction executes a function within a database transaction
+func withTransaction(fn TransactionFunc) error {
+	if db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+	
+	tx, err := db.Beginx()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	
+	// Setup defer to rollback on panic or error
+	committed := false
+	defer func() {
+		if !committed {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				log.Printf("WARNING: Failed to rollback transaction: %v", rollbackErr)
+			}
+		}
+	}()
+	
+	// Execute the function
+	if err := fn(tx); err != nil {
+		return err
+	}
+	
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	
+	committed = true
+	return nil
+}
+
+// Transaction-enabled helper functions
+func updateLastServiceMileageInTx(tx *sqlx.Tx, vehicleID, serviceType string, mileage int) error {
+	// Update last service mileage in vehicles/buses table based on service type
+	var busQuery, vehicleQuery string
+	
+	if serviceType == "oil_change" {
+		busQuery = `UPDATE buses SET last_oil_change = $2 WHERE bus_id = $1`
+		vehicleQuery = `UPDATE vehicles SET last_oil_change = $2 WHERE vehicle_id = $1`
+	} else if serviceType == "tire_service" {
+		busQuery = `UPDATE buses SET last_tire_service = $2 WHERE bus_id = $1`
+		vehicleQuery = `UPDATE vehicles SET last_tire_service = $2 WHERE vehicle_id = $1`
+	} else {
+		return nil // No update needed for unknown service types
+	}
+	
+	// Try to update buses table first
+	result, err := tx.Exec(busQuery, vehicleID, mileage)
+	if err != nil {
+		return fmt.Errorf("failed to update bus last service mileage: %w", err)
+	}
+	
+	// Check if any rows were affected
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		// No bus found, try vehicles table
+		_, err = tx.Exec(vehicleQuery, vehicleID, mileage)
+		if err != nil {
+			return fmt.Errorf("failed to update vehicle last service mileage: %w", err)
+		}
+	}
+	
+	return nil
+}
+
+func updateVehicleMileageInTx(tx *sqlx.Tx, vehicleID string, mileage int) error {
+	// Try to update buses table first
+	busQuery := `UPDATE buses SET current_mileage = $2 WHERE bus_id = $1`
+	result, err := tx.Exec(busQuery, vehicleID, mileage)
+	if err != nil {
+		return fmt.Errorf("failed to update bus mileage: %w", err)
+	}
+	
+	// Check if any rows were affected
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		// No bus found, try vehicles table
+		vehicleQuery := `UPDATE vehicles SET current_mileage = $2 WHERE vehicle_id = $1`
+		_, err = tx.Exec(vehicleQuery, vehicleID, mileage)
+		if err != nil {
+			return fmt.Errorf("failed to update vehicle mileage: %w", err)
+		}
+	}
+	
+	return nil
+}
+
+func updateMaintenanceStatusBasedOnMileageInTx(tx *sqlx.Tx, vehicleID string) error {
+	// Try to update buses table first
+	busQuery := `
+		UPDATE buses SET 
+			oil_status = CASE 
+				WHEN (current_mileage - COALESCE(last_oil_change, 0)) > 5000 THEN 'overdue'
+				WHEN (current_mileage - COALESCE(last_oil_change, 0)) > 4500 THEN 'due'
+				ELSE 'good'
+			END,
+			tire_status = CASE 
+				WHEN (current_mileage - COALESCE(last_tire_service, 0)) > 15000 THEN 'overdue'
+				WHEN (current_mileage - COALESCE(last_tire_service, 0)) > 12000 THEN 'due'
+				ELSE 'good'
+			END
+		WHERE bus_id = $1
+	`
+	result, err := tx.Exec(busQuery, vehicleID)
+	if err != nil {
+		return fmt.Errorf("failed to update bus maintenance status: %w", err)
+	}
+	
+	// Check if any rows were affected
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		// No bus found, try vehicles table
+		vehicleQuery := `
+			UPDATE vehicles SET 
+				oil_status = CASE 
+					WHEN (current_mileage - COALESCE(last_oil_change, 0)) > 5000 THEN 'overdue'
+					WHEN (current_mileage - COALESCE(last_oil_change, 0)) > 4500 THEN 'due'
+					ELSE 'good'
+				END,
+				tire_status = CASE 
+					WHEN (current_mileage - COALESCE(last_tire_service, 0)) > 15000 THEN 'overdue'
+					WHEN (current_mileage - COALESCE(last_tire_service, 0)) > 12000 THEN 'due'
+					ELSE 'good'
+				END
+			WHERE vehicle_id = $1
+		`
+		_, err = tx.Exec(vehicleQuery, vehicleID)
+		if err != nil {
+			return fmt.Errorf("failed to update vehicle maintenance status: %w", err)
+		}
+	}
+	
+	return nil
+}
 
 // Define maintenance schedules
 var maintenanceSchedules = []MaintenanceSchedule{
@@ -201,6 +346,55 @@ func loadBusesFromDB() ([]Bus, error) {
 	return buses, nil
 }
 
+// loadBusesFromDBPaginated loads buses with pagination
+func loadBusesFromDBPaginated(pagination PaginationParams) ([]Bus, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	log.Printf("DEBUG: Loading buses from database with pagination (page=%d, perPage=%d)", pagination.Page, pagination.PerPage)
+	
+	var buses []Bus
+	query := fmt.Sprintf(`
+		SELECT bus_id, status, model, capacity, oil_status, tire_status, 
+		       maintenance_notes, current_mileage, last_oil_change, 
+		       last_tire_service, updated_at, created_at 
+		FROM buses 
+		ORDER BY bus_id
+		LIMIT %d OFFSET %d
+	`, pagination.PerPage, pagination.Offset)
+	
+	err := db.Select(&buses, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load buses: %w", err)
+	}
+
+	log.Printf("DEBUG: Successfully loaded %d buses from database", len(buses))
+	return buses, nil
+}
+
+// getBusCount returns total number of buses
+func getBusCount() (int, error) {
+	if db == nil {
+		return 0, fmt.Errorf("database not initialized")
+	}
+	
+	var count int
+	err := db.Get(&count, "SELECT COUNT(*) FROM buses")
+	return count, err
+}
+
+// getVehicleCount returns total number of vehicles
+func getVehicleCount() (int, error) {
+	if db == nil {
+		return 0, fmt.Errorf("database not initialized")
+	}
+	
+	var count int
+	err := db.Get(&count, "SELECT COUNT(*) FROM vehicles")
+	return count, err
+}
+
 func loadVehiclesFromDB() ([]Vehicle, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database not initialized")
@@ -216,6 +410,31 @@ func loadVehiclesFromDB() ([]Vehicle, error) {
 		FROM vehicles 
 		ORDER BY vehicle_id
 	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load vehicles: %w", err)
+	}
+
+	return vehicles, nil
+}
+
+// loadVehiclesFromDBPaginated loads vehicles with pagination
+func loadVehiclesFromDBPaginated(pagination PaginationParams) ([]Vehicle, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	query := fmt.Sprintf(`
+		SELECT vehicle_id, model, description, year, tire_size, license, 
+		       oil_status, tire_status, status, maintenance_notes, 
+		       serial_number, base, service_interval, current_mileage, 
+		       last_oil_change, last_tire_service, updated_at, created_at, import_id
+		FROM vehicles 
+		ORDER BY vehicle_id
+		LIMIT %d OFFSET %d
+	`, pagination.PerPage, pagination.Offset)
+
+	var vehicles []Vehicle
+	err := db.Select(&vehicles, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load vehicles: %w", err)
 	}
@@ -243,10 +462,23 @@ func loadConsolidatedBusesFromDB() ([]ConsolidatedVehicle, error) {
 	
 	var consolidatedBuses []ConsolidatedVehicle
 	
+	// Collect all bus IDs for batch loading assignments
+	var busIDs []string
+	for _, bus := range buses {
+		busIDs = append(busIDs, bus.BusID)
+	}
+	
+	// Batch load all assignments
+	assignments, err := getVehicleAssignments(busIDs)
+	if err != nil {
+		log.Printf("Error loading vehicle assignments: %v", err)
+		assignments = make(map[string]*RouteAssignment)
+	}
+	
 	// Convert buses to ConsolidatedVehicle
 	for _, bus := range buses {
 		vehicle := ConsolidatedVehicle{
-			ID:               bus.ID,
+			ID:               bus.BusID,
 			VehicleID:        bus.BusID,
 			VehicleType:      "bus",
 			Status:           bus.Status,
@@ -258,7 +490,7 @@ func loadConsolidatedBusesFromDB() ([]ConsolidatedVehicle, error) {
 			UpdatedAt:        bus.UpdatedAt,
 			CreatedAt:        bus.CreatedAt,
 			BusID:            bus.BusID, // For backward compatibility
-			Assignment:       getVehicleAssignment(bus.BusID),
+			Assignment:       assignments[bus.BusID],
 		}
 		consolidatedBuses = append(consolidatedBuses, vehicle)
 	}
@@ -296,7 +528,7 @@ func loadConsolidatedNonBusVehiclesFromDB() ([]ConsolidatedVehicle, error) {
 		}
 		
 		vehicle := ConsolidatedVehicle{
-			ID:               veh.ID,
+			ID:               veh.VehicleID,
 			VehicleID:        veh.VehicleID,
 			VehicleType:      "vehicle",
 			Status:           func() string {
@@ -336,6 +568,7 @@ func loadAllFleetVehiclesFromDB() ([]ConsolidatedVehicle, error) {
 	}
 	
 	var allVehicles []ConsolidatedVehicle
+	var allVehicleIDs []string
 	
 	// Load buses
 	buses, err := loadBusesFromDB()
@@ -343,10 +576,33 @@ func loadAllFleetVehiclesFromDB() ([]ConsolidatedVehicle, error) {
 		return nil, fmt.Errorf("failed to load buses: %w", err)
 	}
 	
+	// Collect all vehicle IDs for batch loading
+	for _, bus := range buses {
+		allVehicleIDs = append(allVehicleIDs, bus.BusID)
+	}
+	
+	// Load vehicles
+	vehicles, err := loadVehiclesFromDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load vehicles: %w", err)
+	}
+	
+	// Collect vehicle IDs too
+	for _, veh := range vehicles {
+		allVehicleIDs = append(allVehicleIDs, veh.VehicleID)
+	}
+	
+	// Batch load all assignments
+	assignments, err := getVehicleAssignments(allVehicleIDs)
+	if err != nil {
+		log.Printf("Error loading vehicle assignments: %v", err)
+		assignments = make(map[string]*RouteAssignment)
+	}
+	
 	// Convert buses to ConsolidatedVehicle
 	for _, bus := range buses {
 		vehicle := ConsolidatedVehicle{
-			ID:               bus.ID,
+			ID:               bus.BusID,
 			VehicleID:        bus.BusID,
 			VehicleType:      "bus",
 			Status:           bus.Status,
@@ -358,15 +614,9 @@ func loadAllFleetVehiclesFromDB() ([]ConsolidatedVehicle, error) {
 			UpdatedAt:        bus.UpdatedAt,
 			CreatedAt:        bus.CreatedAt,
 			BusID:            bus.BusID, // For backward compatibility
-			Assignment:       getVehicleAssignment(bus.BusID),
+			Assignment:       assignments[bus.BusID],
 		}
 		allVehicles = append(allVehicles, vehicle)
-	}
-	
-	// Load vehicles
-	vehicles, err := loadVehiclesFromDB()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load vehicles: %w", err)
 	}
 	
 	// Convert vehicles to ConsolidatedVehicle
@@ -384,7 +634,7 @@ func loadAllFleetVehiclesFromDB() ([]ConsolidatedVehicle, error) {
 		}
 		
 		vehicle := ConsolidatedVehicle{
-			ID:               veh.ID,
+			ID:               veh.VehicleID,
 			VehicleID:        veh.VehicleID,
 			VehicleType:      "vehicle",
 			Status:           func() string {
@@ -407,6 +657,7 @@ func loadAllFleetVehiclesFromDB() ([]ConsolidatedVehicle, error) {
 			UpdatedAt:        veh.UpdatedAt,
 			CreatedAt:        veh.CreatedAt,
 			BusID:            veh.VehicleID, // For backward compatibility
+			Assignment:       assignments[veh.VehicleID],
 		}
 		allVehicles = append(allVehicles, vehicle)
 	}
@@ -483,6 +734,34 @@ func getVehicleAssignment(vehicleID string) *RouteAssignment {
 	return &assignment
 }
 
+// getVehicleAssignments gets current route assignments for multiple vehicles in a single query
+func getVehicleAssignments(vehicleIDs []string) (map[string]*RouteAssignment, error) {
+	if db == nil || len(vehicleIDs) == 0 {
+		return make(map[string]*RouteAssignment), nil
+	}
+	
+	query := `
+		SELECT ra.id, ra.driver, ra.bus_id, ra.route_id, r.route_name, ra.assigned_date, ra.created_at
+		FROM route_assignments ra
+		JOIN routes r ON ra.route_id = r.route_id
+		WHERE ra.bus_id = ANY($1)
+	`
+	
+	var assignments []RouteAssignment
+	err := db.Select(&assignments, query, pq.StringArray(vehicleIDs))
+	if err != nil {
+		return nil, err
+	}
+	
+	// Create map of vehicle ID to assignment
+	assignmentMap := make(map[string]*RouteAssignment)
+	for i := range assignments {
+		assignmentMap[assignments[i].BusID] = &assignments[i]
+	}
+	
+	return assignmentMap, nil
+}
+
 func loadRoutesFromDB() ([]Route, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database not initialized")
@@ -543,104 +822,146 @@ func loadStudentsFromDB() ([]Student, error) {
 	return students, nil
 }
 
+// loadStudentsFromDBPaginated loads active students with pagination
+func loadStudentsFromDBPaginated(pagination PaginationParams, includeInactive bool) ([]Student, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	var students []Student
+	whereClause := ""
+	if !includeInactive {
+		whereClause = "WHERE active = true"
+	}
+	
+	query := fmt.Sprintf(`
+		SELECT student_id, name, locations, phone_number, alt_phone_number, 
+		       guardian, pickup_time, dropoff_time, position_number, 
+		       route_id, driver, active, created_at 
+		FROM students 
+		%s 
+		ORDER BY name
+		LIMIT %d OFFSET %d
+	`, whereClause, pagination.PerPage, pagination.Offset)
+	
+	err := db.Select(&students, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load students: %w", err)
+	}
+
+	return students, nil
+}
+
+// getStudentCount returns total number of students
+func getStudentCount(includeInactive bool) (int, error) {
+	if db == nil {
+		return 0, fmt.Errorf("database not initialized")
+	}
+	
+	var count int
+	query := "SELECT COUNT(*) FROM students"
+	if !includeInactive {
+		query += " WHERE active = true"
+	}
+	
+	err := db.Get(&count, query)
+	return count, err
+}
+
 // Save functions
 
 func saveBusMaintenanceLog(busLog BusMaintenanceLog) error {
-	if db == nil {
-		return fmt.Errorf("database not initialized")
-	}
+	return withTransaction(func(tx *sqlx.Tx) error {
+		// Insert into the consolidated maintenance_records table
+		query := `
+			INSERT INTO maintenance_records (vehicle_id, service_date, work_description, mileage, cost, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		`
 
-	// Insert into the consolidated maintenance_records table
-	query := `
-		INSERT INTO maintenance_records (vehicle_id, service_date, work_description, mileage, cost, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-	`
-
-	// Combine category and notes for work_description
-	workDescription := busLog.Category
-	if busLog.Notes != "" {
-		workDescription = busLog.Category + ": " + busLog.Notes
-	}
-
-	_, err := db.Exec(query, busLog.BusID, busLog.Date, workDescription, busLog.Mileage, busLog.Cost)
-	if err != nil {
-		return fmt.Errorf("failed to save bus maintenance log: %w", err)
-	}
-
-	// Update last service mileage if applicable
-	if busLog.Category == "oil_change" && busLog.Mileage > 0 {
-		if err := updateLastServiceMileage(busLog.BusID, "oil_change", busLog.Mileage); err != nil {
-			log.Printf("Warning: failed to update last oil change mileage: %v", err)
+		// Combine category and notes for work_description
+		workDescription := busLog.Category
+		if busLog.Notes != "" {
+			workDescription = busLog.Category + ": " + busLog.Notes
 		}
-	} else if busLog.Category == "tire_service" && busLog.Mileage > 0 {
-		if err := updateLastServiceMileage(busLog.BusID, "tire_service", busLog.Mileage); err != nil {
-			log.Printf("Warning: failed to update last tire service mileage: %v", err)
-		}
-	}
 
-	// Update vehicle status based on new mileage
-	if busLog.Mileage > 0 {
-		if err := updateVehicleMileage(busLog.BusID, busLog.Mileage); err != nil {
-			log.Printf("Warning: failed to update vehicle mileage: %v", err)
+		_, err := tx.Exec(query, busLog.BusID, busLog.Date, workDescription, busLog.Mileage, busLog.Cost)
+		if err != nil {
+			return fmt.Errorf("failed to save bus maintenance log: %w", err)
 		}
-		if err := updateMaintenanceStatusBasedOnMileage(busLog.BusID); err != nil {
-			log.Printf("Warning: failed to update maintenance status: %v", err)
+
+		// Update last service mileage if applicable
+		if busLog.Category == "oil_change" && busLog.Mileage > 0 {
+			if err := updateLastServiceMileageInTx(tx, busLog.BusID, "oil_change", busLog.Mileage); err != nil {
+				return fmt.Errorf("failed to update last oil change mileage: %w", err)
+			}
+		} else if busLog.Category == "tire_service" && busLog.Mileage > 0 {
+			if err := updateLastServiceMileageInTx(tx, busLog.BusID, "tire_service", busLog.Mileage); err != nil {
+				return fmt.Errorf("failed to update last tire service mileage: %w", err)
+			}
 		}
-	}
 
-	// Invalidate cache
-	dataCache.invalidateBuses()
+		// Update vehicle status based on new mileage
+		if busLog.Mileage > 0 {
+			if err := updateVehicleMileageInTx(tx, busLog.BusID, busLog.Mileage); err != nil {
+				return fmt.Errorf("failed to update vehicle mileage: %w", err)
+			}
+			if err := updateMaintenanceStatusBasedOnMileageInTx(tx, busLog.BusID); err != nil {
+				return fmt.Errorf("failed to update maintenance status: %w", err)
+			}
+		}
 
-	return nil
+		// Invalidate cache after successful transaction
+		dataCache.invalidateBuses()
+		
+		return nil
+	})
 }
 
 func saveVehicleMaintenanceLog(vehicleLog VehicleMaintenanceLog) error {
-	if db == nil {
-		return fmt.Errorf("database not initialized")
-	}
+	return withTransaction(func(tx *sqlx.Tx) error {
+		// Insert into the consolidated maintenance_records table
+		query := `
+			INSERT INTO maintenance_records (vehicle_id, service_date, work_description, mileage, cost, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		`
 
-	// Insert into the consolidated maintenance_records table
-	query := `
-		INSERT INTO maintenance_records (vehicle_id, service_date, work_description, mileage, cost, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-	`
-
-	// Combine category and notes for work_description
-	workDescription := vehicleLog.Category
-	if vehicleLog.Notes != "" {
-		workDescription = vehicleLog.Category + ": " + vehicleLog.Notes
-	}
-
-	_, err := db.Exec(query, vehicleLog.VehicleID, vehicleLog.Date, workDescription, vehicleLog.Mileage, vehicleLog.Cost)
-	if err != nil {
-		return fmt.Errorf("failed to save vehicle maintenance log: %w", err)
-	}
-
-	// Update last service mileage if applicable
-	if vehicleLog.Category == "oil_change" && vehicleLog.Mileage > 0 {
-		if err := updateLastServiceMileage(vehicleLog.VehicleID, "oil_change", vehicleLog.Mileage); err != nil {
-			log.Printf("Warning: failed to update last oil change mileage: %v", err)
+		// Combine category and notes for work_description
+		workDescription := vehicleLog.Category
+		if vehicleLog.Notes != "" {
+			workDescription = vehicleLog.Category + ": " + vehicleLog.Notes
 		}
-	} else if vehicleLog.Category == "tire_service" && vehicleLog.Mileage > 0 {
-		if err := updateLastServiceMileage(vehicleLog.VehicleID, "tire_service", vehicleLog.Mileage); err != nil {
-			log.Printf("Warning: failed to update last tire service mileage: %v", err)
-		}
-	}
 
-	// Update vehicle status based on new mileage
-	if vehicleLog.Mileage > 0 {
-		if err := updateVehicleMileage(vehicleLog.VehicleID, vehicleLog.Mileage); err != nil {
-			log.Printf("Warning: failed to update vehicle mileage: %v", err)
+		_, err := tx.Exec(query, vehicleLog.VehicleID, vehicleLog.Date, workDescription, vehicleLog.Mileage, vehicleLog.Cost)
+		if err != nil {
+			return fmt.Errorf("failed to save vehicle maintenance log: %w", err)
 		}
-		if err := updateMaintenanceStatusBasedOnMileage(vehicleLog.VehicleID); err != nil {
-			log.Printf("Warning: failed to update maintenance status: %v", err)
+
+		// Update last service mileage if applicable
+		if vehicleLog.Category == "oil_change" && vehicleLog.Mileage > 0 {
+			if err := updateLastServiceMileageInTx(tx, vehicleLog.VehicleID, "oil_change", vehicleLog.Mileage); err != nil {
+				return fmt.Errorf("failed to update last oil change mileage: %w", err)
+			}
+		} else if vehicleLog.Category == "tire_service" && vehicleLog.Mileage > 0 {
+			if err := updateLastServiceMileageInTx(tx, vehicleLog.VehicleID, "tire_service", vehicleLog.Mileage); err != nil {
+				return fmt.Errorf("failed to update last tire service mileage: %w", err)
+			}
 		}
-	}
 
-	// Invalidate cache
-	dataCache.invalidateVehicles()
+		// Update vehicle status based on new mileage
+		if vehicleLog.Mileage > 0 {
+			if err := updateVehicleMileageInTx(tx, vehicleLog.VehicleID, vehicleLog.Mileage); err != nil {
+				return fmt.Errorf("failed to update vehicle mileage: %w", err)
+			}
+			if err := updateMaintenanceStatusBasedOnMileageInTx(tx, vehicleLog.VehicleID); err != nil {
+				return fmt.Errorf("failed to update maintenance status: %w", err)
+			}
+		}
 
-	return nil
+		// Invalidate cache after successful transaction
+		dataCache.invalidateVehicles()
+
+		return nil
+	})
 }
 
 // loadMonthlyMileageReportsFromDB loads all monthly mileage reports from database
@@ -807,7 +1128,7 @@ func loadMaintenanceRecordsFromDB() ([]MaintenanceRecord, error) {
 
 	var records []MaintenanceRecord
 	query := `
-		SELECT id, vehicle_number, service_date, mileage, po_number, cost, 
+		SELECT id, vehicle_number, service_date, mileage, po_number, cost,
 		       work_description, raw_data, created_at, updated_at, vehicle_id, date
 		FROM maintenance_records 
 		ORDER BY 
@@ -867,6 +1188,58 @@ func loadMaintenanceRecordsByFilters(vehicleNumber int, startDate, endDate strin
 	}
 
 	return records, nil
+}
+
+// loadMaintenanceRecordsFromDBPaginated loads maintenance records with pagination
+func loadMaintenanceRecordsFromDBPaginated(pagination PaginationParams, vehicleID string) ([]MaintenanceRecord, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	var records []MaintenanceRecord
+	whereClause := ""
+	args := []interface{}{}
+	
+	if vehicleID != "" {
+		whereClause = "WHERE vehicle_id = $1 OR vehicle_number = $1"
+		args = append(args, vehicleID)
+	}
+	
+	// Build query with placeholders
+	baseQuery := fmt.Sprintf(`
+		SELECT id, vehicle_number, service_date, mileage, po_number, cost, 
+		       work_description, raw_data, created_at, updated_at, vehicle_id, date
+		FROM maintenance_records 
+		%s
+		ORDER BY 
+			COALESCE(service_date, date, created_at) DESC,
+			vehicle_number, id
+		LIMIT $%d OFFSET $%d`, whereClause, len(args)+1, len(args)+2)
+	
+	args = append(args, pagination.PerPage, pagination.Offset)
+	
+	err := db.Select(&records, baseQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load maintenance records: %w", err)
+	}
+
+	return records, nil
+}
+
+// getMaintenanceRecordCount returns total number of maintenance records
+func getMaintenanceRecordCount(vehicleID string) (int, error) {
+	if db == nil {
+		return 0, fmt.Errorf("database not initialized")
+	}
+	
+	var count int
+	if vehicleID != "" {
+		err := db.Get(&count, "SELECT COUNT(*) FROM maintenance_records WHERE vehicle_id = $1 OR vehicle_number = $1", vehicleID)
+		return count, err
+	}
+	
+	err := db.Get(&count, "SELECT COUNT(*) FROM maintenance_records")
+	return count, err
 }
 
 // loadServiceRecordsFromDB loads all service records from database

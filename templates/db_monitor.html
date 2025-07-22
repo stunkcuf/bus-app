@@ -1,0 +1,511 @@
+{{define "db_monitor.html"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Connection Pool Monitor - HS Bus Fleet Management</title>
+    <style nonce="{{.CSPNonce}}">
+        /* Ultimate beautiful design system */
+        :root {
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+            --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            --primary-color: #4f46e5;
+            --secondary-color: #10b981;
+            --accent-color: #f59e0b;
+            --danger-color: #ef4444;
+            --warning-color: #f97316;
+            --info-color: #3b82f6;
+            --dark-bg: #0f172a;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.4);
+            --blur: blur(20px);
+            --radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--dark-bg);
+            background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+            color: var(--text-primary);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .floating-orbs {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.1), transparent);
+            backdrop-filter: blur(5px);
+            animation: float 20s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(120deg); }
+            66% { transform: translate(-20px, 20px) rotate(240deg); }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            backdrop-filter: var(--blur);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-1);
+        }
+
+        .stat-card.warning::before {
+            background: var(--gradient-5);
+        }
+
+        .stat-card.critical::before {
+            background: var(--gradient-2);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-detail {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            backdrop-filter: var(--blur);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            height: 400px;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .detail-card {
+            background: var(--card-bg);
+            backdrop-filter: var(--blur);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .detail-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: var(--text-secondary);
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-healthy {
+            background: var(--secondary-color);
+            box-shadow: 0 0 10px var(--secondary-color);
+        }
+
+        .status-warning {
+            background: var(--warning-color);
+            box-shadow: 0 0 10px var(--warning-color);
+        }
+
+        .status-critical {
+            background: var(--danger-color);
+            box-shadow: 0 0 10px var(--danger-color);
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--gradient-1);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            transition: var(--transition);
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .refresh-btn.loading {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="floating-orbs">
+        <div class="orb" style="width: 300px; height: 300px; left: -150px; top: -150px;"></div>
+        <div class="orb" style="width: 200px; height: 200px; right: -100px; top: 50%;"></div>
+        <div class="orb" style="width: 400px; height: 400px; left: 50%; bottom: -200px;"></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Database Connection Pool Monitor</h1>
+            <p>Real-time monitoring of database connection health and performance</p>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <!-- Stats will be populated by JavaScript -->
+        </div>
+
+        <div class="chart-container">
+            <canvas id="connectionChart"></canvas>
+        </div>
+
+        <div class="details-grid" id="detailsGrid">
+            <!-- Details will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+    </button>
+
+    <script nonce="{{.CSPNonce}}">
+        let chart;
+        let historyData = {
+            labels: [],
+            inUse: [],
+            idle: [],
+            utilization: []
+        };
+
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/db/stats');
+                if (!response.ok) throw new Error('Failed to fetch stats');
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+                return null;
+            }
+        }
+
+        async function fetchMetrics() {
+            try {
+                const response = await fetch('/api/db/metrics');
+                if (!response.ok) throw new Error('Failed to fetch metrics');
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching metrics:', error);
+                return null;
+            }
+        }
+
+        function updateStats(stats) {
+            if (!stats) return;
+
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card ${stats.health_status}">
+                    <div class="stat-label">Health Status</div>
+                    <div class="stat-value">
+                        <span class="status-indicator status-${stats.health_status}"></span>
+                        ${stats.health_status.toUpperCase()}
+                    </div>
+                    <div class="stat-detail">Overall connection pool health</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Connections In Use</div>
+                    <div class="stat-value">${stats.in_use} / ${stats.open_connections}</div>
+                    <div class="stat-detail">${stats.connection_utilization.toFixed(1)}% utilization</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Idle Connections</div>
+                    <div class="stat-value">${stats.idle}</div>
+                    <div class="stat-detail">Available for use</div>
+                </div>
+                <div class="stat-card ${stats.wait_count > 0 ? 'warning' : ''}">
+                    <div class="stat-label">Wait Count</div>
+                    <div class="stat-value">${stats.wait_count}</div>
+                    <div class="stat-detail">Requests waiting for connection</div>
+                </div>
+            `;
+
+            // Update chart data
+            const now = new Date().toLocaleTimeString();
+            historyData.labels.push(now);
+            historyData.inUse.push(stats.in_use);
+            historyData.idle.push(stats.idle);
+            historyData.utilization.push(stats.connection_utilization);
+
+            // Keep only last 20 data points
+            if (historyData.labels.length > 20) {
+                historyData.labels.shift();
+                historyData.inUse.shift();
+                historyData.idle.shift();
+                historyData.utilization.shift();
+            }
+
+            updateChart();
+        }
+
+        function updateMetrics(metrics) {
+            if (!metrics) return;
+
+            const detailsGrid = document.getElementById('detailsGrid');
+            detailsGrid.innerHTML = `
+                <div class="detail-card">
+                    <h3>Connection Pool Details</h3>
+                    ${Object.entries(metrics.connection_pool || {}).map(([key, value]) => `
+                        <div class="detail-row">
+                            <span class="detail-label">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                            <span class="detail-value">${value}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="detail-card">
+                    <h3>Database Information</h3>
+                    ${Object.entries(metrics.database || {}).map(([key, value]) => `
+                        <div class="detail-row">
+                            <span class="detail-label">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                            <span class="detail-value">${value || 'N/A'}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('connectionChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: historyData.labels,
+                    datasets: [{
+                        label: 'In Use',
+                        data: historyData.inUse,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Idle',
+                        data: historyData.idle,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Utilization %',
+                        data: historyData.utilization,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#f1f5f9'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#cbd5e1' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            ticks: { color: '#cbd5e1' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            max: 100,
+                            ticks: { 
+                                color: '#cbd5e1',
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart() {
+            if (chart) {
+                chart.data.labels = historyData.labels;
+                chart.data.datasets[0].data = historyData.inUse;
+                chart.data.datasets[1].data = historyData.idle;
+                chart.data.datasets[2].data = historyData.utilization;
+                chart.update();
+            }
+        }
+
+        async function refreshData() {
+            const btn = document.getElementById('refreshBtn');
+            btn.classList.add('loading');
+
+            const [stats, metrics] = await Promise.all([fetchStats(), fetchMetrics()]);
+            
+            updateStats(stats);
+            updateMetrics(metrics);
+
+            btn.classList.remove('loading');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            refreshData();
+            
+            // Auto-refresh every 10 seconds
+            setInterval(refreshData, 10000);
+        });
+    </script>
+</body>
+</html>
+{{end}}

@@ -14,7 +14,7 @@ func analyticsDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if session.UserRole != "manager" {
+	if session.Role != "manager" {
 		SendError(w, ErrForbidden("Manager access required"))
 		return
 	}
@@ -26,7 +26,7 @@ func analyticsDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		CSPNonce  string `json:"csp_nonce"`
 	}{
 		User:      &User{Username: session.Username},
-		Role:      session.UserRole,
+		Role:      session.Role,
 		CSRFToken: session.CSRFToken,
 		CSPNonce:  GenerateCSPNonce(),
 	}
@@ -127,7 +127,7 @@ type MonthlyCount struct {
 // dashboardAnalyticsHandler returns comprehensive analytics data
 func dashboardAnalyticsHandler(w http.ResponseWriter, r *http.Request) {
 	session, err := GetSession(r)
-	if err != nil || session.UserRole != "manager" {
+	if err != nil || session.Role != "manager" {
 		SendError(w, ErrForbidden("Manager access required"))
 		return
 	}

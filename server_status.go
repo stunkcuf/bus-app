@@ -42,7 +42,7 @@ func serverStatusHandler(w http.ResponseWriter, r *http.Request) {
 		Version:      "1.0.0",
 		GoVersion:    runtime.Version(),
 		NumGoroutine: runtime.NumGoroutine(),
-		SessionCount: len(sessions),
+		SessionCount: GetActiveSessionCount(),
 	}
 
 	// Convert bytes to MB

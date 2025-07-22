@@ -470,6 +470,13 @@ func main() {
 	// Initialize logger
 	InitLogger()
 
+	// Setup log rotation
+	LogInfo("📝 Setting up log rotation...")
+	if err := SetupLogRotation(); err != nil {
+		LogError("Failed to setup log rotation", err)
+		// Continue without log rotation
+	}
+
 	// Database setup
 	LogInfo("🗄️  Setting up PostgreSQL database...")
 	if err := setupDatabase(); err != nil {
@@ -477,8 +484,7 @@ func main() {
 	}
 	defer closeDatabase()
 	
-	// Start test server in development mode
-	// StartTestServer() // TODO: Implement or remove
+	// Test server is handled by public_test_routes.go when needed
 
 	// Initialize session manager
 	LogInfo("🔐 Setting up session manager...")
@@ -489,6 +495,10 @@ func main() {
 	// Initialize query cache
 	LogInfo("🚀 Setting up query cache...")
 	initQueryCache()
+
+	// Start database connection pool monitoring
+	LogInfo("📊 Starting database connection pool monitoring...")
+	startDBMonitoring()
 
 	// Reset rate limiter on startup to clear any previous blocks
 	LogInfo("🔄 Resetting rate limiter...")
@@ -581,8 +591,7 @@ func setupRoutes() *http.ServeMux {
 	// Test endpoint for ECSE dashboard (temporary - remove in production)
 	mux.HandleFunc("/test-ecse", withRecovery(testECSEHandler))
 	
-	// Debug endpoint for fleet issues (temporary - remove in production)
-	// mux.HandleFunc("/debug-fleet", withRecovery(debugFleetHandler)) // TODO: Implement or remove
+	// Debug endpoints are available through /api/debug-* routes in development mode
 
 	// Manager-only routes
 	setupManagerRoutes(mux)
@@ -606,6 +615,12 @@ func setupRoutes() *http.ServeMux {
 
 // setupAPIRoutes configures API endpoints
 func setupAPIRoutes(mux *http.ServeMux) {
+	// Versioned API routes
+	setupV1APIRoutes(mux)
+	
+	// Core API routes (from api_handlers.go)
+	registerAPIRoutes()
+	
 	// Maintenance API routes
 	mux.HandleFunc("/api/check-maintenance", withRecovery(requireAuth(requireDatabase(checkMaintenanceDueHandler))))
 	mux.HandleFunc("/api/debug-maintenance", withRecovery(requireAuth(requireRole("manager")(requireDatabase(debugMaintenanceRecordsHandler)))))
@@ -625,6 +640,11 @@ func setupAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/database/stats", withRecovery(requireAuth(requireRole("manager")(requireDatabase(databaseStatsHandler)))))
 	mux.HandleFunc("/api/database/optimize", withRecovery(requireAuth(requireRole("manager")(requireDatabase(optimizeDatabaseHandler)))))
 	mux.HandleFunc("/api/cache/stats", withRecovery(requireAuth(requireRole("manager")(cacheStatsHandler))))
+	
+	// Database Connection Pool Monitoring routes
+	mux.HandleFunc("/api/db/stats", withRecovery(requireAuth(requireRole("manager")(dbStatsHandler))))
+	mux.HandleFunc("/api/db/metrics", withRecovery(requireAuth(requireRole("manager")(dbMetricsHandler))))
+	mux.HandleFunc("/api/db/health", withRecovery(dbHealthCheckHandler)) // No auth for monitoring tools
 
 	// Chart/Visualization API routes
 	mux.HandleFunc("/api/charts/data", withRecovery(requireAuth(requireDatabase(chartDataHandler))))
@@ -650,6 +670,20 @@ func setupAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/scorecard/all", withRecovery(requireAuth(requireRole("manager")(requireDatabase(allDriverScorecardsHandler)))))
 }
 
+// setupV1APIRoutes configures Version 1 API endpoints
+func setupV1APIRoutes(mux *http.ServeMux) {
+	// Health check endpoint for v1
+	mux.HandleFunc("/api/v1/health", withRecovery(withAPIVersion(APIVersion1, healthV1Handler)))
+	
+	// Dashboard endpoints for v1
+	mux.HandleFunc("/api/v1/dashboard/stats", withRecovery(requireAuth(requireRole("manager")(withAPIVersion(APIVersion1, dashboardStatsV1Handler)))))
+	
+	// Future v1 endpoints can be added here...
+	
+	// Backward compatibility routes (legacy endpoints redirect to v1)
+	mux.HandleFunc("/api/health", withRecovery(withAPIVersion(APIVersion1, healthV1Handler)))
+}
+
 // setupManagerRoutes configures manager-specific routes
 func setupManagerRoutes(mux *http.ServeMux) {
 	// User management
@@ -670,6 +704,7 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/manager-dashboard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(managerDashboardHandler)))))
 	mux.HandleFunc("/analytics-dashboard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(analyticsDashboardHandler)))))
 	mux.HandleFunc("/report-builder", withRecovery(requireAuth(requireRole("manager")(requireDatabase(reportBuilderHandler)))))
+	mux.HandleFunc("/db-monitor", withRecovery(requireAuth(requireRole("manager")(dbMonitorHandler))))
 	
 	// ECSE Management
 	mux.HandleFunc("/ecse-dashboard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(ecseDashboardHandler)))))
@@ -722,6 +757,7 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/available-routes", withRecovery(requireAuth(requireRole("manager")(requireDatabase(availableRoutesHandler)))))
 	mux.HandleFunc("/api/check-assignment-conflicts", withRecovery(requireAuth(requireRole("manager")(requireDatabase(checkAssignmentConflictsHandler)))))
 	mux.HandleFunc("/api/vehicle-mileage/", withRecovery(requireAuth(requireDatabase(vehicleMileageHandler))))
+	mux.HandleFunc("/api/last-maintenance/", withRecovery(requireAuth(requireDatabase(lastMaintenanceHandler))))
 	mux.HandleFunc("/api/maintenance-vendors", withRecovery(requireAuth(requireDatabase(maintenanceVendorsHandler))))
 	mux.HandleFunc("/api/analyze-import-file", withRecovery(requireAuth(requireRole("manager")(requireDatabase(analyzeImportFileHandler)))))
 	mux.HandleFunc("/api/preview-import", withRecovery(requireAuth(requireRole("manager")(requireDatabase(previewImportHandler)))))
@@ -956,8 +992,3 @@ func isDevelopment() bool {
 	return os.Getenv("APP_ENV") == "development"
 }
 
-// initializeSessionManager sets up the session storage (simplified)
-func initializeSessionManager() error {
-	log.Println("Using in-memory session storage")
-	return nil
-}

@@ -15,203 +15,266 @@
   <link rel="stylesheet" href="/static/enhanced_help_system.css">
   <!-- Auto-complete CSS -->
   <link rel="stylesheet" href="/static/autocomplete.css">
+  
   <style nonce="{{.CSPNonce}}">
+    /* Ultimate beautiful design system */
     :root {
-      --grad-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      --grad-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-      --grad-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      --grad-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-      --grad-danger: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
     
     body {
-      background-color: #f8f9fa;
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
     }
     
-    .page-header {
-      background: var(--grad-primary);
-      color: white;
-      padding: 1.5rem;
-      border-radius: 15px;
-      margin-bottom: 2rem;
-      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
+      z-index: -1;
     }
     
-    .page-header .btn {
-      background: rgba(255,255,255,0.2);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.3);
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
+    }
+    
+    /* Glassmorphism navigation */
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
       transition: all 0.3s ease;
     }
     
-    .page-header .btn:hover {
-      background: rgba(255,255,255,0.3);
+    .navbar-brand:hover {
       transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
+    }
+    
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
+    }
+    
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+    /* Glass cards */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
       color: white;
     }
     
-    .enhanced-card {
-      border: none;
+    /* Form styling */
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
       border-radius: 15px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-      transition: all 0.3s ease;
-      overflow: hidden;
-      margin-bottom: 1.5rem;
-    }
-    
-    .enhanced-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-    }
-    
-    .enhanced-card .card-header {
-      background: linear-gradient(45deg, #f8f9fa, #e9ecef);
-      border-bottom: 2px solid #dee2e6;
-      padding: 1.25rem;
-    }
-    
-    .enhanced-card .card-header h5 {
-      margin: 0;
-      font-weight: 600;
-      color: #495057;
-    }
-    
-    .form-control, .form-select {
-      border: 2px solid #e9ecef;
-      border-radius: 10px;
+      color: white;
       padding: 0.75rem 1rem;
       transition: all 0.3s ease;
     }
     
-    .form-control:focus, .form-select:focus {
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
       border-color: #667eea;
-      box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
     }
     
-    .form-label {
+    /* Button styling */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
       font-weight: 600;
-      color: #495057;
-      margin-bottom: 0.5rem;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
     }
     
     .btn-primary {
-      background: var(--grad-primary);
-      border: none;
-      padding: 0.75rem 2rem;
-      border-radius: 10px;
-      font-weight: 600;
-      transition: all 0.3s ease;
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
     }
     
     .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-      background: var(--grad-primary);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
     }
     
-    .btn-secondary {
-      background: var(--grad-info);
-      border: none;
-      padding: 0.75rem 2rem;
-      border-radius: 10px;
-      font-weight: 600;
-      transition: all 0.3s ease;
+    /* Metric cards */
+    .metric-card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      padding: 2.5rem;
+      text-align: center;
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     
-    .btn-secondary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
-      background: var(--grad-info);
+    .metric-card:hover {
+      transform: translateY(-10px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     }
     
-    .btn-danger {
-      background: var(--grad-danger);
-      border: none;
-      padding: 0.75rem 2rem;
-      border-radius: 10px;
-      font-weight: 600;
-      transition: all 0.3s ease;
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 5rem 0 3rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
     }
     
-    .btn-danger:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
-      background: var(--grad-danger);
+    .hero-content h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
     }
     
-    .user-avatar {
-      width: 80px;
-      height: 80px;
-      background: var(--grad-primary);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1rem;
-      font-size: 2rem;
+    /* Tables */
+    .table {
       color: white;
     }
     
-    .user-info {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    
-    .user-username {
-      font-size: 1.5rem;
+    .table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
       font-weight: 700;
-      color: #495057;
-      margin-bottom: 0.5rem;
-    }
-    
-    .user-role {
-      display: inline-block;
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: 500;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
     }
     
-    .role-manager {
-      background: var(--grad-primary);
-      color: white;
+    .table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
     }
     
-    .role-driver {
-      background: var(--grad-success);
-      color: white;
+    .table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(10px);
     }
     
-    .section-divider {
-      text-align: center;
-      margin: 2rem 0;
-      position: relative;
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
     }
     
-    .section-divider::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: #dee2e6;
-      transform: translateY(-50%);
-    }
-    
-    .section-divider span {
-      background: white;
-      padding: 0 1rem;
-      position: relative;
-      color: #6c757d;
-      font-weight: 500;
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
   </style>
 </head>
 <body>
+  <!-- Floating orbs -->
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+
   <div class="container-fluid py-4">
     <!-- Header -->
     <header class="page-header">
@@ -237,7 +300,7 @@
       <div class="col-lg-8 col-xl-6">
         <!-- User Info Display -->
         <div class="enhanced-card">
-          <div class="card-body">
+          <div class="card glass-card-body">
             <div class="user-info">
               <div class="user-avatar">
                 {{if eq .Role "manager"}}
@@ -256,10 +319,10 @@
 
         <!-- Update Role Section -->
         <div class="enhanced-card">
-          <div class="card-header text-center">
+          <div class="card glass-card-header text-center">
             <h5><i class="bi bi-person-gear me-2"></i>Update User Role</h5>
           </div>
-          <div class="card-body p-4">
+          <div class="card glass-card-body p-4">
             <div class="alert alert-success mb-4">
               <i class="bi bi-check-circle me-2"></i>
               <strong>No Password Required:</strong> Changing roles does not require entering a password.
@@ -302,10 +365,10 @@
 
         <!-- Reset Password Section -->
         <div class="enhanced-card">
-          <div class="card-header text-center">
+          <div class="card glass-card-header text-center">
             <h5><i class="bi bi-key me-2"></i>Reset Password</h5>
           </div>
-          <div class="card-body p-4">
+          <div class="card glass-card-body p-4">
             <div class="alert alert-info mb-4">
               <i class="bi bi-info-circle me-2"></i>
               <strong>Password Reset:</strong> Use this section only if the user has forgotten their password or needs a security reset.

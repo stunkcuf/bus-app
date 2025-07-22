@@ -1,5 +1,7 @@
 {{define "error_prevention_scripts"}}
 <!-- Error Prevention & Recovery Scripts -->
+{{template "global_env" .}}
+<script src="/static/logger.js"></script>
 <script src="/static/confirmation_dialogs.js"></script>
 <script src="/static/auto_save.js"></script>
 <script src="/static/friendly_errors.js"></script>
@@ -8,7 +10,10 @@
 <script nonce="{{.CSPNonce}}">
   // Initialize error prevention features
   document.addEventListener('DOMContentLoaded', function() {
-    console.log('Error prevention systems initialized');
+    // Only log in development
+    if (window.APP_ENV !== 'production') {
+      console.log('Error prevention systems initialized');
+    }
     
     // Enable auto-save on long forms
     const longForms = document.querySelectorAll('.wizard-steps form, .accessible-form');

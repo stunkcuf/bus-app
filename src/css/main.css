@@ -1,0 +1,64 @@
+/* Main CSS entry point - imports all stylesheets */
+
+/* Design System & Core Styles */
+@import '../../static/modern_design_system.css';
+@import '../../static/modern_theme.css';
+@import '../../static/accessible_design_system.css';
+
+/* Layout & Responsive */
+@import '../../static/mobile_responsive.css';
+@import '../../static/responsive_tables.css';
+@import '../../static/visual_hierarchy.css';
+
+/* Form Styles */
+@import '../../static/accessible_forms.css';
+@import '../../static/form_validation.css';
+
+/* Component Styles */
+@import '../../static/wizard.css';
+@import '../../static/workflow_wizard.css';
+@import '../../static/autocomplete.css';
+@import '../../static/confirmation_dialogs.css';
+@import '../../static/help_system.css';
+@import '../../static/enhanced_help_system.css';
+@import '../../static/help_tooltips.css';
+@import '../../static/workflow_guides.css';
+
+/* Enhanced UI */
+@import '../../static/enhanced_ui.css';
+
+/* Production optimizations */
+:root {
+    --font-display: swap;
+}
+
+/* Critical above-the-fold styles */
+body {
+    font-display: swap;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Performance optimizations */
+* {
+    box-sizing: border-box;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    loading: lazy;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

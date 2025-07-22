@@ -6,6 +6,7 @@
   <title>Driver Profile - Fleet Management System</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  
   <style nonce="{{.CSPNonce}}">
     /* Ultimate beautiful design system */
     :root {
@@ -43,10 +44,10 @@
       width: 100%;
       height: 100%;
       background-image: 
-        radial-gradient(circle at 10% 90%, rgba(250, 112, 154, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 90% 10%, rgba(79, 172, 254, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 50% 50%, rgba(67, 233, 123, 0.2) 0%, transparent 50%);
-      animation: backgroundShift 30s ease-in-out infinite;
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
       z-index: -1;
     }
     
@@ -54,48 +55,6 @@
       0%, 100% { transform: translate(0, 0) rotate(0deg); }
       33% { transform: translate(-20px, -20px) rotate(120deg); }
       66% { transform: translate(20px, -10px) rotate(240deg); }
-    }
-    
-    /* Floating orbs */
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.6;
-      animation: float 25s infinite ease-in-out;
-    }
-    
-    .orb1 {
-      width: 400px;
-      height: 400px;
-      background: radial-gradient(circle, rgba(67, 233, 123, 0.8), transparent);
-      top: -200px;
-      right: -200px;
-    }
-    
-    .orb2 {
-      width: 350px;
-      height: 350px;
-      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
-      bottom: -175px;
-      left: -175px;
-      animation-delay: -8s;
-    }
-    
-    .orb3 {
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
-      top: 40%;
-      left: 40%;
-      animation-delay: -16s;
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
-      25% { transform: translate(50px, -50px) scale(1.1) rotate(90deg); }
-      50% { transform: translate(-30px, 30px) scale(0.9) rotate(180deg); }
-      75% { transform: translate(-50px, -30px) scale(1.05) rotate(270deg); }
     }
     
     /* Glassmorphism navigation */
@@ -126,186 +85,48 @@
       text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
     }
     
-    .navbar-brand i {
-      font-size: 2rem;
-      background: var(--gradient-4);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    /* Hero section */
-    .hero-section {
-      position: relative;
-      padding: 3rem 0 2rem;
-      text-align: center;
-      color: white;
-      overflow: hidden;
-    }
-    
-    .hero-content h1 {
-      font-size: 3rem;
-      font-weight: 800;
-      margin-bottom: 1rem;
-      background: linear-gradient(to right, #43e97b, #38f9d7, #4facfe, #43e97b);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-size: 200% auto;
-      animation: shimmer 3s ease infinite;
-    }
-    
-    @keyframes shimmer {
-      to {
-        background-position: 200% center;
-      }
-    }
-    
-    /* Profile card */
-    .profile-card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      border-radius: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 3rem;
-      margin-bottom: 2rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .profile-card::before {
-      content: '';
+    /* Floating orbs */
+    .orb {
       position: absolute;
-      top: -100px;
-      right: -100px;
-      width: 300px;
-      height: 300px;
-      background: var(--gradient-4);
-      opacity: 0.1;
       border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.6;
       animation: float 20s infinite ease-in-out;
     }
     
-    .driver-avatar {
-      width: 120px;
-      height: 120px;
-      background: var(--gradient-4);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 2rem;
-      font-size: 3rem;
-      color: white;
-      box-shadow: 0 10px 40px rgba(67, 233, 123, 0.5);
-      animation: avatarFloat 3s ease-in-out infinite;
-      position: relative;
-      z-index: 1;
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
     }
     
-    @keyframes avatarFloat {
-      0%, 100% { transform: translateY(0) scale(1); }
-      50% { transform: translateY(-10px) scale(1.05); }
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
     }
     
-    .driver-name {
-      font-size: 2rem;
-      font-weight: 700;
-      color: white;
-      margin-bottom: 0.5rem;
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
     }
     
-    .driver-badge {
-      display: inline-block;
-      padding: 0.5rem 1.5rem;
-      border-radius: 30px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      background: var(--gradient-4);
-      color: white;
-      box-shadow: 0 5px 20px rgba(67, 233, 123, 0.4);
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
     }
     
-    /* Stats cards */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-    
-    .stat-card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      border-radius: 25px;
-      padding: 2rem;
-      text-align: center;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      top: -2px;
-      left: -2px;
-      right: -2px;
-      bottom: -2px;
-      background: var(--card-gradient);
-      border-radius: 25px;
-      opacity: 0;
-      z-index: -1;
-      transition: opacity 0.3s ease;
-    }
-    
-    .stat-card:hover::before {
-      opacity: 1;
-    }
-    
-    .stat-card:nth-child(1) { --card-gradient: var(--gradient-3); }
-    .stat-card:nth-child(2) { --card-gradient: var(--gradient-5); }
-    .stat-card:nth-child(3) { --card-gradient: var(--gradient-2); }
-    .stat-card:nth-child(4) { --card-gradient: var(--gradient-4); }
-    
-    .stat-card:hover {
-      transform: translateY(-10px) scale(1.02);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-    }
-    
-    .stat-icon {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      display: inline-block;
-      background: var(--card-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      filter: drop-shadow(0 4px 20px rgba(255, 255, 255, 0.3));
-      animation: iconPulse 3s ease-in-out infinite;
-    }
-    
-    @keyframes iconPulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-    }
-    
-    .stat-value {
-      font-size: 2.5rem;
-      font-weight: 700;
-      color: white;
-      margin-bottom: 0.5rem;
-    }
-    
-    .stat-label {
-      font-size: 0.9rem;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      color: rgba(255, 255, 255, 0.8);
-    }
-    
-    /* Trip logs table */
+    /* Glass cards */
     .glass-card {
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(20px);
@@ -314,131 +135,114 @@
       padding: 2rem;
       margin-bottom: 2rem;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    }
-    
-    .glass-card-header {
-      margin-bottom: 2rem;
-    }
-    
-    .glass-card-header h2 {
-      font-size: 1.75rem;
-      font-weight: 700;
       color: white;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
     }
     
-    .glass-card-header h2 i {
-      background: var(--gradient-2);
+    /* Form styling */
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
+    }
+    
+    /* Button styling */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+    }
+    
+    /* Metric cards */
+    .metric-card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      padding: 2.5rem;
+      text-align: center;
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .metric-card:hover {
+      transform: translateY(-10px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 5rem 0 3rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
     }
     
-    /* Table styling */
-    .trip-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0 0.75rem;
+    /* Tables */
+    .table {
+      color: white;
     }
     
-    .trip-table thead th {
+    .table thead th {
       background: rgba(255, 255, 255, 0.15);
       color: white;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
       padding: 1rem;
-      font-size: 0.85rem;
       border: none;
     }
     
-    .trip-table tbody tr {
+    .table tbody tr {
       background: rgba(255, 255, 255, 0.05);
       transition: all 0.3s ease;
-      cursor: pointer;
     }
     
-    .trip-table tbody tr:hover {
+    .table tbody tr:hover {
       background: rgba(255, 255, 255, 0.1);
       transform: translateX(10px);
-      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-    }
-    
-    .trip-table td {
-      padding: 1.25rem 1rem;
-      color: white;
-      border: none;
-    }
-    
-    /* Period badges */
-    .period-badge {
-      display: inline-block;
-      padding: 0.25rem 0.75rem;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: capitalize;
-    }
-    
-    .period-morning {
-      background: var(--gradient-5);
-      color: white;
-      box-shadow: 0 2px 10px rgba(250, 112, 154, 0.4);
-    }
-    
-    .period-afternoon {
-      background: var(--gradient-3);
-      color: white;
-      box-shadow: 0 2px 10px rgba(79, 172, 254, 0.4);
-    }
-    
-    /* Trip details */
-    .trip-time {
-      font-weight: 600;
-      color: white;
-    }
-    
-    .trip-mileage {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: rgba(255, 255, 255, 0.9);
-    }
-    
-    .trip-mileage i {
-      color: #4facfe;
-    }
-    
-    .trip-riders {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-weight: 600;
-      color: white;
-    }
-    
-    .trip-riders i {
-      color: #fa709a;
-    }
-    
-    /* Empty state */
-    .empty-state {
-      text-align: center;
-      padding: 5rem 1rem;
-      color: rgba(255, 255, 255, 0.8);
-    }
-    
-    .empty-state i {
-      font-size: 5rem;
-      opacity: 0.3;
-      margin-bottom: 1.5rem;
-    }
-    
-    .empty-state h4 {
-      font-size: 1.75rem;
-      margin-bottom: 1rem;
-      color: white;
     }
     
     /* Animations */
@@ -454,31 +258,6 @@
         transform: translateY(0);
       }
     }
-    
-    .fade-in:nth-child(1) { animation-delay: 0.1s; }
-    .fade-in:nth-child(2) { animation-delay: 0.2s; }
-    .fade-in:nth-child(3) { animation-delay: 0.3s; }
-    .fade-in:nth-child(4) { animation-delay: 0.4s; }
-    
-    /* Responsive */
-    @media (max-width: 768px) {
-      .hero-content h1 {
-        font-size: 2rem;
-      }
-      
-      .stats-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-      }
-      
-      .trip-table {
-        font-size: 0.9rem;
-      }
-      
-      .trip-table td {
-        padding: 1rem 0.5rem;
-      }
-    }
   </style>
 </head>
 <body>
@@ -488,10 +267,10 @@
   <div class="orb orb3"></div>
   
   <!-- Navigation -->
-  <nav class="navbar-glass">
+  <nav class="navbar navbar-glass">
     <div class="container-fluid">
       <div class="d-flex justify-content-between align-items-center">
-        <a href="/manager-dashboard" class="navbar-brand">
+        <a href="/manager-dashboard" class="navbar navbar-glass">
           <i class="bi bi-bus-front-fill"></i>
           <span>Fleet Management</span>
         </a>

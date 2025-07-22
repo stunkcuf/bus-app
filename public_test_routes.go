@@ -223,7 +223,6 @@ func publicFleetTestHandler(w http.ResponseWriter, r *http.Request) {
 			// Show first vehicle safely
 			v := vehicles[0]
 			fmt.Fprintf(w, "<div class='data'>")
-			fmt.Fprintf(w, "ID: %d<br>", v.ID)
 			fmt.Fprintf(w, "VehicleID: %s<br>", v.VehicleID)
 			fmt.Fprintf(w, "Status: %s<br>", func() string {
 				if v.Status.Valid {
@@ -264,7 +263,7 @@ func publicFleetRenderHandler(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		for _, bus := range buses {
 			cv := ConsolidatedVehicle{
-				ID:               bus.ID,
+				ID:               bus.BusID,
 				VehicleID:        bus.BusID,
 				BusID:            bus.BusID,
 				VehicleType:      "bus",
@@ -289,7 +288,7 @@ func publicFleetRenderHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			
 			cv := ConsolidatedVehicle{
-				ID:               veh.ID,
+				ID:               veh.VehicleID,
 				VehicleID:        veh.VehicleID,
 				BusID:            veh.VehicleID,
 				VehicleType:      "vehicle",

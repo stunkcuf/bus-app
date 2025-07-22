@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/xuri/excelize/v2"
 )
@@ -15,14 +16,14 @@ import (
 // availableDriversHandler returns drivers available for route assignment
 func availableDriversHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
 	// Check authentication
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		SendError(w, ErrUnauthorized("Access denied"))
 		return
 	}
 
@@ -54,7 +55,7 @@ func availableDriversHandler(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			Internal:   err,
 		})
-		http.Error(w, "Failed to load drivers", http.StatusInternalServerError)
+		SendError(w, ErrDatabase("Failed to load drivers", err))
 		return
 	}
 
@@ -65,14 +66,14 @@ func availableDriversHandler(w http.ResponseWriter, r *http.Request) {
 // availableBusesHandler returns buses available for route assignment
 func availableBusesHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
 	// Check authentication
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		SendError(w, ErrUnauthorized("Access denied"))
 		return
 	}
 
@@ -104,7 +105,7 @@ func availableBusesHandler(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			Internal:   err,
 		})
-		http.Error(w, "Failed to load buses", http.StatusInternalServerError)
+		SendError(w, ErrDatabase("Failed to load buses", err))
 		return
 	}
 
@@ -115,14 +116,14 @@ func availableBusesHandler(w http.ResponseWriter, r *http.Request) {
 // availableRoutesHandler returns routes available for assignment
 func availableRoutesHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
 	// Check authentication
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		SendError(w, ErrUnauthorized("Access denied"))
 		return
 	}
 
@@ -153,7 +154,7 @@ func availableRoutesHandler(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			Internal:   err,
 		})
-		http.Error(w, "Failed to load routes", http.StatusInternalServerError)
+		SendError(w, ErrDatabase("Failed to load routes", err))
 		return
 	}
 
@@ -164,14 +165,14 @@ func availableRoutesHandler(w http.ResponseWriter, r *http.Request) {
 // checkAssignmentConflictsHandler checks for conflicts in route assignments
 func checkAssignmentConflictsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
 	// Check authentication
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		SendError(w, ErrUnauthorized("Access denied"))
 		return
 	}
 
@@ -182,7 +183,7 @@ func checkAssignmentConflictsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		SendError(w, ErrValidation("Invalid request data"))
 		return
 	}
 
@@ -221,21 +222,21 @@ func checkAssignmentConflictsHandler(w http.ResponseWriter, r *http.Request) {
 // vehicleMileageHandler returns the last recorded mileage for a vehicle
 func vehicleMileageHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
 	// Check authentication
 	user := getUserFromSession(r)
 	if user == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		SendError(w, ErrUnauthorized("Access denied"))
 		return
 	}
 
 	// Extract vehicle type and ID from URL
 	parts := strings.Split(r.URL.Path, "/")
 	if len(parts) < 5 {
-		http.Error(w, "Invalid URL", http.StatusBadRequest)
+		SendError(w, ErrValidation("Invalid URL format"))
 		return
 	}
 
@@ -284,14 +285,14 @@ func vehicleMileageHandler(w http.ResponseWriter, r *http.Request) {
 // maintenanceVendorsHandler returns common maintenance vendors
 func maintenanceVendorsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
 	// Check authentication
 	user := getUserFromSession(r)
 	if user == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		SendError(w, ErrUnauthorized("Access denied"))
 		return
 	}
 
@@ -333,14 +334,14 @@ func maintenanceVendorsHandler(w http.ResponseWriter, r *http.Request) {
 // analyzeImportFileHandler analyzes an Excel file for import
 func analyzeImportFileHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
 	// Check authentication
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		SendError(w, ErrUnauthorized("Access denied"))
 		return
 	}
 
@@ -434,14 +435,14 @@ func analyzeImportFileHandler(w http.ResponseWriter, r *http.Request) {
 // previewImportHandler validates and previews import data
 func previewImportHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
 	// Check authentication
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		SendError(w, ErrUnauthorized("Access denied"))
 		return
 	}
 
@@ -597,4 +598,85 @@ func removeFile(filename string) error {
 
 func copyFile(dst io.Writer, src io.Reader) (int64, error) {
 	return io.Copy(dst, src)
+}
+
+// lastMaintenanceHandler returns the last maintenance date for a vehicle
+func lastMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		SendError(w, ErrMethodNotAllowed("Only GET method allowed"))
+		return
+	}
+
+	// Check authentication
+	user := getUserFromSession(r)
+	if user == nil {
+		SendError(w, ErrUnauthorized("Access denied"))
+		return
+	}
+
+	// Extract vehicle type and ID from URL
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 5 {
+		SendError(w, ErrValidation("Invalid URL format"))
+		return
+	}
+
+	vehicleType := parts[3]
+	vehicleID := parts[4]
+
+	var lastMaintenanceDate string
+	var query string
+
+	if vehicleType == "bus" {
+		query = `
+			SELECT COALESCE(MAX(date), '') as last_date
+			FROM bus_maintenance_logs
+			WHERE bus_id = $1
+		`
+	} else {
+		query = `
+			SELECT COALESCE(MAX(date), '') as last_date
+			FROM vehicle_maintenance_logs
+			WHERE vehicle_id = $1
+		`
+	}
+
+	err := db.Get(&lastMaintenanceDate, query, vehicleID)
+	if err != nil {
+		logError(&AppError{
+			Type:       ErrorTypeDatabase,
+			Message:    "Failed to get last maintenance date",
+			Detail:     err.Error(),
+			StatusCode: http.StatusInternalServerError,
+			Internal:   err,
+		})
+		lastMaintenanceDate = ""
+	}
+
+	var formattedDate string
+	if lastMaintenanceDate != "" {
+		if date, err := time.Parse("2006-01-02", lastMaintenanceDate); err == nil {
+			daysSince := int(time.Since(date).Hours() / 24)
+			if daysSince == 0 {
+				formattedDate = "Today"
+			} else if daysSince == 1 {
+				formattedDate = "Yesterday"
+			} else {
+				formattedDate = fmt.Sprintf("%d days ago", daysSince)
+			}
+		} else {
+			formattedDate = "Unknown"
+		}
+	} else {
+		formattedDate = "No maintenance recorded"
+	}
+
+	response := map[string]interface{}{
+		"lastMaintenanceDate": formattedDate,
+		"vehicleType":         vehicleType,
+		"vehicleId":          vehicleID,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }

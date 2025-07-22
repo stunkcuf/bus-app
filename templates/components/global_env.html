@@ -1,0 +1,11 @@
+{{define "global_env"}}
+<script nonce="{{.CSPNonce}}">
+  // Set global environment variables for JavaScript
+  window.APP_ENV = '{{.AppEnv}}';
+  
+  // Initialize production-safe logging if Logger is available
+  if (typeof window.Logger !== 'undefined') {
+    window.devLog = window.Logger;
+  }
+</script>
+{{end}}

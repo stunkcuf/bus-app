@@ -144,6 +144,10 @@ func ErrConflict(message string) *AppError {
 	return NewAppError(ErrorTypeConflict, message, nil)
 }
 
+func ErrRateLimit(message string) *AppError {
+	return NewAppError(ErrorTypeRateLimit, message, nil)
+}
+
 func ErrDatabase(operation string, err error) *AppError {
 	message := fmt.Sprintf("Database error during %s", operation)
 	return NewAppError(ErrorTypeDatabase, message, err)

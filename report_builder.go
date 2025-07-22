@@ -169,7 +169,7 @@ func reportBuilderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if session.UserRole != "manager" {
+	if session.Role != "manager" {
 		SendError(w, ErrForbidden("Manager access required"))
 		return
 	}
@@ -190,7 +190,7 @@ func reportBuilderHandler(w http.ResponseWriter, r *http.Request) {
 		SavedReports []map[string]interface{}    `json:"saved_reports"`
 	}{
 		User:         &User{Username: session.Username},
-		Role:         session.UserRole,
+		Role:         session.Role,
 		CSRFToken:    session.CSRFToken,
 		CSPNonce:     GenerateCSPNonce(),
 		DataSources:  reportDataSources,
@@ -212,7 +212,7 @@ func reportBuilderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if session.UserRole != "manager" {
+	if session.Role != "manager" {
 		SendError(w, ErrForbidden("Manager access required"))
 		return
 	}
@@ -511,7 +511,7 @@ func getReportDataSourcesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if session.UserRole != "manager" {
+	if session.Role != "manager" {
 		SendError(w, ErrForbidden("Manager access required"))
 		return
 	}

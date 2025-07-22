@@ -16,7 +16,7 @@ func withRecovery(h http.HandlerFunc) http.HandlerFunc {
 		defer func() {
 			if err := recover(); err != nil {
 				log.Printf("Panic recovered: %v\n%s", err, debug.Stack())
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				SendError(w, ErrInternal("An unexpected error occurred", nil))
 			}
 		}()
 		h(w, r)
@@ -57,7 +57,7 @@ func requireRole(role string) func(http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			user := getUserFromSession(r)
 			if user == nil || user.Role != role {
-				http.Error(w, "Forbidden", http.StatusForbidden)
+				SendError(w, ErrUnauthorized("Access denied"))
 				return
 			}
 			next(w, r)
@@ -69,14 +69,14 @@ func requireRole(role string) func(http.HandlerFunc) http.HandlerFunc {
 func requireDatabase(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if db == nil {
-			http.Error(w, "Database not available", http.StatusServiceUnavailable)
+			SendError(w, ErrDatabase("Database not available", nil))
 			return
 		}
 
 		// Test database connection
 		if err := db.Ping(); err != nil {
 			log.Printf("Database ping failed: %v", err)
-			http.Error(w, "Database connection lost", http.StatusServiceUnavailable)
+			SendError(w, ErrDatabase("Database connection lost", nil))
 			return
 		}
 
@@ -89,7 +89,7 @@ func RateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ip := getClientIP(r)
 		if !rateLimiter.Allow(ip) {
-			http.Error(w, "Too many requests", http.StatusTooManyRequests)
+			SendError(w, ErrRateLimit("Too many requests"))
 			return
 		}
 		next(w, r)

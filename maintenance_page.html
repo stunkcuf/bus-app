@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance Records - Fleet Management System</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <link rel="stylesheet" href="/static/modern_theme.css">
+    
+    <link rel="stylesheet" href="/static/help_system.css">
+    <link rel="stylesheet" href="/static/enhanced_help_system.css">
+    
+    <link rel="stylesheet" href="/static/autocomplete.css">
+    
+  <style nonce="">
+     
+    :root {
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
+    }
+    
+     
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
+    }
+    
+     
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+      transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    }
+    
+     
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
+    }
+    
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
+    }
+    
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+     
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+    
+     
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
+    }
+    
+     
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+    }
+    
+     
+    .metric-card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      padding: 2.5rem;
+      text-align: center;
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .metric-card:hover {
+      transform: translateY(-10px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+     
+    .hero-section {
+      position: relative;
+      padding: 5rem 0 3rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
+    }
+    
+     
+    .table {
+      color: white;
+    }
+    
+    .table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+    }
+    
+    .table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(10px);
+    }
+    
+     
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+
+    <div class="header">
+        <h1>
+            🔧 Maintenance Records
+        </h1>
+    </div>
+
+    <div class="nav">
+        <a href="/manager-dashboard">Dashboard</a>
+        <a href="/fleet">Fleet</a>
+        <a href="/company-fleet">Company Fleet</a>
+        <a href="/maintenance-records" style="border-bottom-color: #667eea;">Maintenance Records</a>
+        
+        <a href="/assign-routes">Routes</a>
+        
+    </div>
+
+    <div class="container">
+        
+        <div class="filters">
+            <h3>Filter Maintenance Records</h3>
+            <form method="GET" action="/maintenance-records">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="vehicle_number">Vehicle Number:</label>
+                        <select name="vehicle_number" id="vehicle_number">
+                            <option value="">All Vehicles</option>
+                            
+                            <option value="2" >Vehicle #2</option>
+                            
+                            <option value="4" >Vehicle #4</option>
+                            
+                            <option value="5" >Vehicle #5</option>
+                            
+                            <option value="6" >Vehicle #6</option>
+                            
+                            <option value="7" >Vehicle #7</option>
+                            
+                            <option value="8" >Vehicle #8</option>
+                            
+                            <option value="11" >Vehicle #11</option>
+                            
+                            <option value="12" >Vehicle #12</option>
+                            
+                            <option value="13" >Vehicle #13</option>
+                            
+                            <option value="15" >Vehicle #15</option>
+                            
+                            <option value="18" >Vehicle #18</option>
+                            
+                            <option value="20" >Vehicle #20</option>
+                            
+                            <option value="21" >Vehicle #21</option>
+                            
+                            <option value="22" >Vehicle #22</option>
+                            
+                            <option value="23" >Vehicle #23</option>
+                            
+                            <option value="24" >Vehicle #24</option>
+                            
+                            <option value="25" >Vehicle #25</option>
+                            
+                            <option value="26" >Vehicle #26</option>
+                            
+                            <option value="27" >Vehicle #27</option>
+                            
+                            <option value="28" >Vehicle #28</option>
+                            
+                            <option value="29" >Vehicle #29</option>
+                            
+                            <option value="30" >Vehicle #30</option>
+                            
+                            <option value="31" >Vehicle #31</option>
+                            
+                            <option value="32" >Vehicle #32</option>
+                            
+                            <option value="33" >Vehicle #33</option>
+                            
+                            <option value="34" >Vehicle #34</option>
+                            
+                            <option value="35" >Vehicle #35</option>
+                            
+                            <option value="36" >Vehicle #36</option>
+                            
+                            <option value="37" >Vehicle #37</option>
+                            
+                            <option value="39" >Vehicle #39</option>
+                            
+                            <option value="40" >Vehicle #40</option>
+                            
+                            <option value="45" >Vehicle #45</option>
+                            
+                            <option value="46" >Vehicle #46</option>
+                            
+                            <option value="47" >Vehicle #47</option>
+                            
+                            <option value="49" >Vehicle #49</option>
+                            
+                            <option value="50" >Vehicle #50</option>
+                            
+                            <option value="51" >Vehicle #51</option>
+                            
+                            <option value="52" >Vehicle #52</option>
+                            
+                            <option value="53" >Vehicle #53</option>
+                            
+                            <option value="54" >Vehicle #54</option>
+                            
+                            <option value="55" >Vehicle #55</option>
+                            
+                            <option value="56" >Vehicle #56</option>
+                            
+                            <option value="57" >Vehicle #57</option>
+                            
+                            <option value="58" >Vehicle #58</option>
+                            
+                            <option value="59" >Vehicle #59</option>
+                            
+                            <option value="60" >Vehicle #60</option>
+                            
+                            <option value="65" >Vehicle #65</option>
+                            
+                            <option value="66" >Vehicle #66</option>
+                            
+                            <option value="67" >Vehicle #67</option>
+                            
+                            <option value="68" >Vehicle #68</option>
+                            
+                            <option value="69" >Vehicle #69</option>
+                            
+                            <option value="70" >Vehicle #70</option>
+                            
+                            <option value="71" >Vehicle #71</option>
+                            
+                            <option value="72" >Vehicle #72</option>
+                            
+                            <option value="73" >Vehicle #73</option>
+                            
+                            <option value="74" >Vehicle #74</option>
+                            
+                            <option value="75" >Vehicle #75</option>
+                            
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="start_date">Start Date:</label>
+                        <input type="date" name="start_date" id="start_date" value="">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="end_date">End Date:</label>
+                        <input type="date" name="end_date" id="end_date" value="">
+                    </div>
+
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        <a href="/maintenance-records" class="btn btn-secondary">Clear</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        
+        <div class="summary-cards">
+            <div class="summary-card">
+                <h3>458</h3>
+                <p>Total Records</p>
+            </div>
+            <div class="summary-card cost-card">
+                <h3>$85912.80</h3>
+                <p>Total Cost</p>
+            </div>
+            <div class="summary-card">
+                <h3>57</h3>
+                <p>Vehicles Serviced</p>
+            </div>
+            <div class="summary-card">
+                <h3>394</h3>
+                <p>With Mileage Data</p>
+            </div>
+        </div>
+
+        
+        <div class="records-table">
+            <div class="table-header">
+                <h3>Maintenance Records</h3>
+                <div class="results-info">
+                    Showing 1 - 0 of 458 records
+                </div>
+            </div>
+
+            
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Vehicle</th>
+                            <th>Service Date</th>
+                            <th>Mileage</th>
+                            <th>Cost</th>
+                            <th>PO Number</th>
+                            <th>Work Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #51</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Dec 8, 2031</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=24563)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">258.38</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span style="color: #999;">—</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">ANNUAL INSP.</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #11</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Aug 10, 2031</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=147112)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">71.39</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="po-number">31472</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Lube, oil &amp; filter, 3 mo. Inspection</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #2</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Jul 5, 2031</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=70230)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">125.58</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span style="color: #999;">—</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">check for smoke/pressure check system</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #4</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Jun 8, 2031</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=71335)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">139.74</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span style="color: #999;">—</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Annual inspection</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #11</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">May 10, 2031</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=122603)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">29.95</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span style="color: #999;">—</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">LOF</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #4</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">May 8, 2031</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=70084)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">155.74</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span style="color: #999;">—</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Annual Inspection</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #6</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">May 8, 2031</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=67274)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">162.23</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span style="color: #999;">—</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Annual inspection</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #13</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">May 1, 2031</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=47786)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">807.31</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="po-number">16422</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Replace rear brakes/rotors</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #7</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Mar 12, 2031</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=88096)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">232.82</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="po-number">15193</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Change oil, repair engine oil cooler hoses</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #13</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Mar 3, 2031</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=32740)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">345.79</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="po-number">11131</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">LOF; fix back-up lights/beeper; air filter; inboard 2007-2008 2029.36</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #8</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Mar 1, 2031</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=141122)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">435.16</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span style="color: #999;">—</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Lube, Oil &amp; filter-check brakes</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #4</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Dec 3, 2030</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=78355)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">259.32</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span style="color: #999;">—</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Replace belts &amp; wipers</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #4</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Oct 12, 2030</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=76766)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">253.51</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span style="color: #999;">—</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Check vibration/replace wiper motor &amp; blades</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #12</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Aug 5, 2030</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=61257)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">537.58</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="po-number">31059</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">ANNUAL INSPECTION/MIRROR/STOP SIGN</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #2</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Jul 11, 2030</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=132556)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">62.00</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="po-number">28756</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">tire changeover</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #13</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Jul 11, 2030</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=73196)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">44.95</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span style="color: #999;">—</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">LOF</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #13</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Jul 3, 2030</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=66683)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">739.70</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="po-number">25508</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">LOF/water pump/thermostat</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #6</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Jun 8, 2030</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=67821)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">376.93</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span style="color: #999;">—</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Water pump, belts/oil change</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #6</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Jun 8, 2030</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=67821)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">139.74</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span style="color: #999;">—</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Annual inspection</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #13</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">May 12, 2030</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=52538)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">360.81</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="po-number">17955</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Transmission service/LOF/new battery</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #8</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Apr 11, 2030</span>
+                            </td>
+                            <td>
+                                
+                                <span style="color: #999;">—</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">344.24</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="po-number">16257</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Replace Alternator</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #12</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Apr 8, 2030</span>
+                            </td>
+                            <td>
+                                
+                                <span style="color: #999;">—</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">1.84</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span style="color: #999;">—</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Fuses</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #4</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Apr 7, 2030</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=68205)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">576.40</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="po-number">15798</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Annual Inspection:  Converter; 02 sensor; plugs</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #2</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Mar 6, 2030</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=119380)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">1412.00</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="po-number">11476</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Annual Inspection:full tune up; gas filter;</div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>Vehicle #8</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Feb 7, 2030</span>
+                            </td>
+                            <td>
+                                
+                                <span class="badge mileage-badge">%!,(int=132974)d</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge cost-badge">1259.00</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="po-number">10442</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <div class="work-description">Annual Inspection;</div>
+                                
+                            </td>
+                        </tr>
+                        
+                    </tbody>
+                </table>
+            </div>
+
+            
+            
+            <div class="pagination">
+                
+
+                
+                
+                <span class="current">1</span>
+                
+                
+                
+                <a href="?page=2">2</a>
+                
+                
+                
+                <a href="?page=3">3</a>
+                
+                
+
+                
+                <a href="?page=2">Next &raquo;</a>
+                
+            </div>
+            
+
+            
+        </div>
+    </div>
+</body>
+</html>

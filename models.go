@@ -440,7 +440,7 @@ type FleetVehicle struct {
 
 // ConsolidatedVehicle represents a vehicle in the new consolidated fleet_vehicles table
 type ConsolidatedVehicle struct {
-	ID               int              `json:"id" db:"id"`
+	ID               string           `json:"id" db:"id"`
 	VehicleID        string           `json:"vehicle_id" db:"vehicle_id"`
 	VehicleType      string           `json:"vehicle_type" db:"vehicle_type"` // "bus" or "vehicle"
 	Status           string           `json:"status" db:"status"`
@@ -985,25 +985,8 @@ type ProgramStaffRecord struct {
 	StaffCount2 int
 }
 
-// FuelRecord represents a fuel purchase record
-type FuelRecord struct {
-	ID             int       `json:"id" db:"id"`
-	VehicleID      string    `json:"vehicle_id" db:"vehicle_id"`
-	Date           time.Time `json:"date" db:"date"`
-	Gallons        float64   `json:"gallons" db:"gallons"`
-	PricePerGallon float64   `json:"price_per_gallon" db:"price_per_gallon"`
-	Cost           float64   `json:"cost" db:"cost"`
-	Odometer       int       `json:"odometer" db:"odometer"`
-	Location       string    `json:"location" db:"location"`
-	Driver         string    `json:"driver" db:"driver"`
-	Notes          string    `json:"notes" db:"notes"`
-	CreatedAt      time.Time `json:"created_at" db:"created_at"`
-}
+// FuelRecord is defined in fuel_efficiency.go
+// Commented out to avoid redeclaration
 
-// Helper function for minimum value
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
+// min function is defined in main.go
+// Commented out to avoid redeclaration

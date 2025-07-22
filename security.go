@@ -14,18 +14,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Session represents a user session
-type Session struct {
-	SessionToken string
-	Username     string
-	UserRole     string
-	CSRFToken    string
-	CreatedAt    time.Time
-	LastAccess   time.Time
-	ExpiresAt    time.Time
-	ImportFiles  map[string]string // Temporary storage for import file paths
-}
-
 // Rate limiter
 type RateLimiter struct {
 	mu       sync.Mutex
@@ -36,10 +24,7 @@ type RateLimiter struct {
 
 // Global variables
 var (
-	sessions      = make(map[string]*Session) // Kept for backward compatibility
-	sessionsMutex sync.RWMutex
-	rateLimiter   = NewRateLimiter(100, 15*time.Minute) // 100 attempts per 15 minutes (increased for development)
-	// sessionManager removed - using simple in-memory sessions
+	rateLimiter = NewRateLimiter(100, 15*time.Minute) // 100 attempts per 15 minutes (increased for development)
 )
 
 // NewRateLimiter creates a new rate limiter
@@ -288,40 +273,40 @@ func generateCSRFToken() string {
 
 // storeSession stores a session for a user
 func storeSession(token string, user *User) {
-	// Use in-memory storage only (sessionManager disabled)
-	sessionsMutex.Lock()
-	defer sessionsMutex.Unlock()
-
-	sessions[token] = &Session{
-		SessionToken: token,
-		Username:     user.Username,
-		UserRole:     user.Role,
-		CSRFToken:    generateCSRFToken(),
-		CreatedAt:    time.Now(),
-		LastAccess:   time.Now(),
-		ExpiresAt:    time.Now().Add(24 * time.Hour),
+	// Initialize session manager if not already done
+	if sessionManager == nil {
+		if err := initializeSessionManager(); err != nil {
+			log.Printf("Failed to initialize session manager: %v", err)
+			return
+		}
+	}
+	
+	// Create session via session manager
+	session := &Session{
+		Username:    user.Username,
+		Role:        user.Role,
+		CSRFToken:   generateCSRFToken(),
+		CreatedAt:   time.Now(),
+		LastAccess:  time.Now(),
+		ExpiresAt:   time.Now().Add(24 * time.Hour),
+		ImportFiles: make(map[string]string),
+	}
+	
+	if err := sessionManager.store.Set(token, session); err != nil {
+		log.Printf("Failed to store session: %v", err)
 	}
 }
 
 // GetSecureSession retrieves a session by token
 func GetSecureSession(token string) (*Session, error) {
-	// Use in-memory storage only (sessionManager disabled)
-	sessionsMutex.RLock()
-	defer sessionsMutex.RUnlock()
-
-	session, exists := sessions[token]
-	if !exists {
-		return nil, fmt.Errorf("session not found")
+	// Initialize session manager if not already done
+	if sessionManager == nil {
+		if err := initializeSessionManager(); err != nil {
+			return nil, fmt.Errorf("session manager not initialized: %w", err)
+		}
 	}
-
-	// Check if session is expired
-	if time.Since(session.CreatedAt) > 24*time.Hour {
-		return nil, fmt.Errorf("session expired")
-	}
-
-	// Update last access time
-	session.LastAccess = time.Now()
-	return session, nil
+	
+	return sessionManager.GetSession(token)
 }
 
 // GetSession retrieves a session from HTTP request
@@ -336,10 +321,17 @@ func GetSession(r *http.Request) (*Session, error) {
 
 // deleteSession removes a session
 func deleteSession(token string) {
-	// Use in-memory storage only (sessionManager disabled)
-	sessionsMutex.Lock()
-	defer sessionsMutex.Unlock()
-	delete(sessions, token)
+	// Initialize session manager if not already done
+	if sessionManager == nil {
+		if err := initializeSessionManager(); err != nil {
+			log.Printf("Failed to initialize session manager: %v", err)
+			return
+		}
+	}
+	
+	if err := sessionManager.DeleteSession(token); err != nil {
+		log.Printf("Failed to delete session: %v", err)
+	}
 }
 
 // getUserFromSession gets the user from the current session
@@ -358,11 +350,11 @@ func getUserFromSession(r *http.Request) *User {
 		return nil
 	}
 
-	log.Printf("DEBUG: Session found for user: %s (role: %s)", session.Username, session.UserRole)
+	log.Printf("DEBUG: Session found for user: %s (role: %s)", session.Username, session.Role)
 
 	return &User{
 		Username: session.Username,
-		Role:     session.UserRole,
+		Role:     session.Role,
 	}
 }
 
@@ -406,13 +398,24 @@ func createUser(username, password, role, status string) error {
 
 // GetActiveSessionCount returns the number of active sessions
 func GetActiveSessionCount() int {
-	sessionsMutex.RLock()
-	defer sessionsMutex.RUnlock()
-
+	// Initialize session manager if not already done
+	if sessionManager == nil {
+		if err := initializeSessionManager(); err != nil {
+			log.Printf("Failed to initialize session manager: %v", err)
+			return 0
+		}
+	}
+	
+	sessions, err := sessionManager.GetActiveSessions()
+	if err != nil {
+		log.Printf("Failed to get active sessions: %v", err)
+		return 0
+	}
+	
 	count := 0
 	now := time.Now()
 	for _, session := range sessions {
-		if now.Sub(session.CreatedAt) < 24*time.Hour {
+		if now.Before(session.ExpiresAt) {
 			count++
 		}
 	}
@@ -421,18 +424,6 @@ func GetActiveSessionCount() int {
 
 // periodicSessionCleanup removes expired sessions
 func periodicSessionCleanup() {
-	// In-memory only mode cleanup
-	ticker := time.NewTicker(1 * time.Hour)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		sessionsMutex.Lock()
-		now := time.Now()
-		for token, session := range sessions {
-			if now.Sub(session.CreatedAt) > 24*time.Hour {
-				delete(sessions, token)
-			}
-		}
-		sessionsMutex.Unlock()
-	}
+	// Session cleanup is now handled by the session manager's own cleanup routine
+	// The session manager automatically cleans up expired sessions every 5 minutes
 }

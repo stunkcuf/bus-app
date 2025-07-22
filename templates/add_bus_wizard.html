@@ -6,6 +6,7 @@
   <title>Add New Bus - Fleet Management System</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  
   <style nonce="{{.CSPNonce}}">
     /* Ultimate beautiful design system */
     :root {
@@ -32,7 +33,6 @@
       min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       overflow-x: hidden;
-      color: white;
     }
     
     /* Animated background */
@@ -47,57 +47,14 @@
         radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
         radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
         radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
-      animation: backgroundShift 25s ease-in-out infinite;
+      animation: backgroundShift 20s ease-in-out infinite;
       z-index: -1;
     }
     
     @keyframes backgroundShift {
       0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      25% { transform: translate(20px, -20px) rotate(90deg); }
-      50% { transform: translate(-10px, 10px) rotate(180deg); }
-      75% { transform: translate(-20px, -10px) rotate(270deg); }
-    }
-    
-    /* Floating orbs */
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(60px);
-      opacity: 0.5;
-      animation: float 20s infinite ease-in-out;
-    }
-    
-    .orb1 {
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
-      top: -150px;
-      left: -150px;
-    }
-    
-    .orb2 {
-      width: 400px;
-      height: 400px;
-      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
-      bottom: -200px;
-      right: -200px;
-      animation-delay: -5s;
-    }
-    
-    .orb3 {
-      width: 250px;
-      height: 250px;
-      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
-      top: 50%;
-      left: 50%;
-      animation-delay: -10s;
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
-      25% { transform: translate(50px, -50px) scale(1.1) rotate(90deg); }
-      50% { transform: translate(-30px, 30px) scale(0.9) rotate(180deg); }
-      75% { transform: translate(-50px, -30px) scale(1.05) rotate(270deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
     }
     
     /* Glassmorphism navigation */
@@ -128,204 +85,67 @@
       text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
     }
     
-    .navbar-brand i {
-      font-size: 2rem;
-      background: var(--gradient-1);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    /* Floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out;
     }
     
-    /* Hero section */
-    .hero-section {
-      position: relative;
-      padding: 3rem 0 2rem;
-      text-align: center;
-      color: white;
-      overflow: hidden;
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
     }
     
-    .hero-content h1 {
-      font-size: 3rem;
-      font-weight: 800;
-      margin-bottom: 1rem;
-      background: linear-gradient(to right, #667eea, #764ba2, #f093fb, #667eea);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-size: 200% auto;
-      animation: shimmer 3s ease infinite;
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
     }
     
-    @keyframes shimmer {
-      to {
-        background-position: 200% center;
-      }
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
     }
     
-    /* Wizard container */
-    .wizard-container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 0 1rem;
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
     }
     
-    /* Progress indicator with neon glow */
-    .progress-container {
+    /* Glass cards */
+    .glass-card {
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(20px);
       border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
       padding: 2rem;
       margin-bottom: 2rem;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    }
-    
-    .progress-steps {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 2rem;
-      position: relative;
-    }
-    
-    .progress-steps::before {
-      content: '';
-      position: absolute;
-      top: 25px;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: rgba(255, 255, 255, 0.1);
-      z-index: -1;
-    }
-    
-    .progress-step {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      position: relative;
-    }
-    
-    .step-icon {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 3px solid rgba(255, 255, 255, 0.3);
-      transition: all 0.3s ease;
-      z-index: 1;
-    }
-    
-    .progress-step.active .step-icon {
-      background: var(--gradient-3);
-      border-color: transparent;
-      box-shadow: 0 0 30px rgba(79, 172, 254, 0.8);
-      animation: pulse 2s ease-in-out infinite;
-    }
-    
-    .progress-step.completed .step-icon {
-      background: var(--gradient-4);
-      border-color: transparent;
-    }
-    
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(79, 172, 254, 0.8); }
-      50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(79, 172, 254, 1); }
-    }
-    
-    .step-label {
-      margin-top: 0.5rem;
-      font-size: 0.85rem;
-      opacity: 0.7;
-      text-align: center;
-    }
-    
-    .progress-step.active .step-label {
-      opacity: 1;
-      font-weight: 600;
-    }
-    
-    /* Wizard steps */
-    .wizard-step {
-      display: none;
-      animation: fadeInUp 0.5s ease;
-    }
-    
-    .wizard-step.active {
-      display: block;
-    }
-    
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    
-    /* Form sections with glass effect */
-    .form-section {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 30px;
-      padding: 2.5rem;
-      margin-bottom: 2rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-      transition: all 0.3s ease;
-    }
-    
-    .form-section:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-    }
-    
-    .form-section-title {
-      font-size: 1.5rem;
-      font-weight: 700;
       color: white;
-      margin-bottom: 2rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
     }
     
-    .form-section-title i {
-      font-size: 2rem;
-      background: var(--gradient-2);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    /* Form controls with neon glow */
-    .form-group {
-      margin-bottom: 1.5rem;
-    }
-    
-    .form-label {
-      color: white;
-      font-weight: 600;
-      margin-bottom: 0.75rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    
-    .form-label i {
-      opacity: 0.7;
-    }
-    
+    /* Form styling */
     .form-control,
     .form-select {
       background: rgba(255, 255, 255, 0.1);
       border: 2px solid rgba(255, 255, 255, 0.2);
       border-radius: 15px;
       color: white;
-      padding: 1rem 1.5rem;
+      padding: 0.75rem 1rem;
       transition: all 0.3s ease;
     }
     
@@ -338,118 +158,91 @@
       outline: none;
     }
     
-    .form-control::placeholder {
-      color: rgba(255, 255, 255, 0.5);
-    }
-    
-    .form-select option {
-      background: #302b63;
-      color: white;
-    }
-    
-    /* Navigation buttons */
-    .wizard-nav {
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-top: 2rem;
-    }
-    
-    .btn-wizard {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border: 2px solid;
-      padding: 1rem 2rem;
-      border-radius: 50px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: white;
+    /* Button styling */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
       transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
     }
     
-    .btn-wizard-primary {
-      border-color: #667eea;
-      box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
     }
     
-    .btn-wizard-primary:hover {
-      background: var(--gradient-1);
+    .btn-primary:hover {
       transform: translateY(-3px);
       box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
     }
     
-    .btn-wizard-secondary {
-      border-color: rgba(255, 255, 255, 0.3);
-    }
-    
-    .btn-wizard-secondary:hover {
-      background: rgba(255, 255, 255, 0.2);
-      transform: translateY(-2px);
-    }
-    
-    .btn-wizard-complete {
-      background: var(--gradient-4);
-      border-color: transparent;
-      box-shadow: 0 0 30px rgba(67, 233, 123, 0.5);
-    }
-    
-    .btn-wizard-complete:hover {
-      transform: translateY(-3px) scale(1.05);
-      box-shadow: 0 10px 50px rgba(67, 233, 123, 0.7);
-    }
-    
-    /* Preview section */
-    .preview-section {
-      background: rgba(79, 172, 254, 0.1);
-      border: 2px solid rgba(79, 172, 254, 0.3);
+    /* Metric cards */
+    .metric-card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
       border-radius: 30px;
       padding: 2.5rem;
-      backdrop-filter: blur(20px);
-    }
-    
-    .preview-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 1rem 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .preview-item:last-child {
-      border-bottom: none;
-    }
-    
-    .preview-label {
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.8);
-    }
-    
-    .preview-value {
+      text-align: center;
       color: white;
-      font-weight: 500;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     
-    /* Alert styling */
-    .alert-info {
-      background: rgba(79, 172, 254, 0.2);
-      border: 1px solid rgba(79, 172, 254, 0.5);
+    .metric-card:hover {
+      transform: translateY(-10px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 5rem 0 3rem;
+      text-align: center;
       color: white;
-      border-radius: 20px;
-      padding: 1.5rem;
+      overflow: hidden;
     }
     
-    /* Required field indicator */
-    .required::after {
-      content: " *";
-      color: #fa709a;
+    .hero-content h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
     }
     
-    /* Small text */
-    small {
-      opacity: 0.8;
+    /* Tables */
+    .table {
+      color: white;
+    }
+    
+    .table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+    }
+    
+    .table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(10px);
     }
     
     /* Animations */
@@ -459,33 +252,10 @@
       animation: fadeInUp 0.8s ease-out forwards;
     }
     
-    .fade-in:nth-child(1) { animation-delay: 0.1s; }
-    .fade-in:nth-child(2) { animation-delay: 0.2s; }
-    .fade-in:nth-child(3) { animation-delay: 0.3s; }
-    .fade-in:nth-child(4) { animation-delay: 0.4s; }
-    
-    /* Responsive */
-    @media (max-width: 768px) {
-      .hero-content h1 {
-        font-size: 2rem;
-      }
-      
-      .progress-steps {
-        flex-wrap: wrap;
-        gap: 1rem;
-      }
-      
-      .form-section {
-        padding: 1.5rem;
-      }
-      
-      .wizard-nav {
-        flex-direction: column;
-      }
-      
-      .btn-wizard {
-        width: 100%;
-        justify-content: center;
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
   </style>
@@ -497,10 +267,10 @@
   <div class="orb orb3"></div>
   
   <!-- Navigation -->
-  <nav class="navbar-glass">
+  <nav class="navbar navbar-glass">
     <div class="container">
       <div class="d-flex justify-content-between align-items-center">
-        <a href="/fleet" class="navbar-brand">
+        <a href="/fleet" class="navbar navbar-glass">
           <i class="bi bi-bus-front-fill"></i>
           <span>Fleet Management</span>
         </a>

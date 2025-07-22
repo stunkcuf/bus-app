@@ -6,6 +6,7 @@
   <title>Driver Dashboard - Fleet Management System</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  
   <style nonce="{{.CSPNonce}}">
     /* Ultimate beautiful design system */
     :root {
@@ -84,47 +85,6 @@
       text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
     }
     
-    .navbar-brand i {
-      font-size: 2rem;
-      background: var(--gradient-1);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    /* Hero section with particles */
-    .hero-section {
-      position: relative;
-      padding: 5rem 0 3rem;
-      text-align: center;
-      color: white;
-      overflow: hidden;
-    }
-    
-    .hero-content h1 {
-      font-size: 3.5rem;
-      font-weight: 800;
-      margin-bottom: 1rem;
-      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: gradientShift 8s ease-in-out infinite;
-      text-shadow: 0 0 40px rgba(255, 255, 255, 0.2);
-    }
-    
-    @keyframes gradientShift {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
-    
-    .hero-date {
-      font-size: 1.25rem;
-      opacity: 0.9;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 2rem;
-    }
-    
     /* Floating orbs */
     .orb {
       position: absolute;
@@ -166,15 +126,63 @@
       66% { transform: translate(-20px, 20px) scale(0.9); }
     }
     
-    /* Ultra modern metric cards */
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 2rem;
-      margin-bottom: 3rem;
-      padding: 0 1rem;
+    /* Glass cards */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
     }
     
+    /* Form styling */
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
+    }
+    
+    /* Button styling */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+    }
+    
+    /* Metric cards */
     .metric-card {
       position: relative;
       background: rgba(255, 255, 255, 0.1);
@@ -188,422 +196,56 @@
       transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     
-    .metric-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: var(--card-gradient);
-      opacity: 0.1;
-      transition: opacity 0.3s ease;
-    }
-    
-    .metric-card:hover::before {
-      opacity: 0.2;
-    }
-    
-    .metric-card:nth-child(1) { --card-gradient: var(--gradient-1); }
-    .metric-card:nth-child(2) { --card-gradient: var(--gradient-4); }
-    .metric-card:nth-child(3) { --card-gradient: var(--gradient-3); }
-    .metric-card:nth-child(4) { --card-gradient: var(--gradient-5); }
-    
     .metric-card:hover {
       transform: translateY(-10px) scale(1.02);
-      box-shadow: 
-        0 20px 40px rgba(0, 0, 0, 0.3),
-        0 0 60px var(--card-gradient-glow);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     }
     
-    .metric-card:nth-child(1) { --card-gradient-glow: rgba(102, 126, 234, 0.3); }
-    .metric-card:nth-child(2) { --card-gradient-glow: rgba(67, 233, 123, 0.3); }
-    .metric-card:nth-child(3) { --card-gradient-glow: rgba(79, 172, 254, 0.3); }
-    .metric-card:nth-child(4) { --card-gradient-glow: rgba(250, 112, 154, 0.3); }
-    
-    .metric-icon {
-      font-size: 3.5rem;
-      margin-bottom: 1.5rem;
-      display: inline-block;
-      background: var(--card-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      filter: drop-shadow(0 4px 20px var(--card-gradient-glow));
-      animation: iconPulse 3s ease-in-out infinite;
-    }
-    
-    @keyframes iconPulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-    }
-    
-    .metric-value {
-      font-size: 3rem;
-      font-weight: 800;
-      margin-bottom: 0.5rem;
-      background: linear-gradient(to bottom, #fff, rgba(255, 255, 255, 0.8));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    .metric-label {
-      font-size: 1.1rem;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      opacity: 0.8;
-    }
-    
-    /* Quick actions with neon effects */
-    .quick-actions {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 3rem;
-      padding: 0 1rem;
-    }
-    
-    .action-card {
+    /* Hero section */
+    .hero-section {
       position: relative;
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 20px;
-      padding: 2rem;
+      padding: 5rem 0 3rem;
       text-align: center;
       color: white;
-      text-decoration: none;
       overflow: hidden;
-      transition: all 0.3s ease;
     }
     
-    .action-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-      transition: left 0.5s;
-    }
-    
-    .action-card:hover::before {
-      left: 100%;
-    }
-    
-    .action-card:hover {
-      transform: translateY(-5px);
-      border-color: rgba(255, 255, 255, 0.3);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-      color: white;
-      text-decoration: none;
-    }
-    
-    .action-card i {
-      font-size: 2.5rem;
+    .hero-content h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
       margin-bottom: 1rem;
-      display: block;
-      transition: all 0.3s ease;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
     }
     
-    .action-card:hover i {
-      transform: scale(1.2) rotate(5deg);
-    }
-    
-    .action-card:nth-child(1) i { color: #f093fb; }
-    .action-card:nth-child(2) i { color: #4facfe; }
-    .action-card:nth-child(3) i { color: #43e97b; }
-    .action-card:nth-child(4) i { color: #fa709a; }
-    
-    /* Beautiful cards */
-    .glass-card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      border-radius: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 2.5rem;
-      margin-bottom: 2rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    /* Tables */
+    .table {
       color: white;
     }
     
-    .glass-card-header {
-      background: var(--gradient-1);
-      margin: -2.5rem -2.5rem 2rem;
-      padding: 2rem 2.5rem;
-      border-radius: 30px 30px 0 0;
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .glass-card-header::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
-      animation: shimmer 3s infinite;
-    }
-    
-    @keyframes shimmer {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
-    }
-    
-    .glass-card-header h2 {
-      margin: 0;
-      font-weight: 700;
-      font-size: 1.75rem;
-      position: relative;
-      z-index: 1;
-    }
-    
-    /* Route info card */
-    .route-info {
+    .table thead th {
       background: rgba(255, 255, 255, 0.15);
-      border-radius: 20px;
-      padding: 2rem;
-      margin-bottom: 2rem;
-      display: flex;
-      align-items: center;
-      gap: 2rem;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    .bus-avatar {
-      width: 100px;
-      height: 100px;
-      background: var(--gradient-3);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 3rem;
       color: white;
-      box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
-      animation: breathe 3s ease-in-out infinite;
-    }
-    
-    @keyframes breathe {
-      0%, 100% { transform: scale(1); box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3); }
-      50% { transform: scale(1.05); box-shadow: 0 15px 40px rgba(79, 172, 254, 0.5); }
-    }
-    
-    /* Form styling */
-    .form-group {
-      margin-bottom: 1.5rem;
-    }
-    
-    .form-label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.9);
-      font-size: 0.95rem;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
-    }
-    
-    .form-control, .form-select {
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      border-radius: 15px;
-      color: white;
-      padding: 1rem 1.5rem;
-      font-size: 1rem;
-      transition: all 0.3s ease;
-    }
-    
-    .form-control:focus, .form-select:focus {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
-      color: white;
-      outline: none;
-    }
-    
-    .form-control::placeholder {
-      color: rgba(255, 255, 255, 0.5);
-    }
-    
-    .form-select option {
-      background: #302b63;
-      color: white;
-    }
-    
-    /* Student list */
-    .student-list {
-      max-height: 500px;
-      overflow-y: auto;
       padding: 1rem;
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 20px;
-      margin-top: 1rem;
-    }
-    
-    .student-list::-webkit-scrollbar {
-      width: 10px;
-    }
-    
-    .student-list::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-    }
-    
-    .student-list::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.3);
-      border-radius: 10px;
-    }
-    
-    .student-item {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 15px;
-      padding: 1.5rem;
-      margin-bottom: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      transition: all 0.3s ease;
-      border: 1px solid transparent;
-    }
-    
-    .student-item:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: translateX(10px);
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-    
-    .student-position {
-      width: 45px;
-      height: 45px;
-      background: var(--gradient-1);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 1.25rem;
-      flex-shrink: 0;
-      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-    }
-    
-    .student-info {
-      flex-grow: 1;
-    }
-    
-    .student-name {
-      font-weight: 600;
-      font-size: 1.1rem;
-      margin-bottom: 0.25rem;
-    }
-    
-    .student-details {
-      font-size: 0.9rem;
-      opacity: 0.8;
-    }
-    
-    .student-time {
-      background: rgba(79, 172, 254, 0.2);
-      color: #4facfe;
-      padding: 0.25rem 0.75rem;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: 600;
-    }
-    
-    /* Buttons */
-    .btn-glow {
-      background: var(--gradient-4);
-      color: white;
       border: none;
-      padding: 1rem 3rem;
-      border-radius: 50px;
-      font-weight: 700;
-      font-size: 1.1rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      position: relative;
-      overflow: hidden;
+    }
+    
+    .table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
       transition: all 0.3s ease;
-      box-shadow: 0 5px 20px rgba(67, 233, 123, 0.3);
     }
     
-    .btn-glow:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 30px rgba(67, 233, 123, 0.5);
-      color: white;
-    }
-    
-    .btn-glow::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-      transition: left 0.5s;
-    }
-    
-    .btn-glow:hover::before {
-      left: 100%;
-    }
-    
-    /* Trip logs */
-    .log-item {
+    .table tbody tr:hover {
       background: rgba(255, 255, 255, 0.1);
-      border-radius: 20px;
-      padding: 1.5rem;
-      margin-bottom: 1rem;
-      border-left: 5px solid;
-      transition: all 0.3s ease;
+      transform: translateX(10px);
     }
     
-    .log-item:nth-child(odd) {
-      border-left-color: #667eea;
-    }
-    
-    .log-item:nth-child(even) {
-      border-left-color: #43e97b;
-    }
-    
-    .log-item:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: translateX(5px);
-    }
-    
-    /* Badge */
-    .badge-glow {
-      background: var(--gradient-4);
-      color: white;
-      padding: 0.5rem 1rem;
-      border-radius: 50px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      box-shadow: 0 3px 10px rgba(67, 233, 123, 0.3);
-    }
-    
-    /* Checkbox styling */
-    .form-check-input {
-      width: 1.5rem;
-      height: 1.5rem;
-      background-color: rgba(255, 255, 255, 0.1);
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-radius: 0.375rem;
-    }
-    
-    .form-check-input:checked {
-      background-color: #667eea;
-      border-color: #667eea;
-    }
-    
-    .form-check-input:focus {
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
-    }
-    
-    /* Animations on scroll */
+    /* Animations */
     .fade-in {
       opacity: 0;
       transform: translateY(30px);
@@ -616,32 +258,6 @@
         transform: translateY(0);
       }
     }
-    
-    .fade-in:nth-child(1) { animation-delay: 0.1s; }
-    .fade-in:nth-child(2) { animation-delay: 0.2s; }
-    .fade-in:nth-child(3) { animation-delay: 0.3s; }
-    .fade-in:nth-child(4) { animation-delay: 0.4s; }
-    
-    /* Responsive */
-    @media (max-width: 768px) {
-      .hero-content h1 {
-        font-size: 2.5rem;
-      }
-      
-      .metrics-grid {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-      }
-      
-      .quick-actions {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      
-      .route-info {
-        flex-direction: column;
-        text-align: center;
-      }
-    }
   </style>
 </head>
 <body>
@@ -651,10 +267,10 @@
   <div class="orb orb3"></div>
   
   <!-- Navigation -->
-  <nav class="navbar-glass">
+  <nav class="navbar navbar-glass">
     <div class="container">
       <div class="d-flex justify-content-between align-items-center">
-        <a href="/driver-dashboard" class="navbar-brand">
+        <a href="/driver-dashboard" class="navbar navbar-glass">
           <i class="bi bi-bus-front-fill"></i>
           <span>Driver Portal</span>
         </a>

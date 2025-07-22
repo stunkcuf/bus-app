@@ -6,6 +6,7 @@
   <title>Company Fleet - Fleet Management System</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  
   <style nonce="{{.CSPNonce}}">
     /* Ultimate beautiful design system */
     :root {
@@ -43,18 +44,17 @@
       width: 100%;
       height: 100%;
       background-image: 
-        radial-gradient(circle at 10% 90%, rgba(250, 112, 154, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 90% 10%, rgba(79, 172, 254, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 50% 50%, rgba(67, 233, 123, 0.2) 0%, transparent 50%);
-      animation: backgroundShift 25s ease-in-out infinite;
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
       z-index: -1;
     }
     
     @keyframes backgroundShift {
       0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      25% { transform: translate(20px, -20px) rotate(90deg); }
-      50% { transform: translate(-10px, 10px) rotate(180deg); }
-      75% { transform: translate(-20px, -10px) rotate(270deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
     }
     
     /* Glassmorphism navigation */
@@ -85,206 +85,48 @@
       text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
     }
     
-    .navbar-brand i {
-      font-size: 2rem;
-      background: var(--gradient-3);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    /* Hero section */
-    .hero-section {
-      position: relative;
-      padding: 4rem 0 2rem;
-      text-align: center;
-      color: white;
-      overflow: hidden;
-    }
-    
-    .hero-content h1 {
-      font-size: 3rem;
-      font-weight: 800;
-      margin-bottom: 1rem;
-      background: linear-gradient(to right, #4facfe, #00f2fe, #43e97b, #38f9d7);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-size: 200% auto;
-      animation: shimmer 3s ease infinite;
-    }
-    
-    @keyframes shimmer {
-      to {
-        background-position: 200% center;
-      }
-    }
-    
     /* Floating orbs */
     .orb {
       position: absolute;
       border-radius: 50%;
-      filter: blur(60px);
-      opacity: 0.5;
-      animation: float 25s infinite ease-in-out;
+      filter: blur(40px);
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out;
     }
     
     .orb1 {
-      width: 350px;
-      height: 350px;
-      background: radial-gradient(circle, rgba(79, 172, 254, 0.8), transparent);
-      top: -175px;
-      right: -175px;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
     }
     
     .orb2 {
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, rgba(67, 233, 123, 0.6), transparent);
-      bottom: -150px;
-      left: -150px;
-      animation-delay: -8s;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
     }
     
     .orb3 {
-      width: 400px;
-      height: 400px;
-      background: radial-gradient(circle, rgba(250, 112, 154, 0.5), transparent);
-      top: 40%;
-      left: 40%;
-      animation-delay: -16s;
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
     }
     
     @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
-      25% { transform: translate(50px, -50px) scale(1.1) rotate(90deg); }
-      50% { transform: translate(-30px, 30px) scale(0.9) rotate(180deg); }
-      75% { transform: translate(-50px, -30px) scale(1.05) rotate(270deg); }
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
     }
     
-    /* Stats cards */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 2rem;
-      margin-bottom: 3rem;
-      padding: 0 1rem;
-    }
-    
-    .stat-card {
-      position: relative;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      border-radius: 30px;
-      padding: 2rem;
-      text-align: center;
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      overflow: hidden;
-      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      top: -2px;
-      left: -2px;
-      right: -2px;
-      bottom: -2px;
-      background: var(--card-gradient);
-      border-radius: 30px;
-      opacity: 0;
-      z-index: -1;
-      transition: opacity 0.3s ease;
-    }
-    
-    .stat-card:hover::before {
-      opacity: 1;
-    }
-    
-    .stat-card:nth-child(1) { --card-gradient: var(--gradient-3); }
-    .stat-card:nth-child(2) { --card-gradient: var(--gradient-4); }
-    .stat-card:nth-child(3) { --card-gradient: var(--gradient-5); }
-    .stat-card:nth-child(4) { --card-gradient: var(--gradient-2); }
-    
-    .stat-card:hover {
-      transform: translateY(-10px) scale(1.02);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-    }
-    
-    .stat-icon {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-      display: inline-block;
-      background: var(--card-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      filter: drop-shadow(0 4px 20px rgba(255, 255, 255, 0.3));
-      animation: iconFloat 3s ease-in-out infinite;
-    }
-    
-    @keyframes iconFloat {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-    }
-    
-    .stat-value {
-      font-size: 2.5rem;
-      font-weight: 800;
-      margin-bottom: 0.5rem;
-    }
-    
-    .stat-label {
-      font-size: 1rem;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      opacity: 0.9;
-    }
-    
-    /* Search box */
-    .search-container {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      border-radius: 30px;
-      padding: 2rem;
-      margin-bottom: 2rem;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    .search-box {
-      position: relative;
-    }
-    
-    .search-box input {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      border-radius: 50px;
-      padding: 1rem 3rem 1rem 1.5rem;
-      color: white;
-      font-size: 1.1rem;
-      transition: all 0.3s ease;
-    }
-    
-    .search-box input:focus {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: #4facfe;
-      box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.3);
-      outline: none;
-    }
-    
-    .search-box input::placeholder {
-      color: rgba(255, 255, 255, 0.6);
-    }
-    
-    .search-icon {
-      position: absolute;
-      right: 1.5rem;
-      top: 50%;
-      transform: translateY(-50%);
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 1.2rem;
-    }
-    
-    /* Vehicle table */
+    /* Glass cards */
     .glass-card {
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(20px);
@@ -296,219 +138,111 @@
       color: white;
     }
     
-    .glass-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
-    }
-    
-    .glass-card-header h2 {
-      font-size: 2rem;
-      font-weight: 700;
-      margin: 0;
-      background: var(--gradient-3);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    /* Table styling */
-    .vehicle-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0 0.75rem;
-    }
-    
-    .vehicle-table thead th {
-      background: rgba(255, 255, 255, 0.15);
-      color: white;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      padding: 1rem;
-      font-size: 0.85rem;
-      border: none;
-      text-align: left;
-    }
-    
-    .vehicle-table tbody tr {
-      background: rgba(255, 255, 255, 0.05);
-      transition: all 0.3s ease;
-      cursor: pointer;
-    }
-    
-    .vehicle-table tbody tr:hover {
+    /* Form styling */
+    .form-control,
+    .form-select {
       background: rgba(255, 255, 255, 0.1);
-      transform: translateX(10px);
-      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-    }
-    
-    .vehicle-table td {
-      padding: 1.25rem 1rem;
-      color: white;
-      border: none;
-    }
-    
-    /* Vehicle info styling */
-    .vehicle-id {
-      font-weight: 700;
-      font-size: 1.1rem;
-      color: #4facfe;
-    }
-    
-    .vehicle-info {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-    }
-    
-    .vehicle-model {
-      font-weight: 600;
-      font-size: 1rem;
-    }
-    
-    .vehicle-desc {
-      font-size: 0.85rem;
-      opacity: 0.8;
-    }
-    
-    /* Status dropdowns */
-    .status-dropdown {
-      position: relative;
-      display: inline-block;
-    }
-    
-    .btn-status {
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid;
-      color: white;
-      padding: 0.5rem 1rem;
-      border-radius: 25px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: all 0.3s ease;
-      cursor: pointer;
-    }
-    
-    .btn-status-good {
-      border-color: #38ef7d;
-      box-shadow: 0 0 15px rgba(56, 239, 125, 0.3);
-    }
-    
-    .btn-status-needs_service, .btn-status-worn {
-      border-color: #fee140;
-      box-shadow: 0 0 15px rgba(254, 225, 64, 0.3);
-    }
-    
-    .btn-status-overdue, .btn-status-replace {
-      border-color: #f5576c;
-      box-shadow: 0 0 15px rgba(245, 87, 108, 0.3);
-    }
-    
-    .btn-status-active {
-      border-color: #38ef7d;
-      background: rgba(56, 239, 125, 0.2);
-    }
-    
-    .btn-status-maintenance {
-      border-color: #fee140;
-      background: rgba(254, 225, 64, 0.2);
-    }
-    
-    .btn-status-out_of_service {
-      border-color: #f5576c;
-      background: rgba(245, 87, 108, 0.2);
-    }
-    
-    .btn-status:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 20px rgba(255, 255, 255, 0.2);
-    }
-    
-    /* Dropdown menu */
-    .dropdown-menu {
-      background: rgba(30, 30, 50, 0.95);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.2);
       border-radius: 15px;
-      padding: 0.5rem;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    }
-    
-    .dropdown-item {
       color: white;
       padding: 0.75rem 1rem;
-      border-radius: 10px;
       transition: all 0.3s ease;
     }
     
-    .dropdown-item:hover {
-      background: rgba(255, 255, 255, 0.1);
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
       color: white;
-      transform: translateX(5px);
+      outline: none;
     }
     
-    .dropdown-item i {
-      margin-right: 0.5rem;
-    }
-    
-    /* Action button */
-    .btn-maintenance {
-      background: var(--gradient-1);
-      border: none;
-      color: white;
-      padding: 0.5rem 1.5rem;
+    /* Button styling */
+    .btn {
+      padding: 0.75rem 1.5rem;
       border-radius: 25px;
-      font-size: 0.85rem;
       font-weight: 600;
       transition: all 0.3s ease;
+      border: none;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
     }
     
-    .btn-maintenance:hover {
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
       transform: translateY(-3px);
-      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-      color: white;
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
     }
     
-    /* Empty state */
-    .empty-state {
+    /* Metric cards */
+    .metric-card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      padding: 2.5rem;
       text-align: center;
-      padding: 5rem 2rem;
-      color: rgba(255, 255, 255, 0.8);
-    }
-    
-    .empty-state i {
-      font-size: 5rem;
-      opacity: 0.3;
-      margin-bottom: 1.5rem;
-    }
-    
-    .empty-state h4 {
-      font-size: 1.75rem;
-      margin-bottom: 1rem;
-    }
-    
-    /* Toast container */
-    .toast-container {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 1050;
-    }
-    
-    .toast {
-      background: rgba(30, 30, 50, 0.95);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 15px;
       color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .metric-card:hover {
+      transform: translateY(-10px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 5rem 0 3rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
+    }
+    
+    /* Tables */
+    .table {
+      color: white;
+    }
+    
+    .table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+    }
+    
+    .table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(10px);
     }
     
     /* Animations */
@@ -524,35 +258,504 @@
         transform: translateY(0);
       }
     }
-    
-    .fade-in:nth-child(1) { animation-delay: 0.1s; }
-    .fade-in:nth-child(2) { animation-delay: 0.2s; }
-    .fade-in:nth-child(3) { animation-delay: 0.3s; }
-    .fade-in:nth-child(4) { animation-delay: 0.4s; }
-    
-    /* Responsive */
+
+    /* Action buttons */
+    .action-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* Neon buttons */
+    .btn-neon {
+      padding: 1rem 2rem;
+      border-radius: 50px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+      color: white;
+      border: 2px solid transparent;
+    }
+
+    .btn-neon::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+      z-index: -1;
+    }
+
+    .btn-neon:hover::before {
+      left: 100%;
+    }
+
+    .btn-neon-primary {
+      background: var(--gradient-1);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .btn-neon-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.7);
+      color: white;
+    }
+
+    .btn-neon-success {
+      background: var(--gradient-4);
+      box-shadow: 0 5px 20px rgba(67, 233, 123, 0.5);
+    }
+
+    .btn-neon-success:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(67, 233, 123, 0.7);
+      color: white;
+    }
+
+    .btn-neon-info {
+      background: var(--gradient-3);
+      box-shadow: 0 5px 20px rgba(79, 172, 254, 0.5);
+    }
+
+    .btn-neon-info:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(79, 172, 254, 0.7);
+      color: white;
+    }
+
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 2rem;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .stat-icon {
+      font-size: 2.5rem;
+      color: #667eea;
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Glass card header */
+    .glass-card-header {
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .glass-card-header h2 {
+      color: white;
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Fleet table styling */
+    .fleet-table {
+      width: 100%;
+      color: white;
+    }
+
+    .fleet-table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+      font-size: 0.85rem;
+    }
+
+    .fleet-table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .fleet-table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(5px);
+    }
+
+    .fleet-table td {
+      padding: 1rem;
+      vertical-align: middle;
+    }
+
+    /* Status badges */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .status-badge.status-active {
+      background: rgba(67, 233, 123, 0.2);
+      color: #43e97b;
+      border: 1px solid #43e97b;
+    }
+
+    .status-badge.status-maintenance {
+      background: rgba(250, 112, 154, 0.2);
+      color: #fa709a;
+      border: 1px solid #fa709a;
+    }
+
+    .status-badge.status-out-of-service,
+    .status-badge.status-out_of_service {
+      background: rgba(245, 87, 108, 0.2);
+      color: #f5576c;
+      border: 1px solid #f5576c;
+    }
+
+    /* Maintenance status */
+    .maintenance-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-dot.status-good {
+      background: #43e97b;
+      box-shadow: 0 0 10px #43e97b;
+    }
+
+    .status-dot.status-due {
+      background: #fee140;
+      box-shadow: 0 0 10px #fee140;
+    }
+
+    .status-dot.status-overdue {
+      background: #f5576c;
+      box-shadow: 0 0 10px #f5576c;
+    }
+
+    /* Button group */
+    .btn-group-neon {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-table {
+      padding: 0.5rem 1rem;
+      background: rgba(102, 126, 234, 0.2);
+      border: 1px solid rgba(102, 126, 234, 0.5);
+      color: white;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .btn-table:hover {
+      background: rgba(102, 126, 234, 0.4);
+      transform: translateY(-2px);
+      color: white;
+    }
+
+    /* Table responsive */
+    .table-responsive {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
     @media (max-width: 768px) {
-      .hero-content h1 {
-        font-size: 2rem;
-      }
-      
-      .stats-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-      }
-      
-      .vehicle-table {
+      .fleet-table {
         font-size: 0.85rem;
       }
       
-      .vehicle-table td {
-        padding: 1rem 0.5rem;
+      .fleet-table td {
+        padding: 0.75rem 0.5rem;
       }
-      
-      .btn-status {
-        font-size: 0.75rem;
-        padding: 0.4rem 0.8rem;
-      }
+    }
+
+    /* Vehicle table (same styling as fleet-table) */
+    .vehicle-table {
+      width: 100%;
+      color: white;
+    }
+
+    .vehicle-table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+      font-size: 0.85rem;
+    }
+
+    .vehicle-table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .vehicle-table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(5px);
+    }
+
+    .vehicle-table td {
+      padding: 1rem;
+      vertical-align: middle;
+    }
+
+    /* Search container */
+    .search-container {
+      margin-bottom: 2rem;
+    }
+
+    .search-box {
+      position: relative;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 1rem 3rem 1rem 1rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50px;
+      color: white;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+    }
+
+    .search-box input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .search-icon {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 1.2rem;
+    }
+
+    /* Status dropdowns */
+    .status-dropdown {
+      position: relative;
+    }
+
+    .btn-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50px;
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-status:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-status-good {
+      border-color: #43e97b;
+      color: #43e97b;
+    }
+
+    .btn-status-needs_service,
+    .btn-status-worn,
+    .btn-status-due {
+      border-color: #fee140;
+      color: #fee140;
+    }
+
+    .btn-status-overdue,
+    .btn-status-replace {
+      border-color: #f5576c;
+      color: #f5576c;
+    }
+
+    .btn-status-active {
+      border-color: #43e97b;
+      color: #43e97b;
+    }
+
+    .btn-status-maintenance {
+      border-color: #fa709a;
+      color: #fa709a;
+    }
+
+    .btn-status-out_of_service {
+      border-color: #f5576c;
+      color: #f5576c;
+    }
+
+    /* Dropdown menu */
+    .dropdown-menu {
+      background: rgba(30, 30, 50, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .dropdown-item {
+      color: white;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .dropdown-item:hover {
+      background: rgba(102, 126, 234, 0.3);
+      color: white;
+    }
+
+    /* Vehicle info */
+    .vehicle-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .vehicle-model {
+      font-weight: 600;
+    }
+
+    .vehicle-desc {
+      font-size: 0.85rem;
+      opacity: 0.7;
+    }
+
+    .vehicle-id {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .vehicle-id:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
+
+    /* Maintenance button */
+    .btn-maintenance {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(102, 126, 234, 0.2);
+      border: 1px solid rgba(102, 126, 234, 0.5);
+      color: white;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+
+    .btn-maintenance:hover {
+      background: rgba(102, 126, 234, 0.4);
+      transform: translateY(-2px);
+      color: white;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .empty-state i {
+      font-size: 4rem;
+      opacity: 0.5;
+      margin-bottom: 1rem;
+    }
+
+    .empty-state h4 {
+      color: white;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Toast container */
+    .toast-container {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      z-index: 1050;
+    }
+
+    .toast {
+      margin-bottom: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
   </style>
 </head>
@@ -563,9 +766,9 @@
   <div class="orb orb3"></div>
   
   <!-- Navigation -->
-  <nav class="navbar-glass">
+  <nav class="navbar navbar-glass">
     <div class="container">
-      <div class="d-flex justify-content-between align-items-center">
+      <div class="d-flex justify-content-between align-items-center w-100">
         <a href="/manager-dashboard" class="navbar-brand">
           <i class="bi bi-truck-flatbed"></i>
           <span>Company Fleet</span>

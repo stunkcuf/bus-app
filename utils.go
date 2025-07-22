@@ -96,6 +96,7 @@ func renderTemplate(w http.ResponseWriter, r *http.Request, name string, data in
 		templateData["Navigation"] = getNavigationData(user, currentPage)
 	}
 	templateData["ShowHelpButton"] = true
+	templateData["AppEnv"] = os.Getenv("APP_ENV")
 
 	executeTemplate(w, name, templateData)
 }

@@ -1,0 +1,177 @@
+{
+  "Timestamp": "2025-07-22T01:34:18.0364086-07:00",
+  "TotalPages": 14,
+  "WorkingPages": 1,
+  "BrokenPages": 13,
+  "Pages": [
+    {
+      "URL": "/fleet",
+      "Name": "Fleet Overview",
+      "DataCount": 0,
+      "TotalClaim": 0,
+      "Status": "No Data",
+      "Error": "",
+      "Notes": [
+        "Pagination detected"
+      ],
+      "HasData": false,
+      "Pagination": true
+    },
+    {
+      "URL": "/fleet-vehicles",
+      "Name": "Fleet Vehicles",
+      "DataCount": 0,
+      "TotalClaim": 0,
+      "Status": "No Data",
+      "Error": "",
+      "Notes": [
+        "Pagination detected"
+      ],
+      "HasData": false,
+      "Pagination": true
+    },
+    {
+      "URL": "/maintenance-records",
+      "Name": "Maintenance Records",
+      "DataCount": 0,
+      "TotalClaim": 458,
+      "Status": "No Data",
+      "Error": "",
+      "Notes": [
+        "Pagination detected"
+      ],
+      "HasData": false,
+      "Pagination": true
+    },
+    {
+      "URL": "/service-records",
+      "Name": "Service Records",
+      "DataCount": 0,
+      "TotalClaim": 55,
+      "Status": "No Data",
+      "Error": "",
+      "Notes": [
+        "Pagination detected"
+      ],
+      "HasData": false,
+      "Pagination": true
+    },
+    {
+      "URL": "/fuel-records",
+      "Name": "Fuel Records",
+      "DataCount": 0,
+      "TotalClaim": 0,
+      "Status": "No Data",
+      "Error": "",
+      "Notes": [],
+      "HasData": false,
+      "Pagination": false
+    },
+    {
+      "URL": "/students",
+      "Name": "Students",
+      "DataCount": 0,
+      "TotalClaim": 0,
+      "Status": "Error",
+      "Error": "HTTP 401",
+      "Notes": [],
+      "HasData": false,
+      "Pagination": false
+    },
+    {
+      "URL": "/ecse-dashboard",
+      "Name": "ECSE Dashboard",
+      "DataCount": 0,
+      "TotalClaim": 0,
+      "Status": "No Data",
+      "Error": "",
+      "Notes": [],
+      "HasData": false,
+      "Pagination": false
+    },
+    {
+      "URL": "/drivers",
+      "Name": "Drivers",
+      "DataCount": 0,
+      "TotalClaim": 0,
+      "Status": "Error",
+      "Error": "HTTP 404",
+      "Notes": [],
+      "HasData": false,
+      "Pagination": false
+    },
+    {
+      "URL": "/routes",
+      "Name": "Routes",
+      "DataCount": 0,
+      "TotalClaim": 0,
+      "Status": "Error",
+      "Error": "HTTP 404",
+      "Notes": [],
+      "HasData": false,
+      "Pagination": false
+    },
+    {
+      "URL": "/company-fleet",
+      "Name": "Company Fleet",
+      "DataCount": 0,
+      "TotalClaim": 0,
+      "Status": "No Data",
+      "Error": "",
+      "Notes": [
+        "Error message found: Error('Failed to update status');\r\n        }\r\n      } catch (error) {\r\n        showToast('Failed to update status. Please try again.', 'error');\r\n        console.error('Error:', error);\r\n      }\r\n    }\r\n    \r\n    \r\n    function showToast(message, type = 'info') {\r\n      const toast = document.createElement('div');\r\n      toast.className = `toast align-items-center text-white border-0`;\r\n      toast.style.background = type === 'error' ? \r\n        'linear-gradient(135deg, #f5576c 0%, #f093fb 100%)' : \r\n        'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)';\r\n      toast.setAttribute('role', 'alert');\r\n      toast.innerHTML = `\r\n        "
+      ],
+      "HasData": false,
+      "Pagination": false
+    },
+    {
+      "URL": "/dashboard",
+      "Name": "Main Dashboard",
+      "DataCount": 0,
+      "TotalClaim": 0,
+      "Status": "Error",
+      "Error": "HTTP 500",
+      "Notes": [],
+      "HasData": false,
+      "Pagination": false
+    },
+    {
+      "URL": "/monthly-mileage-reports",
+      "Name": "Monthly Mileage Reports",
+      "DataCount": 0,
+      "TotalClaim": 0,
+      "Status": "No Data",
+      "Error": "",
+      "Notes": [
+        "Pagination detected"
+      ],
+      "HasData": false,
+      "Pagination": true
+    },
+    {
+      "URL": "/fuel-analytics",
+      "Name": "Fuel Analytics",
+      "DataCount": 0,
+      "TotalClaim": 0,
+      "Status": "Working",
+      "Error": "",
+      "Notes": [
+        "Analytics charts present"
+      ],
+      "HasData": true,
+      "Pagination": false
+    },
+    {
+      "URL": "/vehicle-maintenance",
+      "Name": "Vehicle Maintenance",
+      "DataCount": 0,
+      "TotalClaim": 0,
+      "Status": "Error",
+      "Error": "HTTP 400",
+      "Notes": [],
+      "HasData": false,
+      "Pagination": false
+    }
+  ],
+  "Summary": ""
+}

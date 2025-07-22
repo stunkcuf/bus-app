@@ -19,13 +19,13 @@ import (
 func databaseStatsHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		SendError(w, ErrUnauthorized("Access denied"))
 		return
 	}
 
 	optimizer := InitializeQueryOptimizer()
 	if optimizer == nil {
-		http.Error(w, "Query optimizer not available", http.StatusInternalServerError)
+		SendError(w, ErrInternal("Query optimizer not available", nil))
 		return
 	}
 
@@ -33,7 +33,7 @@ func databaseStatsHandler(w http.ResponseWriter, r *http.Request) {
 	stats, err := optimizer.GetDatabaseStats(ctx)
 	if err != nil {
 		log.Printf("Failed to get database stats: %v", err)
-		http.Error(w, "Failed to retrieve database statistics", http.StatusInternalServerError)
+		SendError(w, ErrDatabase("get database statistics", err))
 		return
 	}
 
@@ -54,18 +54,18 @@ func databaseStatsHandler(w http.ResponseWriter, r *http.Request) {
 // optimizeDatabaseHandler performs database optimization
 func optimizeDatabaseHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		SendError(w, ErrUnauthorized("Access denied"))
 		return
 	}
 
 	if !validateCSRF(r) {
-		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		SendError(w, ErrForbidden("Invalid CSRF token"))
 		return
 	}
 
@@ -181,7 +181,7 @@ func approveUsersHandler(w http.ResponseWriter, r *http.Request) {
 // approveUserHandler approves a pending user
 func approveUserHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -241,7 +241,7 @@ func manageUsersHandler(w http.ResponseWriter, r *http.Request) {
 // editUserHandler handles user editing
 func editUserHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -267,7 +267,7 @@ func editUserHandler(w http.ResponseWriter, r *http.Request) {
 // deleteUserHandler handles user deletion
 func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -304,19 +304,63 @@ func viewECSEReportsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var students []ECSEStudent
-
-	// Get ECSE students
-	query := `SELECT * FROM ecse_students ORDER BY last_name, first_name`
+	// For now, using a simple struct that matches the template expectations
+	type ECSEDisplayStudent struct {
+		StudentID              string `db:"student_id"`
+		FirstName              string `db:"first_name"`
+		LastName               string `db:"last_name"`
+		Grade                  string `db:"grade"`
+		EnrollmentStatus       string `db:"enrollment_status"`
+		IEPStatus              string `db:"iep_status"`
+		ServiceCount           int    `db:"service_count"`
+		TransportationRequired bool   `db:"transportation_required"`
+		BusRoute               string `db:"bus_route"`
+		ParentPhone            string `db:"parent_phone"`
+	}
+	
+	var students []ECSEDisplayStudent
+	
+	query := `SELECT 
+		student_id,
+		first_name,
+		last_name,
+		COALESCE(grade, '') as grade,
+		COALESCE(enrollment_status, 'Unknown') as enrollment_status,
+		COALESCE(iep_status, '') as iep_status,
+		0 as service_count,
+		COALESCE(transportation_required, false) as transportation_required,
+		COALESCE(bus_route, '') as bus_route,
+		COALESCE(parent_phone, '') as parent_phone
+	FROM ecse_students 
+	ORDER BY last_name, first_name
+	LIMIT 100`
+	
 	if err := db.Select(&students, query); err != nil {
 		log.Printf("Error loading ECSE students: %v", err)
-		// Try to return empty list instead of error
-		students = []ECSEStudent{}
+		students = []ECSEDisplayStudent{}
+	}
+	
+	log.Printf("Loaded %d ECSE students for display", len(students))
+	
+	// Debug: Show first student if any
+	if len(students) > 0 {
+		log.Printf("First student: ID=%s, Name=%s %s", 
+			students[0].StudentID, students[0].FirstName, students[0].LastName)
 	}
 
+	// Ensure students is never nil for template
+	if students == nil {
+		students = []ECSEDisplayStudent{}
+	}
+	
 	data := map[string]interface{}{
-		"User":      user,
-		"Students":  students,
+		"User": user,
+		"Data": map[string]interface{}{
+			"Students":     students,
+			"HasStudents":  len(students) > 0,
+			"StudentCount": len(students),
+			"CSRFToken":    getSessionCSRFToken(r),
+		},
 		"CSRFToken": getSessionCSRFToken(r),
 	}
 
@@ -393,13 +437,13 @@ func editECSEStudentHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		// Parse form
 		if err := r.ParseMultipartForm(10 << 20); err != nil {
-			http.Error(w, "Failed to parse form", http.StatusBadRequest)
+			SendError(w, ErrBadRequest("Failed to parse form data"))
 			return
 		}
 
 		// Validate CSRF token
 		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+			SendError(w, ErrForbidden("Invalid CSRF token"))
 			return
 		}
 
@@ -494,22 +538,28 @@ func studentsHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error loading driver assignments: %v", err)
 	}
 
-	// Get all students for the driver's routes
-	var students []Student
+	// Get all students for the driver's routes (batch loading to avoid N+1 queries)
+	var routeIDs []string
 	for _, assignment := range assignments {
-		var routeStudents []Student
-		var err error
-		
-		if showInactive {
-			routeStudents, err = getStudentsByRouteIncludingInactive(assignment.RouteID)
-		} else {
-			routeStudents, err = getStudentsByRoute(assignment.RouteID)
-		}
-		
-		if err != nil {
-			log.Printf("Error loading students for route %s: %v", assignment.RouteID, err)
-			continue
-		}
+		routeIDs = append(routeIDs, assignment.RouteID)
+	}
+	
+	var studentsMap map[string][]Student
+	var students []Student
+	
+	if showInactive {
+		studentsMap, err = getStudentsByMultipleRoutesIncludingInactive(routeIDs)
+	} else {
+		studentsMap, err = getStudentsByMultipleRoutes(routeIDs)
+	}
+	
+	if err != nil {
+		log.Printf("Error loading students: %v", err)
+		studentsMap = make(map[string][]Student)
+	}
+	
+	// Flatten the map into a single list
+	for _, routeStudents := range studentsMap {
 		students = append(students, routeStudents...)
 	}
 
@@ -622,13 +672,13 @@ func importMileageHandler(w http.ResponseWriter, r *http.Request) {
 		// Parse the multipart form (10MB max)
 		err := r.ParseMultipartForm(10 << 20)
 		if err != nil {
-			http.Error(w, "Failed to parse form", http.StatusBadRequest)
+			SendError(w, ErrBadRequest("Failed to parse form data"))
 			return
 		}
 
 		// Validate CSRF token
 		if !validateCSRF(r) {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+			SendError(w, ErrForbidden("Invalid CSRF token"))
 			return
 		}
 
@@ -687,20 +737,22 @@ func importMileageHandler(w http.ResponseWriter, r *http.Request) {
 
 // viewMileageReportsHandler shows mileage reports
 func viewMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("viewMileageReportsHandler called for %s", r.URL.Path)
+	
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
-	var reports []MileageReport
+	var reports []MonthlyMileageReport
 
-	// Get mileage reports
-	query := `SELECT * FROM mileage_reports ORDER BY year DESC, month DESC, vehicle_id`
+	// Get mileage reports from monthly_mileage_reports table
+	query := `SELECT * FROM monthly_mileage_reports ORDER BY report_year DESC, report_month DESC, bus_id`
 	if err := db.Select(&reports, query); err != nil {
 		log.Printf("Error loading mileage reports: %v", err)
 		// Return empty list instead of error
-		reports = []MileageReport{}
+		reports = []MonthlyMileageReport{}
 	}
 
 	// Get summary from driver logs for current month
@@ -720,16 +772,59 @@ func viewMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
 		vehicleCount = 0
 	}
 
+	// Calculate totals
+	var totalMiles int
+	activeVehicles := make(map[string]bool)
+	for _, report := range reports {
+		totalMiles += report.TotalMiles
+		if report.BusID != "" {
+			activeVehicles[report.BusID] = true
+		}
+	}
+
+	// Simple pagination
+	page := 1
+	perPage := 50
+	totalPages := (len(reports) + perPage - 1) / perPage
+	
+	// Get page from query
+	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	// Slice reports for current page
+	start := (page - 1) * perPage
+	end := start + perPage
+	if end > len(reports) {
+		end = len(reports)
+	}
+	pagedReports := reports[start:end]
+
 	data := map[string]interface{}{
+		"Title":             "Monthly Mileage Reports",
 		"User":              user,
-		"Reports":           reports,
+		"Reports":           pagedReports,
+		"TotalReports":      len(reports),
+		"TotalMiles":        totalMiles,
+		"ActiveVehicles":    len(activeVehicles),
 		"CurrentMonthTotal": currentMonthTotal,
 		"VehicleCount":      vehicleCount,
 		"CurrentMonth":      now.Format("January 2006"),
 		"CSRFToken":         getSessionCSRFToken(r),
+		"Pagination": map[string]interface{}{
+			"Page":       page,
+			"PerPage":    perPage,
+			"TotalPages": totalPages,
+			"HasPrev":    page > 1,
+			"HasNext":    page < totalPages,
+			"Pages":      generatePageNumbers(page, totalPages),
+		},
 	}
 
-	renderTemplate(w, r, "view_mileage_reports.html", data)
+	log.Printf("Rendering monthly_mileage_reports.html with %d reports", len(reports))
+	renderTemplate(w, r, "monthly_mileage_reports.html", data)
 }
 
 // mileageReportGeneratorHandler shows mileage report generator
@@ -781,7 +876,7 @@ func driverProfileHandler(w http.ResponseWriter, r *http.Request) {
 // assignRouteHandler assigns a route to a driver
 func assignRouteHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -808,7 +903,7 @@ func assignRouteHandler(w http.ResponseWriter, r *http.Request) {
 // unassignRouteHandler removes a route assignment
 func unassignRouteHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -830,7 +925,7 @@ func unassignRouteHandler(w http.ResponseWriter, r *http.Request) {
 // addRouteHandler adds a new route
 func addRouteHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -856,7 +951,7 @@ func addRouteHandler(w http.ResponseWriter, r *http.Request) {
 // editRouteHandler edits an existing route
 func editRouteHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -882,7 +977,7 @@ func editRouteHandler(w http.ResponseWriter, r *http.Request) {
 // deleteRouteHandler deletes a route
 func deleteRouteHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -949,7 +1044,7 @@ func addStudentWizardHandler(w http.ResponseWriter, r *http.Request) {
 // addStudentHandler adds a new student
 func addStudentHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -975,7 +1070,7 @@ func addStudentHandler(w http.ResponseWriter, r *http.Request) {
 // editStudentHandler edits student information
 func editStudentHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -1001,7 +1096,7 @@ func editStudentHandler(w http.ResponseWriter, r *http.Request) {
 // removeStudentHandler removes a student
 func removeStudentHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -1038,7 +1133,7 @@ func addBusWizardHandler(w http.ResponseWriter, r *http.Request) {
 // addBusHandler handles adding a new bus to the fleet
 func addBusHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -1051,13 +1146,13 @@ func addBusHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse form for multipart data
 	err := r.ParseMultipartForm(10 << 20) // 10MB max
 	if err != nil {
-		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		SendError(w, ErrBadRequest("Failed to parse form data"))
 		return
 	}
 
 	// Validate CSRF token
 	if !validateCSRF(r) {
-		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		SendError(w, ErrForbidden("Invalid CSRF token"))
 		return
 	}
 
@@ -1069,7 +1164,7 @@ func addBusHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Validate required fields
 	if busID == "" || model == "" || capacityStr == "" {
-		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		SendError(w, ErrValidation("Missing required fields"))
 		return
 	}
 
@@ -1174,7 +1269,7 @@ func routeAssignmentWizardHandler(w http.ResponseWriter, r *http.Request) {
 // assignRouteWizardHandler handles the wizard form submission
 func assignRouteWizardHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -1186,13 +1281,13 @@ func assignRouteWizardHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse form
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		SendError(w, ErrBadRequest("Failed to parse form data"))
 		return
 	}
 
 	// Validate CSRF token
 	if !validateCSRF(r) {
-		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		SendError(w, ErrForbidden("Invalid CSRF token"))
 		return
 	}
 
@@ -1272,7 +1367,7 @@ func maintenanceWizardHandler(w http.ResponseWriter, r *http.Request) {
 // saveMaintenanceWizardHandler handles the wizard form submission
 func saveMaintenanceWizardHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
@@ -1284,13 +1379,13 @@ func saveMaintenanceWizardHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse form
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		SendError(w, ErrBadRequest("Failed to parse form data"))
 		return
 	}
 
 	// Validate CSRF token
 	if !validateCSRF(r) {
-		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		SendError(w, ErrForbidden("Invalid CSRF token"))
 		return
 	}
 
@@ -1308,7 +1403,7 @@ func saveMaintenanceWizardHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Validate required fields
 	if vehicleType == "" || category == "" || date == "" || mileageStr == "" || notes == "" {
-		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		SendError(w, ErrValidation("Missing required fields"))
 		return
 	}
 
@@ -1411,20 +1506,20 @@ func importDataWizardHandler(w http.ResponseWriter, r *http.Request) {
 // importAnalyzeHandler analyzes uploaded Excel file
 func importAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		SendError(w, ErrUnauthorized("Access denied"))
 		return
 	}
 
 	// Parse multipart form
 	err := r.ParseMultipartForm(10 << 20) // 10MB
 	if err != nil {
-		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		SendError(w, ErrBadRequest("Failed to parse form data"))
 		return
 	}
 
@@ -1487,15 +1582,19 @@ func importAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	fileID := fmt.Sprintf("import_%s_%d", importType, time.Now().Unix())
 	
 	// Store file path in session for later use
-	session, _ := GetSecureSession(getSessionToken(r))
-	if session != nil {
-		if session.ImportFiles == nil {
-			session.ImportFiles = make(map[string]string)
+	sessionToken := getSessionToken(r)
+	if sessionToken != "" {
+		session, err := GetSecureSession(sessionToken)
+		if err == nil && session != nil {
+			if session.ImportFiles == nil {
+				session.ImportFiles = make(map[string]string)
+			}
+			session.ImportFiles[fileID] = tempFile.Name()
+			// Update session in the store
+			if sessionManager != nil {
+				sessionManager.store.Set(sessionToken, session)
+			}
 		}
-		session.ImportFiles[fileID] = tempFile.Name()
-		sessionsMutex.Lock()
-		sessions[session.SessionToken] = session
-		sessionsMutex.Unlock()
 	}
 
 	response := map[string]interface{}{
@@ -1516,13 +1615,13 @@ func importAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 // importValidateHandler validates the data with column mappings
 func importValidateHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		SendError(w, ErrUnauthorized("Access denied"))
 		return
 	}
 
@@ -1581,13 +1680,13 @@ func importValidateHandler(w http.ResponseWriter, r *http.Request) {
 // importExecuteHandler performs the actual import
 func importExecuteHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
 		return
 	}
 
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		SendError(w, ErrUnauthorized("Access denied"))
 		return
 	}
 
@@ -1667,7 +1766,7 @@ func importExecuteHandler(w http.ResponseWriter, r *http.Request) {
 func cacheStatsHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		SendError(w, ErrUnauthorized("Access denied"))
 		return
 	}
 
