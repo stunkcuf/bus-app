@@ -6,21 +6,9 @@
   <title>Driver Dashboard - Fleet Management System</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/enhanced_ui.css">
   
   <style nonce="{{.CSPNonce}}">
-    /* Ultimate beautiful design system */
-    :root {
-      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
-      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    }
-    
     * {
       margin: 0;
       padding: 0;
@@ -28,562 +16,620 @@
     }
     
     body {
-      background: #0f0c29;
-      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      background: #1a1a2e;
+      background: linear-gradient(135deg, #16213e 0%, #0f3460 50%, #533483 100%);
       min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      color: white;
+      position: relative;
       overflow-x: hidden;
     }
     
-    /* Animated background */
+    /* Background decoration */
     body::before {
       content: '';
       position: fixed;
-      top: 0;
-      left: 0;
+      top: -50%;
+      right: -30%;
       width: 100%;
       height: 100%;
-      background-image: 
-        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
-      animation: backgroundShift 20s ease-in-out infinite;
+      background: radial-gradient(circle, rgba(147, 51, 234, 0.3) 0%, transparent 70%);
+      filter: blur(100px);
       z-index: -1;
     }
     
-    @keyframes backgroundShift {
-      0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      33% { transform: translate(-20px, -20px) rotate(120deg); }
-      66% { transform: translate(20px, -10px) rotate(240deg); }
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -50%;
+      left: -30%;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
+      filter: blur(100px);
+      z-index: -1;
     }
     
-    /* Glassmorphism navigation */
-    .navbar-glass {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 1rem 0;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    /* Navigation */
+    .navbar {
+      background: transparent;
+      padding: 1.5rem 0;
+      position: relative;
+      z-index: 100;
     }
     
     .navbar-brand {
       color: white !important;
-      font-weight: 700;
       font-size: 1.5rem;
+      font-weight: 700;
+      text-decoration: none;
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      text-decoration: none;
-      transition: all 0.3s ease;
     }
     
-    .navbar-brand:hover {
-      transform: translateY(-2px);
-      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    /* Main Container */
+    .dashboard-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
     }
     
-    /* Floating orbs */
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(40px);
-      opacity: 0.6;
-      animation: float 20s infinite ease-in-out;
-    }
-    
-    .orb1 {
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
-      top: -150px;
-      left: -150px;
-    }
-    
-    .orb2 {
-      width: 400px;
-      height: 400px;
-      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
-      bottom: -200px;
-      right: -200px;
-      animation-delay: -5s;
-    }
-    
-    .orb3 {
-      width: 250px;
-      height: 250px;
-      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
-      top: 50%;
-      left: 50%;
-      animation-delay: -10s;
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(30px, -30px) scale(1.1); }
-      66% { transform: translate(-20px, 20px) scale(0.9); }
-    }
-    
-    /* Glass cards */
-    .glass-card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      border-radius: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+    /* Welcome Section */
+    .welcome-section {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
       padding: 2rem;
       margin-bottom: 2rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-      color: white;
+      animation: fadeIn 0.6s ease-out;
     }
     
-    /* Form styling */
-    .form-control,
-    .form-select {
+    .welcome-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    
+    .welcome-subtitle {
+      font-size: 1.125rem;
+      opacity: 0.8;
+    }
+    
+    /* Info Cards */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .info-card {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 2rem;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .info-card:hover {
+      transform: translateY(-5px);
       background: rgba(255, 255, 255, 0.1);
-      border: 2px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+    
+    .info-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.05) 50%, transparent 70%);
+      transform: rotate(45deg);
+      transition: all 0.6s;
+      opacity: 0;
+    }
+    
+    .info-card:hover::before {
+      animation: shimmer 0.6s ease-out;
+      opacity: 1;
+    }
+    
+    @keyframes shimmer {
+      0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+      100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+    
+    .info-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .info-icon {
+      width: 50px;
+      height: 50px;
+      background: rgba(147, 51, 234, 0.2);
       border-radius: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: #8b5cf6;
+    }
+    
+    .info-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    
+    .info-content {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .info-item:last-child {
+      border-bottom: none;
+    }
+    
+    .info-label {
+      font-size: 0.875rem;
+      opacity: 0.7;
+    }
+    
+    .info-value {
+      font-weight: 600;
+      color: #8b5cf6;
+    }
+    
+    /* Quick Actions */
+    .actions-section {
+      margin-bottom: 2rem;
+    }
+    
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+    }
+    
+    .action-card {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      text-decoration: none;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 150px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .action-card:hover {
+      transform: translateY(-5px);
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      color: white;
+      text-decoration: none;
+    }
+    
+    .action-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, currentColor, transparent);
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
+    }
+    
+    .action-card:hover::after {
+      transform: translateX(100%);
+    }
+    
+    .action-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .action-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    /* Log Entry Form */
+    .log-form-card {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      opacity: 0.8;
+    }
+    
+    .form-control {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
       color: white;
       padding: 0.75rem 1rem;
       transition: all 0.3s ease;
     }
     
-    .form-control:focus,
-    .form-select:focus {
+    .form-control:focus {
       background: rgba(255, 255, 255, 0.15);
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
-      color: white;
+      border-color: rgba(147, 51, 234, 0.5);
       outline: none;
+      box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.2);
     }
     
-    /* Button styling */
-    .btn {
-      padding: 0.75rem 1.5rem;
-      border-radius: 25px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      border: none;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.5);
     }
     
     .btn-primary {
-      background: var(--gradient-1);
-      color: white;
-      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+      border: none;
+      padding: 0.75rem 2rem;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.3s ease;
     }
     
     .btn-primary:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
     }
     
-    /* Metric cards */
-    .metric-card {
-      position: relative;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      border-radius: 30px;
-      padding: 2.5rem;
-      text-align: center;
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      overflow: hidden;
-      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    
-    .metric-card:hover {
-      transform: translateY(-10px) scale(1.02);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-    }
-    
-    /* Hero section */
-    .hero-section {
-      position: relative;
-      padding: 5rem 0 3rem;
-      text-align: center;
-      color: white;
+    /* Recent Logs Table */
+    .logs-card {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 2rem;
       overflow: hidden;
     }
     
-    .hero-content h1 {
-      font-size: 3.5rem;
-      font-weight: 800;
-      margin-bottom: 1rem;
-      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: gradientShift 8s ease-in-out infinite;
-    }
-    
-    /* Tables */
     .table {
       color: white;
+      margin-bottom: 0;
     }
     
-    .table thead th {
-      background: rgba(255, 255, 255, 0.15);
-      color: white;
-      font-weight: 700;
+    .table th {
+      border-color: rgba(255, 255, 255, 0.1);
+      font-weight: 600;
       text-transform: uppercase;
+      font-size: 0.75rem;
       letter-spacing: 1px;
-      padding: 1rem;
-      border: none;
+      opacity: 0.8;
+    }
+    
+    .table td {
+      border-color: rgba(255, 255, 255, 0.05);
+      padding: 1rem 0.75rem;
     }
     
     .table tbody tr {
-      background: rgba(255, 255, 255, 0.05);
       transition: all 0.3s ease;
     }
     
     .table tbody tr:hover {
-      background: rgba(255, 255, 255, 0.1);
-      transform: translateX(10px);
+      background: rgba(255, 255, 255, 0.05);
     }
     
     /* Animations */
     .fade-in {
       opacity: 0;
-      transform: translateY(30px);
-      animation: fadeInUp 0.8s ease-out forwards;
+      transform: translateY(20px);
+      animation: fadeIn 0.6s ease-out forwards;
     }
     
-    @keyframes fadeInUp {
+    @keyframes fadeIn {
       to {
         opacity: 1;
         transform: translateY(0);
       }
     }
+    
+    .fade-in:nth-child(1) { animation-delay: 0.1s; }
+    .fade-in:nth-child(2) { animation-delay: 0.2s; }
+    .fade-in:nth-child(3) { animation-delay: 0.3s; }
+    .fade-in:nth-child(4) { animation-delay: 0.4s; }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .dashboard-container {
+        padding: 1rem;
+      }
+      
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
   </style>
 </head>
 <body>
-  <!-- Floating orbs -->
-  <div class="orb orb1"></div>
-  <div class="orb orb2"></div>
-  <div class="orb orb3"></div>
-  
   <!-- Navigation -->
-  <nav class="navbar navbar-glass">
-    <div class="container">
-      <div class="d-flex justify-content-between align-items-center">
-        <a href="/driver-dashboard" class="navbar navbar-glass">
-          <i class="bi bi-bus-front-fill"></i>
-          <span>Driver Portal</span>
-        </a>
-        <div class="d-flex align-items-center gap-3">
-          <span class="text-white">
-            <i class="bi bi-person-circle me-2"></i>{{.Data.User.Username}}
-          </span>
-          <form method="POST" action="/logout" class="m-0">
-            <button type="submit" class="btn btn-outline-light btn-sm">
-              <i class="bi bi-box-arrow-right"></i> Logout
-            </button>
-          </form>
-        </div>
+  <nav class="navbar">
+    <div class="container-fluid px-4">
+      <a href="/driver-dashboard" class="navbar-brand">
+        <i class="bi bi-speedometer2"></i>
+        <span>Driver Dashboard</span>
+      </a>
+      <div class="d-flex align-items-center gap-3">
+        <span class="text-white opacity-75">
+          <i class="bi bi-person-circle me-2"></i>{{.User.Username}}
+        </span>
+        <form method="POST" action="/logout" class="m-0">
+          <button type="submit" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-box-arrow-right"></i> Logout
+          </button>
+        </form>
       </div>
     </div>
   </nav>
   
-  <!-- Hero Section -->
-  <section class="hero-section">
-    <div class="container">
-      <div class="hero-content">
-        <h1 class="fade-in">Welcome, {{.Data.User.Username}}!</h1>
-        <div class="hero-date fade-in">
-          <span><i class="bi bi-calendar3 me-2"></i>{{.Data.Date}}</span>
-          <span><i class="bi bi-clock me-2"></i><span id="currentTime">--:--</span></span>
+  <div class="dashboard-container">
+    <!-- Welcome Section -->
+    <div class="welcome-section">
+      <h1 class="welcome-title">Welcome back, {{.User.Username}}!</h1>
+      <p class="welcome-subtitle">{{.CurrentDate}} - Ready for today's routes</p>
+    </div>
+    
+    <!-- Info Cards -->
+    <div class="info-grid">
+      <!-- Route Assignment Card -->
+      <div class="info-card fade-in">
+        <div class="info-header">
+          <div class="info-icon">
+            <i class="bi bi-diagram-3"></i>
+          </div>
+          <h3 class="info-title">Route Assignment</h3>
+        </div>
+        <div class="info-content">
+          {{if .RouteAssignment}}
+          <div class="info-item">
+            <span class="info-label">Route</span>
+            <span class="info-value">{{.RouteAssignment.RouteID}}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Bus</span>
+            <span class="info-value">{{.RouteAssignment.BusID}}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Students</span>
+            <span class="info-value">{{.TotalStudents}}</span>
+          </div>
+          {{else}}
+          <p class="text-center opacity-75">No route assigned</p>
+          {{end}}
+        </div>
+      </div>
+      
+      <!-- Today's Status Card -->
+      <div class="info-card fade-in">
+        <div class="info-header">
+          <div class="info-icon" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">
+            <i class="bi bi-calendar-check"></i>
+          </div>
+          <h3 class="info-title">Today's Status</h3>
+        </div>
+        <div class="info-content">
+          <div class="info-item">
+            <span class="info-label">Morning Route</span>
+            <span class="info-value text-success">{{if .MorningComplete}}Complete{{else}}Pending{{end}}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Afternoon Route</span>
+            <span class="info-value {{if .AfternoonComplete}}text-success{{else}}text-warning{{end}}">
+              {{if .AfternoonComplete}}Complete{{else}}Pending{{end}}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Total Miles Today</span>
+            <span class="info-value">{{.TodayMiles}}</span>
+          </div>
         </div>
       </div>
     </div>
-  </section>
-  
-  <div class="container">
-    <!-- Metrics -->
-    {{if .Data.Route}}
-    <div class="metrics-grid">
-      <div class="metric-card fade-in">
-        <i class="bi bi-clock-fill metric-icon"></i>
-        <div class="metric-value" id="currentTimeMetric">--:--</div>
-        <div class="metric-label">Current Time</div>
-      </div>
-      
-      <div class="metric-card fade-in">
-        <i class="bi bi-people-fill metric-icon"></i>
-        <div class="metric-value">{{if .Data.Students}}{{len .Data.Students}}{{else}}0{{end}}</div>
-        <div class="metric-label">Students on Route</div>
-      </div>
-      
-      <div class="metric-card fade-in">
-        <i class="bi bi-bus-front metric-icon"></i>
-        <div class="metric-value">{{if .Data.Bus}}#{{.Data.Bus.BusID}}{{else}}--{{end}}</div>
-        <div class="metric-label">Your Bus</div>
-      </div>
-      
-      <div class="metric-card fade-in">
-        <i class="bi bi-speedometer2 metric-icon"></i>
-        <div class="metric-value">{{if .Data.DriverLog}}{{printf "%.1f" .Data.DriverLog.Mileage}}{{else}}0.0{{end}}</div>
-        <div class="metric-label">Miles Today</div>
-      </div>
-    </div>
-    {{end}}
     
     <!-- Quick Actions -->
-    <div class="quick-actions">
-      <a href="/students" class="action-card fade-in">
-        <i class="bi bi-people"></i>
-        <span>Manage Students</span>
-      </a>
-      <a href="/driver-dashboard?period=morning" class="action-card fade-in">
-        <i class="bi bi-sunrise"></i>
-        <span>Morning Route</span>
-      </a>
-      <a href="/driver-dashboard?period=afternoon" class="action-card fade-in">
-        <i class="bi bi-sunset"></i>
-        <span>Afternoon Route</span>
-      </a>
-      <a href="/reports" class="action-card fade-in">
-        <i class="bi bi-graph-up"></i>
-        <span>View Reports</span>
-      </a>
+    <div class="actions-section">
+      <h2 class="section-title fade-in">
+        <i class="bi bi-lightning-charge"></i>
+        Quick Actions
+      </h2>
+      <div class="actions-grid">
+        <a href="/students" class="action-card fade-in">
+          <i class="bi bi-people action-icon"></i>
+          <span class="action-label">My Students</span>
+        </a>
+        
+        <button class="action-card fade-in" onclick="startRoute('morning')">
+          <i class="bi bi-sunrise action-icon"></i>
+          <span class="action-label">Start Morning</span>
+        </button>
+        
+        <button class="action-card fade-in" onclick="startRoute('afternoon')">
+          <i class="bi bi-sunset action-icon"></i>
+          <span class="action-label">Start Afternoon</span>
+        </button>
+        
+        <a href="#logs" class="action-card fade-in">
+          <i class="bi bi-clock-history action-icon"></i>
+          <span class="action-label">View Logs</span>
+        </a>
+      </div>
     </div>
     
-    <!-- Main Form -->
-    <div class="glass-card fade-in">
-      <div class="glass-card-header">
-        <h2><i class="bi bi-journal-text me-2"></i>Daily Route Log</h2>
-      </div>
+    <!-- Log Entry Form -->
+    <div class="log-form-card fade-in" id="logForm" style="display: none;">
+      <h3 class="mb-4">
+        <i class="bi bi-journal-text me-2"></i>
+        Log Route Details
+      </h3>
       
-      {{if .Data.Route}}
-      <!-- Route Info -->
-      <div class="route-info">
-        <div class="bus-avatar">
-          <i class="bi bi-bus-front"></i>
-        </div>
-        <div class="flex-grow-1">
-          <h3 class="mb-1">{{.Data.Route.RouteName}}</h3>
-          <p class="mb-0 opacity-75">Route ID: {{.Data.Route.RouteID}}</p>
-          {{if .Data.Bus}}
-          <p class="mb-0 opacity-75">Vehicle: {{.Data.Bus.Model}} (#{{.Data.Bus.BusID}})</p>
-          {{end}}
-        </div>
-      </div>
-      
-      <form action="/save-log" method="POST">
-        <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
-        <input type="hidden" name="route_id" value="{{.Data.Route.RouteID}}">
-        <input type="hidden" name="bus_id" value="{{if .Data.Bus}}{{.Data.Bus.BusID}}{{end}}">
+      <form method="POST" action="/save-log" id="routeLogForm">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <input type="hidden" name="route_type" id="routeType">
         
-        <div class="row g-3">
-          <div class="col-md-3">
-            <div class="form-group">
-              <label class="form-label"><i class="bi bi-calendar3 me-1"></i> Date</label>
-              <input type="date" name="date" class="form-control" value="{{.Data.Date}}" required>
-            </div>
+        <div class="form-grid mb-4">
+          <div class="form-group">
+            <label>Departure Time</label>
+            <input type="time" class="form-control" name="departure_time" required>
           </div>
-          <div class="col-md-3">
-            <div class="form-group">
-              <label class="form-label"><i class="bi bi-sun me-1"></i> Period</label>
-              <select name="period" class="form-select" required>
-                <option value="morning" {{if eq .Data.Period "morning"}}selected{{end}}>Morning (AM)</option>
-                <option value="afternoon" {{if eq .Data.Period "afternoon"}}selected{{end}}>Afternoon (PM)</option>
-              </select>
-            </div>
+          
+          <div class="form-group">
+            <label>Arrival Time</label>
+            <input type="time" class="form-control" name="arrival_time" required>
           </div>
-          <div class="col-md-3">
-            <div class="form-group">
-              <label class="form-label"><i class="bi bi-arrow-up-circle me-1"></i> Departure</label>
-              <input type="time" name="departure" class="form-control" value="{{if .Data.DriverLog}}{{.Data.DriverLog.Departure}}{{end}}" required>
-            </div>
+          
+          <div class="form-group">
+            <label>Beginning Mileage</label>
+            <input type="number" class="form-control" name="beginning_mileage" placeholder="Current odometer" required>
           </div>
-          <div class="col-md-3">
-            <div class="form-group">
-              <label class="form-label"><i class="bi bi-arrow-down-circle me-1"></i> Arrival</label>
-              <input type="time" name="arrival" class="form-control" value="{{if .Data.DriverLog}}{{.Data.DriverLog.Arrival}}{{end}}" required>
-            </div>
+          
+          <div class="form-group">
+            <label>Ending Mileage</label>
+            <input type="number" class="form-control" name="ending_mileage" placeholder="Final odometer" required>
           </div>
         </div>
         
-        <div class="row g-3 mt-3">
-          <div class="col-md-12">
-            <div class="form-group">
-              <label class="form-label"><i class="bi bi-speedometer2 me-1"></i> Total Mileage</label>
-              <input type="number" name="mileage" class="form-control" step="0.1" 
-                     placeholder="Enter total miles driven" 
-                     value="{{if .Data.DriverLog}}{{.Data.DriverLog.Mileage}}{{end}}" required>
-            </div>
-          </div>
+        <div class="form-group mb-4">
+          <label>Notes</label>
+          <textarea class="form-control" name="notes" rows="3" placeholder="Any incidents or observations..."></textarea>
         </div>
         
-        {{if .Data.Students}}
-        <h3 class="mt-4 mb-3">
-          <i class="bi bi-people me-2"></i>Student Attendance
-        </h3>
-        
-        <div class="student-list">
-          {{range $index, $student := .Data.Students}}
-          {{$position := $student.PositionNumber}}
-          <div class="student-item">
-            <div class="student-position">{{add $index 1}}</div>
-            <div class="student-info">
-              <div class="student-name">{{.Name}}</div>
-              <div class="student-details">
-                ID: {{.StudentID}} • Guardian: {{.Guardian}} • <i class="bi bi-telephone"></i> {{.PhoneNumber}}
-              </div>
-            </div>
-            <div class="ms-auto d-flex align-items-center gap-3">
-              <span class="student-time">
-                <i class="bi bi-clock"></i> 
-                {{if eq $.Data.Period "morning"}}{{.PickupTime}}{{else}}{{.DropoffTime}}{{end}}
-              </span>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" 
-                       name="present_{{.PositionNumber}}" 
-                       id="present_{{.PositionNumber}}"
-                       {{if $.Data.DriverLog}}
-                         {{range $.Data.DriverLog.Attendance}}
-                           {{if eq .Position $position}}{{if .Present}}checked{{end}}{{end}}
-                         {{end}}
-                       {{end}}>
-                <label class="form-check-label text-white" for="present_{{.PositionNumber}}">
-                  Present
-                </label>
-              </div>
-              <input type="time" class="form-control" style="width: 130px;"
-                     name="pickup_{{.PositionNumber}}"
-                     {{if $.Data.DriverLog}}
-                       {{range $.Data.DriverLog.Attendance}}
-                         {{if eq .Position $position}}value="{{.PickupTime}}"{{end}}
-                       {{end}}
-                     {{end}}>
-            </div>
-          </div>
-          {{end}}
-        </div>
-        {{end}}
-        
-        <div class="text-center mt-4">
-          <button type="submit" class="btn btn-glow">
-            <i class="bi bi-check-circle me-2"></i>Save Route Log
+        <div class="d-flex gap-3">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle me-2"></i>
+            Save Log
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="hideLogForm()">
+            Cancel
           </button>
         </div>
       </form>
-      {{else}}
-      <div class="text-center py-5">
-        <i class="bi bi-exclamation-circle" style="font-size: 4rem; color: #fa709a;"></i>
-        <h3 class="mt-3">No Route Assignment</h3>
-        <p class="opacity-75">You haven't been assigned to a route yet. Please contact your manager.</p>
-      </div>
-      {{end}}
     </div>
     
     <!-- Recent Logs -->
-    <div class="row">
-      <div class="col-lg-8">
-        <div class="glass-card fade-in">
-          <h3 class="mb-4"><i class="bi bi-clock-history me-2"></i>Recent Trip Logs</h3>
-          {{if .Data.RecentLogs}}
-          {{range .Data.RecentLogs}}
-          <div class="log-item">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <strong style="font-size: 1.1rem;">{{.Date}} - {{.Period}}</strong>
-                <p class="mb-0 opacity-75 mt-1">
-                  <i class="bi bi-clock"></i> {{.Departure}} - {{.Arrival}} • 
-                  <i class="bi bi-speedometer2"></i> {{printf "%.1f" .Mileage}} miles • 
-                  <i class="bi bi-people"></i> {{len .Attendance}} students
-                </p>
-              </div>
-              <span class="badge-glow">Completed</span>
-            </div>
-          </div>
-          {{end}}
-          {{else}}
-          <div class="text-center py-4">
-            <i class="bi bi-journal-x" style="font-size: 3rem; opacity: 0.5;"></i>
-            <p class="mt-2 opacity-75">No recent trip logs found</p>
-          </div>
-          {{end}}
-        </div>
-      </div>
+    <div class="logs-card fade-in" id="logs">
+      <h3 class="mb-4">
+        <i class="bi bi-clock-history me-2"></i>
+        Recent Logs
+      </h3>
       
-      <div class="col-lg-4">
-        <div class="glass-card fade-in">
-          <h3 class="mb-4"><i class="bi bi-info-circle me-2"></i>Quick Tips</h3>
-          <div class="small opacity-75">
-            <p><i class="bi bi-lightbulb text-warning me-2"></i>Remember to check your bus before departure</p>
-            <p><i class="bi bi-shield-check text-success me-2"></i>Safety first - follow all protocols</p>
-            <p><i class="bi bi-clock-history text-info me-2"></i>Log your trips daily for accurate records</p>
-            <p class="mb-0"><i class="bi bi-telephone text-danger me-2"></i>Contact dispatch for any emergencies</p>
-          </div>
-        </div>
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Route</th>
+              <th>Departure</th>
+              <th>Arrival</th>
+              <th>Miles</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .RecentLogs}}
+            <tr>
+              <td>{{.Date}}</td>
+              <td>{{.RouteType}}</td>
+              <td>{{.DepartureTime}}</td>
+              <td>{{.ArrivalTime}}</td>
+              <td>{{.TotalMiles}}</td>
+              <td>
+                <span class="badge bg-success">Complete</span>
+              </td>
+            </tr>
+            {{end}}
+            {{if not .RecentLogs}}
+            <tr>
+              <td colspan="6" class="text-center opacity-75">No recent logs</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
   
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="{{.CSPNonce}}">
-    // Update time
-    function updateTime() {
-      const now = new Date();
-      const timeString = now.toLocaleTimeString('en-US', { 
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-      document.getElementById('currentTime').textContent = timeString;
-      const metricTime = document.getElementById('currentTimeMetric');
-      if (metricTime) metricTime.textContent = timeString;
-    }
-    updateTime();
-    setInterval(updateTime, 1000);
-    
-    // Auto-check present when time entered
-    document.querySelectorAll('input[name^="pickup_"]').forEach(input => {
-      input.addEventListener('change', function() {
-        const item = this.closest('.student-item');
-        const checkbox = item.querySelector('input[type="checkbox"]');
-        if (this.value && checkbox) {
-          checkbox.checked = true;
-        }
-      });
-    });
-    
-    // Add some interactive effects
-    document.querySelectorAll('.metric-card, .action-card').forEach(card => {
-      card.addEventListener('mousemove', (e) => {
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        card.style.setProperty('--mouse-x', `${x}px`);
-        card.style.setProperty('--mouse-y', `${y}px`);
-      });
-    });
-    
-    // Animate numbers
-    function animateValue(element, start, end, duration) {
-      let startTimestamp = null;
-      const step = (timestamp) => {
-        if (!startTimestamp) startTimestamp = timestamp;
-        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        const value = Math.floor(progress * (end - start) + start);
-        element.textContent = element.id === 'currentTimeMetric' ? element.textContent : value;
-        if (progress < 1) {
-          window.requestAnimationFrame(step);
-        }
-      };
-      window.requestAnimationFrame(step);
+    function startRoute(type) {
+      document.getElementById('routeType').value = type;
+      document.getElementById('logForm').style.display = 'block';
+      document.getElementById('logForm').scrollIntoView({ behavior: 'smooth' });
     }
     
-    // Animate metric values on load
-    document.querySelectorAll('.metric-value').forEach(el => {
-      const text = el.textContent;
-      const value = parseFloat(text);
-      if (!isNaN(value) && el.id !== 'currentTimeMetric') {
-        animateValue(el, 0, value, 1500);
+    function hideLogForm() {
+      document.getElementById('logForm').style.display = 'none';
+    }
+    
+    // Validate mileage
+    document.getElementById('routeLogForm').addEventListener('submit', function(e) {
+      const beginning = parseInt(document.querySelector('[name="beginning_mileage"]').value);
+      const ending = parseInt(document.querySelector('[name="ending_mileage"]').value);
+      
+      if (ending <= beginning) {
+        e.preventDefault();
+        alert('Ending mileage must be greater than beginning mileage');
       }
     });
   </script>
