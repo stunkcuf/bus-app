@@ -31,7 +31,7 @@ func analyticsDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		CSPNonce:  GenerateCSPNonce(),
 	}
 
-	if err := templates.ExecuteTemplate(w, "dashboard_enhanced.html", data); err != nil {
+	if err := templates.ExecuteTemplate(w, "analytics_dashboard.html", data); err != nil {
 		LogError("Failed to execute analytics dashboard template", err)
 		SendError(w, ErrInternal("Failed to render page", err))
 		return

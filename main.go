@@ -904,6 +904,7 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/ecse-dashboard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(ecseDashboardHandler)))))
 	mux.HandleFunc("/ecse-student", withRecovery(requireAuth(requireRole("manager")(requireDatabase(ecseStudentDetailsHandler)))))
 	mux.HandleFunc("/add-ecse-service", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addECSEServiceHandler)))))
+	mux.HandleFunc("/import-ecse", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importECSEHandler)))))
 	mux.HandleFunc("/add-sample-ecse-data", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addSampleECSEDataHandler)))))
 	mux.HandleFunc("/add-sample-fleet-data", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addSampleFleetDataHandler)))))
 	mux.HandleFunc("/add-sample-fuel-data", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addSampleFuelDataHandler)))))
