@@ -775,6 +775,17 @@ func (mr MaintenanceRecord) GetCostAsFloat() float64 {
 	return 0
 }
 
+// MileageRecord represents a mileage record
+type MileageRecord struct {
+	ID           int    `json:"id" db:"id"`
+	Date         string `json:"date" db:"date"`
+	BusNumber    int    `json:"bus_number" db:"bus_number"`
+	StartMileage int    `json:"start_mileage" db:"start_mileage"`
+	EndMileage   int    `json:"end_mileage" db:"end_mileage"`
+	Driver       string `json:"driver" db:"driver"`
+	CreatedAt    string `json:"created_at" db:"created_at"`
+}
+
 // ServiceRecord represents a service record from the service_records table
 // This table has generic unnamed columns from imported data
 type ServiceRecord struct {
@@ -990,3 +1001,117 @@ type ProgramStaffRecord struct {
 
 // min function is defined in main.go
 // Commented out to avoid redeclaration
+
+// Helper methods for ECSE Student to handle null values in templates
+func (e ECSEStudent) GetDateOfBirth() string {
+	if e.DateOfBirth.Valid {
+		return e.DateOfBirth.String
+	}
+	return ""
+}
+
+func (e ECSEStudent) GetGrade() string {
+	if e.Grade.Valid {
+		return e.Grade.String
+	}
+	return ""
+}
+
+func (e ECSEStudent) GetEnrollmentStatus() string {
+	if e.EnrollmentStatus.Valid {
+		return e.EnrollmentStatus.String
+	}
+	return "Unknown"
+}
+
+func (e ECSEStudent) GetIEPStatus() string {
+	if e.IEPStatus.Valid {
+		return e.IEPStatus.String
+	}
+	return ""
+}
+
+func (e ECSEStudent) GetPrimaryDisability() string {
+	if e.PrimaryDisability.Valid {
+		return e.PrimaryDisability.String
+	}
+	return ""
+}
+
+func (e ECSEStudent) GetServiceMinutes() int {
+	if e.ServiceMinutes.Valid {
+		return int(e.ServiceMinutes.Int32)
+	}
+	return 0
+}
+
+func (e ECSEStudent) GetTransportationRequired() bool {
+	if e.TransportationRequired.Valid {
+		return e.TransportationRequired.Bool
+	}
+	return false
+}
+
+func (e ECSEStudent) GetBusRoute() string {
+	if e.BusRoute.Valid {
+		return e.BusRoute.String
+	}
+	return ""
+}
+
+func (e ECSEStudent) GetParentName() string {
+	if e.ParentName.Valid {
+		return e.ParentName.String
+	}
+	return ""
+}
+
+func (e ECSEStudent) GetParentPhone() string {
+	if e.ParentPhone.Valid {
+		return e.ParentPhone.String
+	}
+	return ""
+}
+
+func (e ECSEStudent) GetParentEmail() string {
+	if e.ParentEmail.Valid {
+		return e.ParentEmail.String
+	}
+	return ""
+}
+
+func (e ECSEStudent) GetAddress() string {
+	if e.Address.Valid {
+		return e.Address.String
+	}
+	return ""
+}
+
+func (e ECSEStudent) GetCity() string {
+	if e.City.Valid {
+		return e.City.String
+	}
+	return ""
+}
+
+func (e ECSEStudent) GetState() string {
+	if e.State.Valid {
+		return e.State.String
+	}
+	return ""
+}
+
+func (e ECSEStudent) GetZipCode() string {
+	if e.ZipCode.Valid {
+		return e.ZipCode.String
+	}
+	return ""
+}
+
+func (e ECSEStudent) GetNotes() string {
+	if e.Notes.Valid {
+		return e.Notes.String
+	}
+	return ""
+}
+

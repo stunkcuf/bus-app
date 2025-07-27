@@ -558,6 +558,9 @@ var StudentValidationRules = []ValidationRule{
 	},
 }
 
+// MaxFileSize is the maximum file size for uploads (10MB)
+const MaxFileSize = 10 * 1024 * 1024
+
 // FileUploadValidationRules defines validation for file uploads
 var FileUploadValidationRules = []ValidationRule{
 	{

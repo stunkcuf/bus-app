@@ -42,15 +42,16 @@ func InitDB(dataSourceName string) error {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
 
-	// Set optimized connection pool settings for production
-	// Max open connections: higher for concurrent users
-	db.SetMaxOpenConns(50)
-	// Keep more idle connections for faster response times
-	db.SetMaxIdleConns(15)
-	// Longer connection lifetime for stability
-	db.SetConnMaxLifetime(15 * time.Minute)
-	// Set idle timeout to prevent stale connections
-	db.SetConnMaxIdleTime(5 * time.Minute)
+	// Apply optimized connection pool configuration
+	poolConfig := LoadPoolConfigFromEnv()
+	if err := ConfigureDBPool(db, poolConfig); err != nil {
+		log.Printf("Warning: Failed to configure optimal pool settings: %v", err)
+		// Fallback to default settings
+		db.SetMaxOpenConns(25)
+		db.SetMaxIdleConns(10)
+		db.SetConnMaxLifetime(15 * time.Minute)
+		db.SetConnMaxIdleTime(5 * time.Minute)
+	}
 
 	// Test the connection
 	log.Println("Testing database connection...")
@@ -115,12 +116,12 @@ func createPerformanceIndexes() error {
 			query: `CREATE INDEX IF NOT EXISTS idx_maintenance_records_date 
 			 ON maintenance_records(date DESC) WHERE date IS NOT NULL`,
 		},
-		// Fleet Vehicles Indexes - FIXED: check if columns exist
-		{
-			name: "fleet_vehicles_make_model",
-			query: `CREATE INDEX IF NOT EXISTS idx_fleet_vehicles_make_model 
-			 ON fleet_vehicles(make, model)`,
-		},
+		// Fleet Vehicles Indexes - COMMENTED OUT: migrating to vehicles table
+		// {
+		// 	name: "fleet_vehicles_make_model",
+		// 	query: `CREATE INDEX IF NOT EXISTS idx_fleet_vehicles_make_model 
+		// 	 ON fleet_vehicles(make, model)`,
+		// },
 		// Buses table indexes
 		{
 			name: "buses_status",
@@ -288,6 +289,14 @@ func runMigrations() error {
 			token VARCHAR(255) PRIMARY KEY,
 			username VARCHAR(50) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
 			csrf_token VARCHAR(255) NOT NULL,
+			expires_at TIMESTAMP NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// Create password reset tokens table
+		`CREATE TABLE IF NOT EXISTS password_reset_tokens (
+			username VARCHAR(50) PRIMARY KEY REFERENCES users(username) ON DELETE CASCADE,
+			token VARCHAR(255) NOT NULL,
 			expires_at TIMESTAMP NOT NULL,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
@@ -493,23 +502,23 @@ func runMigrations() error {
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
 
-		// Create fleet_vehicles table if not exists
-		`CREATE TABLE IF NOT EXISTS fleet_vehicles (
-			id SERIAL PRIMARY KEY,
-			vehicle_number INTEGER,
-			sheet_name VARCHAR(100),
-			year INTEGER,
-			make VARCHAR(100),
-			model VARCHAR(100),
-			description TEXT,
-			serial_number VARCHAR(100),
-			license VARCHAR(50),
-			location VARCHAR(100),
-			tire_size VARCHAR(50),
-			status VARCHAR(20) DEFAULT 'active',
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
+		// COMMENTED OUT: fleet_vehicles table - migrating to vehicles table
+		// `CREATE TABLE IF NOT EXISTS fleet_vehicles (
+		// 	id SERIAL PRIMARY KEY,
+		// 	vehicle_number INTEGER,
+		// 	sheet_name VARCHAR(100),
+		// 	year INTEGER,
+		// 	make VARCHAR(100),
+		// 	model VARCHAR(100),
+		// 	description TEXT,
+		// 	serial_number VARCHAR(100),
+		// 	license VARCHAR(50),
+		// 	location VARCHAR(100),
+		// 	tire_size VARCHAR(50),
+		// 	status VARCHAR(20) DEFAULT 'active',
+		// 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		// 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		// )`,
 
 		// Create service_records table if not exists
 		`CREATE TABLE IF NOT EXISTS service_records (
@@ -573,41 +582,41 @@ func runMigrations() error {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
 
-		// Create import history table
-		`CREATE TABLE IF NOT EXISTS import_history (
-			id SERIAL PRIMARY KEY,
-			import_id VARCHAR(50) UNIQUE NOT NULL,
-			import_type VARCHAR(20) NOT NULL,
-			file_name VARCHAR(255) NOT NULL,
-			file_size BIGINT NOT NULL,
-			total_rows INTEGER DEFAULT 0,
-			successful_rows INTEGER DEFAULT 0,
-			failed_rows INTEGER DEFAULT 0,
-			error_count INTEGER DEFAULT 0,
-			warning_count INTEGER DEFAULT 0,
-			summary TEXT,
-			start_time TIMESTAMP NOT NULL,
-			end_time TIMESTAMP NOT NULL,
-			duration INTERVAL GENERATED ALWAYS AS (end_time - start_time) STORED,
-			imported_by VARCHAR(50) REFERENCES users(username),
-			rollback_available BOOLEAN DEFAULT TRUE,
-			rollback_expires_at TIMESTAMP,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
+		// COMMENTED OUT: import history table - legacy import system removed
+		// `CREATE TABLE IF NOT EXISTS import_history (
+		// 	id SERIAL PRIMARY KEY,
+		// 	import_id VARCHAR(50) UNIQUE NOT NULL,
+		// 	import_type VARCHAR(20) NOT NULL,
+		// 	file_name VARCHAR(255) NOT NULL,
+		// 	file_size BIGINT NOT NULL,
+		// 	total_rows INTEGER DEFAULT 0,
+		// 	successful_rows INTEGER DEFAULT 0,
+		// 	failed_rows INTEGER DEFAULT 0,
+		// 	error_count INTEGER DEFAULT 0,
+		// 	warning_count INTEGER DEFAULT 0,
+		// 	summary TEXT,
+		// 	start_time TIMESTAMP NOT NULL,
+		// 	end_time TIMESTAMP NOT NULL,
+		// 	duration INTERVAL GENERATED ALWAYS AS (end_time - start_time) STORED,
+		// 	imported_by VARCHAR(50) REFERENCES users(username),
+		// 	rollback_available BOOLEAN DEFAULT TRUE,
+		// 	rollback_expires_at TIMESTAMP,
+		// 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		// )`,
 
-		// Create import errors table
-		`CREATE TABLE IF NOT EXISTS import_errors (
-			id SERIAL PRIMARY KEY,
-			import_id VARCHAR(50) REFERENCES import_history(import_id) ON DELETE CASCADE,
-			row_number INTEGER,
-			column_name VARCHAR(100),
-			sheet_name VARCHAR(100),
-			error_type VARCHAR(50),
-			error_message TEXT,
-			error_value TEXT,
-			severity VARCHAR(20) DEFAULT 'error',
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
+		// COMMENTED OUT: import errors table - legacy import system removed
+		// `CREATE TABLE IF NOT EXISTS import_errors (
+		// 	id SERIAL PRIMARY KEY,
+		// 	import_id VARCHAR(50) REFERENCES import_history(import_id) ON DELETE CASCADE,
+		// 	row_number INTEGER,
+		// 	column_name VARCHAR(100),
+		// 	sheet_name VARCHAR(100),
+		// 	error_type VARCHAR(50),
+		// 	error_message TEXT,
+		// 	error_value TEXT,
+		// 	severity VARCHAR(20) DEFAULT 'error',
+		// 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		// )`,
 
 		// Add import_id columns to track imports
 		`DO $$ 
@@ -702,6 +711,137 @@ func runMigrations() error {
 			import_id VARCHAR(50),
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
+
+		// Create driver_locations table for real-time tracking
+		`CREATE TABLE IF NOT EXISTS driver_locations (
+			driver_username VARCHAR(50) PRIMARY KEY REFERENCES users(username) ON DELETE CASCADE,
+			latitude DECIMAL(10,8),
+			longitude DECIMAL(11,8),
+			speed DECIMAL(5,2),
+			heading DECIMAL(5,2),
+			accuracy DECIMAL(6,2),
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// Create notifications table
+		`CREATE TABLE IF NOT EXISTS notifications (
+			id VARCHAR(100) PRIMARY KEY,
+			type VARCHAR(50) NOT NULL,
+			title VARCHAR(255) NOT NULL,
+			message TEXT NOT NULL,
+			priority VARCHAR(20) NOT NULL DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
+			channels VARCHAR(255) NOT NULL DEFAULT 'email',
+			scheduled_for TIMESTAMP,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed', 'cancelled'))
+		)`,
+
+		// Create notification_recipients table
+		`CREATE TABLE IF NOT EXISTS notification_recipients (
+			id SERIAL PRIMARY KEY,
+			notification_id VARCHAR(100) REFERENCES notifications(id) ON DELETE CASCADE,
+			user_id VARCHAR(50),
+			email VARCHAR(255),
+			phone VARCHAR(20),
+			UNIQUE(notification_id, user_id, email, phone)
+		)`,
+
+		// Create notification_deliveries table
+		`CREATE TABLE IF NOT EXISTS notification_deliveries (
+			id SERIAL PRIMARY KEY,
+			notification_id VARCHAR(100) REFERENCES notifications(id) ON DELETE CASCADE,
+			user_id VARCHAR(50),
+			channel VARCHAR(20) NOT NULL,
+			status VARCHAR(20) NOT NULL,
+			delivered_at TIMESTAMP,
+			error_message TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// Create in_app_notifications table
+		`CREATE TABLE IF NOT EXISTS in_app_notifications (
+			id SERIAL PRIMARY KEY,
+			user_id VARCHAR(50) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+			notification_id VARCHAR(100) NOT NULL,
+			type VARCHAR(50) NOT NULL,
+			subject VARCHAR(255) NOT NULL,
+			message TEXT NOT NULL,
+			data JSONB,
+			read BOOLEAN DEFAULT FALSE,
+			read_at TIMESTAMP,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(user_id, notification_id)
+		)`,
+
+		// Add email and phone to users table if not exists
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255)`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20)`,
+
+		// Drop unique constraints on route_assignments to allow multiple routes per driver/bus
+		`ALTER TABLE route_assignments DROP CONSTRAINT IF EXISTS route_assignments_driver_route_id_key`,
+		`ALTER TABLE route_assignments DROP CONSTRAINT IF EXISTS route_assignments_bus_id_route_id_key`,
+		
+		// Add a composite unique constraint to prevent duplicate assignments
+		`ALTER TABLE route_assignments ADD CONSTRAINT route_assignments_unique_assignment 
+		 UNIQUE(driver, bus_id, route_id)`,
+
+		// Create budget tables
+		`CREATE TABLE IF NOT EXISTS budgets (
+			id SERIAL PRIMARY KEY,
+			name VARCHAR(255) NOT NULL,
+			fiscal_year INTEGER NOT NULL,
+			total_amount DECIMAL(15,2) NOT NULL DEFAULT 0,
+			allocated_amount DECIMAL(15,2) NOT NULL DEFAULT 0,
+			spent_amount DECIMAL(15,2) NOT NULL DEFAULT 0,
+			status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'closed')),
+			created_by VARCHAR(50) NOT NULL REFERENCES users(username),
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS budget_categories (
+			id SERIAL PRIMARY KEY,
+			budget_id INTEGER NOT NULL REFERENCES budgets(id) ON DELETE CASCADE,
+			category_name VARCHAR(100) NOT NULL,
+			category_type VARCHAR(50) NOT NULL,
+			allocated_amount DECIMAL(15,2) NOT NULL DEFAULT 0,
+			spent_amount DECIMAL(15,2) NOT NULL DEFAULT 0,
+			description TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS budget_transactions (
+			id SERIAL PRIMARY KEY,
+			budget_id INTEGER NOT NULL REFERENCES budgets(id) ON DELETE CASCADE,
+			category_id INTEGER NOT NULL REFERENCES budget_categories(id),
+			transaction_date DATE NOT NULL,
+			amount DECIMAL(15,2) NOT NULL,
+			transaction_type VARCHAR(20) NOT NULL CHECK (transaction_type IN ('expense', 'adjustment')),
+			description TEXT,
+			vehicle_id VARCHAR(50),
+			reference_id VARCHAR(50),
+			reference_type VARCHAR(50),
+			created_by VARCHAR(50) NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS budget_alerts (
+			id SERIAL PRIMARY KEY,
+			budget_id INTEGER NOT NULL REFERENCES budgets(id) ON DELETE CASCADE,
+			category_id INTEGER REFERENCES budget_categories(id),
+			alert_type VARCHAR(50) NOT NULL,
+			threshold_pct DECIMAL(5,2),
+			message TEXT NOT NULL,
+			is_active BOOLEAN DEFAULT TRUE,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// Create indexes for budget tables
+		`CREATE INDEX IF NOT EXISTS idx_budget_transactions_date ON budget_transactions(transaction_date DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_budget_transactions_category ON budget_transactions(category_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_budget_categories_budget ON budget_categories(budget_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_budget_alerts_active ON budget_alerts(budget_id, is_active) WHERE is_active = true`,
 	}
 
 	for i, migration := range migrations {

@@ -27,17 +27,12 @@ func availableDriversHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get drivers who are active and not currently assigned to a route
+	// Get drivers who are active (can be assigned to multiple routes)
 	query := `
 		SELECT u.username, u.status 
 		FROM users u 
 		WHERE u.role = 'driver' 
 			AND u.status = 'active'
-			AND u.username NOT IN (
-				SELECT DISTINCT driver 
-				FROM route_assignments 
-				WHERE driver IS NOT NULL
-			)
 		ORDER BY u.username
 	`
 
@@ -77,15 +72,11 @@ func availableBusesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get buses that are not currently assigned to a route
+	// Get all active buses (can be assigned to multiple routes)
 	query := `
 		SELECT b.bus_id, b.model, b.capacity, b.status 
 		FROM buses b 
-		WHERE b.bus_id NOT IN (
-			SELECT DISTINCT bus_id 
-			FROM route_assignments 
-			WHERE bus_id IS NOT NULL
-		)
+		WHERE b.status = 'active'
 		ORDER BY b.bus_id
 	`
 
@@ -189,25 +180,22 @@ func checkAssignmentConflictsHandler(w http.ResponseWriter, r *http.Request) {
 
 	conflicts := []string{}
 
-	// Check if driver is already assigned
-	var driverCount int
-	err := db.Get(&driverCount, "SELECT COUNT(*) FROM route_assignments WHERE driver = $1", data.Driver)
-	if err == nil && driverCount > 0 {
-		conflicts = append(conflicts, fmt.Sprintf("Driver %s is already assigned to another route", data.Driver))
+	// Check if this exact combination already exists
+	var existingCount int
+	err := db.Get(&existingCount, 
+		"SELECT COUNT(*) FROM route_assignments WHERE driver = $1 AND bus_id = $2 AND route_id = $3", 
+		data.Driver, data.BusID, data.RouteID)
+	if err == nil && existingCount > 0 {
+		conflicts = append(conflicts, "This exact driver-bus-route combination already exists")
 	}
 
-	// Check if bus is already assigned
-	var busCount int
-	err = db.Get(&busCount, "SELECT COUNT(*) FROM route_assignments WHERE bus_id = $1", data.BusID)
-	if err == nil && busCount > 0 {
-		conflicts = append(conflicts, fmt.Sprintf("Bus %s is already assigned to another route", data.BusID))
-	}
-
-	// Check if route is already assigned
-	var routeCount int
-	err = db.Get(&routeCount, "SELECT COUNT(*) FROM route_assignments WHERE route_id = $1", data.RouteID)
-	if err == nil && routeCount > 0 {
-		conflicts = append(conflicts, fmt.Sprintf("Route %s is already assigned", data.RouteID))
+	// Optional: Check if driver is already assigned to this specific route with a different bus
+	var driverRouteCount int
+	err = db.Get(&driverRouteCount, 
+		"SELECT COUNT(*) FROM route_assignments WHERE driver = $1 AND route_id = $2 AND bus_id != $3", 
+		data.Driver, data.RouteID, data.BusID)
+	if err == nil && driverRouteCount > 0 {
+		conflicts = append(conflicts, fmt.Sprintf("Driver %s is already assigned to route %s with a different bus", data.Driver, data.RouteID))
 	}
 
 	response := map[string]interface{}{
@@ -432,73 +420,6 @@ func analyzeImportFileHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// previewImportHandler validates and previews import data
-func previewImportHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
-		return
-	}
-
-	// Check authentication
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		SendError(w, ErrUnauthorized("Access denied"))
-		return
-	}
-
-	// Parse multipart form
-	err := r.ParseMultipartForm(10 << 20) // 10MB limit
-	if err != nil {
-		sendJSONError(w, "Failed to parse form", http.StatusBadRequest)
-		return
-	}
-
-	file, header, err := r.FormFile("file")
-	if err != nil {
-		sendJSONError(w, "No file provided", http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
-
-	importType := r.FormValue("type")
-	mappingsJSON := r.FormValue("mappings")
-
-	var mappings map[string]string
-	if err := json.Unmarshal([]byte(mappingsJSON), &mappings); err != nil {
-		sendJSONError(w, "Invalid column mappings", http.StatusBadRequest)
-		return
-	}
-
-	// Create temporary file
-	tempFile := filepath.Join(".", "temp_"+header.Filename)
-	out, err := createFile(tempFile)
-	if err != nil {
-		sendJSONError(w, "Failed to create temporary file", http.StatusInternalServerError)
-		return
-	}
-	defer removeFile(tempFile)
-	defer out.Close()
-
-	// Copy uploaded file
-	_, err = copyFile(out, file)
-	if err != nil {
-		sendJSONError(w, "Failed to save file", http.StatusInternalServerError)
-		return
-	}
-
-	// Validate data based on import type
-	validRecords, invalidRecords, warnings := validateImportDataFromFile(tempFile, importType, mappings)
-
-	response := map[string]interface{}{
-		"validRecords":   validRecords,
-		"invalidRecords": invalidRecords,
-		"warnings":       warnings,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
 // Helper functions
 
 func getRequiredFields(importType string) []string {
@@ -600,8 +521,8 @@ func copyFile(dst io.Writer, src io.Reader) (int64, error) {
 	return io.Copy(dst, src)
 }
 
-// lastMaintenanceHandler returns the last maintenance date for a vehicle
-func lastMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
+// lastMaintenanceHandlerOLD returns the last maintenance date for a vehicle
+func lastMaintenanceHandlerOLD(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		SendError(w, ErrMethodNotAllowed("Only GET method allowed"))
 		return

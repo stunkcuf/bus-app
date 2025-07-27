@@ -253,6 +253,19 @@ func (c *DataCache) invalidateAll() {
 	c.lastFetch = make(map[string]time.Time)
 }
 
+// Clear methods for compatibility
+func (c *DataCache) clearBuses() {
+	c.invalidateBuses()
+}
+
+func (c *DataCache) clearRoutes() {
+	c.invalidateRoutes()
+}
+
+func (c *DataCache) clearStudents() {
+	c.invalidateStudents()
+}
+
 // getStats returns cache statistics
 func (c *DataCache) getStats() map[string]interface{} {
 	c.mu.RLock()

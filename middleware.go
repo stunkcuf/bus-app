@@ -172,3 +172,13 @@ func getCSPNonce(ctx context.Context) string {
 	}
 	return ""
 }
+
+// MetricsHandler wraps MetricsMiddleware to work with http.Handler
+func MetricsHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Use MetricsMiddleware by wrapping the ServeHTTP method
+		MetricsMiddleware(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r)
+		})(w, r)
+	})
+}

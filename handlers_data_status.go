@@ -61,9 +61,9 @@ func dataStatusHandler(w http.ResponseWriter, r *http.Request) {
 		status["vehicles_count"] = vehicleCount
 	}
 
-	// Check fleet vehicles
+	// Check fleet vehicles (now in vehicles table)
 	var fleetCount int
-	err = db.QueryRow("SELECT COUNT(*) FROM fleet_vehicles").Scan(&fleetCount)
+	err = db.QueryRow("SELECT COUNT(*) FROM vehicles WHERE vehicle_type = 'fleet'").Scan(&fleetCount)
 	if err != nil {
 		log.Printf("Error counting fleet vehicles: %v", err)
 		status["fleet_vehicles_error"] = err.Error()

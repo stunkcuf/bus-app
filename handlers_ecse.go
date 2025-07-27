@@ -64,7 +64,7 @@ func ecseDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		if student.GetIEPStatus() == "active" {
 			activeIEPs++
 		}
-		if student.IsTransportationRequired() {
+		if student.GetTransportationRequired() {
 			transportationRequired++
 		}
 	}

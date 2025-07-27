@@ -9,10 +9,21 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+// Import type constants
+const (
+	ImportTypeMileage = "mileage"
+	ImportTypeECSE    = "ecse"
+	ImportTypeStudent = "student"
+	ImportTypeVehicle = "vehicle"
+)
+
+// ImportType is an alias for string
+type ImportType = string
+
 // ExportTemplate represents an Excel template configuration
 type ExportTemplate struct {
 	Name         string
-	ImportType   ImportType
+	ImportType   string
 	Description  string
 	Headers      []string
 	SampleData   [][]string

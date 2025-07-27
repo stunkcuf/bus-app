@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 	
 	"github.com/lib/pq"
 	"github.com/jmoiron/sqlx"
@@ -800,6 +801,20 @@ func loadUsersFromDB() ([]User, error) {
 	return users, nil
 }
 
+// loadECSEStudentsFromDB loads ECSE students from database
+func loadECSEStudentsFromDB() ([]ECSEStudent, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	
+	var students []ECSEStudent
+	err := db.Select(&students, "SELECT * FROM ecse_students ORDER BY last_name, first_name")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load ECSE students: %w", err)
+	}
+	return students, nil
+}
+
 func loadStudentsFromDB() ([]Student, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database not initialized")
@@ -994,7 +1009,129 @@ func loadMonthlyMileageReportsFromDB() ([]MonthlyMileageReport, error) {
 	return reports, nil
 }
 
-// loadMonthlyMileageReportsByFilters loads filtered monthly mileage reports
+// generateCurrentMonthMileageReports generates monthly mileage reports for the current month from driver logs
+func generateCurrentMonthMileageReports() ([]MonthlyMileageReport, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	// Get current month and year
+	now := time.Now()
+	currentMonth := now.Month()
+	currentYear := now.Year()
+	monthName := currentMonth.String()
+
+	// Get first and last day of current month
+	firstDay := time.Date(currentYear, currentMonth, 1, 0, 0, 0, 0, time.Local)
+	lastDay := firstDay.AddDate(0, 1, -1)
+
+	// Query to get ALL vehicles with their mileage data for current month
+	// This includes both buses and company vehicles
+	query := `
+		WITH all_vehicles AS (
+			-- Get all buses
+			SELECT 
+				v.id,
+				v.bus_number as vehicle_id,
+				v.year,
+				v.make,
+				v.model,
+				v.license_plate,
+				'Bus' as vehicle_type,
+				COALESCE(v.current_mileage, 0) as current_mileage
+			FROM vehicles v
+			WHERE v.type = 'bus' AND v.status = 'active'
+			
+			UNION ALL
+			
+			-- Get all company vehicles
+			SELECT 
+				v.id,
+				v.bus_number as vehicle_id,
+				v.year,
+				v.make,
+				v.model,
+				v.license_plate,
+				'Vehicle' as vehicle_type,
+				COALESCE(v.current_mileage, 0) as current_mileage
+			FROM vehicles v
+			WHERE v.type != 'bus' AND v.status = 'active'
+		),
+		monthly_data AS (
+			-- Get mileage data from driver logs for current month
+			SELECT 
+				dl.vehicle_id,
+				MIN(dl.start_mileage) as beginning_miles,
+				MAX(dl.end_mileage) as ending_miles,
+				SUM(dl.total_miles) as total_miles
+			FROM driver_logs dl
+			WHERE dl.log_date >= $1 AND dl.log_date <= $2
+				AND dl.vehicle_id IS NOT NULL
+			GROUP BY dl.vehicle_id
+		)
+		SELECT 
+			av.vehicle_id,
+			COALESCE(md.beginning_miles, av.current_mileage) as beginning_miles,
+			COALESCE(md.ending_miles, av.current_mileage) as ending_miles,
+			COALESCE(md.total_miles, 0) as total_miles,
+			av.year as vehicle_year,
+			av.make as vehicle_make,
+			av.model as vehicle_model,
+			av.license_plate,
+			av.vehicle_type
+		FROM all_vehicles av
+		LEFT JOIN monthly_data md ON av.id = md.vehicle_id
+		ORDER BY av.vehicle_type, av.vehicle_id`
+
+	rows, err := db.Query(query, firstDay.Format("2006-01-02"), lastDay.Format("2006-01-02"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query monthly mileage data: %w", err)
+	}
+	defer rows.Close()
+
+	var reports []MonthlyMileageReport
+	for rows.Next() {
+		var report MonthlyMileageReport
+		var vehicleModel, vehicleType string
+		
+		report.ReportMonth = monthName
+		report.ReportYear = currentYear
+		report.CreatedAt = now
+		report.UpdatedAt = now
+
+		err := rows.Scan(
+			&report.BusID,
+			&report.BeginningMiles,
+			&report.EndingMiles,
+			&report.TotalMiles,
+			&report.BusYear,
+			&report.BusMake,
+			&vehicleModel,
+			&report.LicensePlate,
+			&vehicleType,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan monthly mileage row: %w", err)
+		}
+		
+		// Combine make and model for display
+		if vehicleModel != "" && report.BusMake != vehicleModel {
+			report.BusMake = report.BusMake + " " + vehicleModel
+		}
+		
+		// Set location based on vehicle type
+		if report.LocatedAt == "" {
+			report.LocatedAt = vehicleType
+		}
+
+		reports = append(reports, report)
+	}
+
+	// Return the reports sorted by vehicle type and ID
+	return reports, nil
+}
+
+// loadMonthlyMileageReportsByFilters loads monthly mileage reports with filters
 func loadMonthlyMileageReportsByFilters(year int, month string, busID string) ([]MonthlyMileageReport, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database not initialized")
@@ -1056,10 +1193,22 @@ func loadFleetVehiclesFromDB() ([]FleetVehicle, error) {
 
 	var vehicles []FleetVehicle
 	query := `
-		SELECT id, vehicle_number, sheet_name, year, make, model, 
-		       description, serial_number, license, location, tire_size,
-		       created_at, updated_at
-		FROM fleet_vehicles 
+		SELECT 
+			CASE 
+				WHEN vehicle_id LIKE 'FV%' THEN SUBSTRING(vehicle_id FROM 3)::INTEGER
+				ELSE NULL
+			END as id,
+			vehicle_number, 
+			NULL as sheet_name, 
+			CASE 
+				WHEN year ~ '^\d+$' THEN year::INTEGER
+				ELSE NULL
+			END as year,
+			make, model, 
+		    description, serial_number, license, location, tire_size,
+		    created_at, updated_at
+		FROM vehicles 
+		WHERE vehicle_type = 'fleet'
 		ORDER BY 
 			CASE WHEN vehicle_number IS NOT NULL THEN vehicle_number ELSE 999999 END,
 			year DESC, make, model`
@@ -1083,10 +1232,22 @@ func loadFleetVehiclesByFilters(year int, make string, location string) ([]Fleet
 	var args []interface{}
 
 	baseQuery := `
-		SELECT id, vehicle_number, sheet_name, year, make, model, 
-		       description, serial_number, license, location, tire_size,
-		       created_at, updated_at
-		FROM fleet_vehicles WHERE 1=1`
+		SELECT 
+			CASE 
+				WHEN vehicle_id LIKE 'FV%' THEN SUBSTRING(vehicle_id FROM 3)::INTEGER
+				ELSE NULL
+			END as id,
+			vehicle_number, 
+			NULL as sheet_name, 
+			CASE 
+				WHEN year ~ '^\d+$' THEN year::INTEGER
+				ELSE NULL
+			END as year,
+			make, model, 
+		    description, serial_number, license, location, tire_size,
+		    created_at, updated_at
+		FROM vehicles 
+		WHERE vehicle_type = 'fleet'`
 
 	if year > 0 {
 		conditions = append(conditions, " AND year = $"+fmt.Sprintf("%d", len(args)+1))

@@ -97,11 +97,20 @@ func publicStatusHandler(w http.ResponseWriter, r *http.Request) {
 		Error error
 	}
 	
-	tables := []string{"buses", "vehicles", "users", "students", "routes", "ecse_students", "maintenance_records"}
+	// Using predefined queries to avoid SQL injection
+	tableQueries := map[string]string{
+		"buses":               "SELECT COUNT(*) FROM buses",
+		"vehicles":            "SELECT COUNT(*) FROM vehicles",
+		"users":               "SELECT COUNT(*) FROM users",
+		"students":            "SELECT COUNT(*) FROM students",
+		"routes":              "SELECT COUNT(*) FROM routes",
+		"ecse_students":       "SELECT COUNT(*) FROM ecse_students",
+		"maintenance_records": "SELECT COUNT(*) FROM maintenance_records",
+	}
 	
-	for _, table := range tables {
+	for table, query := range tableQueries {
 		var count int
-		err := db.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s", table)).Scan(&count)
+		err := db.QueryRow(query).Scan(&count)
 		counts = append(counts, struct {
 			Table string
 			Count int

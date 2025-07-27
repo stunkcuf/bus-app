@@ -57,6 +57,65 @@ func apiDashboardStatsHandler(w http.ResponseWriter, r *http.Request) {
     sendAPIResponse(w, "Stats retrieved", stats)
 }
 
+// Fleet Status API
+func apiFleetStatusHandler(w http.ResponseWriter, r *http.Request) {
+    user := getUserFromSession(r)
+    if user == nil {
+        sendAPIError(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
+
+    fleetStatus := make(map[string]interface{})
+    
+    // Get vehicle counts by status
+    var activeCount, maintenanceCount, inactiveCount int
+    db.Get(&activeCount, "SELECT COUNT(*) FROM buses WHERE status = 'active'")
+    db.Get(&maintenanceCount, "SELECT COUNT(*) FROM buses WHERE status = 'maintenance'")
+    db.Get(&inactiveCount, "SELECT COUNT(*) FROM buses WHERE status = 'inactive'")
+    
+    fleetStatus["active"] = activeCount
+    fleetStatus["maintenance"] = maintenanceCount
+    fleetStatus["inactive"] = inactiveCount
+    fleetStatus["total"] = activeCount + maintenanceCount + inactiveCount
+    
+    // Get recent maintenance alerts
+    var recentAlerts []map[string]interface{}
+    rows, err := db.Query(`
+        SELECT bus_id, 
+               CASE 
+                   WHEN oil_status = 'overdue' THEN 'Oil change overdue'
+                   WHEN oil_status = 'needs_service' THEN 'Oil change needed'
+                   WHEN tire_status = 'replace' THEN 'Tire replacement needed'
+                   WHEN tire_status = 'worn' THEN 'Tires worn'
+                   ELSE 'Maintenance needed'
+               END as alert_type,
+               last_oil_change,
+               last_tire_rotation
+        FROM buses 
+        WHERE oil_status IN ('needs_service', 'overdue') 
+           OR tire_status IN ('worn', 'replace')
+        LIMIT 5
+    `)
+    if err == nil {
+        defer rows.Close()
+        for rows.Next() {
+            var busID, alertType string
+            var lastOilChange, lastTireRotation *time.Time
+            rows.Scan(&busID, &alertType, &lastOilChange, &lastTireRotation)
+            recentAlerts = append(recentAlerts, map[string]interface{}{
+                "busId": busID,
+                "alert": alertType,
+                "lastOilChange": lastOilChange,
+                "lastTireRotation": lastTireRotation,
+            })
+        }
+    }
+    
+    fleetStatus["recentAlerts"] = recentAlerts
+    
+    sendAPIResponse(w, "Fleet status retrieved", fleetStatus)
+}
+
 // Search API
 func apiSearchHandler(w http.ResponseWriter, r *http.Request) {
     user := getUserFromSession(r)
@@ -363,12 +422,17 @@ func sendAPIError(w http.ResponseWriter, message string, statusCode int) {
 }
 
 // Register all API routes
-func registerAPIRoutes() {
-    http.HandleFunc("/api/dashboard-stats", apiDashboardStatsHandler)
-    http.HandleFunc("/api/search", apiSearchHandler)
-    http.HandleFunc("/api/update-vehicle-status", apiUpdateVehicleStatusHandler)
-    http.HandleFunc("/api/assign-route", apiAssignRouteHandler)
-    http.HandleFunc("/api/update-attendance", apiUpdateAttendanceHandler)
-    http.HandleFunc("/api/create-maintenance", apiCreateMaintenanceRecordHandler)
-    http.HandleFunc("/api/vehicle-locations", apiVehicleLocationHandler)
+func registerAPIRoutes(mux *http.ServeMux) {
+    // Core API routes
+    mux.HandleFunc("/api/dashboard-stats", withRecovery(requireAuth(apiDashboardStatsHandler)))
+    mux.HandleFunc("/api/search", withRecovery(requireAuth(apiSearchHandler)))
+    mux.HandleFunc("/api/update-vehicle-status", withRecovery(requireAuth(apiUpdateVehicleStatusHandler)))
+    mux.HandleFunc("/api/assign-route", withRecovery(requireAuth(requireRole("manager")(apiAssignRouteHandler))))
+    mux.HandleFunc("/api/update-attendance", withRecovery(requireAuth(apiUpdateAttendanceHandler)))
+    mux.HandleFunc("/api/create-maintenance", withRecovery(requireAuth(apiCreateMaintenanceRecordHandler)))
+    mux.HandleFunc("/api/vehicle-locations", withRecovery(requireAuth(apiVehicleLocationHandler)))
+    
+    // Missing API endpoints
+    mux.HandleFunc("/api/dashboard/stats", withRecovery(requireAuth(apiDashboardStatsHandler)))
+    mux.HandleFunc("/api/fleet-status", withRecovery(requireAuth(apiFleetStatusHandler)))
 }

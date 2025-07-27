@@ -230,6 +230,15 @@ func SendError(w http.ResponseWriter, err error) {
 	}
 }
 
+// SendJSON sends a JSON response with the specified status code
+func SendJSON(w http.ResponseWriter, statusCode int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("Error encoding JSON response: %v", err)
+	}
+}
+
 // SendValidationErrors sends multiple validation errors
 func SendValidationErrors(w http.ResponseWriter, errors []*AppError) {
 	response := ErrorResponse{

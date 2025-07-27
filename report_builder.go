@@ -257,10 +257,14 @@ func handleGetReportData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build query
-	query := buildReportQuery(sourceConfig, fields, filters)
+	query, params := buildReportQuery(sourceConfig, fields, filters)
+	if query == "" {
+		SendError(w, ErrBadRequest("Invalid query parameters"))
+		return
+	}
 
 	// Execute query
-	rows, err := db.Query(query)
+	rows, err := db.Query(query, params...)
 	if err != nil {
 		LogError("Failed to execute report query", err)
 		SendError(w, ErrInternal("Failed to generate report", err))
@@ -437,7 +441,23 @@ func loadSavedReports(username string) ([]map[string]interface{}, error) {
 }
 
 // buildReportQuery constructs SQL query based on configuration
-func buildReportQuery(source DataSourceConfig, fields []string, filters map[string]interface{}) string {
+// Returns the query string and the parameters to use with it
+func buildReportQuery(source DataSourceConfig, fields []string, filters map[string]interface{}) (string, []interface{}) {
+	// Validate fields and filters to prevent SQL injection
+	for _, field := range fields {
+		if !isValidFieldName(field) {
+			log.Printf("Invalid field name: %s", field)
+			return "", nil
+		}
+	}
+
+	for fieldName := range filters {
+		if !isValidFieldName(fieldName) {
+			log.Printf("Invalid filter field name: %s", fieldName)
+			return "", nil
+		}
+	}
+
 	// Build SELECT clause
 	selectClause := strings.Join(fields, ", ")
 
@@ -447,21 +467,41 @@ func buildReportQuery(source DataSourceConfig, fields []string, filters map[stri
 		fromClause += fmt.Sprintf(" %s JOIN %s ON %s", join.Type, join.Table, join.On)
 	}
 
-	// Build WHERE clause
-	whereClause := "1=1"
+	// Build WHERE clause with parameterized queries
+	var whereClauses []string
+	var params []interface{}
+	paramIndex := 1
+
 	for field, value := range filters {
 		if value != nil && value != "" {
 			switch v := value.(type) {
 			case string:
-				whereClause += fmt.Sprintf(" AND %s ILIKE '%%%s%%'", field, v)
+				if v != "" {
+					whereClauses = append(whereClauses, fmt.Sprintf("%s ILIKE $%d", field, paramIndex))
+					params = append(params, "%"+v+"%")
+					paramIndex++
+				}
 			case []string:
 				if len(v) > 0 {
-					whereClause += fmt.Sprintf(" AND %s IN ('%s')", field, strings.Join(v, "','"))
+					placeholders := make([]string, len(v))
+					for i, val := range v {
+						placeholders[i] = fmt.Sprintf("$%d", paramIndex)
+						params = append(params, val)
+						paramIndex++
+					}
+					whereClauses = append(whereClauses, fmt.Sprintf("%s IN (%s)", field, strings.Join(placeholders, ",")))
 				}
 			default:
-				whereClause += fmt.Sprintf(" AND %s = '%v'", field, v)
+				whereClauses = append(whereClauses, fmt.Sprintf("%s = $%d", field, paramIndex))
+				params = append(params, v)
+				paramIndex++
 			}
 		}
+	}
+
+	whereClause := "1=1"
+	if len(whereClauses) > 0 {
+		whereClause += " AND " + strings.Join(whereClauses, " AND ")
 	}
 
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s", selectClause, fromClause, whereClause)
@@ -484,7 +524,30 @@ func buildReportQuery(source DataSourceConfig, fields []string, filters map[stri
 		}
 	}
 
-	return query + " ORDER BY 1 LIMIT 1000"
+	return query + " ORDER BY 1 LIMIT 1000", params
+}
+
+// isValidFieldName validates that a field name contains only allowed characters
+// to prevent SQL injection through field names
+func isValidFieldName(field string) bool {
+	// Allow alphanumeric, underscore, dot (for table.column), and common aggregation functions
+	for _, char := range field {
+		if !((char >= 'a' && char <= 'z') ||
+			(char >= 'A' && char <= 'Z') ||
+			(char >= '0' && char <= '9') ||
+			char == '_' || char == '.' || char == '(' || char == ')' || char == '*' || char == ' ') {
+			return false
+		}
+	}
+	
+	// Additional check for common SQL injection patterns
+	field = strings.ToLower(field)
+	if strings.Contains(field, "--") || strings.Contains(field, "/*") || strings.Contains(field, "*/") ||
+		strings.Contains(field, "xp_") || strings.Contains(field, "sp_") {
+		return false
+	}
+	
+	return true
 }
 
 // parseFilters extracts filter parameters from URL query

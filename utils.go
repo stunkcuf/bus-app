@@ -1,6 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -10,7 +13,31 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
+	
+	"golang.org/x/crypto/bcrypt"
 )
+
+// NavItem represents a navigation menu item
+type NavItem struct {
+	Label    string
+	URL      string
+	Icon     string
+	IsActive bool
+	SubItems []NavItem
+}
+
+// TemplateData represents data passed to templates
+type TemplateData struct {
+	Title       string
+	User        *User
+	Data        map[string]interface{}
+	CSRFToken   string
+	CSPNonce    string
+	Navigation  []NavItem
+	ShowHelpButton bool
+	PageDescription string
+}
 
 // executeTemplate executes a template with error handling and CSP nonce support
 func executeTemplate(w http.ResponseWriter, name string, data interface{}) {
@@ -144,8 +171,8 @@ func isValidEmail(email string) bool {
 		emailRegex.MatchString(email)
 }
 
-// isValidPhone checks if a phone number is valid
-func isValidPhone(phone string) bool {
+// utilsIsValidPhone checks if a phone number is valid
+func utilsIsValidPhone(phone string) bool {
 	// Remove common formatting characters
 	cleaned := phoneRegex.ReplaceAllString(phone, "")
 	return len(cleaned) >= 10 && len(cleaned) <= 15
@@ -236,6 +263,44 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
+// renderTemplateData renders a template with TemplateData
+func renderTemplateData(w http.ResponseWriter, r *http.Request, templateName string, data TemplateData) {
+	// Add nonce if not set
+	if data.CSPNonce == "" {
+		data.CSPNonce = getNonce(r)
+	}
+	
+	// Execute the template
+	executeTemplate(w, templateName, data)
+}
+
+// renderJSON renders JSON response
+func renderJSON(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("Error encoding JSON: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
+}
+
+// getNonce gets or generates a CSP nonce for the request
+func getNonce(r *http.Request) string {
+	if nonce := r.Context().Value("csp-nonce"); nonce != nil {
+		return nonce.(string)
+	}
+	// Generate a new nonce if not found
+	return generateSecureToken(16)
+}
+
+// hashPassword hashes a password using bcrypt
+func hashPassword(password string) (string, error) {
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashedBytes), nil
+}
+
 // mustGetEnv gets an environment variable or panics
 func mustGetEnv(key string) string {
 	value := os.Getenv(key)
@@ -321,4 +386,14 @@ func parseFloatOrDefault(s string, defaultValue float64) float64 {
 		return val
 	}
 	return defaultValue
+}
+
+// generateSecureToken generates a cryptographically secure random token
+func generateSecureToken(length int) string {
+	b := make([]byte, length)
+	if _, err := rand.Read(b); err != nil {
+		// Fallback to less secure method if crypto/rand fails
+		return base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%d", time.Now().UnixNano())))
+	}
+	return base64.URLEncoding.EncodeToString(b)
 }

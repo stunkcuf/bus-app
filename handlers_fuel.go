@@ -400,11 +400,11 @@ func addSampleFuelDataHandler(w http.ResponseWriter, r *http.Request) {
 		VehicleID string `db:"vehicle_id"`
 	}
 	
-	// Try to get vehicle numbers from fleet_vehicles
+	// Try to get vehicle numbers from vehicles table
 	err = db.Select(&vehicles, `
-		SELECT CAST(vehicle_number AS VARCHAR) as vehicle_id 
-		FROM fleet_vehicles 
-		WHERE vehicle_number IS NOT NULL 
+		SELECT vehicle_id 
+		FROM vehicles 
+		WHERE vehicle_type = 'fleet' AND vehicle_number IS NOT NULL 
 		LIMIT 20
 	`)
 	if err != nil {

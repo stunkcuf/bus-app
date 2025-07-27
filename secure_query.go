@@ -17,7 +17,6 @@ func NewSecureQuery() *SecureQuery {
 		allowedTables: map[string]bool{
 			"buses":                    true,
 			"vehicles":                 true,
-			"fleet_vehicles":           true,
 			"users":                    true,
 			"students":                 true,
 			"routes":                   true,
@@ -43,14 +42,6 @@ func NewSecureQuery() *SecureQuery {
 				"maintenance_notes": true, "serial_number": true, "base": true,
 				"service_interval": true, "current_mileage": true, "last_oil_change": true,
 				"last_tire_service": true, "updated_at": true, "created_at": true,
-			},
-			"fleet_vehicles": {
-				"id": true, "vehicle_id": true, "vehicle_type": true, "status": true,
-				"model": true, "capacity": true, "oil_status": true, "tire_status": true,
-				"maintenance_notes": true, "year": true, "tire_size": true, "license": true,
-				"description": true, "serial_number": true, "base": true, "service_interval": true,
-				"current_mileage": true, "last_oil_change": true, "last_tire_service": true,
-				"updated_at": true, "created_at": true, "bus_id": true, "assignment": true,
 			},
 			// Add more tables and columns as needed
 		},
@@ -93,16 +84,23 @@ func (sq *SecureQuery) ValidateColumn(table, column string) error {
 }
 
 // BuildUpdate creates a safe UPDATE query
+// Note: This function uses fmt.Sprintf but is safe from SQL injection because:
+// 1. Table and column names are validated against a whitelist
+// 2. Values are passed as parameters using placeholders ($1, $2, etc.)
 func (sq *SecureQuery) BuildUpdate(table, column string, args ...interface{}) (string, []interface{}, error) {
 	if err := sq.ValidateColumn(table, column); err != nil {
 		return "", nil, err
 	}
 	
+	// Safe to use fmt.Sprintf here because table and column are validated
 	query := fmt.Sprintf("UPDATE %s SET %s = $1, updated_at = CURRENT_TIMESTAMP WHERE ", table, column)
 	return query, args, nil
 }
 
 // BuildSelect creates a safe SELECT query
+// Note: This function uses fmt.Sprintf but is safe from SQL injection because:
+// 1. Table name is validated against a whitelist
+// 2. Column names are validated against a whitelist
 func (sq *SecureQuery) BuildSelect(table string, columns []string) (string, error) {
 	if err := sq.ValidateTable(table); err != nil {
 		return "", err
@@ -122,15 +120,19 @@ func (sq *SecureQuery) BuildSelect(table string, columns []string) (string, erro
 		columnStr = strings.Join(columns, ", ")
 	}
 	
+	// Safe to use fmt.Sprintf here because table and columns are validated
 	return fmt.Sprintf("SELECT %s FROM %s", columnStr, table), nil
 }
 
 // BuildCount creates a safe COUNT query
+// Note: This function uses fmt.Sprintf but is safe from SQL injection because
+// the table name is validated against a whitelist before use
 func (sq *SecureQuery) BuildCount(table string) (string, error) {
 	if err := sq.ValidateTable(table); err != nil {
 		return "", err
 	}
 	
+	// Safe to use fmt.Sprintf here because table is validated
 	return fmt.Sprintf("SELECT COUNT(*) FROM %s", table), nil
 }
 

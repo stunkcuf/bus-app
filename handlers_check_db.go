@@ -38,12 +38,32 @@ func checkDatabaseHandler(w http.ResponseWriter, r *http.Request) {
 	// Check each table for count and sample data
 	tableInfo := make(map[string]interface{})
 	
+	// Define a whitelist of allowed tables to prevent SQL injection
+	allowedTables := map[string]bool{
+		"buses": true, "vehicles": true, "fleet_vehicles": true,
+		"students": true, "routes": true, "route_assignments": true,
+		"driver_logs": true, "bus_maintenance_logs": true,
+		"vehicle_maintenance_logs": true, "monthly_mileage_reports": true,
+		"ecse_students": true, "ecse_services": true, "fuel_records": true,
+		"maintenance_records": true, "service_records": true, "users": true,
+		"saved_reports": true, "scheduled_exports": true, "sessions": true,
+	}
+	
 	for _, table := range tables {
 		info := make(map[string]interface{})
 		
-		// Get count
+		// Validate table name against whitelist
+		if !allowedTables[table] {
+			info["error"] = "Table not in whitelist"
+			tableInfo[table] = info
+			continue
+		}
+		
+		// Get count using parameterized query
+		// Since we can't use placeholders for table names, we use the whitelist approach
 		var count int
-		err := db.QueryRow("SELECT COUNT(*) FROM " + table).Scan(&count)
+		query := "SELECT COUNT(*) FROM " + table
+		err := db.QueryRow(query).Scan(&count)
 		if err != nil {
 			info["error"] = err.Error()
 		} else {

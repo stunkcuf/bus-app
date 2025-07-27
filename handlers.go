@@ -341,46 +341,101 @@ func driverDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get period from query params
+	period := r.URL.Query().Get("period")
+	if period == "" {
+		// Default to morning if before 2 PM, afternoon otherwise
+		hour := time.Now().Hour()
+		if hour < 14 {
+			period = "morning"
+		} else {
+			period = "afternoon"
+		}
+	}
+
 	// Get driver's assignments
 	assignments, err := getDriverAssignments(user.Username)
 	if err != nil {
 		log.Printf("Error loading assignments: %v", err)
+		assignments = []RouteAssignment{}
 	}
 
 	// Get maintenance alerts for driver's vehicles
 	maintenanceAlerts, err := getMaintenanceAlertsForDriver(user.Username)
 	if err != nil {
 		log.Printf("Error loading maintenance alerts: %v", err)
-		maintenanceAlerts = []MaintenanceAlert{} // Empty slice on error
+		maintenanceAlerts = []MaintenanceAlert{}
 	}
 
-	// Get students for assigned routes (batch loading to avoid N+1 queries)
-	var routeIDs []string
-	for _, assignment := range assignments {
-		routeIDs = append(routeIDs, assignment.RouteID)
+	// Prepare data for the form
+	var route *Route
+	var bus *Bus
+	var students []Student
+	var recentLogs []DriverLog
+
+	// If driver has assignments, get the first one
+	if len(assignments) > 0 {
+		assignment := assignments[0]
+		
+		// Get route details
+		routes, _ := dataCache.getRoutes()
+		for _, r := range routes {
+			if r.RouteID == assignment.RouteID {
+				route = &r
+				break
+			}
+		}
+
+		// Get bus details
+		buses, _ := dataCache.getBuses()
+		for _, b := range buses {
+			if b.BusID == assignment.BusID {
+				bus = &b
+				break
+			}
+		}
+
+		// Get students for this route
+		if studentsForRoute, err := getStudentsByRoute(assignment.RouteID); err == nil {
+			students = studentsForRoute
+		}
 	}
-	
-	studentsMap, err := getStudentsByMultipleRoutes(routeIDs)
-	if err != nil {
-		log.Printf("Error loading students for routes: %v", err)
-		// Fallback to empty map on error
-		studentsMap = make(map[string][]Student)
+
+	// Get recent driver logs
+	if db != nil {
+		query := `
+			SELECT driver, bus_id, route_id, date, period, departure_time, arrival_time, 
+			       begin_mileage, end_mileage, attendance, created_at
+			FROM driver_logs
+			WHERE driver = $1
+			ORDER BY date DESC, created_at DESC
+			LIMIT 5
+		`
+		db.Select(&recentLogs, query, user.Username)
 	}
 
 	// Check for success message
 	success := r.URL.Query().Get("success") == "true"
 
+	// Structure data as expected by template
 	data := map[string]interface{}{
-		"User":              user,
-		"CSRFToken":         getSessionCSRFToken(r),
-		"Assignments":       assignments,
-		"StudentsMap":       studentsMap,
-		"MaintenanceAlerts": maintenanceAlerts,
-		"Success":           success,
-		"CurrentDate":       time.Now().Format("2006-01-02"),
+		"User":      user,
+		"CSRFToken": getSessionCSRFToken(r),
+		"Success":   success,
+		"Data": map[string]interface{}{
+			"Route":              route,
+			"Bus":                bus,
+			"Students":           students,
+			"Period":             period,
+			"Date":               time.Now().Format("2006-01-02"),
+			"CurrentDate":        time.Now().Format("2006-01-02"),
+			"CSRFToken":          getSessionCSRFToken(r),
+			"RecentLogs":         recentLogs,
+			"MaintenanceAlerts":  maintenanceAlerts,
+			"Assignments":        assignments,
+		},
 	}
 
-	// Changed from driver_dashboard_modern.html to driver_dashboard.html
 	renderTemplate(w, r, "driver_dashboard.html", data)
 }
 
@@ -937,9 +992,12 @@ func saveLogHandler(w http.ResponseWriter, r *http.Request) {
 			position, _ := strconv.Atoi(posStr)
 			pickupTime := r.FormValue("pickup_time_" + posStr)
 
+			// Checkbox will have value "on" if checked, absent if not checked
+			present := len(values) > 0 && (values[0] == "on" || values[0] == "true")
+			
 			attendanceRecord := map[string]interface{}{
 				"position":    position,
-				"present":     values[0] == "true",
+				"present":     present,
 				"pickup_time": pickupTime,
 			}
 			attendance = append(attendance, attendanceRecord)
@@ -1239,13 +1297,13 @@ func updateBusField(busID, fieldName, fieldValue string) error {
 	var query string
 	switch fieldName {
 	case "status":
-		query = "UPDATE fleet_vehicles SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'bus'"
+		query = "UPDATE buses SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE bus_id = $2"
 	case "oil_status":
-		query = "UPDATE fleet_vehicles SET oil_status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'bus'"
+		query = "UPDATE buses SET oil_status = $1, updated_at = CURRENT_TIMESTAMP WHERE bus_id = $2"
 	case "tire_status":
-		query = "UPDATE fleet_vehicles SET tire_status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'bus'"
+		query = "UPDATE buses SET tire_status = $1, updated_at = CURRENT_TIMESTAMP WHERE bus_id = $2"
 	case "maintenance_notes":
-		query = "UPDATE fleet_vehicles SET maintenance_notes = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'bus'"
+		query = "UPDATE buses SET maintenance_notes = $1, updated_at = CURRENT_TIMESTAMP WHERE bus_id = $2"
 	default:
 		return fmt.Errorf("invalid field name: %s", fieldName)
 	}
@@ -1290,13 +1348,13 @@ func updateVehicleField(vehicleID, fieldName, fieldValue string) error {
 	var query string
 	switch fieldName {
 	case "status":
-		query = "UPDATE fleet_vehicles SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'vehicle'"
+		query = "UPDATE vehicles SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2"
 	case "oil_status":
-		query = "UPDATE fleet_vehicles SET oil_status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'vehicle'"
+		query = "UPDATE vehicles SET oil_status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2"
 	case "tire_status":
-		query = "UPDATE fleet_vehicles SET tire_status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'vehicle'"
+		query = "UPDATE vehicles SET tire_status = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2"
 	case "maintenance_notes":
-		query = "UPDATE fleet_vehicles SET maintenance_notes = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2 AND vehicle_type = 'vehicle'"
+		query = "UPDATE vehicles SET maintenance_notes = $1, updated_at = CURRENT_TIMESTAMP WHERE vehicle_id = $2"
 	default:
 		return fmt.Errorf("invalid field name: %s", fieldName)
 	}
@@ -1364,10 +1422,34 @@ func monthlyMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Load reports (filtered or all)
-	if year > 0 || month != "" || busID != "" {
+	// Check if we should show current month data
+	now := time.Now()
+	currentYear := now.Year()
+	currentMonth := now.Month().String()
+	
+	showCurrentMonth := false
+	if year == 0 && month == "" && busID == "" {
+		// No filters, show current month by default
+		showCurrentMonth = true
+	} else if year == currentYear && month == currentMonth {
+		// Specifically filtering for current month
+		showCurrentMonth = true
+	}
+
+	// Load reports
+	if showCurrentMonth {
+		// Generate current month reports from driver logs
+		reports, err = generateCurrentMonthMileageReports()
+		if err != nil {
+			log.Printf("Error generating current month reports: %v", err)
+			// Fall back to loading from database
+			reports, err = loadMonthlyMileageReportsByFilters(year, month, busID)
+		}
+	} else if year > 0 || month != "" || busID != "" {
+		// Load filtered historical reports
 		reports, err = loadMonthlyMileageReportsByFilters(year, month, busID)
 	} else {
+		// Load all historical reports
 		reports, err = loadMonthlyMileageReportsFromDB()
 	}
 
