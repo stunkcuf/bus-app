@@ -31,25 +31,15 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("DEBUG: Total bus count in database: %d", busCount)
 	totalCount := busCount // We'll add vehicle count later
 	
-	// Get pagination params (default 50 per page for fleet view)
-	pagination := GetPaginationParams(r, totalCount, 50)
-	log.Printf("DEBUG: Pagination - Page: %d, PerPage: %d, Offset: %d, TotalPages: %d", 
-		pagination.Page, pagination.PerPage, pagination.Offset, pagination.TotalPages)
+	// For now, let's load all vehicles to fix the display issue
+	// We'll implement proper pagination later if needed
 	
-	// Load buses with pagination
-	log.Printf("DEBUG: About to call loadBusesFromDBPaginated with pagination: page=%d, perPage=%d, offset=%d", 
-		pagination.Page, pagination.PerPage, pagination.Offset)
-	buses, busErr := loadBusesFromDBPaginated(pagination)
+	// Load all buses
+	buses, busErr := loadBusesFromDB()
 	if busErr != nil {
 		log.Printf("ERROR loading buses: %v", busErr)
 	} else {
-		log.Printf("SUCCESS: Loaded %d buses (page %d of %d)", len(buses), pagination.Page, pagination.TotalPages)
-		for i, bus := range buses {
-			log.Printf("DEBUG: Bus[%d]: ID=%s, Model=%v, Status=%s", i, bus.BusID, bus.Model, bus.Status)
-		}
-		if len(buses) > 0 {
-			log.Printf("DEBUG: First bus: ID=%s, Status=%s", buses[0].BusID, buses[0].Status)
-		}
+		log.Printf("SUCCESS: Loaded %d buses", len(buses))
 		// Convert buses to ConsolidatedVehicle
 		for _, bus := range buses {
 			cv := ConsolidatedVehicle{
@@ -86,11 +76,7 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 	vehicleCount, _ := getVehicleCount()
 	totalCount = busCount + vehicleCount
 	
-	// Update pagination with combined total
-	pagination.TotalItems = totalCount
-	pagination.TotalPages = (totalCount + pagination.PerPage - 1) / pagination.PerPage
-	
-	// Load vehicles using the consolidated approach that works with proper null handling
+	// Load all non-bus vehicles
 	var vehErr error
 	consolidatedVehicles, vehErr := loadConsolidatedNonBusVehiclesFromDB()
 	if vehErr != nil {
@@ -98,48 +84,20 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		log.Printf("SUCCESS: Loaded %d vehicles", len(consolidatedVehicles))
 		
-		// Apply pagination to vehicles if needed
-		// For combined view, we need to calculate which vehicles to show
-		// based on buses already shown
-		remainingSlots := pagination.PerPage - len(buses)
-		if remainingSlots > 0 && pagination.Page == 1 {
-			// Show first N vehicles to fill the remaining slots on page 1
-			end := remainingSlots
-			if end > len(consolidatedVehicles) {
-				end = len(consolidatedVehicles)
-			}
-			consolidatedVehicles = consolidatedVehicles[:end]
-		} else if pagination.Page > 1 {
-			// Calculate vehicle offset for subsequent pages
-			vehicleOffset := 0
-			if pagination.Page > 1 {
-				// Account for vehicles shown on previous pages
-				vehicleOffset = (pagination.Page-1)*pagination.PerPage - busCount
-				if vehicleOffset < 0 {
-					vehicleOffset = 0
-				}
-			}
-			
-			// Apply pagination to vehicles
-			end := vehicleOffset + pagination.PerPage
-			if vehicleOffset >= len(consolidatedVehicles) {
-				consolidatedVehicles = []ConsolidatedVehicle{}
-			} else {
-				if end > len(consolidatedVehicles) {
-					end = len(consolidatedVehicles)
-				}
-				consolidatedVehicles = consolidatedVehicles[vehicleOffset:end]
-			}
-		} else {
-			// Page 1 and buses filled the entire page, no vehicles to show
-			consolidatedVehicles = []ConsolidatedVehicle{}
-		}
-		
-		// Add vehicles to the combined list
+		// Add all vehicles to the combined list
 		for _, cv := range consolidatedVehicles {
 			allVehicles = append(allVehicles, cv)
 			vehiclesByType["vehicle"] = append(vehiclesByType["vehicle"], cv)
 		}
+	}
+	
+	// Create pagination params for display (but show all data for now)
+	pagination := PaginationParams{
+		Page:       1,
+		PerPage:    totalCount,
+		TotalItems: totalCount,
+		TotalPages: 1,
+		Offset:     0,
 	}
 
 	// Check if we have any data
@@ -251,7 +209,20 @@ func fleetHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Also try to load fleet vehicles for backward compatibility
 	var fleetVehicles []FleetVehicle
-	db.Select(&fleetVehicles, "SELECT * FROM fleet_vehicles LIMIT 100")
+	query := `
+		SELECT 
+			CASE 
+				WHEN vehicle_id LIKE 'FV%' THEN SUBSTRING(vehicle_id FROM 3)::INTEGER
+				ELSE NULL
+			END as id,
+			vehicle_number, NULL as sheet_name, 
+			CASE WHEN year ~ '^\d+$' THEN year::INTEGER ELSE NULL END as year,
+			make, model, description, serial_number, license, location, tire_size,
+			created_at, updated_at
+		FROM vehicles 
+		WHERE vehicle_type = 'fleet' 
+		LIMIT 100`
+	db.Select(&fleetVehicles, query)
 
 	// Prepare data for template
 	data := map[string]interface{}{
