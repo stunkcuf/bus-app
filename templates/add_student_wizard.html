@@ -277,13 +277,13 @@
     <main id="main-content" class="main-content">
       <div class="wizard-container">
         <!-- Progress Indicator -->
-        {{$steps := slice 
-          (dict "Title" "Basic Info" "Description" "Student details")
-          (dict "Title" "Contact Info" "Description" "Guardian & phone")
-          (dict "Title" "Locations" "Description" "Pickup & dropoff")
-          (dict "Title" "Route Info" "Description" "Bus assignment")
-          (dict "Title" "Review" "Description" "Confirm details")
-        }}
+        {{/* Define steps manually to avoid slice function issues */}}
+        {{$step1 := dict "Title" "Basic Info" "Description" "Student details"}}
+        {{$step2 := dict "Title" "Contact Info" "Description" "Guardian & phone"}}
+        {{$step3 := dict "Title" "Locations" "Description" "Pickup & dropoff"}}
+        {{$step4 := dict "Title" "Route Info" "Description" "Bus assignment"}}
+        {{$step5 := dict "Title" "Review" "Description" "Confirm details"}}
+        {{$steps := slice $step1 $step2 $step3 $step4 $step5}}
         {{template "progress-indicator" (dict 
           "Steps" $steps 
           "CurrentStep" 1 

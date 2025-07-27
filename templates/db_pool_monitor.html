@@ -1,0 +1,428 @@
+{{template "header" .}}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h2 mb-4">
+                <i class="fas fa-database"></i> Database Connection Pool Monitor
+            </h1>
+
+            <!-- Alert Section -->
+            <div id="pool-alerts"></div>
+
+            <!-- Overview Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Open Connections</h5>
+                            <h2 class="text-primary" id="open-connections">-</h2>
+                            <small class="text-muted">Total connections</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">In Use</h5>
+                            <h2 class="text-success" id="in-use">-</h2>
+                            <small class="text-muted">Active connections</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Idle</h5>
+                            <h2 class="text-info" id="idle-connections">-</h2>
+                            <small class="text-muted">Available connections</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Utilization</h5>
+                            <h2 class="text-warning" id="utilization-rate">-%</h2>
+                            <small class="text-muted">Pool usage</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Metrics -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Connection Pool Performance</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="pool-chart" height="150"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Query Performance</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <h6>Total Queries</h6>
+                                    <p class="h4" id="total-queries">-</p>
+                                </div>
+                                <div class="col-6">
+                                    <h6>Error Rate</h6>
+                                    <p class="h4" id="error-rate">-%</p>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-6">
+                                    <h6>Wait Count</h6>
+                                    <p class="h4" id="wait-count">-</p>
+                                </div>
+                                <div class="col-6">
+                                    <h6>Avg Wait Time</h6>
+                                    <p class="h4" id="wait-duration">-ms</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration Details -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Current Configuration</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td>Max Open Connections</td>
+                                    <td class="text-right" id="config-max-open">-</td>
+                                </tr>
+                                <tr>
+                                    <td>Max Idle Connections</td>
+                                    <td class="text-right" id="config-max-idle">-</td>
+                                </tr>
+                                <tr>
+                                    <td>Connection Max Lifetime</td>
+                                    <td class="text-right" id="config-max-lifetime">-</td>
+                                </tr>
+                                <tr>
+                                    <td>Connection Max Idle Time</td>
+                                    <td class="text-right" id="config-max-idle-time">-</td>
+                                </tr>
+                                <tr>
+                                    <td>Health Check Interval</td>
+                                    <td class="text-right" id="config-health-interval">-</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Optimization Recommendations</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td>CPU Cores</td>
+                                    <td class="text-right" id="system-cpu-cores">-</td>
+                                </tr>
+                                <tr>
+                                    <td>Recommended Max Open</td>
+                                    <td class="text-right" id="recommended-max-open">-</td>
+                                </tr>
+                                <tr>
+                                    <td>Recommended Max Idle</td>
+                                    <td class="text-right" id="recommended-max-idle">-</td>
+                                </tr>
+                                <tr>
+                                    <td>Health Status</td>
+                                    <td class="text-right">
+                                        <span id="health-status" class="badge">-</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Last Health Check</td>
+                                    <td class="text-right" id="last-health-check">-</td>
+                                </tr>
+                            </table>
+                            <button class="btn btn-primary btn-sm mt-2" onclick="optimizePool()">
+                                <i class="fas fa-magic"></i> Optimize Pool
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-info" onclick="refreshMetrics()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                        <button class="btn btn-success" onclick="exportMetrics()">
+                            <i class="fas fa-download"></i> Export Metrics
+                        </button>
+                        <button class="btn btn-warning" onclick="toggleAutoRefresh()">
+                            <i class="fas fa-clock"></i> <span id="auto-refresh-text">Enable</span> Auto-Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+let poolChart;
+let autoRefreshInterval;
+let autoRefreshEnabled = false;
+let metricsHistory = {
+    timestamps: [],
+    openConnections: [],
+    inUse: [],
+    idle: []
+};
+
+// Initialize chart
+function initChart() {
+    const ctx = document.getElementById('pool-chart').getContext('2d');
+    poolChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: metricsHistory.timestamps,
+            datasets: [{
+                label: 'Open Connections',
+                data: metricsHistory.openConnections,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }, {
+                label: 'In Use',
+                data: metricsHistory.inUse,
+                borderColor: 'rgb(255, 99, 132)',
+                tension: 0.1
+            }, {
+                label: 'Idle',
+                data: metricsHistory.idle,
+                borderColor: 'rgb(54, 162, 235)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+// Fetch and display metrics
+async function refreshMetrics() {
+    try {
+        const response = await fetch('/api/db/pool/metrics', {
+            credentials: 'same-origin'
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch metrics');
+        
+        const data = await response.json();
+        updateDisplay(data);
+        updateChart(data);
+        checkHealth(data);
+    } catch (error) {
+        console.error('Error fetching metrics:', error);
+        showAlert('danger', 'Failed to fetch metrics: ' + error.message);
+    }
+}
+
+// Update display with new data
+function updateDisplay(data) {
+    // Pool stats
+    document.getElementById('open-connections').textContent = data.pool.open_connections;
+    document.getElementById('in-use').textContent = data.pool.in_use;
+    document.getElementById('idle-connections').textContent = data.pool.idle;
+    document.getElementById('wait-count').textContent = data.pool.wait_count;
+    document.getElementById('wait-duration').textContent = data.pool.wait_duration_ms + 'ms';
+    
+    // Performance stats
+    document.getElementById('total-queries').textContent = data.performance.total_queries.toLocaleString();
+    document.getElementById('error-rate').textContent = data.performance.error_rate.toFixed(2) + '%';
+    
+    // Utilization
+    const utilization = (data.pool.in_use / data.configuration.max_open_conns * 100).toFixed(1);
+    document.getElementById('utilization-rate').textContent = utilization + '%';
+    
+    // Configuration
+    document.getElementById('config-max-open').textContent = data.configuration.max_open_conns;
+    document.getElementById('config-max-idle').textContent = data.configuration.max_idle_conns;
+    document.getElementById('config-max-lifetime').textContent = data.configuration.conn_max_lifetime;
+    document.getElementById('config-max-idle-time').textContent = data.configuration.conn_max_idle_time;
+    document.getElementById('config-health-interval').textContent = data.configuration.health_check_interval;
+    
+    // System info
+    document.getElementById('system-cpu-cores').textContent = data.system.cpu_cores;
+    document.getElementById('recommended-max-open').textContent = data.system.optimal_conns.recommended_max_open;
+    document.getElementById('recommended-max-idle').textContent = data.system.optimal_conns.recommended_max_idle;
+    
+    // Health status
+    const healthBadge = document.getElementById('health-status');
+    if (data.performance.health_status) {
+        healthBadge.textContent = 'Healthy';
+        healthBadge.className = 'badge badge-success';
+    } else {
+        healthBadge.textContent = 'Unhealthy';
+        healthBadge.className = 'badge badge-danger';
+    }
+    
+    // Last health check
+    const lastCheck = new Date(data.performance.last_health_check);
+    document.getElementById('last-health-check').textContent = lastCheck.toLocaleTimeString();
+}
+
+// Update chart with new data
+function updateChart(data) {
+    const timestamp = new Date().toLocaleTimeString();
+    
+    // Keep only last 20 data points
+    if (metricsHistory.timestamps.length >= 20) {
+        metricsHistory.timestamps.shift();
+        metricsHistory.openConnections.shift();
+        metricsHistory.inUse.shift();
+        metricsHistory.idle.shift();
+    }
+    
+    metricsHistory.timestamps.push(timestamp);
+    metricsHistory.openConnections.push(data.pool.open_connections);
+    metricsHistory.inUse.push(data.pool.in_use);
+    metricsHistory.idle.push(data.pool.idle);
+    
+    poolChart.update();
+}
+
+// Check health and show alerts
+function checkHealth(data) {
+    const alerts = document.getElementById('pool-alerts');
+    alerts.innerHTML = '';
+    
+    const utilization = data.pool.in_use / data.configuration.max_open_conns;
+    
+    if (utilization > 0.9) {
+        showAlert('danger', 'High connection pool utilization (' + (utilization * 100).toFixed(1) + '%)');
+    } else if (utilization > 0.8) {
+        showAlert('warning', 'Connection pool utilization is elevated (' + (utilization * 100).toFixed(1) + '%)');
+    }
+    
+    if (data.pool.wait_count > 100) {
+        showAlert('warning', 'High connection wait count: ' + data.pool.wait_count);
+    }
+    
+    if (!data.performance.health_status) {
+        showAlert('danger', 'Database health check failed');
+    }
+}
+
+// Show alert message
+function showAlert(type, message) {
+    const alerts = document.getElementById('pool-alerts');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} alert-dismissible fade show`;
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="close" data-dismiss="alert">
+            <span>&times;</span>
+        </button>
+    `;
+    alerts.appendChild(alert);
+}
+
+// Optimize pool configuration
+async function optimizePool() {
+    if (!confirm('This will adjust the connection pool settings. Continue?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/db/pool/optimize', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'X-CSRF-Token': getCSRFToken()
+            }
+        });
+        
+        if (!response.ok) throw new Error('Failed to optimize pool');
+        
+        const data = await response.json();
+        showAlert('success', 'Pool optimization completed');
+        
+        // Refresh metrics after optimization
+        setTimeout(refreshMetrics, 1000);
+    } catch (error) {
+        console.error('Error optimizing pool:', error);
+        showAlert('danger', 'Failed to optimize pool: ' + error.message);
+    }
+}
+
+// Export metrics as JSON
+function exportMetrics() {
+    const data = {
+        timestamp: new Date().toISOString(),
+        history: metricsHistory
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `db-pool-metrics-${new Date().toISOString()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Toggle auto-refresh
+function toggleAutoRefresh() {
+    autoRefreshEnabled = !autoRefreshEnabled;
+    const btn = document.getElementById('auto-refresh-text');
+    
+    if (autoRefreshEnabled) {
+        btn.textContent = 'Disable';
+        autoRefreshInterval = setInterval(refreshMetrics, 5000);
+    } else {
+        btn.textContent = 'Enable';
+        clearInterval(autoRefreshInterval);
+    }
+}
+
+// Get CSRF token
+function getCSRFToken() {
+    const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+    return tokenMeta ? tokenMeta.content : '';
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initChart();
+    refreshMetrics();
+});
+</script>
+
+{{template "footer" .}}

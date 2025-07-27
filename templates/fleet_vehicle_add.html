@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}} - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/modern_theme.css">
+  
+  <style nonce="{{.CSPNonce}}">
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .edit-container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .edit-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0;
+    }
+
+    .back-link {
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .back-link:hover {
+      color: white;
+      transform: translateX(-5px);
+    }
+
+    .form-label {
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-control, .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
+    }
+
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .form-select option {
+      background: #2d3748;
+      color: white;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      padding: 0.75rem 2rem;
+      font-weight: 600;
+      border-radius: 50px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      padding: 0.75rem 2rem;
+      font-weight: 600;
+      border-radius: 50px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.5);
+      color: white;
+    }
+
+    .alert {
+      border-radius: 10px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      border: none;
+      font-weight: 500;
+    }
+
+    .alert-danger {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+    }
+
+    .form-section {
+      margin-bottom: 2rem;
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .row {
+      margin-bottom: 1rem;
+    }
+
+    /* Help text */
+    .form-text {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+
+    /* Help box */
+    .help-box {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .help-box h5 {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .help-box p {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.875rem;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  {{template "navigation" .}}
+
+  <div class="edit-container">
+    <div class="edit-card">
+      <div class="page-header">
+        <h1 class="page-title">
+          <i class="bi bi-plus-circle"></i> Add Fleet Vehicle
+        </h1>
+        <a href="/fleet-vehicles" class="back-link">
+          <i class="bi bi-arrow-left"></i> Back to Fleet
+        </a>
+      </div>
+
+      <div class="help-box">
+        <h5><i class="bi bi-info-circle"></i> Adding a New Vehicle</h5>
+        <p>Fill in the vehicle details below. All fields are optional except where marked as required.</p>
+      </div>
+
+      {{if .Error}}
+      <div class="alert alert-danger">
+        <i class="bi bi-exclamation-circle"></i> {{.Error}}
+      </div>
+      {{end}}
+
+      <form method="POST" action="/fleet-vehicle/add">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+        <div class="form-section">
+          <h3 class="section-title">Vehicle Identification</h3>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="vehicle_number" class="form-label">Vehicle Number</label>
+              <input type="number" class="form-control" id="vehicle_number" name="vehicle_number" 
+                     placeholder="Enter vehicle number">
+              <small class="form-text">Internal fleet number</small>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="license" class="form-label">License Plate</label>
+              <input type="text" class="form-control" id="license" name="license" 
+                     placeholder="Enter license plate">
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="serial_number" class="form-label">Serial Number</label>
+              <input type="text" class="form-control" id="serial_number" name="serial_number" 
+                     placeholder="Enter VIN or serial number">
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="sheet_name" class="form-label">Sheet Name</label>
+              <input type="text" class="form-control" id="sheet_name" name="sheet_name" 
+                     placeholder="Source sheet name">
+              <small class="form-text">For tracking import source</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3 class="section-title">Vehicle Details</h3>
+          
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label for="year" class="form-label">Year</label>
+              <input type="number" class="form-control" id="year" name="year" 
+                     placeholder="e.g., 2024" min="1900" max="2030">
+            </div>
+            
+            <div class="col-md-4 mb-3">
+              <label for="make" class="form-label">Make</label>
+              <input type="text" class="form-control" id="make" name="make" 
+                     placeholder="e.g., Ford">
+            </div>
+            
+            <div class="col-md-4 mb-3">
+              <label for="model" class="form-label">Model</label>
+              <input type="text" class="form-control" id="model" name="model" 
+                     placeholder="e.g., Transit">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3"
+                      placeholder="Additional vehicle details or notes"></textarea>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="location" class="form-label">Location</label>
+              <input type="text" class="form-control" id="location" name="location" 
+                     placeholder="e.g., Main Depot">
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="tire_size" class="form-label">Tire Size</label>
+              <input type="text" class="form-control" id="tire_size" name="tire_size" 
+                     placeholder="e.g., 225/75R16">
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 justify-content-end">
+          <a href="/fleet-vehicles" class="btn btn-secondary">
+            <i class="bi bi-x-circle"></i> Cancel
+          </a>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Add Vehicle
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

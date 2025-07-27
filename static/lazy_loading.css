@@ -1,0 +1,198 @@
+/* Lazy Loading Styles */
+
+/* Loading indicator styles */
+.lazy-loading-indicator {
+    position: relative;
+    text-align: center;
+    padding: 30px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+.lazy-loading-indicator .spinner-border {
+    width: 3rem;
+    height: 3rem;
+    border-width: 0.3em;
+}
+
+.lazy-loading-indicator p {
+    margin-top: 15px;
+    color: #6c757d;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* Scrollable table container */
+.lazy-load-container {
+    position: relative;
+    max-height: 600px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+}
+
+.lazy-load-container table {
+    margin-bottom: 0;
+}
+
+.lazy-load-container thead {
+    position: sticky;
+    top: 0;
+    background-color: #fff;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.lazy-load-container thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.875rem;
+    letter-spacing: 0.5px;
+}
+
+/* Status indicator */
+.lazy-load-status {
+    padding: 10px 15px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #495057;
+    margin-bottom: 15px;
+    display: inline-block;
+}
+
+/* Search and filter controls */
+.lazy-load-controls {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.lazy-load-search {
+    flex: 1;
+    min-width: 250px;
+}
+
+.lazy-load-search input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.lazy-load-search input:focus {
+    outline: none;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.lazy-load-filter {
+    min-width: 150px;
+}
+
+.lazy-load-filter select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: #fff;
+}
+
+/* Smooth transitions for new items */
+.lazy-load-container tbody tr {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Empty state */
+.lazy-load-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.lazy-load-empty i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.lazy-load-empty h4 {
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+/* Error state */
+.lazy-load-error {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    padding: 12px 20px;
+    border-radius: 4px;
+    margin: 20px 0;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .lazy-load-container {
+        max-height: 400px;
+    }
+    
+    .lazy-load-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .lazy-load-search,
+    .lazy-load-filter {
+        min-width: 100%;
+    }
+    
+    .lazy-load-container table {
+        font-size: 14px;
+    }
+    
+    .lazy-load-container th,
+    .lazy-load-container td {
+        padding: 8px;
+    }
+}
+
+/* Skeleton loading animation */
+.lazy-load-skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Intersection observer trigger */
+.lazy-load-trigger {
+    height: 1px;
+    visibility: hidden;
+}

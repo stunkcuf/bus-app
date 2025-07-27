@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}} - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/modern_theme.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  
+  <style nonce="{{.CSPNonce}}">
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .health-container {
+      max-width: 1400px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .health-header {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .page-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0;
+    }
+
+    .health-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+
+    .overall-score-card {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+      border: 2px solid rgba(102, 126, 234, 0.3);
+    }
+
+    .score-display {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .score-circle {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+      position: relative;
+      background: conic-gradient(
+        #667eea 0deg, 
+        #667eea calc(var(--score) * 3.6deg), 
+        rgba(255,255,255,0.1) calc(var(--score) * 3.6deg)
+      );
+    }
+
+    .score-inner {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: rgba(15, 12, 41, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .score-value {
+      font-size: 3rem;
+      font-weight: 700;
+      color: white;
+    }
+
+    .score-label {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .component-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .component-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      padding: 1.5rem;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .component-card:hover {
+      transform: translateY(-5px);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .component-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .component-score {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0.5rem 0;
+    }
+
+    .score-good { color: #22c55e; }
+    .score-warning { color: #f59e0b; }
+    .score-poor { color: #ef4444; }
+
+    .maintenance-stat {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .prediction-timeline {
+      position: relative;
+      padding-left: 2rem;
+    }
+
+    .prediction-item {
+      position: relative;
+      padding-bottom: 2rem;
+      border-left: 2px solid rgba(255, 255, 255, 0.2);
+      padding-left: 2rem;
+    }
+
+    .prediction-item:last-child {
+      border-left: none;
+      padding-bottom: 0;
+    }
+
+    .prediction-marker {
+      position: absolute;
+      left: -8px;
+      top: 0;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid #667eea;
+    }
+
+    .marker-critical {
+      background: #ef4444;
+      border-color: #ef4444;
+    }
+
+    .marker-high {
+      background: #f59e0b;
+      border-color: #f59e0b;
+    }
+
+    .marker-medium {
+      background: #3b82f6;
+      border-color: #3b82f6;
+    }
+
+    .marker-low {
+      background: #22c55e;
+      border-color: #22c55e;
+    }
+
+    .recommendation-card {
+      background: rgba(102, 126, 234, 0.1);
+      border: 1px solid rgba(102, 126, 234, 0.3);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .recommendation-card.urgent {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      padding: 0.75rem 2rem;
+      font-weight: 600;
+      border-radius: 50px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      padding: 0.5rem 1.5rem;
+      font-weight: 600;
+      border-radius: 50px;
+      color: white;
+      font-size: 0.875rem;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin-top: 2rem;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: white;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .info-text {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.875rem;
+    }
+
+    .confidence-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  {{template "navigation" .}}
+
+  <div class="health-container">
+    <div class="health-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="page-title">
+            <i class="bi bi-heart-pulse"></i> Vehicle Health Analysis
+          </h1>
+          <p class="text-white-50">{{.HealthScore.VehicleDescription}} - {{.VehicleID}}</p>
+        </div>
+        <a href="/predictive-maintenance" class="btn btn-secondary">
+          <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+      </div>
+    </div>
+
+    {{if .HealthScore}}
+    <!-- Overall Health Score -->
+    <div class="row">
+      <div class="col-md-4">
+        <div class="health-card overall-score-card">
+          <div class="score-display">
+            <h3 class="text-center mb-3">Overall Health Score</h3>
+            <div class="score-circle" style="--score: {{.HealthScore.OverallScore}}">
+              <div class="score-inner">
+                <div class="score-value">{{printf "%.0f" .HealthScore.OverallScore}}</div>
+                <div class="score-label">Health Score</div>
+              </div>
+            </div>
+            <p class="text-center mt-3">
+              {{if ge .HealthScore.OverallScore 80}}
+                <span class="score-good">Excellent Condition</span>
+              {{else if ge .HealthScore.OverallScore 60}}
+                <span class="score-warning">Fair Condition</span>
+              {{else}}
+                <span class="score-poor">Needs Attention</span>
+              {{end}}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-8">
+        <div class="health-card">
+          <h3>Component Health Scores</h3>
+          <div class="component-grid">
+            {{range $component, $score := .HealthScore.ComponentScores}}
+            <div class="component-card">
+              <div class="component-icon">
+                {{if eq $component "engine"}}<i class="bi bi-gear-wide-connected"></i>
+                {{else if eq $component "tires"}}<i class="bi bi-life-preserver"></i>
+                {{else if eq $component "brakes"}}<i class="bi bi-sign-stop"></i>
+                {{else if eq $component "mechanical"}}<i class="bi bi-tools"></i>
+                {{else}}<i class="bi bi-wrench"></i>{{end}}
+              </div>
+              <h5 class="text-capitalize">{{$component}}</h5>
+              <p class="component-score 
+                {{if ge $score 80}}score-good
+                {{else if ge $score 60}}score-warning
+                {{else}}score-poor{{end}}">
+                {{printf "%.0f" $score}}%
+              </p>
+            </div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Maintenance History -->
+    <div class="health-card">
+      <h3 class="section-title">Maintenance History</h3>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="maintenance-stat">
+            <span>Total Services</span>
+            <strong>{{.HealthScore.MaintenanceHistory.TotalServices}}</strong>
+          </div>
+          <div class="maintenance-stat">
+            <span>On-Time Services</span>
+            <strong class="score-good">{{.HealthScore.MaintenanceHistory.OnTimeServices}}</strong>
+          </div>
+          <div class="maintenance-stat">
+            <span>Delayed Services</span>
+            <strong class="score-poor">{{.HealthScore.MaintenanceHistory.DelayedServices}}</strong>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="maintenance-stat">
+            <span>Average Monthly Cost</span>
+            <strong>${{printf "%.2f" .HealthScore.MaintenanceHistory.AverageCostPerMonth}}</strong>
+          </div>
+          <div class="maintenance-stat">
+            <span>Total Maintenance Cost</span>
+            <strong>${{printf "%.2f" .HealthScore.MaintenanceHistory.TotalCost}}</strong>
+          </div>
+          <div class="maintenance-stat">
+            <span>Days Since Last Service</span>
+            <strong>{{.HealthScore.MaintenanceHistory.DaysSinceLastService}}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Maintenance Predictions -->
+    <div class="health-card">
+      <h3 class="section-title">Predicted Maintenance Schedule</h3>
+      
+      {{if .HealthScore.Predictions}}
+      <div class="prediction-timeline">
+        {{range .HealthScore.Predictions}}
+        <div class="prediction-item">
+          <div class="prediction-marker marker-{{.RiskLevel}}"></div>
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h5 class="mb-1">{{.MaintenanceType}}</h5>
+              <p class="info-text mb-1">
+                <i class="bi bi-calendar3"></i> 
+                {{.PredictedDate.Format "January 2, 2006"}}
+                {{if eq .DaysUntilDue 0}}(Today)
+                {{else if eq .DaysUntilDue 1}}(Tomorrow)
+                {{else if lt .DaysUntilDue 0}}({{mul .DaysUntilDue -1}} days overdue)
+                {{else}}(In {{.DaysUntilDue}} days){{end}}
+              </p>
+              <p class="info-text mb-1">
+                <i class="bi bi-speedometer2"></i> 
+                At {{.PredictedMileage}} miles ({{.MilesUntilDue}} miles from now)
+              </p>
+              <p class="info-text mb-2">
+                <i class="bi bi-info-circle"></i> {{.RecommendedAction}}
+              </p>
+              <div>
+                <small class="text-white-50">Confidence: {{printf "%.0f" .ConfidenceScore}}%</small>
+                <div class="confidence-bar">
+                  <div class="confidence-fill" style="width: {{.ConfidenceScore}}%"></div>
+                </div>
+              </div>
+            </div>
+            <div class="text-end">
+              <p class="h4 text-danger mb-2">${{printf "%.2f" .EstimatedCost}}</p>
+              <button class="btn btn-sm btn-primary" data-bs-toggle="modal" 
+                      data-bs-target="#scheduleModal"
+                      data-maintenance="{{.MaintenanceType}}"
+                      data-date="{{.PredictedDate.Format "2006-01-02"}}"
+                      data-cost="{{.EstimatedCost}}">
+                Schedule Now
+              </button>
+            </div>
+          </div>
+        </div>
+        {{end}}
+      </div>
+      {{else}}
+      <p class="text-center text-white-50">No maintenance predictions available</p>
+      {{end}}
+    </div>
+
+    <!-- Recommendations -->
+    {{if .HealthScore.Recommendations}}
+    <div class="health-card">
+      <h3 class="section-title">Recommendations</h3>
+      {{range .HealthScore.Recommendations}}
+      <div class="recommendation-card {{if contains . "URGENT"}}urgent{{end}}">
+        <i class="bi bi-lightbulb"></i> {{.}}
+      </div>
+      {{end}}
+    </div>
+    {{end}}
+
+    <!-- Component Health Chart -->
+    <div class="health-card">
+      <h3 class="section-title">Component Health Trend</h3>
+      <div class="chart-container">
+        <canvas id="componentChart"></canvas>
+      </div>
+    </div>
+    {{end}}
+  </div>
+
+  <!-- Schedule Maintenance Modal -->
+  <div class="modal fade" id="scheduleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content" style="background: #2d3748; color: white;">
+        <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+          <h5 class="modal-title">Schedule Maintenance</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="POST" action="/predictive-maintenance/schedule">
+          <div class="modal-body">
+            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+            <input type="hidden" name="vehicle_id" value="{{.VehicleID}}">
+            <input type="hidden" name="maintenance_type" id="maintenanceType">
+            
+            <div class="mb-3">
+              <label class="form-label">Maintenance Type</label>
+              <input type="text" class="form-control" id="maintenanceDisplay" disabled
+                     style="background: rgba(255,255,255,0.1); color: white;">
+            </div>
+            
+            <div class="mb-3">
+              <label for="scheduled_date" class="form-label">Scheduled Date</label>
+              <input type="date" class="form-control" name="scheduled_date" id="scheduledDate" required
+                     style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+            </div>
+            
+            <div class="mb-3">
+              <label for="estimated_cost" class="form-label">Estimated Cost</label>
+              <input type="number" class="form-control" name="estimated_cost" id="estimatedCost" 
+                     step="0.01" required
+                     style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+            </div>
+            
+            <div class="mb-3">
+              <label for="notes" class="form-label">Notes</label>
+              <textarea class="form-control" name="notes" rows="3"
+                        style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);"
+                        placeholder="Additional notes or instructions..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer" style="border-top: 1px solid rgba(255,255,255,0.1);">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Schedule Maintenance</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  {{if .HealthScore}}
+  <script nonce="{{.CSPNonce}}">
+  // Component Health Chart
+  const ctx = document.getElementById('componentChart').getContext('2d');
+  const componentData = {{.HealthScore.ComponentScores}};
+  
+  new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: Object.keys(componentData).map(k => k.charAt(0).toUpperCase() + k.slice(1)),
+      datasets: [{
+        label: 'Current Health',
+        data: Object.values(componentData),
+        borderColor: '#667eea',
+        backgroundColor: 'rgba(102, 126, 234, 0.2)',
+        pointBackgroundColor: '#667eea',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: '#667eea'
+      }, {
+        label: 'Target Health',
+        data: [90, 90, 90, 90], // Target scores
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderDash: [5, 5],
+        pointBackgroundColor: 'rgba(255, 255, 255, 0.3)',
+        pointBorderColor: 'rgba(255, 255, 255, 0.3)'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: 'white' }
+        }
+      },
+      scales: {
+        r: {
+          beginAtZero: true,
+          max: 100,
+          ticks: { 
+            color: 'rgba(255,255,255,0.5)',
+            backdropColor: 'transparent'
+          },
+          grid: { color: 'rgba(255,255,255,0.1)' },
+          angleLines: { color: 'rgba(255,255,255,0.1)' },
+          pointLabels: { 
+            color: 'rgba(255,255,255,0.8)',
+            font: { size: 12 }
+          }
+        }
+      }
+    }
+  });
+
+  // Schedule modal population
+  const scheduleModal = document.getElementById('scheduleModal');
+  scheduleModal.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    const maintenanceType = button.getAttribute('data-maintenance');
+    const date = button.getAttribute('data-date');
+    const cost = button.getAttribute('data-cost');
+    
+    document.getElementById('maintenanceType').value = maintenanceType;
+    document.getElementById('maintenanceDisplay').value = maintenanceType;
+    document.getElementById('scheduledDate').value = date;
+    document.getElementById('estimatedCost').value = cost;
+  });
+  </script>
+  {{end}}
+</body>
+</html>

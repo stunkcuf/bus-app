@@ -1,8 +1,104 @@
-// Maintenance Logging Wizard
+// Maintenance Logging Wizard with Auto-Suggestions
 function initMaintenanceWizard(vehicleType, vehicleId) {
+    // Load suggestions when wizard starts
+    let maintenanceSuggestions = [];
+    loadMaintenanceSuggestions(vehicleType, vehicleId);
+    
     const wizard = new StepWizard({
         containerId: 'wizardContainer',
         steps: [
+            {
+                title: 'Maintenance Suggestions',
+                description: 'Review recommended maintenance for this vehicle.',
+                render: function(data) {
+                    return `
+                        <div id="maintenanceSuggestions">
+                            <div class="text-center">
+                                <div class="spinner-border"></div>
+                                <p>Loading maintenance suggestions...</p>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <h6>Or select a maintenance type:</h6>
+                            <div class="maintenance-type-grid">
+                                <button class="maintenance-type-card" onclick="selectMaintenanceType('oil_change')">
+                                    <span class="icon">🛢️</span>
+                                    <span>Oil Change</span>
+                                </button>
+                                <button class="maintenance-type-card" onclick="selectMaintenanceType('tire_service')">
+                                    <span class="icon">🚙</span>
+                                    <span>Tire Service</span>
+                                </button>
+                                <button class="maintenance-type-card" onclick="selectMaintenanceType('inspection')">
+                                    <span class="icon">🔍</span>
+                                    <span>Inspection</span>
+                                </button>
+                                <button class="maintenance-type-card" onclick="selectMaintenanceType('repair')">
+                                    <span class="icon">🔧</span>
+                                    <span>Repair</span>
+                                </button>
+                                <button class="maintenance-type-card" onclick="selectMaintenanceType('other')">
+                                    <span class="icon">📋</span>
+                                    <span>Other</span>
+                                </button>
+                            </div>
+                        </div>
+                        <style>
+                            .maintenance-type-grid {
+                                display: grid;
+                                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                                gap: 15px;
+                                margin-top: 15px;
+                            }
+                            .maintenance-type-card {
+                                padding: 20px;
+                                border: 2px solid #ddd;
+                                border-radius: 8px;
+                                background: white;
+                                cursor: pointer;
+                                transition: all 0.3s;
+                                text-align: center;
+                            }
+                            .maintenance-type-card:hover {
+                                border-color: #007bff;
+                                transform: translateY(-2px);
+                                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                            }
+                            .maintenance-type-card .icon {
+                                display: block;
+                                font-size: 2em;
+                                margin-bottom: 5px;
+                            }
+                            .suggestion-card {
+                                cursor: pointer;
+                                transition: all 0.3s;
+                            }
+                            .suggestion-card:hover {
+                                transform: translateY(-2px);
+                                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                            }
+                        </style>
+                    `;
+                },
+                init: function(wizard) {
+                    // Display suggestions once loaded
+                    setTimeout(() => {
+                        const container = document.getElementById('maintenanceSuggestions');
+                        if (container && maintenanceSuggestions.length > 0) {
+                            container.innerHTML = renderMaintenanceSuggestions(maintenanceSuggestions);
+                        } else if (container) {
+                            container.innerHTML = '<p class="text-muted">No maintenance suggestions at this time.</p>';
+                        }
+                    }, 500);
+                },
+                collect: function(wizard) {
+                    // Collect selected maintenance type
+                    if (!wizard.data.category) {
+                        wizard.data.category = 'other';
+                    }
+                },
+                help: 'Review suggested maintenance based on mileage, time, and service history.'
+            },
             {
                 title: 'Maintenance Type',
                 description: 'What type of maintenance are you logging?',
@@ -43,17 +139,31 @@ function initMaintenanceWizard(vehicleType, vehicleId) {
                         help: 'Record the vehicle\'s mileage at the time of service.'
                     },
                     {
+                        id: 'description',
+                        type: 'text',
+                        label: 'Description',
+                        required: true,
+                        placeholder: 'Start typing for suggestions...',
+                        autocomplete: true
+                    },
+                    {
                         id: 'notes',
                         type: 'textarea',
-                        label: 'Service Notes',
-                        required: true,
-                        placeholder: 'Describe the maintenance performed...'
+                        label: 'Additional Notes',
+                        required: false,
+                        placeholder: 'Any additional details or observations...'
                     }
                 ],
                 init: function(wizard) {
                     // Set today's date as default
                     const dateInput = document.getElementById('date');
                     dateInput.value = new Date().toISOString().split('T')[0];
+                    
+                    // Initialize autocomplete for description field
+                    const descriptionField = document.getElementById('description');
+                    if (descriptionField) {
+                        initMaintenanceAutocomplete('description', wizard.data.category || 'other');
+                    }
                     
                     // Load last known mileage and suggest next value
                     fetch(`/api/vehicle-mileage/${vehicleType}/${vehicleId}`)
@@ -310,4 +420,208 @@ function initMaintenanceWizard(vehicleType, vehicleId) {
     });
     
     window.wizard = wizard;
+}
+
+// Load maintenance suggestions from the server
+async function loadMaintenanceSuggestions(vehicleType, vehicleId) {
+    try {
+        const response = await fetch(`/api/maintenance/suggestions?vehicle_type=${vehicleType}&vehicle_id=${vehicleId}`);
+        if (response.ok) {
+            maintenanceSuggestions = await response.json();
+        }
+    } catch (error) {
+        console.error('Error loading maintenance suggestions:', error);
+    }
+}
+
+// Render maintenance suggestions
+function renderMaintenanceSuggestions(suggestions) {
+    let html = '<div class="maintenance-suggestions">';
+    html += '<h6><i class="bi bi-clipboard-check"></i> Recommended Maintenance</h6>';
+    
+    if (suggestions.length === 0) {
+        html += '<p class="text-muted">No maintenance recommendations at this time.</p>';
+    } else {
+        suggestions.forEach((suggestion, index) => {
+            const priorityClass = suggestion.priority === 'high' ? 'danger' : 
+                                 suggestion.priority === 'medium' ? 'warning' : 'secondary';
+            
+            html += `
+                <div class="suggestion-card mb-3 p-3 border rounded" onclick="useSuggestion(${index})">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">
+                                <span class="me-2">${suggestion.icon}</span>
+                                ${suggestion.title}
+                            </h6>
+                            <p class="mb-2 text-muted">${suggestion.description}</p>
+                            <div>
+                                <span class="badge bg-${priorityClass}">
+                                    ${suggestion.priority.toUpperCase()} Priority
+                                </span>
+                                ${suggestion.estimated_cost ? `
+                                    <span class="badge bg-info ms-1">
+                                        Est. Cost: $${suggestion.estimated_cost.toFixed(2)}
+                                    </span>
+                                ` : ''}
+                                ${suggestion.mileage_threshold ? `
+                                    <span class="badge bg-secondary ms-1">
+                                        At ${suggestion.mileage_threshold.toLocaleString()} miles
+                                    </span>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary">
+                            Use This
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+// Use a maintenance suggestion
+function useSuggestion(index) {
+    if (maintenanceSuggestions && maintenanceSuggestions[index]) {
+        const suggestion = maintenanceSuggestions[index];
+        
+        // Set the maintenance type
+        window.wizard.data.category = suggestion.type;
+        window.wizard.data.suggestedDescription = suggestion.title;
+        window.wizard.data.suggestedCost = suggestion.estimated_cost;
+        
+        // Move to next step
+        window.wizard.nextStep();
+        
+        // Pre-fill the form if on the details step
+        setTimeout(() => {
+            const descriptionField = document.getElementById('description');
+            if (descriptionField) {
+                descriptionField.value = suggestion.title;
+            }
+            
+            const costField = document.getElementById('cost');
+            if (costField && suggestion.estimated_cost) {
+                costField.value = suggestion.estimated_cost.toFixed(2);
+            }
+        }, 100);
+    }
+}
+
+// Select maintenance type from grid
+function selectMaintenanceType(type) {
+    window.wizard.data.category = type;
+    window.wizard.nextStep();
+}
+
+// Initialize autocomplete for description field
+function initMaintenanceAutocomplete(fieldId, category) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    
+    let autocompleteContainer = document.getElementById(fieldId + '_autocomplete');
+    if (!autocompleteContainer) {
+        autocompleteContainer = document.createElement('div');
+        autocompleteContainer.id = fieldId + '_autocomplete';
+        autocompleteContainer.className = 'autocomplete-suggestions';
+        autocompleteContainer.style.cssText = `
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        `;
+        field.parentNode.appendChild(autocompleteContainer);
+    }
+    
+    let debounceTimer;
+    
+    field.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        const value = this.value;
+        
+        if (value.length < 2) {
+            autocompleteContainer.style.display = 'none';
+            return;
+        }
+        
+        debounceTimer = setTimeout(async () => {
+            try {
+                const response = await fetch(`/api/maintenance/autocomplete?q=${encodeURIComponent(value)}&category=${category}`);
+                if (response.ok) {
+                    const suggestions = await response.json();
+                    displayAutocomplete(suggestions, autocompleteContainer, field);
+                }
+            } catch (error) {
+                console.error('Autocomplete error:', error);
+            }
+        }, 300);
+    });
+    
+    // Hide autocomplete on click outside
+    document.addEventListener('click', function(e) {
+        if (!field.contains(e.target) && !autocompleteContainer.contains(e.target)) {
+            autocompleteContainer.style.display = 'none';
+        }
+    });
+}
+
+// Display autocomplete suggestions
+function displayAutocomplete(suggestions, container, field) {
+    if (suggestions.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    let html = '';
+    suggestions.forEach(suggestion => {
+        html += `
+            <div class="autocomplete-item p-2" style="cursor: pointer; border-bottom: 1px solid #eee;">
+                <div>${suggestion.label}</div>
+                ${suggestion.average_cost ? `
+                    <small class="text-muted">Avg. Cost: $${suggestion.average_cost.toFixed(2)}</small>
+                ` : ''}
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+    container.style.display = 'block';
+    
+    // Position below the field
+    const rect = field.getBoundingClientRect();
+    container.style.width = rect.width + 'px';
+    container.style.top = (rect.bottom + window.scrollY) + 'px';
+    container.style.left = rect.left + 'px';
+    
+    // Add click handlers
+    container.querySelectorAll('.autocomplete-item').forEach((item, index) => {
+        item.addEventListener('click', function() {
+            field.value = suggestions[index].value;
+            
+            // Update cost field if available
+            const costField = document.getElementById('cost');
+            if (costField && suggestions[index].average_cost) {
+                costField.value = suggestions[index].average_cost.toFixed(2);
+            }
+            
+            container.style.display = 'none';
+        });
+        
+        item.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f0f0f0';
+        });
+        
+        item.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = 'white';
+        });
+    });
 }

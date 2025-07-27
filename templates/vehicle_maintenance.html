@@ -160,10 +160,9 @@
       66% { transform: translate(-20px, 20px) scale(0.9); }
     }
     
-    /* Glass cards */
+    /* Glass cards - Simplified without backdrop blur */
     .glass-card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
+      background: rgba(0, 0, 0, 0.6);
       border-radius: 30px;
       border: 1px solid rgba(255, 255, 255, 0.2);
       padding: 2rem;
@@ -254,29 +253,37 @@
       animation: gradientShift 8s ease-in-out infinite;
     }
     
-    /* Tables */
+    /* Tables - Clean dark theme styling */
     .table {
-      color: white;
+      color: #ffffff !important;
+      background-color: rgba(0, 0, 0, 0.3) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
     }
     
     .table thead th {
-      background: rgba(255, 255, 255, 0.15);
-      color: white;
+      background: rgba(0, 0, 0, 0.5) !important;
+      color: #ffffff !important;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
       padding: 1rem;
-      border: none;
+      border-color: rgba(255, 255, 255, 0.3) !important;
     }
     
     .table tbody tr {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(0, 0, 0, 0.2) !important;
+      color: #ffffff !important;
       transition: all 0.3s ease;
     }
     
     .table tbody tr:hover {
-      background: rgba(255, 255, 255, 0.1);
-      transform: translateX(10px);
+      background: rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    .table tbody td {
+      color: #ffffff !important;
+      padding: 0.75rem;
+      border-color: rgba(255, 255, 255, 0.1) !important;
     }
     
     /* Animations */
@@ -293,10 +300,9 @@
       }
     }
 
-    /* Enhanced card styling */
+    /* Enhanced card styling - Simplified */
     .enhanced-card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
+      background: rgba(0, 0, 0, 0.6);
       border-radius: 20px;
       border: 1px solid rgba(255, 255, 255, 0.2);
       margin-bottom: 2rem;
@@ -324,39 +330,103 @@
       color: white;
     }
 
-    /* Override Bootstrap table-light for dark theme */
-    .table-light {
-      background: rgba(255, 255, 255, 0.15) !important;
-      color: white !important;
-    }
-
-    .table-light th {
-      background: rgba(255, 255, 255, 0.15) !important;
-      color: white !important;
-      font-weight: 700;
-      text-transform: uppercase;
+    /* Removed table-light overrides - not needed */
       letter-spacing: 1px;
       border-color: rgba(255, 255, 255, 0.2) !important;
     }
 
-    /* Fix table styling */
-    .table {
+    
+    /* Ensure table responsive wrapper doesn't hide content */
+    .table-responsive {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin-bottom: 1rem;
+    }
+    
+    /* Make sure all text in the table is visible */
+    .table * {
+      color: white !important;
+    }
+    
+    /* Force dark theme on table-light class */
+    .table-light,
+    .table-light > th,
+    .table-light > td {
+      --bs-table-bg: rgba(255, 255, 255, 0.1) !important;
+      --bs-table-striped-bg: rgba(255, 255, 255, 0.15) !important;
+      --bs-table-active-bg: rgba(255, 255, 255, 0.2) !important;
+      --bs-table-hover-bg: rgba(255, 255, 255, 0.15) !important;
+      background-color: rgba(255, 255, 255, 0.1) !important;
+      color: white !important;
+    }
+    
+    /* Specific fixes for maintenance table */
+    #maintenanceHistory .table {
+      background: transparent !important;
+    }
+    
+    #maintenanceHistory .table th,
+    #maintenanceHistory .table td {
+      background-color: transparent !important;
       color: white !important;
       border-color: rgba(255, 255, 255, 0.2) !important;
     }
-
-    .table tbody tr {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(255, 255, 255, 0.1) !important;
-    }
-
-    .table tbody tr:hover {
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    .table td {
-      border-color: rgba(255, 255, 255, 0.1) !important;
+    
+    #maintenanceHistory .table thead th {
+      background: rgba(255, 255, 255, 0.15) !important;
       color: white !important;
+      font-weight: 700;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.3) !important;
+    }
+    
+    #maintenanceHistory .table tbody tr {
+      background: rgba(255, 255, 255, 0.05) !important;
+    }
+    
+    #maintenanceHistory .table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    /* Ensure icons are visible */
+    .bi {
+      color: white !important;
+    }
+
+    /* Category badges */
+    .category-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .category-oil_change {
+      background: rgba(255, 193, 7, 0.3);
+      border-color: rgba(255, 193, 7, 0.5);
+    }
+    
+    .category-tire_service {
+      background: rgba(33, 150, 243, 0.3);
+      border-color: rgba(33, 150, 243, 0.5);
+    }
+    
+    .category-inspection {
+      background: rgba(76, 175, 80, 0.3);
+      border-color: rgba(76, 175, 80, 0.5);
+    }
+    
+    .category-repair {
+      background: rgba(244, 67, 54, 0.3);
+      border-color: rgba(244, 67, 54, 0.5);
+    }
+    
+    .category-other {
+      background: rgba(158, 158, 158, 0.3);
+      border-color: rgba(158, 158, 158, 0.5);
     }
 
     /* Text colors */
@@ -531,6 +601,99 @@
     select option {
       background: #1a1a2e;
       color: white;
+    }
+    /* EMERGENCY FIX: Remove ALL glassmorphism and overlay effects */
+    * {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      filter: none !important;
+    }
+    
+    .enhanced-card,
+    .glass-card,
+    .glass-card-header,
+    .glass-card-body {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background: rgba(0, 0, 0, 0.8) !important;
+      filter: none !important;
+    }
+    
+    /* Remove any pseudo-elements that might create overlays */
+    .enhanced-card::before,
+    .enhanced-card::after,
+    .glass-card::before,
+    .glass-card::after,
+    .table-responsive::before,
+    .table-responsive::after {
+      display: none !important;
+    }
+    
+    
+    /* Maintenance table specific overrides */
+    .maintenance-log td {
+      color: white !important;
+      background: transparent !important;
+    }
+    
+    .maintenance-log:hover td {
+      background: rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    /* Category badge visibility fix */
+    .category-badge {
+      color: white !important;
+      font-weight: 600 !important;
+    }
+    
+    /* Ensure all text elements are visible */
+    strong, b, span:not(.category-badge) {
+      color: white !important;
+    }
+    
+    /* Fix muted text */
+    .text-muted {
+      color: rgba(255, 255, 255, 0.7) !important;
+      opacity: 1 !important;
+    }
+    /* ABSOLUTE FINAL FIX FOR TABLE VISIBILITY */
+    #vehicle-maintenance-table {
+      background-color: #1a1a1a !important;
+      color: #ffffff !important;
+    }
+    
+    #vehicle-maintenance-table th,
+    #vehicle-maintenance-table td {
+      color: #ffffff !important;
+      background-color: transparent !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+    
+    #vehicle-maintenance-table thead th {
+      background-color: #2a2a2a !important;
+      font-weight: bold !important;
+    }
+    
+    #vehicle-maintenance-table tbody tr {
+      background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    
+    #vehicle-maintenance-table tbody tr:hover {
+      background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    /* Remove any possible white overlay */
+    .glass-card-body::before,
+    .glass-card-body::after,
+    .table-responsive::before,
+    .table-responsive::after {
+      display: none !important;
+    }
+    
+    /* Force text visibility */
+    #vehicle-maintenance-table * {
+      opacity: 1 !important;
+      visibility: visible !important;
     }
   </style>
 </head>
@@ -729,8 +892,8 @@
       <div class="card glass-card-body p-0">
         {{if .Data.MaintenanceRecords}}
         <div class="table-responsive">
-          <table class="table table-hover mb-0">
-            <thead class="table-light">
+          <table id="vehicle-maintenance-table" class="table table-hover mb-0">
+            <thead>
               <tr>
                 <th width="120">Date</th>
                 <th width="150">Category</th>

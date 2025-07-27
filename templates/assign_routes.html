@@ -294,6 +294,9 @@
       <div class="hero-content">
         <h1 class="fade-in">Route Management</h1>
         <p class="lead fade-in" style="opacity: 0.9;">Assign drivers to bus routes and manage route definitions</p>
+        <p class="fade-in" style="opacity: 0.8; font-size: 0.9rem;">
+          <i class="bi bi-info-circle"></i> Drivers and buses can be assigned to multiple routes
+        </p>
         <div class="mt-4 fade-in">
           <a href="/route-assignment-wizard" class="wizard-button">
             <i class="bi bi-magic"></i>
@@ -696,5 +699,44 @@
       });
     });
   </script>
+  
+  <!-- Fix for white overlay issue -->
+  <style nonce="{{.CSPNonce}}">
+    /* Override loading overlay if present */
+    .loading-overlay {
+      display: none !important;
+    }
+    
+    /* Ensure tables and cards are readable with dark theme */
+    .table {
+      background: rgba(255, 255, 255, 0.05) !important;
+    }
+    
+    .table td, .table th {
+      color: white !important;
+    }
+    
+    /* Fix form controls visibility */
+    .form-control option,
+    .form-select option {
+      background: #2c3e50;
+      color: white;
+    }
+    
+    /* Ensure no white overlays */
+    body::after {
+      display: none !important;
+    }
+    
+    /* Fix card backgrounds for better readability */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.08) !important;
+    }
+    
+    /* Fix assignment cards */
+    .assignment-card {
+      background: rgba(255, 255, 255, 0.1) !important;
+    }
+  </style>
 </body>
 </html>

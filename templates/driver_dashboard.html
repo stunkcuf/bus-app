@@ -408,12 +408,20 @@
         </div>
         
         <div class="row g-3 mt-3">
-          <div class="col-md-12">
+          <div class="col-md-6">
             <div class="form-group">
-              <label class="form-label"><i class="bi bi-speedometer2 me-1"></i> Total Mileage</label>
-              <input type="number" name="mileage" class="form-control" step="0.1" 
-                     placeholder="Enter total miles driven" 
-                     value="{{if .Data.DriverLog}}{{.Data.DriverLog.Mileage}}{{end}}" required>
+              <label class="form-label"><i class="bi bi-speedometer2 me-1"></i> Beginning Mileage</label>
+              <input type="number" name="begin_mileage" class="form-control" step="0.1" 
+                     placeholder="Odometer reading at start" 
+                     value="{{if .Data.DriverLog}}{{.Data.DriverLog.BeginMileage}}{{end}}" required>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-group">
+              <label class="form-label"><i class="bi bi-speedometer2 me-1"></i> Ending Mileage</label>
+              <input type="number" name="end_mileage" class="form-control" step="0.1" 
+                     placeholder="Odometer reading at end" 
+                     value="{{if .Data.DriverLog}}{{.Data.DriverLog.EndMileage}}{{end}}" required>
             </div>
           </div>
         </div>

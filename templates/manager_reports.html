@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}} - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/modern_theme.css">
+  
+  <style nonce="{{.CSPNonce}}">
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      color: white;
+    }
+    
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+    
+    .glass-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      padding: 1rem 0;
+      margin-bottom: 2rem;
+    }
+    
+    .report-card {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 15px;
+      padding: 2rem;
+      text-align: center;
+      color: white;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      display: block;
+      height: 100%;
+    }
+    
+    .report-card:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      transform: translateY(-5px);
+    }
+    
+    .report-card i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+    
+    .report-card h4 {
+      margin-bottom: 0.5rem;
+    }
+    
+    .report-card p {
+      margin: 0;
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-glass">
+    <div class="container">
+      <a href="/manager-dashboard" class="navbar-brand text-white">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+      </a>
+      <div class="text-white">
+        <i class="bi bi-person-circle"></i> {{.User.Username}}
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="glass-card">
+      <h1 class="mb-4"><i class="bi bi-graph-up me-2"></i>Reports & Analytics</h1>
+      <p class="lead opacity-75">Access comprehensive reports and analytics for your fleet operations.</p>
+    </div>
+    
+    <!-- Report Categories -->
+    <div class="row g-4">
+      <!-- Mileage Reports -->
+      <div class="col-md-4">
+        <a href="/monthly-mileage-reports" class="report-card">
+          <i class="bi bi-speedometer2" style="color: #667eea;"></i>
+          <h4>Monthly Mileage Reports</h4>
+          <p>View monthly mileage data for all vehicles</p>
+        </a>
+      </div>
+      
+      <!-- Maintenance Reports -->
+      <div class="col-md-4">
+        <a href="/maintenance-records" class="report-card">
+          <i class="bi bi-tools" style="color: #f093fb;"></i>
+          <h4>Maintenance Records</h4>
+          <p>Track maintenance history and costs</p>
+        </a>
+      </div>
+      
+      <!-- Service Records -->
+      <div class="col-md-4">
+        <a href="/service-records" class="report-card">
+          <i class="bi bi-clipboard-check" style="color: #4facfe;"></i>
+          <h4>Service Records</h4>
+          <p>View detailed service history</p>
+        </a>
+      </div>
+      
+      <!-- Driver Logs -->
+      <div class="col-md-4">
+        <a href="/view-mileage-reports" class="report-card">
+          <i class="bi bi-journal-text" style="color: #43e97b;"></i>
+          <h4>Driver Logs</h4>
+          <p>Review daily driver trip logs</p>
+        </a>
+      </div>
+      
+      <!-- Fleet Overview -->
+      <div class="col-md-4">
+        <a href="/fleet" class="report-card">
+          <i class="bi bi-truck" style="color: #fa709a;"></i>
+          <h4>Fleet Overview</h4>
+          <p>View all buses in your fleet</p>
+        </a>
+      </div>
+      
+      <!-- Student Reports -->
+      <div class="col-md-4">
+        <a href="/ecse-reports" class="report-card">
+          <i class="bi bi-people" style="color: #30cfd0;"></i>
+          <h4>ECSE Student Reports</h4>
+          <p>Special education transportation reports</p>
+        </a>
+      </div>
+    </div>
+    
+    <!-- Quick Stats -->
+    <div class="glass-card mt-5">
+      <h3 class="mb-4"><i class="bi bi-bar-chart me-2"></i>Quick Statistics</h3>
+      <div class="row text-center">
+        <div class="col-md-3">
+          <h2 style="color: #667eea;">{{.TotalBuses}}</h2>
+          <p class="mb-0 opacity-75">Total Buses</p>
+        </div>
+        <div class="col-md-3">
+          <h2 style="color: #f093fb;">{{.TotalDrivers}}</h2>
+          <p class="mb-0 opacity-75">Active Drivers</p>
+        </div>
+        <div class="col-md-3">
+          <h2 style="color: #4facfe;">{{.TotalRoutes}}</h2>
+          <p class="mb-0 opacity-75">Total Routes</p>
+        </div>
+        <div class="col-md-3">
+          <h2 style="color: #43e97b;">{{.TotalStudents}}</h2>
+          <p class="mb-0 opacity-75">Total Students</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Export Options -->
+    <div class="glass-card">
+      <h3 class="mb-4"><i class="bi bi-download me-2"></i>Export Options</h3>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="d-flex align-items-center justify-content-between p-3 rounded" style="background: rgba(255, 255, 255, 0.05);">
+            <div>
+              <h5 class="mb-1">PDF Reports</h5>
+              <p class="mb-0 opacity-75 small">Generate custom PDF reports</p>
+            </div>
+            <a href="/api/reports/pdf" class="btn btn-primary btn-sm">
+              <i class="bi bi-file-pdf"></i> Generate
+            </a>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="d-flex align-items-center justify-content-between p-3 rounded" style="background: rgba(255, 255, 255, 0.05);">
+            <div>
+              <h5 class="mb-1">Excel Export</h5>
+              <p class="mb-0 opacity-75 small">Export data to Excel format</p>
+            </div>
+            <a href="/api/reports/fleet/export" class="btn btn-success btn-sm">
+              <i class="bi bi-file-excel"></i> Export
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

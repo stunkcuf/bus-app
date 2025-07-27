@@ -358,10 +358,17 @@
         <!-- Vehicles Table -->
         <div class="vehicles-table">
             <div class="table-header">
-                <h3>Fleet Vehicles</h3>
-                <div class="results-info">
-                    Showing {{if .Vehicles}}{{add (mul (sub .Pagination.Page 1) .Pagination.PerPage) 1}} - {{add (mul (sub .Pagination.Page 1) .Pagination.PerPage) (len .Vehicles)}}{{else}}0{{end}} of {{.TotalVehicles}} vehicles
+                <div>
+                    <h3>Fleet Vehicles</h3>
+                    <div class="results-info">
+                        Showing {{if .Vehicles}}{{add (mul (sub .Pagination.Page 1) .Pagination.PerPage) 1}} - {{add (mul (sub .Pagination.Page 1) .Pagination.PerPage) (len .Vehicles)}}{{else}}0{{end}} of {{.TotalVehicles}} vehicles
+                    </div>
                 </div>
+                {{if eq .User.Role "manager"}}
+                <a href="/fleet-vehicle/add" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Add Vehicle
+                </a>
+                {{end}}
             </div>
 
             {{if .Vehicles}}
@@ -378,6 +385,7 @@
                             <th>Serial Number</th>
                             <th>Tire Size</th>
                             <th>Sheet Name</th>
+                            {{if eq $.User.Role "manager"}}<th>Actions</th>{{end}}
                         </tr>
                     </thead>
                     <tbody>
@@ -423,6 +431,16 @@
                             </td>
                             <td>{{if .GetTireSize}}{{.GetTireSize}}{{else}}<span style="color: #999;">—</span>{{end}}</td>
                             <td>{{if .GetSheetName}}{{.GetSheetName}}{{else}}<span style="color: #999;">—</span>{{end}}</td>
+                            {{if eq $.User.Role "manager"}}
+                            <td>
+                                <a href="/fleet-vehicle/edit/{{.ID}}" class="btn btn-sm btn-primary" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button class="btn btn-sm btn-danger" onclick="deleteVehicle('{{.ID}}')" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                            {{end}}
                         </tr>
                         {{end}}
                     </tbody>
@@ -462,5 +480,35 @@
             {{end}}
         </div>
     </div>
+
+    {{if eq .User.Role "manager"}}
+    <script nonce="{{.CSPNonce}}">
+    function deleteVehicle(id) {
+        if (!confirm('Are you sure you want to delete this vehicle?')) {
+            return;
+        }
+
+        fetch('/api/fleet-vehicle?id=' + encodeURIComponent(id), {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-Token': '{{.CSRFToken}}'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to delete vehicle');
+            }
+            return response.json();
+        })
+        .then(data => {
+            alert('Vehicle deleted successfully');
+            window.location.reload();
+        })
+        .catch(error => {
+            alert('Error deleting vehicle: ' + error.message);
+        });
+    }
+    </script>
+    {{end}}
 </body>
 </html>

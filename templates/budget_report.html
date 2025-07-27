@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}} - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/modern_theme.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  
+  <style nonce="{{.CSPNonce}}">
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .report-container {
+      max-width: 1400px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .report-header {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .page-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0;
+    }
+
+    .report-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: white;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .filter-group {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .form-control, .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+    }
+
+    .form-control:focus, .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+    }
+
+    .form-select option {
+      background: #2d3748;
+      color: white;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      padding: 1.5rem;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: white;
+      margin: 0;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .variance-positive {
+      color: #22c55e;
+    }
+
+    .variance-negative {
+      color: #ef4444;
+    }
+
+    .table-responsive {
+      border-radius: 15px;
+      overflow: hidden;
+    }
+
+    .table {
+      color: white;
+    }
+
+    .table th {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 0.875rem;
+    }
+
+    .table td {
+      border-color: rgba(255, 255, 255, 0.1);
+      vertical-align: middle;
+    }
+
+    .table-hover tbody tr:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      padding: 0.75rem 2rem;
+      font-weight: 600;
+      border-radius: 50px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      padding: 0.75rem 2rem;
+      font-weight: 600;
+      border-radius: 50px;
+      color: white;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin-top: 2rem;
+    }
+
+    .expense-row {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+
+    .expense-row:hover {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateX(5px);
+    }
+
+    .category-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .badge-fuel { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .badge-maintenance { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .badge-insurance { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+    .badge-salaries { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .badge-supplies { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+    .badge-other { background: rgba(156, 163, 175, 0.2); color: #9ca3af; }
+
+    @media print {
+      body {
+        background: white;
+      }
+      
+      .report-card, .report-header {
+        background: white;
+        color: black;
+        box-shadow: none;
+        border: 1px solid #ddd;
+      }
+      
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  {{template "navigation" .}}
+
+  <div class="report-container">
+    <div class="report-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="page-title">
+            <i class="bi bi-file-earmark-text"></i> Budget Report
+          </h1>
+          <p class="text-white-50">{{.Budget.Name}} - FY {{.Budget.FiscalYear}}</p>
+        </div>
+        <div class="no-print">
+          <button onclick="window.print()" class="btn btn-secondary me-2">
+            <i class="bi bi-printer"></i> Print
+          </button>
+          <a href="/budget/report/export?budget_id={{.Budget.ID}}&format=csv" class="btn btn-secondary">
+            <i class="bi bi-download"></i> Export CSV
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="report-card no-print">
+      <div class="filter-group">
+        <form method="GET" action="/budget/report">
+          <input type="hidden" name="budget_id" value="{{.Budget.ID}}">
+          <div class="row">
+            <div class="col-md-3">
+              <label class="form-label">Date Range</label>
+              <select name="period" class="form-select" onchange="this.form.submit()">
+                <option value="month" {{if eq .Period "month"}}selected{{end}}>This Month</option>
+                <option value="quarter" {{if eq .Period "quarter"}}selected{{end}}>This Quarter</option>
+                <option value="year" {{if eq .Period "year"}}selected{{end}}>Full Year</option>
+                <option value="custom" {{if eq .Period "custom"}}selected{{end}}>Custom Range</option>
+              </select>
+            </div>
+            
+            {{if eq .Period "custom"}}
+            <div class="col-md-3">
+              <label class="form-label">Start Date</label>
+              <input type="date" name="start_date" class="form-control" value="{{.StartDate}}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">End Date</label>
+              <input type="date" name="end_date" class="form-control" value="{{.EndDate}}">
+            </div>
+            {{end}}
+            
+            <div class="col-md-3">
+              <label class="form-label">Category</label>
+              <select name="category" class="form-select" onchange="this.form.submit()">
+                <option value="">All Categories</option>
+                {{range .Categories}}
+                <option value="{{.ID}}" {{if eq $.SelectedCategory .ID}}selected{{end}}>
+                  {{.CategoryName}}
+                </option>
+                {{end}}
+              </select>
+            </div>
+            
+            {{if eq .Period "custom"}}
+            <div class="col-md-3 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary">Apply Filters</button>
+            </div>
+            {{end}}
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="report-card">
+      <h2 class="section-title">Executive Summary</h2>
+      <div class="row">
+        <div class="col-md-3">
+          <div class="stat-card">
+            <p class="stat-label">Total Budget</p>
+            <h3 class="stat-value">${{printf "%.0f" .Budget.TotalAmount}}</h3>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card">
+            <p class="stat-label">Total Spent</p>
+            <h3 class="stat-value">${{printf "%.0f" .TotalSpent}}</h3>
+            <p class="mb-0 {{if le .TotalSpent .Budget.TotalAmount}}variance-positive{{else}}variance-negative{{end}}">
+              {{$percentSpent := 0.0}}
+              {{if gt .Budget.TotalAmount 0}}
+                {{$percentSpent = (divf .TotalSpent .Budget.TotalAmount | mulf 100)}}
+              {{end}}
+              {{printf "%.1f" $percentSpent}}% of budget
+            </p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card">
+            <p class="stat-label">Remaining</p>
+            <h3 class="stat-value">${{printf "%.0f" (subf .Budget.TotalAmount .TotalSpent)}}</h3>
+            <p class="mb-0 text-white-50">Available funds</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card">
+            <p class="stat-label">Burn Rate</p>
+            <h3 class="stat-value">${{printf "%.0f" .MonthlyBurnRate}}</h3>
+            <p class="mb-0 text-white-50">Per month</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Breakdown -->
+    <div class="report-card">
+      <h2 class="section-title">Category Performance</h2>
+      
+      <div class="row">
+        <div class="col-md-6">
+          <div class="chart-container">
+            <canvas id="categoryChart"></canvas>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Budgeted</th>
+                  <th>Spent</th>
+                  <th>Variance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{range .CategorySummary}}
+                <tr>
+                  <td>
+                    <span class="category-badge badge-{{.CategoryType}}">
+                      {{.CategoryName}}
+                    </span>
+                  </td>
+                  <td>${{printf "%.2f" .AllocatedAmount}}</td>
+                  <td>${{printf "%.2f" .SpentAmount}}</td>
+                  <td class="{{if le .SpentAmount .AllocatedAmount}}variance-positive{{else}}variance-negative{{end}}">
+                    {{$variance := subf .AllocatedAmount .SpentAmount}}
+                    {{if ge $variance 0}}+{{end}}${{printf "%.2f" $variance}}
+                  </td>
+                </tr>
+                {{end}}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Trend -->
+    <div class="report-card">
+      <h2 class="section-title">Monthly Spending Trend</h2>
+      <div class="chart-container">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Top Expenses -->
+    <div class="report-card">
+      <h2 class="section-title">Top Expenses</h2>
+      {{range $index, $expense := .TopExpenses}}
+      {{if lt $index 10}}
+      <div class="expense-row">
+        <div>
+          <div class="fw-bold">{{.Description}}</div>
+          <div class="text-white-50 small">
+            {{.TransactionDate.Format "Jan 2, 2006"}}
+            {{if .VehicleID}} • Vehicle: {{.VehicleID}}{{end}}
+          </div>
+        </div>
+        <div class="text-end">
+          <div class="fw-bold text-danger">${{printf "%.2f" .Amount}}</div>
+          <div class="category-badge badge-{{.CategoryType}}">{{.CategoryName}}</div>
+        </div>
+      </div>
+      {{end}}
+      {{end}}
+    </div>
+
+    <!-- Detailed Transactions -->
+    <div class="report-card">
+      <h2 class="section-title">Transaction Details</h2>
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th>Vehicle</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Transactions}}
+            <tr>
+              <td>{{.TransactionDate.Format "2006-01-02"}}</td>
+              <td>{{.Description}}</td>
+              <td>
+                <span class="category-badge badge-{{.CategoryType}}">
+                  {{.CategoryName}}
+                </span>
+              </td>
+              <td>{{if .VehicleID}}{{.VehicleID}}{{else}}-{{end}}</td>
+              <td class="text-danger">${{printf "%.2f" .Amount}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+      
+      {{if .HasMore}}
+      <div class="text-center mt-3">
+        <p class="text-white-50">Showing {{len .Transactions}} of {{.TotalTransactions}} transactions</p>
+      </div>
+      {{end}}
+    </div>
+
+    <!-- Report Footer -->
+    <div class="text-center text-white-50 mt-4 mb-5">
+      <p>Report generated on {{.GeneratedAt.Format "January 2, 2006 at 3:04 PM"}}</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script nonce="{{.CSPNonce}}">
+  // Category Pie Chart
+  const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+  const categoryData = {{.CategorySummary}};
+  
+  new Chart(categoryCtx, {
+    type: 'doughnut',
+    data: {
+      labels: categoryData.map(c => c.CategoryName),
+      datasets: [{
+        data: categoryData.map(c => c.SpentAmount),
+        backgroundColor: [
+          'rgba(245, 158, 11, 0.8)',
+          'rgba(239, 68, 68, 0.8)',
+          'rgba(59, 130, 246, 0.8)',
+          'rgba(34, 197, 94, 0.8)',
+          'rgba(139, 92, 246, 0.8)',
+          'rgba(156, 163, 175, 0.8)'
+        ],
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            color: 'white',
+            padding: 15
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const label = context.label || '';
+              const value = context.parsed || 0;
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((value / total) * 100).toFixed(1);
+              return label + ': $' + value.toFixed(2) + ' (' + percentage + '%)';
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Monthly Trend Chart
+  const trendCtx = document.getElementById('trendChart').getContext('2d');
+  const trendData = {{.MonthlyTrend}};
+  
+  new Chart(trendCtx, {
+    type: 'line',
+    data: {
+      labels: trendData.map(d => d.month),
+      datasets: [{
+        label: 'Actual Spending',
+        data: trendData.map(d => d.spent),
+        borderColor: '#ef4444',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        tension: 0.3,
+        fill: true
+      }, {
+        label: 'Budgeted',
+        data: trendData.map(d => d.budgeted),
+        borderColor: '#667eea',
+        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+        borderDash: [5, 5],
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          labels: {
+            color: 'white'
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: 'rgba(255,255,255,0.7)' },
+          grid: { color: 'rgba(255,255,255,0.1)' }
+        },
+        y: {
+          ticks: { 
+            color: 'rgba(255,255,255,0.7)',
+            callback: function(value) {
+              return '$' + value.toLocaleString();
+            }
+          },
+          grid: { color: 'rgba(255,255,255,0.1)' }
+        }
+      }
+    }
+  });
+  </script>
+</body>
+</html>

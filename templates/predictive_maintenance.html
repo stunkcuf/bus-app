@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}} - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/modern_theme.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  
+  <style nonce="{{.CSPNonce}}">
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .analytics-container {
+      max-width: 1600px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .analytics-header {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .page-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0;
+    }
+
+    .analytics-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      transition: all 0.3s ease;
+    }
+
+    .analytics-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .health-score-card {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+      border: 2px solid rgba(102, 126, 234, 0.3);
+    }
+
+    .score-circle {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+      position: relative;
+      background: conic-gradient(#667eea 0deg, #667eea calc(var(--score) * 3.6deg), rgba(255,255,255,0.1) calc(var(--score) * 3.6deg));
+    }
+
+    .score-inner {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: rgba(15, 12, 41, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .score-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: white;
+    }
+
+    .score-label {
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .stat-box {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      padding: 1.5rem;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: white;
+      margin: 0;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 0.5rem;
+    }
+
+    .prediction-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .prediction-card:hover {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateX(5px);
+    }
+
+    .risk-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .risk-critical {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .risk-high {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .risk-medium {
+      background: rgba(59, 130, 246, 0.2);
+      color: #3b82f6;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .risk-low {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .vehicle-risk-card {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 15px;
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+      color: #fca5a5;
+      transition: all 0.3s ease;
+    }
+
+    .vehicle-risk-card:hover {
+      background: rgba(239, 68, 68, 0.15);
+      transform: translateX(5px);
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin-top: 2rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      padding: 0.75rem 2rem;
+      font-weight: 600;
+      border-radius: 50px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      padding: 0.75rem 2rem;
+      font-weight: 600;
+      border-radius: 50px;
+      color: white;
+    }
+
+    .forecast-month {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 1rem;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .forecast-month h5 {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .forecast-cost {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #ef4444;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: white;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .vehicle-link {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .vehicle-link:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
+
+    .confidence-indicator {
+      display: inline-block;
+      width: 60px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-left: 0.5rem;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  {{template "navigation" .}}
+
+  <div class="analytics-container">
+    <div class="analytics-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="page-title">
+            <i class="bi bi-gear-wide-connected"></i> Predictive Maintenance Analytics
+          </h1>
+          <p class="text-white-50">AI-powered maintenance predictions and fleet health insights</p>
+        </div>
+        <div class="action-buttons">
+          <a href="/predictive-maintenance/export" class="btn btn-secondary">
+            <i class="bi bi-download"></i> Export Forecast
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {{if .Dashboard}}
+    <!-- Fleet Health Overview -->
+    <div class="row">
+      <div class="col-md-4">
+        <div class="analytics-card health-score-card">
+          <h3 class="text-center mb-3">Fleet Health Score</h3>
+          <div class="score-circle" style="--score: {{.Dashboard.AverageHealthScore}}">
+            <div class="score-inner">
+              <div class="score-value">{{printf "%.0f" .Dashboard.AverageHealthScore}}</div>
+              <div class="score-label">Overall Health</div>
+            </div>
+          </div>
+          <p class="text-center text-white-50 mt-3">
+            Based on {{.Dashboard.TotalVehicles}} active vehicles
+          </p>
+        </div>
+      </div>
+
+      <div class="col-md-8">
+        <div class="analytics-card">
+          <h3 class="mb-3">Fleet Status</h3>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="stat-box">
+                <h4 class="stat-value">{{.Dashboard.TotalVehicles}}</h4>
+                <p class="stat-label">Total Vehicles</p>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="stat-box">
+                <h4 class="stat-value text-warning">{{.Dashboard.VehiclesNeedingAttention}}</h4>
+                <p class="stat-label">Need Attention</p>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="stat-box">
+                <h4 class="stat-value text-danger">${{printf "%.0f" .Dashboard.CostProjection}}</h4>
+                <p class="stat-label">30-Day Cost Projection</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- High Risk Vehicles -->
+    {{if .Dashboard.HighRiskVehicles}}
+    <div class="analytics-card">
+      <h3 class="section-title">
+        <i class="bi bi-exclamation-triangle"></i> High Risk Vehicles
+      </h3>
+      <div class="row">
+        {{range .Dashboard.HighRiskVehicles}}
+        <div class="col-md-6 col-lg-4">
+          <div class="vehicle-risk-card">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h5 class="mb-1">
+                  <a href="/predictive-maintenance/vehicle?vehicle_id={{.}}" class="text-white">
+                    Vehicle {{.}}
+                  </a>
+                </h5>
+                <p class="mb-0 small">Requires immediate attention</p>
+              </div>
+              <i class="bi bi-chevron-right"></i>
+            </div>
+          </div>
+        </div>
+        {{end}}
+      </div>
+    </div>
+    {{end}}
+
+    <!-- Upcoming Maintenance -->
+    <div class="analytics-card">
+      <h3 class="section-title">
+        <i class="bi bi-calendar-check"></i> Upcoming Maintenance
+      </h3>
+      
+      {{if .Dashboard.UpcomingMaintenances}}
+      {{range .Dashboard.UpcomingMaintenances}}
+      <div class="prediction-card">
+        <div class="row align-items-center">
+          <div class="col-md-3">
+            <h5 class="mb-1">
+              <a href="/predictive-maintenance/vehicle?vehicle_id={{.VehicleID}}" class="vehicle-link">
+                {{.VehicleDescription}}
+              </a>
+            </h5>
+            <p class="mb-0 text-white-50">{{.VehicleID}}</p>
+          </div>
+          <div class="col-md-3">
+            <p class="mb-0 fw-bold">{{.MaintenanceType}}</p>
+            <p class="mb-0 text-white-50 small">
+              {{if eq .DaysUntilDue 0}}Today
+              {{else if eq .DaysUntilDue 1}}Tomorrow
+              {{else if lt .DaysUntilDue 0}}{{mul .DaysUntilDue -1}} days overdue
+              {{else}}In {{.DaysUntilDue}} days{{end}}
+            </p>
+          </div>
+          <div class="col-md-2 text-center">
+            <span class="risk-badge risk-{{.RiskLevel}}">
+              {{if eq .RiskLevel "critical"}}Critical
+              {{else if eq .RiskLevel "high"}}High Risk
+              {{else if eq .RiskLevel "medium"}}Medium Risk
+              {{else}}Low Risk{{end}}
+            </span>
+          </div>
+          <div class="col-md-2 text-center">
+            <p class="mb-0 fw-bold">${{printf "%.2f" .EstimatedCost}}</p>
+            <p class="mb-0 text-white-50 small">Estimated</p>
+          </div>
+          <div class="col-md-2">
+            <p class="mb-0 small">
+              Confidence: {{printf "%.0f" .ConfidenceScore}}%
+              <span class="confidence-indicator">
+                <span class="confidence-fill" style="width: {{.ConfidenceScore}}%"></span>
+              </span>
+            </p>
+          </div>
+        </div>
+        <div class="mt-2">
+          <small class="text-white-50">
+            <i class="bi bi-info-circle"></i> {{.RecommendedAction}}
+          </small>
+        </div>
+      </div>
+      {{end}}
+      {{else}}
+      <p class="text-center text-white-50">No maintenance predicted for the next 30 days</p>
+      {{end}}
+    </div>
+
+    <!-- Monthly Forecast -->
+    <div class="analytics-card">
+      <h3 class="section-title">
+        <i class="bi bi-graph-up"></i> 6-Month Maintenance Forecast
+      </h3>
+      
+      {{if .Dashboard.MaintenanceForecast}}
+      <div class="row">
+        {{range .Dashboard.MaintenanceForecast}}
+        <div class="col-md-2">
+          <div class="forecast-month">
+            <h5>{{.Month}}</h5>
+            <p class="forecast-cost mb-1">${{printf "%.0f" .EstimatedCost}}</p>
+            <p class="mb-0 text-white-50 small">{{.PredictedServices}} services</p>
+            <p class="mb-0 text-white-50 small">{{.VehiclesAffected}} vehicles</p>
+          </div>
+        </div>
+        {{end}}
+      </div>
+      
+      <div class="chart-container mt-4">
+        <canvas id="forecastChart"></canvas>
+      </div>
+      {{end}}
+    </div>
+
+    <!-- Cost Analysis Chart -->
+    <div class="analytics-card">
+      <h3 class="section-title">
+        <i class="bi bi-cash-stack"></i> Maintenance Cost Trends
+      </h3>
+      <div class="chart-container">
+        <canvas id="costChart"></canvas>
+      </div>
+    </div>
+    {{else}}
+    <div class="analytics-card">
+      <div class="text-center py-5">
+        <i class="bi bi-gear-wide-connected" style="font-size: 4rem; color: rgba(255,255,255,0.3);"></i>
+        <h3 class="mt-3">No Analytics Data Available</h3>
+        <p class="text-white-50">Start adding maintenance records to enable predictive analytics</p>
+      </div>
+    </div>
+    {{end}}
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  {{if .Dashboard}}
+  {{if .Dashboard.MaintenanceForecast}}
+  <script nonce="{{.CSPNonce}}">
+  // Forecast Chart
+  const forecastCtx = document.getElementById('forecastChart').getContext('2d');
+  const forecastData = {{.Dashboard.MaintenanceForecast}};
+  
+  new Chart(forecastCtx, {
+    type: 'bar',
+    data: {
+      labels: forecastData.map(d => d.Month),
+      datasets: [{
+        label: 'Estimated Cost',
+        data: forecastData.map(d => d.EstimatedCost),
+        backgroundColor: 'rgba(239, 68, 68, 0.6)',
+        borderColor: 'rgba(239, 68, 68, 1)',
+        borderWidth: 1
+      }, {
+        label: 'Services Count',
+        data: forecastData.map(d => d.PredictedServices * 100), // Scale for visibility
+        backgroundColor: 'rgba(102, 126, 234, 0.6)',
+        borderColor: 'rgba(102, 126, 234, 1)',
+        borderWidth: 1,
+        yAxisID: 'y1'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: 'white' }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: 'rgba(255,255,255,0.7)' },
+          grid: { color: 'rgba(255,255,255,0.1)' }
+        },
+        y: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          ticks: { 
+            color: 'rgba(255,255,255,0.7)',
+            callback: function(value) {
+              return '$' + value.toLocaleString();
+            }
+          },
+          grid: { color: 'rgba(255,255,255,0.1)' }
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          ticks: { 
+            color: 'rgba(255,255,255,0.7)',
+            callback: function(value) {
+              return (value / 100) + ' services';
+            }
+          },
+          grid: { drawOnChartArea: false }
+        }
+      }
+    }
+  });
+
+  // Cost Trend Chart (mock data - should come from backend)
+  const costCtx = document.getElementById('costChart').getContext('2d');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+  const actualCosts = [4500, 3200, 5100, 4800, 3900, 4200];
+  const predictedCosts = [4200, 4500, 4800, 5200, 5500, 5800];
+  
+  new Chart(costCtx, {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [{
+        label: 'Actual Costs',
+        data: actualCosts,
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        tension: 0.3
+      }, {
+        label: 'Predicted Costs',
+        data: predictedCosts,
+        borderColor: '#667eea',
+        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+        borderDash: [5, 5],
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: 'white' }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: 'rgba(255,255,255,0.7)' },
+          grid: { color: 'rgba(255,255,255,0.1)' }
+        },
+        y: {
+          ticks: { 
+            color: 'rgba(255,255,255,0.7)',
+            callback: function(value) {
+              return '$' + value.toLocaleString();
+            }
+          },
+          grid: { color: 'rgba(255,255,255,0.1)' }
+        }
+      }
+    }
+  });
+  </script>
+  {{end}}
+  {{end}}
+</body>
+</html>

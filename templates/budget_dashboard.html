@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}} - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/modern_theme.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  
+  <style nonce="{{.CSPNonce}}">
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .budget-container {
+      max-width: 1400px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .budget-header {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .page-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0;
+    }
+
+    .fiscal-year {
+      font-size: 1.2rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: 0.5rem;
+    }
+
+    .budget-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      transition: all 0.3s ease;
+    }
+
+    .budget-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .budget-overview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .budget-stat {
+      text-align: center;
+      padding: 1.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .budget-stat-label {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 0.5rem;
+    }
+
+    .budget-stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: white;
+    }
+
+    .budget-stat-percent {
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+
+    .percent-good { color: #10b981; }
+    .percent-warning { color: #f59e0b; }
+    .percent-danger { color: #ef4444; }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .category-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      padding: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .category-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .category-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .category-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+
+    .icon-fuel { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .icon-maintenance { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .icon-insurance { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+    .icon-salaries { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .icon-supplies { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+    .icon-other { background: rgba(156, 163, 175, 0.2); color: #9ca3af; }
+
+    .progress-bar-container {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      height: 10px;
+      overflow: hidden;
+      margin: 1rem 0;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      transition: width 0.3s ease;
+    }
+
+    .category-amounts {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      padding: 0.75rem 2rem;
+      font-weight: 600;
+      border-radius: 50px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      padding: 0.75rem 2rem;
+      font-weight: 600;
+      border-radius: 50px;
+      color: white;
+    }
+
+    .alert-card {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 15px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      color: #fca5a5;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin-top: 2rem;
+    }
+
+    .no-budget {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .no-budget-icon {
+      font-size: 4rem;
+      color: rgba(255, 255, 255, 0.3);
+      margin-bottom: 1rem;
+    }
+
+    .transaction-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .transaction-item {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .transaction-details {
+      flex: 1;
+    }
+
+    .transaction-amount {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #ef4444;
+    }
+
+    .quick-actions {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+  </style>
+</head>
+<body>
+  {{template "navigation" .}}
+
+  <div class="budget-container">
+    <div class="budget-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="page-title">
+            <i class="bi bi-currency-dollar"></i> Budget Management
+          </h1>
+          <p class="fiscal-year">Fiscal Year {{.CurrentYear}}</p>
+        </div>
+        {{if not .Budget}}
+        <a href="/budget/create" class="btn btn-primary">
+          <i class="bi bi-plus-circle"></i> Create Budget
+        </a>
+        {{else if eq .Budget.Status "draft"}}
+        <a href="/budget/edit/{{.Budget.ID}}" class="btn btn-primary">
+          <i class="bi bi-pencil"></i> Configure Budget
+        </a>
+        {{end}}
+      </div>
+    </div>
+
+    {{if .Budget}}
+    <!-- Budget Overview -->
+    <div class="budget-overview">
+      <div class="budget-stat">
+        <div class="budget-stat-label">Total Budget</div>
+        <div class="budget-stat-value">${{printf "%.2f" .Budget.TotalAmount}}</div>
+      </div>
+      
+      <div class="budget-stat">
+        <div class="budget-stat-label">Allocated</div>
+        <div class="budget-stat-value">${{printf "%.2f" .Budget.AllocatedAmount}}</div>
+        <div class="budget-stat-percent">
+          {{$allocPercent := 0.0}}
+          {{if gt .Budget.TotalAmount 0}}
+            {{$allocPercent = (divf .Budget.AllocatedAmount .Budget.TotalAmount | mulf 100)}}
+          {{end}}
+          {{printf "%.1f" $allocPercent}}% of total
+        </div>
+      </div>
+      
+      <div class="budget-stat">
+        <div class="budget-stat-label">Spent</div>
+        <div class="budget-stat-value">${{printf "%.2f" .Budget.SpentAmount}}</div>
+        <div class="budget-stat-percent 
+          {{if gt .Budget.TotalAmount 0}}
+            {{$spentPercent := (divf .Budget.SpentAmount .Budget.TotalAmount | mulf 100)}}
+            {{if lt $spentPercent 75}}percent-good{{else if lt $spentPercent 90}}percent-warning{{else}}percent-danger{{end}}
+          {{end}}">
+          {{$spentPercent := 0.0}}
+          {{if gt .Budget.TotalAmount 0}}
+            {{$spentPercent = (divf .Budget.SpentAmount .Budget.TotalAmount | mulf 100)}}
+          {{end}}
+          {{printf "%.1f" $spentPercent}}% of total
+        </div>
+      </div>
+      
+      <div class="budget-stat">
+        <div class="budget-stat-label">Remaining</div>
+        <div class="budget-stat-value">${{printf "%.2f" (subf .Budget.TotalAmount .Budget.SpentAmount)}}</div>
+      </div>
+    </div>
+
+    {{if .Summary}}
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#recordExpenseModal">
+        <i class="bi bi-plus-circle"></i> Record Expense
+      </button>
+      <a href="/budget/report?budget_id={{.Budget.ID}}" class="btn btn-secondary">
+        <i class="bi bi-file-earmark-text"></i> View Reports
+      </a>
+      {{if eq .Budget.Status "active"}}
+      <a href="/budget/edit/{{.Budget.ID}}" class="btn btn-secondary">
+        <i class="bi bi-gear"></i> Manage Budget
+      </a>
+      {{end}}
+    </div>
+
+    <!-- Alerts -->
+    {{if .Summary.Alerts}}
+    <div class="budget-card">
+      <h3 style="color: #ef4444; margin-bottom: 1rem;">
+        <i class="bi bi-exclamation-triangle"></i> Budget Alerts
+      </h3>
+      {{range .Summary.Alerts}}
+      <div class="alert-card">
+        <i class="bi bi-exclamation-circle"></i> {{.Message}}
+      </div>
+      {{end}}
+    </div>
+    {{end}}
+
+    <!-- Categories -->
+    <div class="budget-card">
+      <h3 style="margin-bottom: 1.5rem;">Budget Categories</h3>
+      <div class="category-grid">
+        {{range .Summary.Categories}}
+        <div class="category-card">
+          <div class="category-header">
+            <span class="category-name">{{.CategoryName}}</span>
+            <div class="category-icon icon-{{.CategoryType}}">
+              {{if eq .CategoryType "fuel"}}<i class="bi bi-fuel-pump"></i>
+              {{else if eq .CategoryType "maintenance"}}<i class="bi bi-tools"></i>
+              {{else if eq .CategoryType "insurance"}}<i class="bi bi-shield-check"></i>
+              {{else if eq .CategoryType "salaries"}}<i class="bi bi-people"></i>
+              {{else if eq .CategoryType "supplies"}}<i class="bi bi-box"></i>
+              {{else}}<i class="bi bi-three-dots"></i>{{end}}
+            </div>
+          </div>
+          
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" style="width: {{.PercentUsed}}%"></div>
+          </div>
+          
+          <div class="category-amounts">
+            <span>${{printf "%.2f" .SpentAmount}} spent</span>
+            <span>${{printf "%.2f" .AllocatedAmount}} budgeted</span>
+          </div>
+          
+          <div style="margin-top: 0.5rem; font-size: 0.85rem; color: rgba(255,255,255,0.5);">
+            Projected: ${{printf "%.2f" .ProjectedTotal}}
+          </div>
+        </div>
+        {{end}}
+      </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    {{if .Summary.RecentExpenses}}
+    <div class="budget-card">
+      <h3 style="margin-bottom: 1.5rem;">Recent Expenses</h3>
+      <div class="transaction-list">
+        {{range .Summary.RecentExpenses}}
+        <div class="transaction-item">
+          <div class="transaction-details">
+            <div style="font-weight: 600;">{{.Description}}</div>
+            <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+              {{.TransactionDate.Format "Jan 2, 2006"}}
+              {{if .VehicleID}} • Vehicle: {{.VehicleID}}{{end}}
+            </div>
+          </div>
+          <div class="transaction-amount">
+            -${{printf "%.2f" .Amount}}
+          </div>
+        </div>
+        {{end}}
+      </div>
+    </div>
+    {{end}}
+
+    <!-- Monthly Trend Chart -->
+    {{if .Summary.MonthlyTrend}}
+    <div class="budget-card">
+      <h3 style="margin-bottom: 1.5rem;">Monthly Spending Trend</h3>
+      <div class="chart-container">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+    {{end}}
+    {{end}}
+
+    {{else}}
+    <!-- No Budget -->
+    <div class="budget-card">
+      <div class="no-budget">
+        <div class="no-budget-icon">
+          <i class="bi bi-piggy-bank"></i>
+        </div>
+        <h3>No Active Budget</h3>
+        <p>Create a budget to start tracking fleet expenses and managing costs effectively.</p>
+        <a href="/budget/create" class="btn btn-primary" style="margin-top: 2rem;">
+          <i class="bi bi-plus-circle"></i> Create FY {{.CurrentYear}} Budget
+        </a>
+      </div>
+    </div>
+    {{end}}
+  </div>
+
+  <!-- Record Expense Modal -->
+  <div class="modal fade" id="recordExpenseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content" style="background: #2d3748; color: white;">
+        <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+          <h5 class="modal-title">Record Expense</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="expenseForm">
+            <div class="mb-3">
+              <label for="category" class="form-label">Category</label>
+              <select class="form-select" id="category" required style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+                <option value="">Select category...</option>
+                {{if .Summary}}
+                {{range .Summary.Categories}}
+                <option value="{{.ID}}">{{.CategoryName}}</option>
+                {{end}}
+                {{end}}
+              </select>
+            </div>
+            
+            <div class="mb-3">
+              <label for="amount" class="form-label">Amount</label>
+              <input type="number" class="form-control" id="amount" step="0.01" required 
+                     style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+            </div>
+            
+            <div class="mb-3">
+              <label for="description" class="form-label">Description</label>
+              <input type="text" class="form-control" id="description" required 
+                     style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+            </div>
+            
+            <div class="mb-3">
+              <label for="vehicle" class="form-label">Vehicle (Optional)</label>
+              <input type="text" class="form-control" id="vehicle" 
+                     style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+            </div>
+            
+            <div class="mb-3">
+              <label for="date" class="form-label">Date</label>
+              <input type="date" class="form-control" id="date" required 
+                     style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer" style="border-top: 1px solid rgba(255,255,255,0.1);">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="submitExpense()">Record Expense</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  {{if .Summary}}
+  {{if .Summary.MonthlyTrend}}
+  <script nonce="{{.CSPNonce}}">
+  // Monthly Trend Chart
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  const trendData = {{.Summary.MonthlyTrend}};
+  
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: trendData.map(d => d.month),
+      datasets: [{
+        label: 'Spent',
+        data: trendData.map(d => d.spent),
+        borderColor: '#ef4444',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        tension: 0.3
+      }, {
+        label: 'Budgeted',
+        data: trendData.map(d => d.budgeted),
+        borderColor: '#667eea',
+        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+        borderDash: [5, 5],
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            color: 'white'
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: 'rgba(255,255,255,0.7)' },
+          grid: { color: 'rgba(255,255,255,0.1)' }
+        },
+        y: {
+          ticks: { 
+            color: 'rgba(255,255,255,0.7)',
+            callback: function(value) {
+              return '$' + value.toLocaleString();
+            }
+          },
+          grid: { color: 'rgba(255,255,255,0.1)' }
+        }
+      }
+    }
+  });
+
+  // Set today's date as default
+  document.getElementById('date').valueAsDate = new Date();
+
+  function submitExpense() {
+    const form = document.getElementById('expenseForm');
+    const data = {
+      category_id: parseInt(form.category.value),
+      amount: parseFloat(form.amount.value),
+      description: form.description.value,
+      vehicle_id: form.vehicle.value,
+      transaction_date: form.date.value
+    };
+
+    fetch('/api/budget/expense', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': '{{.CSRFToken}}'
+      },
+      body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.message) {
+        alert('Expense recorded successfully!');
+        window.location.reload();
+      } else {
+        alert('Error recording expense');
+      }
+    })
+    .catch(error => {
+      alert('Error: ' + error.message);
+    });
+  }
+  </script>
+  {{end}}
+  {{end}}
+</body>
+</html>

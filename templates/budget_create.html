@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}} - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/modern_theme.css">
+  
+  <style nonce="{{.CSPNonce}}">
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .budget-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .budget-header {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .page-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0;
+    }
+
+    .form-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: white;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .form-label {
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-control, .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+    }
+
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .form-select option {
+      background: #2d3748;
+      color: white;
+    }
+
+    .input-group-text {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .category-row {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .category-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      margin-right: 1rem;
+    }
+
+    .icon-fuel { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .icon-maintenance { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .icon-insurance { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+    .icon-salaries { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .icon-supplies { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+    .icon-other { background: rgba(156, 163, 175, 0.2); color: #9ca3af; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      padding: 0.75rem 2rem;
+      font-weight: 600;
+      border-radius: 50px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      padding: 0.75rem 2rem;
+      font-weight: 600;
+      border-radius: 50px;
+      color: white;
+    }
+
+    .btn-add-category {
+      background: rgba(102, 126, 234, 0.2);
+      border: 2px dashed rgba(102, 126, 234, 0.5);
+      color: #667eea;
+      padding: 0.5rem 1rem;
+      border-radius: 10px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .btn-add-category:hover {
+      background: rgba(102, 126, 234, 0.3);
+      border-color: #667eea;
+      color: #667eea;
+    }
+
+    .budget-summary {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      padding: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .summary-total {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: white;
+      border-top: 2px solid rgba(255, 255, 255, 0.2);
+      margin-top: 1rem;
+      padding-top: 1rem;
+    }
+
+    .help-text {
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 0.25rem;
+    }
+
+    .invalid-feedback {
+      color: #f87171;
+    }
+
+    .text-danger {
+      color: #ef4444 !important;
+    }
+  </style>
+</head>
+<body>
+  {{template "navigation" .}}
+
+  <div class="budget-container">
+    <div class="budget-header">
+      <h1 class="page-title">
+        <i class="bi bi-plus-circle"></i> Create Budget
+      </h1>
+      <p class="text-white-50">Set up your fiscal year budget and allocate funds to categories</p>
+    </div>
+
+    {{if .Error}}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <i class="bi bi-exclamation-triangle"></i> {{.Error}}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {{end}}
+
+    <form method="POST" action="/budget/create" id="budgetForm">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      
+      <!-- Basic Information -->
+      <div class="form-card">
+        <h2 class="section-title">Budget Information</h2>
+        
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="name" class="form-label">Budget Name</label>
+            <input type="text" class="form-control" id="name" name="name" 
+                   placeholder="e.g., FY 2025 Fleet Budget" required>
+            <div class="help-text">A descriptive name for this budget</div>
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="fiscal_year" class="form-label">Fiscal Year</label>
+            <select class="form-select" id="fiscal_year" name="fiscal_year" required>
+              <option value="">Select fiscal year...</option>
+              {{$currentYear := .CurrentYear}}
+              {{range $i := iterate 3}}
+              <option value="{{add $currentYear $i}}">FY {{add $currentYear $i}}</option>
+              {{end}}
+            </select>
+            <div class="help-text">The fiscal year this budget applies to</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="total_amount" class="form-label">Total Budget Amount</label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" class="form-control" id="total_amount" name="total_amount" 
+                     step="0.01" min="0" placeholder="0.00" required>
+            </div>
+            <div class="help-text">The total amount available for this budget period</div>
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label for="status" class="form-label">Initial Status</label>
+            <select class="form-select" id="status" name="status" required>
+              <option value="draft">Draft - Configure before activating</option>
+              <option value="active">Active - Start using immediately</option>
+            </select>
+            <div class="help-text">You can activate a draft budget later</div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="description" class="form-label">Description (Optional)</label>
+          <textarea class="form-control" id="description" name="description" rows="3" 
+                    placeholder="Additional notes about this budget..."></textarea>
+        </div>
+      </div>
+
+      <!-- Budget Categories -->
+      <div class="form-card">
+        <h2 class="section-title">Budget Categories</h2>
+        <p class="text-white-50 mb-4">Allocate your budget across different expense categories</p>
+        
+        <div id="categoriesList">
+          <!-- Fuel Category -->
+          <div class="category-row">
+            <div class="d-flex align-items-center mb-2">
+              <div class="category-icon icon-fuel">
+                <i class="bi bi-fuel-pump"></i>
+              </div>
+              <div class="flex-grow-1">
+                <h5 class="mb-0">Fuel & Energy</h5>
+                <small class="text-white-50">Gasoline, diesel, electric charging</small>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control category-amount" 
+                         name="category_fuel_amount" step="0.01" min="0" placeholder="0.00">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <input type="text" class="form-control" name="category_fuel_description" 
+                       placeholder="Optional description...">
+              </div>
+            </div>
+          </div>
+
+          <!-- Maintenance Category -->
+          <div class="category-row">
+            <div class="d-flex align-items-center mb-2">
+              <div class="category-icon icon-maintenance">
+                <i class="bi bi-tools"></i>
+              </div>
+              <div class="flex-grow-1">
+                <h5 class="mb-0">Maintenance & Repairs</h5>
+                <small class="text-white-50">Routine maintenance, repairs, parts</small>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control category-amount" 
+                         name="category_maintenance_amount" step="0.01" min="0" placeholder="0.00">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <input type="text" class="form-control" name="category_maintenance_description" 
+                       placeholder="Optional description...">
+              </div>
+            </div>
+          </div>
+
+          <!-- Insurance Category -->
+          <div class="category-row">
+            <div class="d-flex align-items-center mb-2">
+              <div class="category-icon icon-insurance">
+                <i class="bi bi-shield-check"></i>
+              </div>
+              <div class="flex-grow-1">
+                <h5 class="mb-0">Insurance & Registration</h5>
+                <small class="text-white-50">Vehicle insurance, registration fees</small>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control category-amount" 
+                         name="category_insurance_amount" step="0.01" min="0" placeholder="0.00">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <input type="text" class="form-control" name="category_insurance_description" 
+                       placeholder="Optional description...">
+              </div>
+            </div>
+          </div>
+
+          <!-- Salaries Category -->
+          <div class="category-row">
+            <div class="d-flex align-items-center mb-2">
+              <div class="category-icon icon-salaries">
+                <i class="bi bi-people"></i>
+              </div>
+              <div class="flex-grow-1">
+                <h5 class="mb-0">Salaries & Benefits</h5>
+                <small class="text-white-50">Driver wages, benefits, training</small>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control category-amount" 
+                         name="category_salaries_amount" step="0.01" min="0" placeholder="0.00">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <input type="text" class="form-control" name="category_salaries_description" 
+                       placeholder="Optional description...">
+              </div>
+            </div>
+          </div>
+
+          <!-- Supplies Category -->
+          <div class="category-row">
+            <div class="d-flex align-items-center mb-2">
+              <div class="category-icon icon-supplies">
+                <i class="bi bi-box"></i>
+              </div>
+              <div class="flex-grow-1">
+                <h5 class="mb-0">Supplies & Equipment</h5>
+                <small class="text-white-50">Safety equipment, cleaning supplies, tools</small>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control category-amount" 
+                         name="category_supplies_amount" step="0.01" min="0" placeholder="0.00">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <input type="text" class="form-control" name="category_supplies_description" 
+                       placeholder="Optional description...">
+              </div>
+            </div>
+          </div>
+
+          <!-- Other Category -->
+          <div class="category-row">
+            <div class="d-flex align-items-center mb-2">
+              <div class="category-icon icon-other">
+                <i class="bi bi-three-dots"></i>
+              </div>
+              <div class="flex-grow-1">
+                <h5 class="mb-0">Other Expenses</h5>
+                <small class="text-white-50">Miscellaneous and unexpected costs</small>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control category-amount" 
+                         name="category_other_amount" step="0.01" min="0" placeholder="0.00">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <input type="text" class="form-control" name="category_other_description" 
+                       placeholder="Optional description...">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Budget Summary -->
+      <div class="form-card">
+        <h2 class="section-title">Budget Summary</h2>
+        <div class="budget-summary">
+          <div class="summary-item">
+            <span>Total Budget:</span>
+            <span id="summaryTotal">$0.00</span>
+          </div>
+          <div class="summary-item">
+            <span>Allocated:</span>
+            <span id="summaryAllocated">$0.00</span>
+          </div>
+          <div class="summary-item">
+            <span>Unallocated:</span>
+            <span id="summaryUnallocated" class="text-warning">$0.00</span>
+          </div>
+          <div class="summary-item summary-total">
+            <span>Allocation Status:</span>
+            <span id="allocationStatus">0% allocated</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="d-flex justify-content-between align-items-center mt-4">
+        <a href="/budget" class="btn btn-secondary">
+          <i class="bi bi-arrow-left"></i> Cancel
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-circle"></i> Create Budget
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script nonce="{{.CSPNonce}}">
+  // Update budget summary in real-time
+  function updateBudgetSummary() {
+    const totalBudget = parseFloat(document.getElementById('total_amount').value) || 0;
+    let allocated = 0;
+    
+    // Sum all category amounts
+    document.querySelectorAll('.category-amount').forEach(input => {
+      allocated += parseFloat(input.value) || 0;
+    });
+    
+    const unallocated = totalBudget - allocated;
+    const allocationPercent = totalBudget > 0 ? (allocated / totalBudget * 100) : 0;
+    
+    // Update summary display
+    document.getElementById('summaryTotal').textContent = '$' + totalBudget.toFixed(2).toLocaleString();
+    document.getElementById('summaryAllocated').textContent = '$' + allocated.toFixed(2).toLocaleString();
+    document.getElementById('summaryUnallocated').textContent = '$' + unallocated.toFixed(2).toLocaleString();
+    document.getElementById('allocationStatus').textContent = allocationPercent.toFixed(1) + '% allocated';
+    
+    // Update unallocated color based on amount
+    const unallocatedElement = document.getElementById('summaryUnallocated');
+    if (unallocated < 0) {
+      unallocatedElement.className = 'text-danger';
+    } else if (unallocated > totalBudget * 0.1) {
+      unallocatedElement.className = 'text-warning';
+    } else {
+      unallocatedElement.className = 'text-success';
+    }
+  }
+
+  // Add event listeners
+  document.getElementById('total_amount').addEventListener('input', updateBudgetSummary);
+  document.querySelectorAll('.category-amount').forEach(input => {
+    input.addEventListener('input', updateBudgetSummary);
+  });
+
+  // Form validation
+  document.getElementById('budgetForm').addEventListener('submit', function(e) {
+    const totalBudget = parseFloat(document.getElementById('total_amount').value) || 0;
+    let allocated = 0;
+    
+    document.querySelectorAll('.category-amount').forEach(input => {
+      allocated += parseFloat(input.value) || 0;
+    });
+    
+    if (allocated > totalBudget) {
+      e.preventDefault();
+      alert('Allocated amount cannot exceed total budget!');
+      return false;
+    }
+    
+    if (allocated === 0) {
+      if (!confirm('No categories have been allocated. Are you sure you want to create this budget?')) {
+        e.preventDefault();
+        return false;
+      }
+    }
+  });
+
+  // Initial update
+  updateBudgetSummary();
+  </script>
+</body>
+</html>

@@ -982,5 +982,31 @@
       e.target.submit();
     }
   </script>
+  
+  <!-- Fix for white overlay issue -->
+  <style nonce="{{.CSPNonce}}">
+    /* Override loading overlay if present */
+    .loading-overlay {
+      display: none !important;
+    }
+    
+    /* Ensure wizard container doesn't have white background conflicting with dark theme */
+    .wizard-container {
+      background: rgba(255, 255, 255, 0.05) !important;
+      backdrop-filter: blur(20px);
+    }
+    
+    /* Fix form controls visibility */
+    .form-control option,
+    .form-select option {
+      background: #2c3e50;
+      color: white;
+    }
+    
+    /* Ensure no white overlays */
+    body::after {
+      display: none !important;
+    }
+  </style>
 </body>
 </html>

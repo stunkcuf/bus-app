@@ -1,0 +1,123 @@
+{{template "header" .}}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h2">
+                    <i class="fas fa-user-graduate"></i> Students
+                </h1>
+                {{if eq .User.Role "manager"}}
+                <a href="/add-student" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add New Student
+                </a>
+                {{end}}
+            </div>
+
+            <!-- Lazy Load Status -->
+            <div class="lazy-load-status">Loading students...</div>
+
+            <!-- Search and Filter Controls -->
+            <div class="lazy-load-controls">
+                <div class="lazy-load-search">
+                    <input type="text" 
+                           id="student-search" 
+                           class="form-control" 
+                           placeholder="Search by name or guardian...">
+                </div>
+                
+                <div class="lazy-load-filter">
+                    <select id="status-filter" class="form-control">
+                        <option value="">All Students</option>
+                        <option value="active">Active Only</option>
+                        <option value="inactive">Inactive Only</option>
+                    </select>
+                </div>
+
+                {{if eq .User.Role "manager"}}
+                <div class="lazy-load-filter">
+                    <select id="driver-filter" class="form-control">
+                        <option value="">All Drivers</option>
+                        {{range .Drivers}}
+                        <option value="{{.Username}}">{{.Name}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                {{end}}
+            </div>
+
+            <!-- Lazy Load Container -->
+            <div class="lazy-load-container" 
+                 id="students-table"
+                 data-lazy-load="true"
+                 data-lazy-load-endpoint="/api/lazy/students"
+                 data-lazy-load-type="student"
+                 data-lazy-load-per-page="25"
+                 data-lazy-load-search="#student-search"
+                 data-lazy-load-filters='[
+                     {"name": "status", "selector": "#status-filter"},
+                     {"name": "driver", "selector": "#driver-filter"}
+                 ]'>
+                
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Guardian</th>
+                            <th>Phone</th>
+                            <th>Pickup Time</th>
+                            <th>Driver</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Items will be loaded here via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State (shown when no results) -->
+            <div class="lazy-load-empty" style="display: none;">
+                <i class="fas fa-users-slash"></i>
+                <h4>No Students Found</h4>
+                <p>Try adjusting your search or filters.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include lazy loading JavaScript and CSS -->
+<link rel="stylesheet" href="/static/lazy_loading.css">
+<script src="/static/lazy_loading.js"></script>
+
+<script>
+// Additional customization for students page
+document.addEventListener('DOMContentLoaded', function() {
+    // Listen for lazy load events
+    document.addEventListener('lazyLoadItemsAdded', function() {
+        // Re-initialize any tooltips or other dynamic elements
+        console.log('New students loaded');
+    });
+
+    // Handle empty state
+    const container = document.getElementById('students-table');
+    const emptyState = document.querySelector('.lazy-load-empty');
+    
+    // Monitor for empty results
+    const observer = new MutationObserver(function(mutations) {
+        const tbody = container.querySelector('tbody');
+        if (tbody && tbody.children.length === 0) {
+            emptyState.style.display = 'block';
+            container.style.display = 'none';
+        } else {
+            emptyState.style.display = 'none';
+            container.style.display = 'block';
+        }
+    });
+    
+    observer.observe(container, { childList: true, subtree: true });
+});
+</script>
+
+{{template "footer" .}}

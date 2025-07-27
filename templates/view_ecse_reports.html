@@ -497,5 +497,39 @@
       }
     });
   </script>
+  
+  <!-- Fix for white overlay issue -->
+  <style nonce="{{.CSPNonce}}">
+    /* Override loading overlay if present */
+    .loading-overlay {
+      display: none !important;
+    }
+    
+    /* Ensure tables are readable with dark theme */
+    .table {
+      background: rgba(255, 255, 255, 0.05) !important;
+    }
+    
+    .table td, .table th {
+      color: white !important;
+    }
+    
+    /* Fix form controls visibility */
+    .form-control option,
+    .form-select option {
+      background: #2c3e50;
+      color: white;
+    }
+    
+    /* Ensure no white overlays */
+    body::after {
+      display: none !important;
+    }
+    
+    /* Fix card backgrounds for better readability */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.08) !important;
+    }
+  </style>
 </body>
 </html>

@@ -331,31 +331,31 @@
               </div>
               <div class="info-row">
                 <span class="info-label">Date of Birth</span>
-                <span class="info-value">{{.Data.Student.DateOfBirth}}</span>
+                <span class="info-value">{{.Data.Student.GetDateOfBirth}}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">Grade</span>
-                <span class="info-value">{{.Data.Student.Grade}}</span>
+                <span class="info-value">{{.Data.Student.GetGrade}}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">Enrollment Status</span>
                 <span class="info-value">
-                  <span class="status-badge {{if eq .Data.Student.EnrollmentStatus "Active"}}status-active{{else}}status-inactive{{end}}">
-                    {{.Data.Student.EnrollmentStatus}}
+                  <span class="status-badge {{if eq .Data.Student.GetEnrollmentStatus "Active"}}status-active{{else}}status-inactive{{end}}">
+                    {{.Data.Student.GetEnrollmentStatus}}
                   </span>
                 </span>
               </div>
               <div class="info-row">
                 <span class="info-label">IEP Status</span>
-                <span class="info-value">{{if .Data.Student.IEPStatus}}{{.Data.Student.IEPStatus}}{{else}}-{{end}}</span>
+                <span class="info-value">{{if .Data.Student.GetIEPStatus}}{{.Data.Student.GetIEPStatus}}{{else}}-{{end}}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">Primary Disability</span>
-                <span class="info-value">{{if .Data.Student.PrimaryDisability}}{{.Data.Student.PrimaryDisability}}{{else}}-{{end}}</span>
+                <span class="info-value">{{if .Data.Student.GetPrimaryDisability}}{{.Data.Student.GetPrimaryDisability}}{{else}}-{{end}}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">Service Minutes</span>
-                <span class="info-value">{{.Data.Student.ServiceMinutes}} min/week</span>
+                <span class="info-value">{{.Data.Student.GetServiceMinutes}} min/week</span>
               </div>
             </div>
           </div>
@@ -366,22 +366,22 @@
               <h5><i class="bi bi-telephone-fill"></i> Contact Information</h5>
               <div class="info-row">
                 <span class="info-label">Parent/Guardian</span>
-                <span class="info-value">{{if .Data.Student.ParentName}}{{.Data.Student.ParentName}}{{else}}-{{end}}</span>
+                <span class="info-value">{{if .Data.Student.GetParentName}}{{.Data.Student.GetParentName}}{{else}}-{{end}}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">Phone</span>
-                <span class="info-value">{{if .Data.Student.ParentPhone}}{{.Data.Student.ParentPhone}}{{else}}-{{end}}</span>
+                <span class="info-value">{{if .Data.Student.GetParentPhone}}{{.Data.Student.GetParentPhone}}{{else}}-{{end}}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">Email</span>
-                <span class="info-value">{{if .Data.Student.ParentEmail}}{{.Data.Student.ParentEmail}}{{else}}-{{end}}</span>
+                <span class="info-value">{{if .Data.Student.GetParentEmail}}{{.Data.Student.GetParentEmail}}{{else}}-{{end}}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">Address</span>
                 <span class="info-value">
-                  {{if .Data.Student.Address}}
-                    {{.Data.Student.Address}}<br>
-                    {{.Data.Student.City}}, {{.Data.Student.State}} {{.Data.Student.ZipCode}}
+                  {{if .Data.Student.GetAddress}}
+                    {{.Data.Student.GetAddress}}<br>
+                    {{.Data.Student.GetCity}}, {{.Data.Student.GetState}} {{.Data.Student.GetZipCode}}
                   {{else}}
                     -
                   {{end}}
@@ -395,17 +395,17 @@
               <div class="info-row">
                 <span class="info-label">Transportation Required</span>
                 <span class="info-value">
-                  {{if .Data.Student.TransportationRequired}}
+                  {{if .Data.Student.GetTransportationRequired}}
                     <span class="status-badge status-active">Yes</span>
                   {{else}}
                     <span class="text-muted">No</span>
                   {{end}}
                 </span>
               </div>
-              {{if .Data.Student.TransportationRequired}}
+              {{if .Data.Student.GetTransportationRequired}}
               <div class="info-row">
                 <span class="info-label">Bus Route</span>
-                <span class="info-value">{{if .Data.Student.BusRoute}}{{.Data.Student.BusRoute}}{{else}}-{{end}}</span>
+                <span class="info-value">{{if .Data.Student.GetBusRoute}}{{.Data.Student.GetBusRoute}}{{else}}-{{end}}</span>
               </div>
               {{end}}
             </div>
