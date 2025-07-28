@@ -1,0 +1,42 @@
+{
+  "results": [
+    {
+      "TestName": "Manager Access Test",
+      "Status": "PARTIAL",
+      "Details": "Failed pages: [/users]",
+      "Time": 5980
+    },
+    {
+      "TestName": "Driver Access Test",
+      "Status": "PASS",
+      "Details": "Driver dashboard accessible and displays content",
+      "Time": 1180
+    },
+    {
+      "TestName": "Data Display Test",
+      "Status": "PASS",
+      "Details": "All data pages display records correctly",
+      "Time": 5032
+    },
+    {
+      "TestName": "API Endpoints Test",
+      "Status": "PARTIAL",
+      "Details": "Failed APIs: /api/dashboard/stats: status 404; /api/fleet-status: status 404; /api/monitoring/metrics: status 404",
+      "Time": 1194
+    },
+    {
+      "TestName": "Error Recovery Test",
+      "Status": "PASS",
+      "Details": "Server properly handles 404 errors",
+      "Time": 1
+    }
+  ],
+  "summary": {
+    "failed": 0,
+    "partial": 2,
+    "passed": 3,
+    "total": 5
+  },
+  "timestamp": "2025-07-22T17:45:36.0118747-07:00",
+  "totalTime": 13387
+}

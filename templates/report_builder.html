@@ -160,6 +160,16 @@
       outline: none;
     }
     
+    /* Fix dropdown option colors */
+    .form-select option {
+      background: #2d3748;
+      color: white;
+    }
+    
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+    
     /* Button styling */
     .btn {
       padding: 0.75rem 1.5rem;
@@ -261,6 +271,8 @@
       }
     }
   </style>
+    <!-- Dark Theme Text Colors -->
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
 </head>
 <body>
   <!-- Floating orbs -->
@@ -288,6 +300,31 @@
   </div>
 
   <div class="container-fluid">
+    <!-- Instructions -->
+    <div class="glass-card mb-4" style="background: rgba(102, 126, 234, 0.1); border-color: rgba(102, 126, 234, 0.3);">
+      <h4 class="text-white mb-3">
+        <i class="bi bi-info-circle-fill"></i> How to Use Report Builder
+      </h4>
+      <div class="row text-white-50">
+        <div class="col-md-3">
+          <h6 class="text-white">1. Select Data Source</h6>
+          <p class="small mb-0">Choose from available data sources like Fleet Data, Routes, Students, etc.</p>
+        </div>
+        <div class="col-md-3">
+          <h6 class="text-white">2. Choose Fields</h6>
+          <p class="small mb-0">Select the fields you want to include in your report from the available list.</p>
+        </div>
+        <div class="col-md-3">
+          <h6 class="text-white">3. Apply Filters</h6>
+          <p class="small mb-0">Add filters to narrow down your data (optional). Click "Add Filter" to begin.</p>
+        </div>
+        <div class="col-md-3">
+          <h6 class="text-white">4. Generate & Export</h6>
+          <p class="small mb-0">Click "Generate Report" to view results. Export to CSV, Excel, or PDF formats.</p>
+        </div>
+      </div>
+    </div>
+    
     <div class="builder-container">
       <!-- Sidebar -->
       <div class="builder-sidebar">

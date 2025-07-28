@@ -1,0 +1,424 @@
+/* Dark Theme Text Color Overrides
+   Ensures all text is readable on dark backgrounds throughout the application */
+
+/* Global text color fixes for dark backgrounds */
+body {
+  color: white !important;
+}
+
+/* Ensure all text in glass cards is white */
+.glass-card,
+.glass-card * {
+  color: white !important;
+}
+
+/* Table text colors */
+.table,
+.table-dark {
+  color: white !important;
+}
+
+.table thead th,
+.table-dark thead th {
+  color: white !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.table tbody td,
+.table-dark tbody td {
+  color: white !important;
+}
+
+.table tbody tr,
+.table-dark tbody tr {
+  color: white !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.table tbody tr:hover,
+.table-dark tbody tr:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Form controls on dark backgrounds */
+.form-control,
+.form-select,
+.form-check-label {
+  color: white !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+  color: white !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.form-control::placeholder {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.form-label {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Select option styling */
+.form-select option,
+select option {
+  background: #2d3748 !important;
+  color: white !important;
+}
+
+/* Card text on dark backgrounds */
+.card.bg-dark,
+.card.bg-dark *,
+.card-dark,
+.card-dark * {
+  color: white !important;
+}
+
+/* Links on dark backgrounds */
+a {
+  color: #a8daff !important;
+}
+
+a:hover {
+  color: #d4ecff !important;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  color: white !important;
+}
+
+/* Paragraphs and general text */
+p, span, div, li {
+  color: inherit;
+}
+
+/* Specific class overrides */
+.text-muted {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.text-secondary {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.text-white-50 {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Navigation on dark backgrounds */
+.navbar-dark .navbar-brand,
+.navbar-dark .navbar-nav .nav-link,
+.navbar-glass .navbar-brand,
+.navbar-glass .nav-link {
+  color: white !important;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover,
+.navbar-glass .nav-link:hover {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Buttons on dark backgrounds */
+.btn-outline-light {
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.btn-outline-light:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: white !important;
+}
+
+/* Dropdown menus on dark backgrounds */
+.dropdown-menu-dark,
+.dropdown-menu.bg-dark {
+  background: rgba(33, 37, 41, 0.95) !important;
+}
+
+.dropdown-menu-dark .dropdown-item,
+.dropdown-menu.bg-dark .dropdown-item {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.dropdown-menu-dark .dropdown-item:hover,
+.dropdown-menu.bg-dark .dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+}
+
+/* Badge text visibility - only for dark badges */
+.badge.bg-dark,
+.badge.text-bg-dark {
+  color: white !important;
+}
+
+/* Alert text on dark backgrounds */
+.alert-dark {
+  color: white !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Modal on dark backgrounds */
+.modal-dark .modal-content,
+.modal-content.bg-dark {
+  background: rgba(33, 37, 41, 0.95) !important;
+  color: white !important;
+}
+
+.modal-dark .modal-header,
+.modal-dark .modal-footer {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* List group items on dark backgrounds */
+.list-group-item-dark,
+.list-group-item.bg-dark {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Input group text */
+.input-group-text {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Progress bars */
+.progress {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Pagination on dark backgrounds */
+.pagination .page-link {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.pagination .page-link:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+}
+
+.pagination .page-item.active .page-link {
+  background: var(--gradient-1) !important;
+  border-color: transparent !important;
+  color: white !important;
+}
+
+/* Tooltips and popovers */
+.tooltip-inner {
+  background: rgba(0, 0, 0, 0.9) !important;
+  color: white !important;
+}
+
+.popover {
+  background: rgba(33, 37, 41, 0.95) !important;
+}
+
+.popover-header {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.popover-body {
+  color: white !important;
+}
+
+/* Breadcrumbs */
+.breadcrumb {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.breadcrumb-item,
+.breadcrumb-item a {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.breadcrumb-item.active {
+  color: white !important;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Ensure readability of status indicators */
+.text-success {
+  color: #4ade80 !important;
+}
+
+.text-danger {
+  color: #f87171 !important;
+}
+
+.text-warning {
+  color: #fbbf24 !important;
+}
+
+.text-info {
+  color: #60a5fa !important;
+}
+
+/* File input styling */
+.form-control[type="file"] {
+  color: white !important;
+}
+
+.form-control[type="file"]::file-selector-button {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Ensure all metric cards have readable text */
+.metric-card {
+  color: var(--color-text-primary) !important;
+}
+
+.metric-card.bg-dark,
+.metric-card.bg-dark * {
+  color: white !important;
+}
+
+/* Override any specific dark background containers */
+.bg-dark,
+.bg-dark *,
+[style*="background: #"],
+[style*="background-color: #"] {
+  color: white !important;
+}
+
+/* Ensure help text is visible */
+.form-text,
+.help-block {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Make sure all icons are visible */
+.bi,
+.fas,
+.far,
+.fab {
+  color: inherit !important;
+}
+
+/* Tab navigation on dark backgrounds */
+.nav-tabs .nav-link {
+  color: rgba(255, 255, 255, 0.8) !important;
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.nav-tabs .nav-link:hover {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+}
+
+.nav-tabs .nav-link.active {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Accordion on dark backgrounds */
+.accordion-dark .accordion-item {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.accordion-dark .accordion-button {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}
+
+.accordion-dark .accordion-button:not(.collapsed) {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+}
+
+/* Spinner visibility */
+.spinner-border,
+.spinner-grow {
+  color: white !important;
+  border-color: currentColor transparent currentColor currentColor !important;
+}
+
+/* Code blocks on dark backgrounds */
+pre,
+code,
+.code-block {
+  background: rgba(0, 0, 0, 0.3) !important;
+  color: #e9ecef !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Ensure visibility of disabled elements */
+.form-control:disabled,
+.form-select:disabled {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Custom checkbox and radio styling */
+.form-check-input {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.form-check-input:checked {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+/* Range input styling */
+.form-range {
+  background: transparent !important;
+}
+
+.form-range::-webkit-slider-track {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.form-range::-webkit-slider-thumb {
+  background: var(--color-primary) !important;
+}
+
+/* Switch styling */
+.form-switch .form-check-input {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='white'/%3e%3c/svg%3e") !important;
+}
+
+/* Important: Override any inline styles that might set dark text */
+[style*="color: #000"],
+[style*="color: black"],
+[style*="color: rgb(0"],
+[style*="color: rgba(0, 0, 0"] {
+  color: white !important;
+}

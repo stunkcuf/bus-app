@@ -1,0 +1,187 @@
+{
+  "results": [
+    {
+      "url": "/manager-dashboard",
+      "method": "GET",
+      "status": "success",
+      "status_code": 200,
+      "response_time_ms": 597,
+      "data_found": true,
+      "record_count": 0,
+      "timestamp": "2025-07-22T17:25:58.5668438-07:00"
+    },
+    {
+      "url": "/driver-dashboard",
+      "method": "GET",
+      "status": "error",
+      "status_code": 401,
+      "response_time_ms": 117,
+      "data_found": false,
+      "record_count": 0,
+      "error": "Unauthorized",
+      "timestamp": "2025-07-22T17:25:59.1644287-07:00"
+    },
+    {
+      "url": "/fleet",
+      "method": "GET",
+      "status": "success",
+      "status_code": 200,
+      "response_time_ms": 1660,
+      "data_found": true,
+      "record_count": 1,
+      "timestamp": "2025-07-22T17:25:59.2815403-07:00"
+    },
+    {
+      "url": "/fleet-vehicles",
+      "method": "GET",
+      "status": "success",
+      "status_code": 200,
+      "response_time_ms": 252,
+      "data_found": true,
+      "record_count": 91,
+      "timestamp": "2025-07-22T17:26:00.9422219-07:00"
+    },
+    {
+      "url": "/company-fleet",
+      "method": "GET",
+      "status": "success",
+      "status_code": 200,
+      "response_time_ms": 238,
+      "data_found": false,
+      "record_count": 0,
+      "timestamp": "2025-07-22T17:26:01.1978845-07:00"
+    },
+    {
+      "url": "/maintenance-records",
+      "method": "GET",
+      "status": "success",
+      "status_code": 200,
+      "response_time_ms": 283,
+      "data_found": true,
+      "record_count": 0,
+      "timestamp": "2025-07-22T17:26:01.4384134-07:00"
+    },
+    {
+      "url": "/service-records",
+      "method": "GET",
+      "status": "success",
+      "status_code": 200,
+      "response_time_ms": 234,
+      "data_found": false,
+      "record_count": 0,
+      "timestamp": "2025-07-22T17:26:01.7255151-07:00"
+    },
+    {
+      "url": "/fuel-records",
+      "method": "GET",
+      "status": "success",
+      "status_code": 200,
+      "response_time_ms": 233,
+      "data_found": true,
+      "record_count": 0,
+      "timestamp": "2025-07-22T17:26:01.9660646-07:00"
+    },
+    {
+      "url": "/students",
+      "method": "GET",
+      "status": "error",
+      "status_code": 401,
+      "response_time_ms": 135,
+      "data_found": false,
+      "record_count": 0,
+      "error": "Unauthorized",
+      "timestamp": "2025-07-22T17:26:02.2009539-07:00"
+    },
+    {
+      "url": "/assign-routes",
+      "method": "GET",
+      "status": "success",
+      "status_code": 200,
+      "response_time_ms": 303,
+      "data_found": true,
+      "record_count": 0,
+      "timestamp": "2025-07-22T17:26:02.3369035-07:00"
+    },
+    {
+      "url": "/ecse-dashboard",
+      "method": "GET",
+      "status": "success",
+      "status_code": 200,
+      "response_time_ms": 472,
+      "data_found": true,
+      "record_count": 0,
+      "timestamp": "2025-07-22T17:26:02.6417168-07:00"
+    },
+    {
+      "url": "/view-ecse-reports",
+      "method": "GET",
+      "status": "success",
+      "status_code": 200,
+      "response_time_ms": 242,
+      "data_found": true,
+      "record_count": 0,
+      "timestamp": "2025-07-22T17:26:03.2417068-07:00"
+    },
+    {
+      "url": "/monthly-mileage-reports",
+      "method": "GET",
+      "status": "success",
+      "status_code": 200,
+      "response_time_ms": 239,
+      "data_found": true,
+      "record_count": 269,
+      "timestamp": "2025-07-22T17:26:03.4879368-07:00"
+    },
+    {
+      "url": "/fuel-analytics",
+      "method": "GET",
+      "status": "success",
+      "status_code": 200,
+      "response_time_ms": 291,
+      "data_found": true,
+      "record_count": 0,
+      "details": "Charts present",
+      "timestamp": "2025-07-22T17:26:03.7294101-07:00"
+    },
+    {
+      "url": "/users",
+      "method": "GET",
+      "status": "error",
+      "status_code": 404,
+      "response_time_ms": 0,
+      "data_found": false,
+      "record_count": 0,
+      "error": "Page not found",
+      "timestamp": "2025-07-22T17:26:04.0205822-07:00"
+    },
+    {
+      "url": "/api/dashboard/stats",
+      "method": "GET",
+      "status": "error",
+      "status_code": 404,
+      "response_time_ms": 0,
+      "data_found": false,
+      "record_count": 0,
+      "error": "Page not found",
+      "timestamp": "2025-07-22T17:26:04.0214013-07:00"
+    },
+    {
+      "url": "/api/fleet-status",
+      "method": "GET",
+      "status": "error",
+      "status_code": 404,
+      "response_time_ms": 0,
+      "data_found": false,
+      "record_count": 0,
+      "error": "Page not found",
+      "timestamp": "2025-07-22T17:26:04.0214013-07:00"
+    }
+  ],
+  "summary": {
+    "error": 5,
+    "success": 12,
+    "total_tests": 17,
+    "warning": 0
+  },
+  "timestamp": "2025-07-22T17:26:04.021938-07:00"
+}

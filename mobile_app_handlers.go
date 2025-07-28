@@ -41,11 +41,11 @@ func (api *MobileAPI) GetStudentListHandler(w http.ResponseWriter, r *http.Reque
 	rows, err := api.db.Query(`
 		SELECT 
 			s.student_id,
-			s.student_name,
-			s.grade,
-			s.address,
-			s.parent_name,
-			s.parent_phone,
+			s.name as student_name,
+			COALESCE(s.grade, '') as grade,
+			COALESCE(s.locations::text, '') as address,
+			COALESCE(s.guardian, '') as parent_name,
+			COALESCE(s.phone_number, '') as parent_phone,
 			sa.status as attendance_status,
 			sa.boarded_at,
 			sa.dropped_at,
@@ -54,7 +54,7 @@ func (api *MobileAPI) GetStudentListHandler(w http.ResponseWriter, r *http.Reque
 		LEFT JOIN student_attendance sa ON s.student_id = sa.student_id 
 			AND sa.attendance_date = CURRENT_DATE
 		WHERE s.route_id = $1
-		ORDER BY s.student_name
+		ORDER BY s.name
 	`, routeID)
 
 	if err != nil {

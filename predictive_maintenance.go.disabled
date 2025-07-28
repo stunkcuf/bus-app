@@ -1,0 +1,888 @@
+package main
+
+import (
+	"database/sql"
+	"fmt"
+	"log"
+	"math"
+	"sort"
+	"time"
+)
+
+// Helper function to get string value from NullString
+func getValue(ns sql.NullString) string {
+	if ns.Valid {
+		return ns.String
+	}
+	return ""
+}
+
+// Helper function to get int value from NullInt32
+func getIntValue(ni sql.NullInt32) int {
+	if ni.Valid {
+		return int(ni.Int32)
+	}
+	return 0
+}
+
+// PredictiveMaintenanceSystem handles predictive analytics for vehicle maintenance
+type PredictiveMaintenanceSystem struct {
+	db *sql.DB
+}
+
+// MaintenancePrediction represents a predicted maintenance need
+type MaintenancePrediction struct {
+	VehicleID           string    `json:"vehicle_id"`
+	VehicleDescription  string    `json:"vehicle_description"`
+	MaintenanceType     string    `json:"maintenance_type"`
+	PredictedDate       time.Time `json:"predicted_date"`
+	PredictedMileage    int       `json:"predicted_mileage"`
+	CurrentMileage      int       `json:"current_mileage"`
+	DaysUntilDue        int       `json:"days_until_due"`
+	MilesUntilDue       int       `json:"miles_until_due"`
+	ConfidenceScore     float64   `json:"confidence_score"`
+	EstimatedCost       float64   `json:"estimated_cost"`
+	RiskLevel           string    `json:"risk_level"` // low, medium, high, critical
+	RecommendedAction   string    `json:"recommended_action"`
+}
+
+// VehicleHealthScore represents overall vehicle health
+type VehicleHealthScore struct {
+	VehicleID          string                 `json:"vehicle_id"`
+	VehicleDescription string                 `json:"vehicle_description"`
+	OverallScore       float64                `json:"overall_score"` // 0-100
+	ComponentScores    map[string]float64     `json:"component_scores"`
+	MaintenanceHistory MaintenanceStats       `json:"maintenance_history"`
+	Predictions        []MaintenancePrediction `json:"predictions"`
+	Recommendations    []string               `json:"recommendations"`
+}
+
+// MaintenanceStats contains statistical data about maintenance
+type MaintenanceStats struct {
+	TotalServices        int     `json:"total_services"`
+	OnTimeServices       int     `json:"on_time_services"`
+	DelayedServices      int     `json:"delayed_services"`
+	AverageCostPerMonth  float64 `json:"average_cost_per_month"`
+	TotalCost            float64 `json:"total_cost"`
+	LastServiceDate      time.Time `json:"last_service_date"`
+	DaysSinceLastService int     `json:"days_since_last_service"`
+}
+
+// FleetHealthDashboard provides fleet-wide analytics
+type FleetHealthDashboard struct {
+	TotalVehicles         int                  `json:"total_vehicles"`
+	AverageHealthScore    float64              `json:"average_health_score"`
+	VehiclesNeedingAttention int              `json:"vehicles_needing_attention"`
+	UpcomingMaintenances  []MaintenancePrediction `json:"upcoming_maintenances"`
+	MaintenanceForecast   []MonthlyForecast    `json:"maintenance_forecast"`
+	CostProjection        float64              `json:"cost_projection_30_days"`
+	HighRiskVehicles      []string             `json:"high_risk_vehicles"`
+}
+
+// MonthlyForecast represents maintenance forecast for a month
+type MonthlyForecast struct {
+	Month               string  `json:"month"`
+	PredictedServices   int     `json:"predicted_services"`
+	EstimatedCost       float64 `json:"estimated_cost"`
+	VehiclesAffected    int     `json:"vehicles_affected"`
+}
+
+// MaintenancePattern represents historical maintenance patterns
+type MaintenancePattern struct {
+	MaintenanceType    string
+	AverageInterval    int     // days
+	AverageMileage     int     // miles between services
+	AverageCost        float64
+	StandardDeviation  float64
+	LastOccurrence     time.Time
+	LastMileage        int
+}
+
+// NewPredictiveMaintenanceSystem creates a new predictive maintenance system
+func NewPredictiveMaintenanceSystem(database *sql.DB) *PredictiveMaintenanceSystem {
+	return &PredictiveMaintenanceSystem{db: database}
+}
+
+// GetVehicleHealthScore calculates comprehensive health score for a vehicle
+func (pms *PredictiveMaintenanceSystem) GetVehicleHealthScore(vehicleID string) (*VehicleHealthScore, error) {
+	// Get vehicle details
+	vehicle, err := pms.getVehicleDetails(vehicleID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get maintenance history
+	stats, err := pms.getMaintenanceStats(vehicleID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate component scores
+	componentScores := pms.calculateComponentScores(vehicleID, getIntValue(vehicle.CurrentMileage))
+
+	// Get predictions
+	predictions, err := pms.PredictMaintenanceNeeds(vehicleID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate overall score
+	overallScore := pms.calculateOverallHealthScore(componentScores, stats, predictions)
+
+	// Generate recommendations
+	recommendations := pms.generateRecommendations(vehicleID, predictions, componentScores)
+
+	return &VehicleHealthScore{
+		VehicleID:          vehicleID,
+		VehicleDescription: getValue(vehicle.Model),
+		OverallScore:       overallScore,
+		ComponentScores:    componentScores,
+		MaintenanceHistory: *stats,
+		Predictions:        predictions,
+		Recommendations:    recommendations,
+	}, nil
+}
+
+// PredictMaintenanceNeeds predicts upcoming maintenance for a vehicle
+func (pms *PredictiveMaintenanceSystem) PredictMaintenanceNeeds(vehicleID string) ([]MaintenancePrediction, error) {
+	// Get vehicle current state
+	vehicle, err := pms.getVehicleDetails(vehicleID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get historical patterns
+	patterns, err := pms.getMaintenancePatterns(vehicleID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get daily mileage average
+	avgDailyMileage, err := pms.getAverageDailyMileage(vehicleID)
+	if err != nil {
+		return nil, err
+	}
+
+	predictions := []MaintenancePrediction{}
+
+	// Predict oil change
+	if pattern, exists := patterns["oil_change"]; exists {
+		prediction := pms.predictNextMaintenance(vehicle, pattern, "Oil Change", avgDailyMileage)
+		prediction.EstimatedCost = pattern.AverageCost
+		predictions = append(predictions, prediction)
+	}
+
+	// Predict tire service
+	if pattern, exists := patterns["tire_service"]; exists {
+		prediction := pms.predictNextMaintenance(vehicle, pattern, "Tire Service", avgDailyMileage)
+		prediction.EstimatedCost = pattern.AverageCost
+		predictions = append(predictions, prediction)
+	}
+
+	// Predict brake service
+	if pattern, exists := patterns["brake_service"]; exists {
+		prediction := pms.predictNextMaintenance(vehicle, pattern, "Brake Service", avgDailyMileage)
+		prediction.EstimatedCost = pattern.AverageCost
+		predictions = append(predictions, prediction)
+	}
+
+	// Add other maintenance types based on mileage thresholds
+	predictions = append(predictions, pms.predictScheduledMaintenance(vehicle, avgDailyMileage)...)
+
+	// Sort by predicted date
+	sort.Slice(predictions, func(i, j int) bool {
+		return predictions[i].PredictedDate.Before(predictions[j].PredictedDate)
+	})
+
+	return predictions, nil
+}
+
+// GetFleetHealthDashboard generates fleet-wide health analytics
+func (pms *PredictiveMaintenanceSystem) GetFleetHealthDashboard() (*FleetHealthDashboard, error) {
+	dashboard := &FleetHealthDashboard{}
+
+	// Get all active vehicles
+	vehicles, err := pms.getActiveVehicles()
+	if err != nil {
+		return nil, err
+	}
+
+	dashboard.TotalVehicles = len(vehicles)
+	
+	totalScore := 0.0
+	allPredictions := []MaintenancePrediction{}
+	highRiskVehicles := []string{}
+
+	// Analyze each vehicle
+	for _, vehicle := range vehicles {
+		score, err := pms.GetVehicleHealthScore(vehicle.VehicleID)
+		if err != nil {
+			continue
+		}
+
+		totalScore += score.OverallScore
+		
+		// Collect predictions
+		for _, pred := range score.Predictions {
+			if pred.DaysUntilDue <= 30 {
+				allPredictions = append(allPredictions, pred)
+			}
+		}
+
+		// Identify high risk vehicles
+		if score.OverallScore < 70 || hasHighRiskPrediction(score.Predictions) {
+			highRiskVehicles = append(highRiskVehicles, vehicle.VehicleID)
+			dashboard.VehiclesNeedingAttention++
+		}
+	}
+
+	// Calculate averages
+	if dashboard.TotalVehicles > 0 {
+		dashboard.AverageHealthScore = totalScore / float64(dashboard.TotalVehicles)
+	}
+
+	// Sort predictions by date
+	sort.Slice(allPredictions, func(i, j int) bool {
+		return allPredictions[i].PredictedDate.Before(allPredictions[j].PredictedDate)
+	})
+
+	// Limit to top 10 upcoming
+	if len(allPredictions) > 10 {
+		dashboard.UpcomingMaintenances = allPredictions[:10]
+	} else {
+		dashboard.UpcomingMaintenances = allPredictions
+	}
+
+	// Generate monthly forecast
+	dashboard.MaintenanceForecast = pms.generateMonthlyForecast(vehicles)
+
+	// Calculate 30-day cost projection
+	for _, pred := range allPredictions {
+		dashboard.CostProjection += pred.EstimatedCost
+	}
+
+	dashboard.HighRiskVehicles = highRiskVehicles
+
+	return dashboard, nil
+}
+
+// Helper functions
+
+func (pms *PredictiveMaintenanceSystem) getVehicleDetails(vehicleID string) (*Vehicle, error) {
+	var vehicle Vehicle
+	
+	// Try vehicles table first
+	err := pms.db.QueryRow(`
+		SELECT vehicle_id, COALESCE(make, ''), COALESCE(model, ''), 
+		       COALESCE(year, 0), COALESCE(current_mileage, 0),
+		       COALESCE(last_oil_change, 0), COALESCE(last_tire_service, 0)
+		FROM vehicles
+		WHERE vehicle_id = $1
+	`, vehicleID).Scan(&vehicle.VehicleID, &vehicle.Make, &vehicle.Model,
+		&vehicle.Year, &vehicle.CurrentMileage, &vehicle.LastOilChange,
+		&vehicle.LastTireService)
+	
+	if err == sql.ErrNoRows {
+		// Try buses table
+		err = pms.db.QueryRow(`
+			SELECT bus_id, COALESCE(make, ''), COALESCE(model, ''),
+			       COALESCE(year, 0), COALESCE(current_mileage, 0),
+			       COALESCE(last_oil_change, 0), COALESCE(last_tire_service, 0)
+			FROM buses
+			WHERE bus_id = $1
+		`, vehicleID).Scan(&vehicle.VehicleID, &vehicle.Make, &vehicle.Model,
+			&vehicle.Year, &vehicle.CurrentMileage, &vehicle.LastOilChange,
+			&vehicle.LastTireService)
+	}
+	
+	return &vehicle, err
+}
+
+func (pms *PredictiveMaintenanceSystem) getMaintenanceStats(vehicleID string) (*MaintenanceStats, error) {
+	stats := &MaintenanceStats{}
+	
+	// Get maintenance history
+	rows, err := pms.db.Query(`
+		SELECT service_date, COALESCE(cost, 0), service_type,
+		       COALESCE(mileage_at_service, 0)
+		FROM maintenance_records
+		WHERE vehicle_id = $1
+		ORDER BY service_date DESC
+	`, vehicleID)
+	if err != nil {
+		return stats, err
+	}
+	defer rows.Close()
+
+	var lastServiceDate sql.NullTime
+	totalCost := 0.0
+	serviceCount := 0
+	onTimeCount := 0
+
+	for rows.Next() {
+		var serviceDate time.Time
+		var cost float64
+		var serviceType string
+		var mileage int
+
+		err := rows.Scan(&serviceDate, &cost, &serviceType, &mileage)
+		if err != nil {
+			continue
+		}
+
+		serviceCount++
+		totalCost += cost
+
+		if !lastServiceDate.Valid || serviceDate.After(lastServiceDate.Time) {
+			lastServiceDate = sql.NullTime{Time: serviceDate, Valid: true}
+		}
+
+		// Check if service was on time (simplified logic)
+		// Could be enhanced with actual scheduled vs actual comparison
+		onTimeCount++
+	}
+
+	stats.TotalServices = serviceCount
+	stats.OnTimeServices = onTimeCount
+	stats.DelayedServices = serviceCount - onTimeCount
+	stats.TotalCost = totalCost
+
+	if lastServiceDate.Valid {
+		stats.LastServiceDate = lastServiceDate.Time
+		stats.DaysSinceLastService = int(time.Since(lastServiceDate.Time).Hours() / 24)
+	}
+
+	// Calculate monthly average
+	if serviceCount > 0 && lastServiceDate.Valid {
+		monthsSinceFirst := 12.0 // Simplified - should calculate from first service
+		stats.AverageCostPerMonth = totalCost / monthsSinceFirst
+	}
+
+	return stats, nil
+}
+
+func (pms *PredictiveMaintenanceSystem) getMaintenancePatterns(vehicleID string) (map[string]MaintenancePattern, error) {
+	patterns := make(map[string]MaintenancePattern)
+	
+	// Query for oil change patterns
+	oilPattern, err := pms.calculateMaintenancePattern(vehicleID, "oil_change")
+	if err == nil && oilPattern.AverageInterval > 0 {
+		patterns["oil_change"] = oilPattern
+	}
+
+	// Query for tire service patterns
+	tirePattern, err := pms.calculateMaintenancePattern(vehicleID, "tire_service")
+	if err == nil && tirePattern.AverageInterval > 0 {
+		patterns["tire_service"] = tirePattern
+	}
+
+	// Query for brake service patterns
+	brakePattern, err := pms.calculateMaintenancePattern(vehicleID, "brake_service")
+	if err == nil && brakePattern.AverageInterval > 0 {
+		patterns["brake_service"] = brakePattern
+	}
+
+	return patterns, nil
+}
+
+func (pms *PredictiveMaintenanceSystem) calculateMaintenancePattern(vehicleID, serviceType string) (MaintenancePattern, error) {
+	pattern := MaintenancePattern{MaintenanceType: serviceType}
+	
+	rows, err := pms.db.Query(`
+		SELECT service_date, COALESCE(mileage_at_service, 0), COALESCE(cost, 0)
+		FROM maintenance_records
+		WHERE vehicle_id = $1 AND service_type = $2
+		ORDER BY service_date ASC
+	`, vehicleID, serviceType)
+	if err != nil {
+		return pattern, err
+	}
+	defer rows.Close()
+
+	var dates []time.Time
+	var mileages []int
+	var costs []float64
+	
+	for rows.Next() {
+		var date time.Time
+		var mileage int
+		var cost float64
+		
+		err := rows.Scan(&date, &mileage, &cost)
+		if err != nil {
+			continue
+		}
+		
+		dates = append(dates, date)
+		mileages = append(mileages, mileage)
+		costs = append(costs, cost)
+	}
+
+	if len(dates) < 2 {
+		return pattern, fmt.Errorf("insufficient data")
+	}
+
+	// Calculate intervals
+	var intervals []int
+	var mileageIntervals []int
+	
+	for i := 1; i < len(dates); i++ {
+		interval := int(dates[i].Sub(dates[i-1]).Hours() / 24)
+		intervals = append(intervals, interval)
+		
+		if mileages[i] > mileages[i-1] {
+			mileageIntervals = append(mileageIntervals, mileages[i]-mileages[i-1])
+		}
+	}
+
+	// Calculate averages
+	if len(intervals) > 0 {
+		sum := 0
+		for _, interval := range intervals {
+			sum += interval
+		}
+		pattern.AverageInterval = sum / len(intervals)
+	}
+
+	if len(mileageIntervals) > 0 {
+		sum := 0
+		for _, interval := range mileageIntervals {
+			sum += interval
+		}
+		pattern.AverageMileage = sum / len(mileageIntervals)
+	}
+
+	if len(costs) > 0 {
+		sum := 0.0
+		for _, cost := range costs {
+			sum += cost
+		}
+		pattern.AverageCost = sum / float64(len(costs))
+	}
+
+	// Set last occurrence
+	if len(dates) > 0 {
+		pattern.LastOccurrence = dates[len(dates)-1]
+		if len(mileages) > 0 {
+			pattern.LastMileage = mileages[len(mileages)-1]
+		}
+	}
+
+	// Calculate standard deviation (simplified)
+	if len(intervals) > 1 {
+		variance := 0.0
+		for _, interval := range intervals {
+			diff := float64(interval - pattern.AverageInterval)
+			variance += diff * diff
+		}
+		pattern.StandardDeviation = math.Sqrt(variance / float64(len(intervals)))
+	}
+
+	return pattern, nil
+}
+
+func (pms *PredictiveMaintenanceSystem) getAverageDailyMileage(vehicleID string) (float64, error) {
+	var firstMileage, lastMileage int
+	var firstDate, lastDate time.Time
+	
+	// Get first and last mileage readings
+	err := pms.db.QueryRow(`
+		SELECT mileage, date 
+		FROM fuel_records 
+		WHERE vehicle_id = $1 
+		ORDER BY date ASC 
+		LIMIT 1
+	`, vehicleID).Scan(&firstMileage, &firstDate)
+	
+	if err != nil {
+		return 50.0, nil // Default to 50 miles/day if no data
+	}
+	
+	err = pms.db.QueryRow(`
+		SELECT mileage, date 
+		FROM fuel_records 
+		WHERE vehicle_id = $1 
+		ORDER BY date DESC 
+		LIMIT 1
+	`, vehicleID).Scan(&lastMileage, &lastDate)
+	
+	if err != nil {
+		return 50.0, nil
+	}
+	
+	days := lastDate.Sub(firstDate).Hours() / 24
+	if days > 0 && lastMileage > firstMileage {
+		return float64(lastMileage-firstMileage) / days, nil
+	}
+	
+	return 50.0, nil // Default
+}
+
+func (pms *PredictiveMaintenanceSystem) predictNextMaintenance(vehicle *Vehicle, pattern MaintenancePattern, 
+	maintenanceType string, avgDailyMileage float64) MaintenancePrediction {
+	
+	prediction := MaintenancePrediction{
+		VehicleID:          vehicle.VehicleID,
+		VehicleDescription: getValue(vehicle.Model),
+		MaintenanceType:    maintenanceType,
+		CurrentMileage:     vehicle.CurrentMileage,
+	}
+
+	// Calculate predicted date based on interval
+	daysSinceLast := int(time.Since(pattern.LastOccurrence).Hours() / 24)
+	daysUntilDue := pattern.AverageInterval - daysSinceLast
+	
+	if daysUntilDue < 0 {
+		daysUntilDue = 0 // Overdue
+	}
+	
+	prediction.PredictedDate = time.Now().AddDate(0, 0, daysUntilDue)
+	prediction.DaysUntilDue = daysUntilDue
+
+	// Calculate predicted mileage
+	milesSinceLast := vehicle.CurrentMileage - pattern.LastMileage
+	milesUntilDue := pattern.AverageMileage - milesSinceLast
+	
+	if milesUntilDue < 0 {
+		milesUntilDue = 0 // Overdue
+	}
+	
+	prediction.MilesUntilDue = milesUntilDue
+	prediction.PredictedMileage = vehicle.CurrentMileage + milesUntilDue
+
+	// Calculate confidence score based on standard deviation
+	if pattern.StandardDeviation > 0 {
+		// Lower deviation = higher confidence
+		prediction.ConfidenceScore = math.Max(0, math.Min(100, 
+			100 - (pattern.StandardDeviation/float64(pattern.AverageInterval))*100))
+	} else {
+		prediction.ConfidenceScore = 90 // High confidence if consistent
+	}
+
+	// Determine risk level
+	if daysUntilDue <= 0 || milesUntilDue <= 0 {
+		prediction.RiskLevel = "critical"
+		prediction.RecommendedAction = "Schedule immediately - service overdue"
+	} else if daysUntilDue <= 7 || milesUntilDue <= 500 {
+		prediction.RiskLevel = "high"
+		prediction.RecommendedAction = "Schedule within the week"
+	} else if daysUntilDue <= 30 || milesUntilDue <= 2000 {
+		prediction.RiskLevel = "medium"
+		prediction.RecommendedAction = "Schedule within the month"
+	} else {
+		prediction.RiskLevel = "low"
+		prediction.RecommendedAction = "Monitor and plan ahead"
+	}
+
+	return prediction
+}
+
+func (pms *PredictiveMaintenanceSystem) predictScheduledMaintenance(vehicle *Vehicle, 
+	avgDailyMileage float64) []MaintenancePrediction {
+	
+	predictions := []MaintenancePrediction{}
+	
+	// Define maintenance schedules (mileage-based)
+	schedules := []struct {
+		Type          string
+		MileageInterval int
+		EstimatedCost float64
+	}{
+		{"Air Filter Replacement", 30000, 50},
+		{"Transmission Service", 60000, 300},
+		{"Coolant Flush", 50000, 150},
+		{"Spark Plug Replacement", 100000, 200},
+	}
+
+	for _, schedule := range schedules {
+		// Find last service of this type
+		var lastMileage int
+		err := pms.db.QueryRow(`
+			SELECT COALESCE(MAX(mileage_at_service), 0)
+			FROM maintenance_records
+			WHERE vehicle_id = $1 AND service_type = $2
+		`, vehicle.VehicleID, schedule.Type).Scan(&lastMileage)
+		
+		if err != nil || lastMileage == 0 {
+			lastMileage = 0 // Assume never done
+		}
+
+		milesSinceLast := vehicle.CurrentMileage - lastMileage
+		if milesSinceLast >= schedule.MileageInterval * 0.9 { // Within 90% of interval
+			milesUntilDue := schedule.MileageInterval - milesSinceLast
+			if milesUntilDue < 0 {
+				milesUntilDue = 0
+			}
+			
+			daysUntilDue := int(float64(milesUntilDue) / avgDailyMileage)
+			
+			prediction := MaintenancePrediction{
+				VehicleID:          vehicle.VehicleID,
+				VehicleDescription: getValue(vehicle.Model),
+				MaintenanceType:    schedule.Type,
+				CurrentMileage:     vehicle.CurrentMileage,
+				PredictedMileage:   vehicle.CurrentMileage + milesUntilDue,
+				MilesUntilDue:      milesUntilDue,
+				DaysUntilDue:       daysUntilDue,
+				PredictedDate:      time.Now().AddDate(0, 0, daysUntilDue),
+				EstimatedCost:      schedule.EstimatedCost,
+				ConfidenceScore:    85, // High confidence for scheduled maintenance
+			}
+
+			// Set risk level
+			if milesUntilDue <= 0 {
+				prediction.RiskLevel = "high"
+				prediction.RecommendedAction = "Service overdue - schedule immediately"
+			} else if milesUntilDue <= 1000 {
+				prediction.RiskLevel = "medium"
+				prediction.RecommendedAction = "Schedule soon"
+			} else {
+				prediction.RiskLevel = "low"
+				prediction.RecommendedAction = "Plan for upcoming service"
+			}
+
+			predictions = append(predictions, prediction)
+		}
+	}
+
+	return predictions
+}
+
+func (pms *PredictiveMaintenanceSystem) calculateComponentScores(vehicleID string, 
+	currentMileage int) map[string]float64 {
+	
+	scores := make(map[string]float64)
+	
+	// Engine health (based on oil change compliance)
+	var lastOilChange int
+	pms.db.QueryRow(`
+		SELECT COALESCE(last_oil_change, 0) FROM vehicles WHERE vehicle_id = $1
+		UNION
+		SELECT COALESCE(last_oil_change, 0) FROM buses WHERE bus_id = $1
+		LIMIT 1
+	`, vehicleID).Scan(&lastOilChange)
+	
+	milesSinceOil := currentMileage - lastOilChange
+	if milesSinceOil < 3000 {
+		scores["engine"] = 100
+	} else if milesSinceOil < 5000 {
+		scores["engine"] = 90 - float64(milesSinceOil-3000)/200
+	} else {
+		scores["engine"] = math.Max(50, 80-float64(milesSinceOil-5000)/500)
+	}
+
+	// Tire health
+	var lastTireService int
+	pms.db.QueryRow(`
+		SELECT COALESCE(last_tire_service, 0) FROM vehicles WHERE vehicle_id = $1
+		UNION
+		SELECT COALESCE(last_tire_service, 0) FROM buses WHERE bus_id = $1
+		LIMIT 1
+	`, vehicleID).Scan(&lastTireService)
+	
+	milesSinceTire := currentMileage - lastTireService
+	if milesSinceTire < 15000 {
+		scores["tires"] = 100
+	} else if milesSinceTire < 20000 {
+		scores["tires"] = 95 - float64(milesSinceTire-15000)/500
+	} else {
+		scores["tires"] = math.Max(40, 85-float64(milesSinceTire-20000)/1000)
+	}
+
+	// Brake health (simplified - could use brake inspection data)
+	scores["brakes"] = 85 // Default, should be based on inspection data
+
+	// Overall mechanical health based on recent issues
+	var recentIssues int
+	pms.db.QueryRow(`
+		SELECT COUNT(*) 
+		FROM maintenance_records 
+		WHERE vehicle_id = $1 
+		AND service_date > CURRENT_DATE - INTERVAL '90 days'
+		AND service_type LIKE '%repair%'
+	`, vehicleID).Scan(&recentIssues)
+	
+	scores["mechanical"] = math.Max(60, 100-float64(recentIssues*10))
+
+	return scores
+}
+
+func (pms *PredictiveMaintenanceSystem) calculateOverallHealthScore(
+	componentScores map[string]float64, 
+	stats *MaintenanceStats,
+	predictions []MaintenancePrediction) float64 {
+	
+	// Weight different factors
+	componentWeight := 0.5
+	complianceWeight := 0.3
+	predictiveWeight := 0.2
+
+	// Calculate component average
+	componentSum := 0.0
+	componentCount := 0
+	for _, score := range componentScores {
+		componentSum += score
+		componentCount++
+	}
+	componentAvg := componentSum / float64(componentCount)
+
+	// Calculate compliance score
+	complianceScore := 100.0
+	if stats.TotalServices > 0 {
+		complianceScore = float64(stats.OnTimeServices) / float64(stats.TotalServices) * 100
+	}
+
+	// Calculate predictive score based on upcoming issues
+	predictiveScore := 100.0
+	criticalCount := 0
+	highCount := 0
+	for _, pred := range predictions {
+		if pred.RiskLevel == "critical" {
+			criticalCount++
+		} else if pred.RiskLevel == "high" {
+			highCount++
+		}
+	}
+	predictiveScore -= float64(criticalCount*20 + highCount*10)
+	predictiveScore = math.Max(0, predictiveScore)
+
+	// Calculate weighted overall score
+	overallScore := componentAvg*componentWeight + 
+					complianceScore*complianceWeight + 
+					predictiveScore*predictiveWeight
+
+	return math.Min(100, math.Max(0, overallScore))
+}
+
+func (pms *PredictiveMaintenanceSystem) generateRecommendations(vehicleID string,
+	predictions []MaintenancePrediction,
+	componentScores map[string]float64) []string {
+	
+	recommendations := []string{}
+
+	// Check for critical predictions
+	for _, pred := range predictions {
+		if pred.RiskLevel == "critical" {
+			recommendations = append(recommendations, 
+				fmt.Sprintf("URGENT: %s is overdue by %d miles", 
+					pred.MaintenanceType, -pred.MilesUntilDue))
+		}
+	}
+
+	// Check component scores
+	for component, score := range componentScores {
+		if score < 70 {
+			recommendations = append(recommendations,
+				fmt.Sprintf("Schedule %s inspection - health score: %.0f%%", 
+					component, score))
+		}
+	}
+
+	// Check for multiple upcoming services
+	upcomingCount := 0
+	for _, pred := range predictions {
+		if pred.DaysUntilDue <= 30 {
+			upcomingCount++
+		}
+	}
+	if upcomingCount >= 3 {
+		recommendations = append(recommendations,
+			fmt.Sprintf("Consider scheduling multiple services together (%d due within 30 days)",
+				upcomingCount))
+	}
+
+	// Add cost-saving recommendation
+	totalEstimatedCost := 0.0
+	for _, pred := range predictions {
+		if pred.DaysUntilDue <= 30 {
+			totalEstimatedCost += pred.EstimatedCost
+		}
+	}
+	if totalEstimatedCost > 500 {
+		recommendations = append(recommendations,
+			fmt.Sprintf("Budget alert: Estimated maintenance costs for next 30 days: $%.2f",
+				totalEstimatedCost))
+	}
+
+	return recommendations
+}
+
+func (pms *PredictiveMaintenanceSystem) getActiveVehicles() ([]Vehicle, error) {
+	vehicles := []Vehicle{}
+	
+	// Get from vehicles table
+	rows, err := pms.db.Query(`
+		SELECT vehicle_id, COALESCE(make, ''), COALESCE(model, ''),
+		       COALESCE(year, 0), COALESCE(current_mileage, 0)
+		FROM vehicles
+		WHERE status = 'active'
+		UNION
+		SELECT bus_id, COALESCE(make, ''), COALESCE(model, ''),
+		       COALESCE(year, 0), COALESCE(current_mileage, 0)
+		FROM buses
+		WHERE status = 'active'
+	`)
+	if err != nil {
+		return vehicles, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var v Vehicle
+		err := rows.Scan(&v.VehicleID, &v.Make, &v.Model, &v.Year, &v.CurrentMileage)
+		if err != nil {
+			continue
+		}
+		vehicles = append(vehicles, v)
+	}
+
+	return vehicles, nil
+}
+
+func (pms *PredictiveMaintenanceSystem) generateMonthlyForecast(vehicles []Vehicle) []MonthlyForecast {
+	forecast := []MonthlyForecast{}
+	
+	// Generate forecast for next 6 months
+	for i := 0; i < 6; i++ {
+		month := time.Now().AddDate(0, i, 0)
+		monthName := month.Format("January 2006")
+		
+		monthForecast := MonthlyForecast{
+			Month: monthName,
+		}
+
+		vehiclesWithService := make(map[string]bool)
+		
+		// Check each vehicle's predictions
+		for _, vehicle := range vehicles {
+			predictions, err := pms.PredictMaintenanceNeeds(vehicle.VehicleID)
+			if err != nil {
+				continue
+			}
+
+			for _, pred := range predictions {
+				// Check if prediction falls in this month
+				if pred.PredictedDate.Year() == month.Year() && 
+				   pred.PredictedDate.Month() == month.Month() {
+					monthForecast.PredictedServices++
+					monthForecast.EstimatedCost += pred.EstimatedCost
+					vehiclesWithService[vehicle.VehicleID] = true
+				}
+			}
+		}
+
+		monthForecast.VehiclesAffected = len(vehiclesWithService)
+		forecast = append(forecast, monthForecast)
+	}
+
+	return forecast
+}
+
+func hasHighRiskPrediction(predictions []MaintenancePrediction) bool {
+	for _, pred := range predictions {
+		if pred.RiskLevel == "critical" || pred.RiskLevel == "high" {
+			return true
+		}
+	}
+	return false
+}

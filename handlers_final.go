@@ -204,15 +204,31 @@ func previewImportHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// This would preview import data
-	// For now return mock data
+	// Get file from form data
+	err := r.ParseMultipartForm(10 << 20) // 10 MB
+	if err != nil {
+		renderJSON(w, map[string]interface{}{
+			"success": false,
+			"error":   "Failed to parse upload",
+		})
+		return
+	}
+
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		renderJSON(w, map[string]interface{}{
+			"success": false,
+			"error":   "No file uploaded",
+		})
+		return
+	}
+	defer file.Close()
+
+	// For now, return empty preview as parsing needs to be implemented
 	renderJSON(w, map[string]interface{}{
 		"success": true,
-		"preview": []map[string]interface{}{
-			{"type": "student", "name": "John Doe", "grade": "5"},
-			{"type": "student", "name": "Jane Smith", "grade": "3"},
-			{"type": "route", "name": "Route A", "driver": "driver1"},
-		},
+		"preview": []map[string]interface{}{},
+		"message": "File uploaded successfully. Preview not yet implemented.",
 	})
 }
 

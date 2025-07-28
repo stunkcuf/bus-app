@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <link rel="stylesheet" href="/static/modern_theme.css">
+    <!-- Dark Theme Text Colors -->
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style nonce="{{.CSPNonce}}">
@@ -141,7 +143,7 @@
       <div class="col-md-3">
         <div class="metric-card">
           <i class="bi bi-bus-front metric-icon"></i>
-          <div class="metric-value" id="totalFleet">54</div>
+          <div class="metric-value" id="totalFleet">{{.FleetOverview.TotalBuses}}</div>
           <div class="metric-label">Total Fleet Size</div>
           <div class="trend-up">
             <i class="bi bi-arrow-up"></i> +2 this month
@@ -152,7 +154,7 @@
       <div class="col-md-3">
         <div class="metric-card">
           <i class="bi bi-speedometer2 metric-icon"></i>
-          <div class="metric-value" id="totalMileage">125,430</div>
+          <div class="metric-value" id="totalMileage">{{.MileageAnalytics.TotalMileage}}</div>
           <div class="metric-label">Total Miles</div>
           <div class="trend-up">
             <i class="bi bi-arrow-up"></i> +5.2% vs last month
@@ -163,7 +165,7 @@
       <div class="col-md-3">
         <div class="metric-card">
           <i class="bi bi-fuel-pump metric-icon"></i>
-          <div class="metric-value" id="fuelCost">$18,542</div>
+          <div class="metric-value" id="fuelCost">${{if .MileageAnalytics.FuelEfficiency}}{{printf "%.0f" (mul .MileageAnalytics.FuelEfficiency 100)}}{{else}}0{{end}}</div>
           <div class="metric-label">Fuel Cost (Month)</div>
           <div class="trend-down">
             <i class="bi bi-arrow-down"></i> -2.1% vs last month
@@ -174,7 +176,7 @@
       <div class="col-md-3">
         <div class="metric-card">
           <i class="bi bi-tools metric-icon"></i>
-          <div class="metric-value" id="maintenanceCost">$7,231</div>
+          <div class="metric-value" id="maintenanceCost">${{printf "%.0f" .MaintenanceCosts.TotalCost}}</div>
           <div class="metric-label">Maintenance Cost</div>
           <div class="trend-up">
             <i class="bi bi-arrow-up"></i> +12% vs last month
@@ -317,7 +319,7 @@
       data: {
         labels: ['Active', 'Maintenance', 'Out of Service'],
         datasets: [{
-          data: [45, 7, 2],
+          data: [{{.FleetOverview.ActiveBuses}}, {{.FleetOverview.MaintenanceBuses}}, {{.FleetOverview.OutOfService}}],
           backgroundColor: ['#4ade80', '#facc15', '#f87171'],
           borderWidth: 0
         }]
@@ -386,10 +388,10 @@
         }, 16);
       };
       
-      animateValue('totalFleet', 0, 54, 1000);
-      animateValue('totalMileage', 0, 125430, 1500);
-      animateValue('fuelCost', 0, 18542, 1200);
-      animateValue('maintenanceCost', 0, 7231, 1200);
+      animateValue('totalFleet', 0, {{.FleetOverview.TotalBuses}}, 1000);
+      animateValue('totalMileage', 0, {{.MileageAnalytics.TotalMileage}}, 1500);
+      animateValue('fuelCost', 0, {{if .MileageAnalytics.FuelEfficiency}}{{printf "%.0f" (mul .MileageAnalytics.FuelEfficiency 100)}}{{else}}0{{end}}, 1200);
+      animateValue('maintenanceCost', 0, {{printf "%.0f" .MaintenanceCosts.TotalCost}}, 1200);
     });
   </script>
 </body>

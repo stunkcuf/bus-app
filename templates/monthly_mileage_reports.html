@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <!-- Modern Theme CSS - Primary styling -->
     <link rel="stylesheet" href="/static/modern_theme.css">
+    <!-- Dark Theme Text Colors -->
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
     <!-- Help System CSS -->
     <link rel="stylesheet" href="/static/help_system.css">
     <link rel="stylesheet" href="/static/enhanced_help_system.css">
@@ -210,6 +212,36 @@
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     }
     
+    .metric-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.9;
+    }
+    
+    .metric-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin: 0.5rem 0;
+      color: white;
+    }
+    
+    .metric-label {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.7);
+      font-weight: 500;
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+    
     /* Hero section */
     .hero-section {
       position: relative;
@@ -267,6 +299,17 @@
         transform: translateY(0);
       }
     }
+    
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    /* Form select option fix */
+    .form-select option {
+      background: #2d3748 !important;
+      color: white !important;
+    }
   </style>
 </head>
 <body>
@@ -275,98 +318,141 @@
   <div class="orb orb2"></div>
   <div class="orb orb3"></div>
 
-    <div class="header">
-        <h1>
-            🚌 Monthly Mileage Reports
-        </h1>
+  <!-- Glassmorphism navigation -->
+  <nav class="navbar-glass">
+    <div class="container-fluid">
+      <div class="d-flex justify-content-between align-items-center w-100">
+        <a href="/manager-dashboard" class="navbar-brand">
+          <i class="bi bi-speedometer2"></i>
+          <span>Fleet Management System</span>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+          <span class="text-white opacity-75">
+            <i class="bi bi-person-circle me-2"></i>{{.User.Username}}
+          </span>
+          <form method="POST" action="/logout" class="m-0">
+            <button type="submit" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero section -->
+  <div class="hero-section">
+    <div class="hero-content">
+      <h1>Monthly Mileage Reports</h1>
+      <p class="lead opacity-75">Track and analyze vehicle mileage data by month</p>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Filters -->
+    <div class="glass-card mb-4">
+      <h4 class="text-white mb-4">
+        <i class="bi bi-funnel"></i> Filter Reports
+      </h4>
+      <form method="GET" action="/monthly-mileage-reports">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label for="year" class="form-label text-white-50">Year</label>
+            <select name="year" id="year" class="form-select">
+              <option value="">All Years</option>
+              {{range .Years}}
+              <option value="{{.}}" {{if eq . $.SelectedYear}}selected{{end}}>{{.}}</option>
+              {{end}}
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label for="month" class="form-label text-white-50">Month</label>
+            <select name="month" id="month" class="form-select">
+              <option value="">All Months</option>
+              {{range .Months}}
+              <option value="{{.}}" {{if eq . $.SelectedMonth}}selected{{end}}>{{.}}</option>
+              {{end}}
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label for="vehicle_type" class="form-label text-white-50">Vehicle Type</label>
+            <select name="vehicle_type" id="vehicle_type" class="form-select">
+              <option value="">All Vehicles</option>
+              <option value="bus" {{if eq "bus" $.SelectedVehicleType}}selected{{end}}>Buses Only</option>
+              <option value="vehicle" {{if eq "vehicle" $.SelectedVehicleType}}selected{{end}}>Company Vehicles Only</option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label for="bus_id" class="form-label text-white-50">Vehicle ID</label>
+            <select name="bus_id" id="bus_id" class="form-select">
+              <option value="">All Vehicles</option>
+              {{range .BusIDs}}
+              <option value="{{.}}" {{if eq . $.SelectedBusID}}selected{{end}}>{{.}}</option>
+              {{end}}
+            </select>
+          </div>
+
+          <div class="col-12 mt-4">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-funnel"></i> Apply Filters
+            </button>
+            <a href="/monthly-mileage-reports" class="btn btn-secondary ms-2">
+              <i class="bi bi-x-circle"></i> Clear
+            </a>
+          </div>
+        </div>
+      </form>
     </div>
 
-    <div class="nav">
-        <a href="/manager-dashboard">Dashboard</a>
-        <a href="/fleet">Fleet</a>
-        <a href="/view-mileage-reports">Mileage Reports</a>
-        <a href="/monthly-mileage-reports" style="border-bottom-color: #667eea;">Monthly Reports</a>
-        {{if eq .User.Role "manager"}}
-        <a href="/assign-routes">Routes</a>
-        {{end}}
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-3">
+        <div class="metric-card">
+          <i class="bi bi-file-text metric-icon" style="color: #667eea;"></i>
+          <div class="metric-value">{{.TotalReports}}</div>
+          <div class="metric-label">Total Reports</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="metric-card">
+          <i class="bi bi-speedometer2 metric-icon" style="color: #10b981;"></i>
+          <div class="metric-value">{{formatNumber .TotalMiles}}</div>
+          <div class="metric-label">Total Miles</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="metric-card">
+          <i class="bi bi-truck metric-icon" style="color: #f59e0b;"></i>
+          <div class="metric-value">{{.ActiveVehicles}}</div>
+          <div class="metric-label">Active Vehicles</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="metric-card">
+          <i class="bi bi-calculator metric-icon" style="color: #ef4444;"></i>
+          <div class="metric-value">{{if .TotalReports}}{{printf "%.0f" (div (mul .TotalMiles 1.0) .TotalReports)}}{{else}}0{{end}}</div>
+          <div class="metric-label">Avg Miles/Report</div>
+        </div>
+      </div>
     </div>
 
-    <div class="container">
-        <!-- Filters -->
-        <div class="filters">
-            <h3>Filter Reports</h3>
-            <form method="GET" action="/monthly-mileage-reports">
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <label for="year">Year:</label>
-                        <select name="year" id="year">
-                            <option value="">All Years</option>
-                            {{range .Years}}
-                            <option value="{{.}}" {{if eq . $.SelectedYear}}selected{{end}}>{{.}}</option>
-                            {{end}}
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label for="month">Month:</label>
-                        <select name="month" id="month">
-                            <option value="">All Months</option>
-                            {{range .Months}}
-                            <option value="{{.}}" {{if eq . $.SelectedMonth}}selected{{end}}>{{.}}</option>
-                            {{end}}
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label for="bus_id">Bus ID:</label>
-                        <select name="bus_id" id="bus_id">
-                            <option value="">All Buses</option>
-                            {{range .BusIDs}}
-                            <option value="{{.}}" {{if eq . $.SelectedBusID}}selected{{end}}>{{.}}</option>
-                            {{end}}
-                        </select>
-                    </div>
-
-                    <div class="filter-actions">
-                        <button type="submit" class="btn btn-primary">Apply Filters</button>
-                        <a href="/monthly-mileage-reports" class="btn btn-secondary">Clear</a>
-                    </div>
-                </div>
-            </form>
+    <!-- Reports Table -->
+    <div class="glass-card">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="text-white mb-0">
+          <i class="bi bi-table"></i> Monthly Mileage Reports
+        </h4>
+        <div class="text-white-50">
+          Showing {{if .Reports}}{{add (mul (sub .Pagination.Page 1) .Pagination.PerPage) 1}} - {{add (mul (sub .Pagination.Page 1) .Pagination.PerPage) (len .Reports)}}{{else}}0{{end}} of {{.TotalReports}} reports
         </div>
+      </div>
 
-        <!-- Summary Cards -->
-        <div class="summary-cards">
-            <div class="summary-card">
-                <h3>{{.TotalReports}}</h3>
-                <p>Total Reports</p>
-            </div>
-            <div class="summary-card">
-                <h3>{{formatNumber .TotalMiles}}</h3>
-                <p>Total Miles</p>
-            </div>
-            <div class="summary-card">
-                <h3>{{.ActiveVehicles}}</h3>
-                <p>Active Vehicles</p>
-            </div>
-            <div class="summary-card">
-                <h3>{{if .TotalReports}}{{printf "%.0f" (div (mul .TotalMiles 1.0) .TotalReports)}}{{else}}0{{end}}</h3>
-                <p>Avg Miles/Report</p>
-            </div>
-        </div>
-
-        <!-- Reports Table -->
-        <div class="reports-table">
-            <div class="table-header">
-                <h3>Monthly Mileage Reports</h3>
-                <div class="results-info">
-                    Showing {{if .Reports}}{{add (mul (sub .Pagination.Page 1) .Pagination.PerPage) 1}} - {{add (mul (sub .Pagination.Page 1) .Pagination.PerPage) (len .Reports)}}{{else}}0{{end}} of {{.TotalReports}} reports
-                </div>
-            </div>
-
-            {{if .Reports}}
-            <div style="overflow-x: auto;">
-                <table>
+      {{if .Reports}}
+      <div class="table-responsive">
+        <table class="table text-white">
                     <thead>
                         <tr>
                             <th>Period</th>
@@ -413,41 +499,55 @@
                         </tr>
                         {{end}}
                     </tbody>
-                </table>
-            </div>
+        </table>
+      </div>
 
-            <!-- Pagination -->
-            {{if gt .Pagination.TotalPages 1}}
-            <div class="pagination">
-                {{if .Pagination.HasPrev}}
-                <a href="?page={{sub .Pagination.Page 1}}{{if .SelectedYear}}&year={{.SelectedYear}}{{end}}{{if .SelectedMonth}}&month={{.SelectedMonth}}{{end}}{{if .SelectedBusID}}&bus_id={{.SelectedBusID}}{{end}}">&laquo; Previous</a>
-                {{end}}
+      <!-- Pagination -->
+      {{if gt .Pagination.TotalPages 1}}
+      <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+          {{if .Pagination.HasPrev}}
+          <li class="page-item">
+            <a class="page-link" href="?page={{sub .Pagination.Page 1}}{{if .SelectedYear}}&year={{.SelectedYear}}{{end}}{{if .SelectedMonth}}&month={{.SelectedMonth}}{{end}}{{if .SelectedBusID}}&bus_id={{.SelectedBusID}}{{end}}">&laquo; Previous</a>
+          </li>
+          {{end}}
 
-                {{range $page := .Pagination.Pages}}
-                {{if eq $page $.Pagination.Page}}
-                <span class="current">{{$page}}</span>
-                {{else}}
-                <a href="?page={{$page}}{{if $.SelectedYear}}&year={{$.SelectedYear}}{{end}}{{if $.SelectedMonth}}&month={{$.SelectedMonth}}{{end}}{{if $.SelectedBusID}}&bus_id={{$.SelectedBusID}}{{end}}">{{$page}}</a>
-                {{end}}
-                {{end}}
+          {{range $page := .Pagination.Pages}}
+          {{if eq $page $.Pagination.Page}}
+          <li class="page-item active">
+            <span class="page-link">{{$page}}</span>
+          </li>
+          {{else}}
+          <li class="page-item">
+            <a class="page-link" href="?page={{$page}}{{if $.SelectedYear}}&year={{$.SelectedYear}}{{end}}{{if $.SelectedMonth}}&month={{$.SelectedMonth}}{{end}}{{if $.SelectedBusID}}&bus_id={{$.SelectedBusID}}{{end}}">{{$page}}</a>
+          </li>
+          {{end}}
+          {{end}}
 
-                {{if .Pagination.HasNext}}
-                <a href="?page={{add .Pagination.Page 1}}{{if .SelectedYear}}&year={{.SelectedYear}}{{end}}{{if .SelectedMonth}}&month={{.SelectedMonth}}{{end}}{{if .SelectedBusID}}&bus_id={{.SelectedBusID}}{{end}}">Next &raquo;</a>
-                {{end}}
-            </div>
-            {{end}}
+          {{if .Pagination.HasNext}}
+          <li class="page-item">
+            <a class="page-link" href="?page={{add .Pagination.Page 1}}{{if .SelectedYear}}&year={{.SelectedYear}}{{end}}{{if .SelectedMonth}}&month={{.SelectedMonth}}{{end}}{{if .SelectedBusID}}&bus_id={{.SelectedBusID}}{{end}}">Next &raquo;</a>
+          </li>
+          {{end}}
+        </ul>
+      </nav>
+      {{end}}
 
-            {{else}}
-            <div class="no-data">
-                <div style="font-size: 3rem; margin-bottom: 1rem; color: #ddd;">📊</div>
-                <h3>No Reports Found</h3>
-                <p>{{if or .SelectedYear .SelectedMonth .SelectedBusID}}Try adjusting your filters or clearing them to see all reports.{{else}}No monthly mileage reports are available in the system.{{end}}</p>
-                {{if or .SelectedYear .SelectedMonth .SelectedBusID}}
-                <a href="/monthly-mileage-reports" class="btn btn-primary" style="margin-top: 1rem;">Clear Filters</a>
-                {{end}}
-            </div>
-            {{end}}
+      {{else}}
+      <div class="text-center py-5">
+        <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">
+          <i class="bi bi-clipboard-data"></i>
         </div>
+        <h3 class="text-white">No Reports Found</h3>
+        <p class="text-white-50">{{if or .SelectedYear .SelectedMonth .SelectedBusID}}Try adjusting your filters or clearing them to see all reports.{{else}}No monthly mileage reports are available in the system.{{end}}</p>
+        {{if or .SelectedYear .SelectedMonth .SelectedBusID}}
+        <a href="/monthly-mileage-reports" class="btn btn-primary mt-3">
+          <i class="bi bi-x-circle"></i> Clear Filters
+        </a>
+        {{end}}
+      </div>
+      {{end}}
     </div>
+  </div>
 </body>
 </html>

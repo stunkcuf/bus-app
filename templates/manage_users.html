@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <!-- Modern Theme CSS - Primary styling -->
   <link rel="stylesheet" href="/static/modern_theme.css">
+    <!-- Dark Theme Text Colors -->
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
   <!-- Help System CSS -->
   <link rel="stylesheet" href="/static/help_system.css">
   <link rel="stylesheet" href="/static/enhanced_help_system.css">
@@ -101,6 +103,11 @@
       transform: translateX(10px);
     }
     
+    .table tbody td {
+      color: white;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    
     /* Button styling */
     .btn {
       padding: 0.75rem 1.5rem;
@@ -123,6 +130,44 @@
     .btn-primary:hover {
       transform: translateY(-3px);
       box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+    }
+    
+    .btn-danger {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+      color: white;
+      box-shadow: 0 5px 20px rgba(255, 107, 107, 0.5);
+    }
+    
+    .btn-danger:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(255, 107, 107, 0.7);
+    }
+    
+    /* Small buttons in table */
+    .btn-sm {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+    }
+    
+    /* Page header */
+    .page-header {
+      color: white;
+    }
+    
+    .page-header h1,
+    .page-header p {
+      color: white !important;
+    }
+    
+    /* Fix button visibility */
+    .btn-group .btn {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .btn-group .btn:hover {
+      background: rgba(255, 255, 255, 0.2);
     }
     
     /* Status badges */
@@ -155,6 +200,11 @@
       background: rgba(79, 172, 254, 0.2);
       color: #4facfe;
       border: 1px solid rgba(79, 172, 254, 0.5);
+    }
+    
+    /* Ensure all text is visible */
+    .container-fluid {
+      color: white;
     }
   </style>
 </head>

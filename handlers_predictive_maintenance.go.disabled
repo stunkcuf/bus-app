@@ -1,0 +1,348 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"html/template"
+	"log"
+	"net/http"
+	"strconv"
+)
+
+// Notification type constants
+const (
+	NotifyMaintenanceScheduled = "maintenance_scheduled"
+)
+
+// predictiveMaintenanceDashboardHandler shows the predictive maintenance dashboard
+func predictiveMaintenanceDashboardHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	// Only managers can view predictive analytics
+	if user.Role != "manager" {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	// Initialize predictive maintenance system
+	pms := NewPredictiveMaintenanceSystem(db.DB)
+
+	// Get fleet health dashboard
+	dashboard, err := pms.GetFleetHealthDashboard()
+	if err != nil {
+		log.Printf("Error getting fleet health dashboard: %v", err)
+		dashboard = &FleetHealthDashboard{} // Empty dashboard on error
+	}
+
+	data := struct {
+		Title                string
+		User                 *User
+		Dashboard            *FleetHealthDashboard
+		CSRFToken            string
+		CSPNonce             string
+	}{
+		Title:     "Predictive Maintenance",
+		User:      user,
+		Dashboard: dashboard,
+		CSRFToken: getSessionCSRFToken(r),
+		CSPNonce:  generateNonce(),
+	}
+
+	tmpl, err := template.ParseFiles("templates/predictive_maintenance.html", "templates/navigation.html")
+	if err != nil {
+		log.Printf("Error parsing template: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.Execute(w, data); err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
+// vehicleHealthHandler shows detailed health analysis for a specific vehicle
+func vehicleHealthHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	if user.Role != "manager" {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	vehicleID := r.URL.Query().Get("vehicle_id")
+	if vehicleID == "" {
+		http.Error(w, "Vehicle ID required", http.StatusBadRequest)
+		return
+	}
+
+	// Initialize predictive maintenance system
+	pms := NewPredictiveMaintenanceSystem(db.DB)
+
+	// Get vehicle health score
+	healthScore, err := pms.GetVehicleHealthScore(vehicleID)
+	if err != nil {
+		log.Printf("Error getting vehicle health score: %v", err)
+		http.Error(w, "Vehicle not found", http.StatusNotFound)
+		return
+	}
+
+	data := struct {
+		Title       string
+		User        *User
+		VehicleID   string
+		HealthScore *VehicleHealthScore
+		CSRFToken   string
+		CSPNonce    string
+	}{
+		Title:       "Vehicle Health Analysis",
+		User:        user,
+		VehicleID:   vehicleID,
+		HealthScore: healthScore,
+		CSRFToken:   getSessionCSRFToken(r),
+		CSPNonce:    generateNonce(),
+	}
+
+	tmpl, err := template.ParseFiles("templates/vehicle_health.html", "templates/navigation.html")
+	if err != nil {
+		log.Printf("Error parsing template: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.Execute(w, data); err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
+// API endpoints for predictive maintenance
+
+// apiFleetHealthHandler returns fleet health data as JSON
+func apiFleetHealthHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	pms := NewPredictiveMaintenanceSystem(db.DB)
+	dashboard, err := pms.GetFleetHealthDashboard()
+	if err != nil {
+		log.Printf("Error getting fleet health: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(dashboard)
+}
+
+// apiVehicleHealthHandler returns vehicle health data as JSON
+func apiVehicleHealthHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	vehicleID := r.URL.Query().Get("vehicle_id")
+	if vehicleID == "" {
+		http.Error(w, "Vehicle ID required", http.StatusBadRequest)
+		return
+	}
+
+	pms := NewPredictiveMaintenanceSystem(db.DB)
+	healthScore, err := pms.GetVehicleHealthScore(vehicleID)
+	if err != nil {
+		log.Printf("Error getting vehicle health: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(healthScore)
+}
+
+// apiMaintenancePredictionsHandler returns maintenance predictions for a vehicle
+func apiMaintenancePredictionsHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	vehicleID := r.URL.Query().Get("vehicle_id")
+	if vehicleID == "" {
+		http.Error(w, "Vehicle ID required", http.StatusBadRequest)
+		return
+	}
+
+	pms := NewPredictiveMaintenanceSystem(db.DB)
+	predictions, err := pms.PredictMaintenanceNeeds(vehicleID)
+	if err != nil {
+		log.Printf("Error getting predictions: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	response := struct {
+		VehicleID   string                   `json:"vehicle_id"`
+		Predictions []MaintenancePrediction  `json:"predictions"`
+	}{
+		VehicleID:   vehicleID,
+		Predictions: predictions,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// scheduleMaintenanceFromPredictionHandler schedules maintenance based on prediction
+func scheduleMaintenanceFromPredictionHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Verify CSRF token
+	if !validateCSRF(r) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+
+	// Parse form data
+	vehicleID := r.FormValue("vehicle_id")
+	maintenanceType := r.FormValue("maintenance_type")
+	scheduledDateStr := r.FormValue("scheduled_date")
+	estimatedCostStr := r.FormValue("estimated_cost")
+	notes := r.FormValue("notes")
+
+	if vehicleID == "" || maintenanceType == "" || scheduledDateStr == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	estimatedCost, err := strconv.ParseFloat(estimatedCostStr, 64)
+	if err != nil {
+		estimatedCost = 0
+	}
+
+	// Insert into scheduled maintenance (could be a new table)
+	// For now, we'll add it as a maintenance record with future date
+	_, err = db.Exec(`
+		INSERT INTO maintenance_records 
+		(vehicle_id, service_type, service_date, cost, notes, created_by, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+	`, vehicleID, maintenanceType, scheduledDateStr, estimatedCost, 
+	   fmt.Sprintf("Scheduled from prediction: %s", notes), user.Username)
+
+	if err != nil {
+		log.Printf("Error scheduling maintenance: %v", err)
+		http.Error(w, "Failed to schedule maintenance", http.StatusInternalServerError)
+		return
+	}
+
+	// Send notification
+	if notificationTriggers != nil {
+		notificationTriggers.TriggerMaintenanceScheduledNotification(
+			vehicleID, maintenanceType, scheduledDateStr)
+	}
+
+	// Redirect back to vehicle health page
+	http.Redirect(w, r, fmt.Sprintf("/predictive-maintenance/vehicle?vehicle_id=%s", vehicleID), 
+		http.StatusFound)
+}
+
+// exportMaintenanceForecastHandler exports maintenance forecast as CSV
+func exportMaintenanceForecastHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	pms := NewPredictiveMaintenanceSystem(db.DB)
+	
+	// Get all vehicles
+	vehicles, err := pms.getActiveVehicles()
+	if err != nil {
+		log.Printf("Error getting vehicles: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Set CSV headers
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", "attachment; filename=maintenance_forecast.csv")
+
+	// Write CSV header
+	fmt.Fprintln(w, "Vehicle ID,Vehicle Description,Maintenance Type,Predicted Date,Days Until Due,Miles Until Due,Estimated Cost,Risk Level,Recommended Action")
+
+	// Get predictions for each vehicle
+	for _, vehicle := range vehicles {
+		predictions, err := pms.PredictMaintenanceNeeds(vehicle.VehicleID)
+		if err != nil {
+			continue
+		}
+
+		for _, pred := range predictions {
+			fmt.Fprintf(w, "%s,%s,%s,%s,%d,%d,%.2f,%s,%s\n",
+				pred.VehicleID,
+				pred.VehicleDescription,
+				pred.MaintenanceType,
+				pred.PredictedDate.Format("2006-01-02"),
+				pred.DaysUntilDue,
+				pred.MilesUntilDue,
+				pred.EstimatedCost,
+				pred.RiskLevel,
+				pred.RecommendedAction)
+		}
+	}
+}
+
+// Helper for notification triggers
+func (nt *NotificationTriggers) TriggerMaintenanceScheduledNotification(vehicleID, maintenanceType, scheduledDate string) {
+	notification := Notification{
+		Type:     NotifyMaintenanceScheduled,
+		Priority: "low",
+		Subject:  "Maintenance Scheduled",
+		Message:  fmt.Sprintf("Maintenance scheduled for vehicle %s: %s on %s",
+			vehicleID, maintenanceType, scheduledDate),
+		Data: map[string]interface{}{
+			"vehicle_id":       vehicleID,
+			"maintenance_type": maintenanceType,
+			"scheduled_date":   scheduledDate,
+		},
+		Channels: []string{"email", "in-app"},
+	}
+
+	// Notify managers
+	recipients, err := nt.getManagerRecipients()
+	if err != nil {
+		log.Printf("Error getting recipients: %v", err)
+		return
+	}
+
+	notification.Recipients = recipients
+
+	if err := nt.system.Send(notification); err != nil {
+		log.Printf("Failed to send maintenance scheduled notification: %v", err)
+	}
+}

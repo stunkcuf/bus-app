@@ -98,8 +98,8 @@ func InitializeMobileAppTables(db *sqlx.DB) error {
 		`CREATE OR REPLACE VIEW attendance_summary AS
 		SELECT 
 			s.student_id,
-			s.student_name,
-			s.grade,
+			s.name as student_name,
+			'' as grade,
 			r.route_name,
 			COUNT(CASE WHEN sa.status = 'present' THEN 1 END) as days_present,
 			COUNT(CASE WHEN sa.status = 'absent' THEN 1 END) as days_absent,
@@ -108,7 +108,7 @@ func InitializeMobileAppTables(db *sqlx.DB) error {
 		FROM students s
 		LEFT JOIN student_attendance sa ON s.student_id = sa.student_id
 		LEFT JOIN routes r ON s.route_id = r.route_id
-		GROUP BY s.student_id, s.student_name, s.grade, r.route_name`,
+		GROUP BY s.student_id, s.name, r.route_name`,
 
 		// Issue statistics view
 		`CREATE OR REPLACE VIEW issue_statistics AS

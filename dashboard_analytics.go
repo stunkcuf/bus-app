@@ -19,16 +19,36 @@ func analyticsDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Gather dashboard metrics
+	metrics, err := gatherDashboardMetrics()
+	if err != nil {
+		LogError("Failed to gather dashboard metrics", err)
+		// Continue with empty metrics instead of failing
+		metrics = &DashboardMetrics{}
+	}
+
 	data := struct {
-		User      *User  `json:"user"`
-		Role      string `json:"role"`
-		CSRFToken string `json:"csrf_token"`
-		CSPNonce  string `json:"csp_nonce"`
+		User             *User              `json:"user"`
+		Role             string             `json:"role"`
+		CSRFToken        string             `json:"csrf_token"`
+		CSPNonce         string             `json:"csp_nonce"`
+		FleetOverview    FleetMetrics       `json:"fleet_overview"`
+		RouteAnalytics   RouteMetrics       `json:"route_analytics"`
+		MileageAnalytics MileageMetrics     `json:"mileage_analytics"`
+		MaintenanceCosts MaintenanceMetrics `json:"maintenance_costs"`
+		DriverPerformance []DriverMetric    `json:"driver_performance"`
+		TrendData        TrendMetrics       `json:"trend_data"`
 	}{
-		User:      &User{Username: session.Username},
-		Role:      session.Role,
-		CSRFToken: session.CSRFToken,
-		CSPNonce:  GenerateCSPNonce(),
+		User:              &User{Username: session.Username},
+		Role:              session.Role,
+		CSRFToken:         session.CSRFToken,
+		CSPNonce:          GenerateCSPNonce(),
+		FleetOverview:     metrics.FleetOverview,
+		RouteAnalytics:    metrics.RouteAnalytics,
+		MileageAnalytics:  metrics.MileageAnalytics,
+		MaintenanceCosts:  metrics.MaintenanceCosts,
+		DriverPerformance: metrics.DriverPerformance,
+		TrendData:         metrics.TrendData,
 	}
 
 	if err := templates.ExecuteTemplate(w, "analytics_dashboard.html", data); err != nil {

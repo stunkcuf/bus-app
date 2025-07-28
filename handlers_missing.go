@@ -498,7 +498,10 @@ func usersHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Load user data
 	var targetUser User
-	err := db.Get(&targetUser, "SELECT * FROM users WHERE username = $1", username)
+	err := db.Get(&targetUser, `
+		SELECT username, password, role, status, registration_date, created_at 
+		FROM users WHERE username = $1
+	`, username)
 	if err != nil {
 		log.Printf("Error loading user: %v", err)
 		http.Error(w, "User not found", http.StatusNotFound)
@@ -517,35 +520,76 @@ func usersHandler(w http.ResponseWriter, r *http.Request) {
 
 // deleteUserHandler handles user deletion
 func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("DELETE USER: Method=%s", r.Method)
+	
 	if r.Method != http.MethodPost {
+		log.Printf("DELETE USER: Invalid method: %s", r.Method)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	user := getUserFromSession(r)
 	if user == nil || user.Role != "manager" {
+		log.Printf("DELETE USER: Unauthorized - user=%v", user)
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
+	// Parse form to get values
+	if err := r.ParseForm(); err != nil {
+		log.Printf("DELETE USER: Failed to parse form: %v", err)
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	// Validate CSRF token
+	if !validateCSRF(r) {
+		log.Printf("DELETE USER: Invalid CSRF token")
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+
 	username := r.FormValue("username")
+	log.Printf("DELETE USER: Attempting to delete user: %s", username)
+	
 	if username == "" {
+		log.Printf("DELETE USER: Empty username")
 		http.Error(w, "Username required", http.StatusBadRequest)
 		return
 	}
 
 	// Don't allow self-deletion
 	if username == user.Username {
+		log.Printf("DELETE USER: Attempted self-deletion by %s", username)
 		http.Error(w, "Cannot delete your own account", http.StatusBadRequest)
 		return
 	}
 
-	_, err := db.Exec("DELETE FROM users WHERE username = $1", username)
+	// Check if user exists
+	var exists bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)", username).Scan(&exists)
 	if err != nil {
-		log.Printf("Error deleting user: %v", err)
+		log.Printf("DELETE USER: Error checking user existence: %v", err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	
+	if !exists {
+		log.Printf("DELETE USER: User %s not found", username)
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	// Delete the user
+	result, err := db.Exec("DELETE FROM users WHERE username = $1", username)
+	if err != nil {
+		log.Printf("DELETE USER: Error deleting user %s: %v", username, err)
 		http.Error(w, "Failed to delete user", http.StatusInternalServerError)
 		return
 	}
+	
+	rowsAffected, _ := result.RowsAffected()
+	log.Printf("DELETE USER: Successfully deleted user %s (rows affected: %d)", username, rowsAffected)
 
 	http.Redirect(w, r, "/manage-users", http.StatusSeeOther)
 }

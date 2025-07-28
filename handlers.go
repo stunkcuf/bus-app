@@ -1392,6 +1392,7 @@ func monthlyMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
 	yearStr := r.URL.Query().Get("year")
 	month := r.URL.Query().Get("month")
 	busID := r.URL.Query().Get("bus_id")
+	vehicleType := r.URL.Query().Get("vehicle_type")
 
 	// Parse pagination parameters
 	pageStr := r.URL.Query().Get("page")
@@ -1547,12 +1548,13 @@ func monthlyMileageReportsHandler(w http.ResponseWriter, r *http.Request) {
 			"July", "August", "September", "October", "November", "December",
 		},
 		"BusIDs":         busIDs,
-		"SelectedYear":   yearStr,
-		"SelectedMonth":  month,
-		"SelectedBusID":  busID,
-		"TotalMiles":     totalMiles,
-		"ActiveVehicles": len(activeVehicles),
-		"Title":          "Monthly Mileage Reports",
+		"SelectedYear":        yearStr,
+		"SelectedMonth":       month,
+		"SelectedBusID":       busID,
+		"SelectedVehicleType": vehicleType,
+		"TotalMiles":          totalMiles,
+		"ActiveVehicles":      len(activeVehicles),
+		"Title":               "Monthly Mileage Reports",
 	}
 
 	renderTemplate(w, r, "monthly_mileage_reports.html", data)

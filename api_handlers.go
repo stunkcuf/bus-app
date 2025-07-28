@@ -370,30 +370,49 @@ func apiVehicleLocationHandler(w http.ResponseWriter, r *http.Request) {
     vehicleID := r.URL.Query().Get("vehicle_id")
     if vehicleID == "" {
         // Return all vehicle locations
-        locations := make(map[string]interface{})
-        
-        // Mock data for now - replace with actual GPS data
-        locations["buses"] = []map[string]interface{}{
-            {
-                "vehicle_id": "24",
-                "lat": 41.8781,
-                "lng": -87.6298,
-                "speed": 25,
-                "heading": 180,
-                "last_update": time.Now().Unix(),
-            },
+        vehicles, err := dataCache.getVehicles()
+        if err != nil {
+            sendAPIError(w, "Failed to load vehicles", http.StatusInternalServerError)
+            return
         }
         
+        // Get latest locations for all vehicles
+        locations := make(map[string]interface{})
+        busLocations := []map[string]interface{}{}
+        
+        for _, vehicle := range vehicles {
+            if loc, err := gpsTracker.GetLatestLocation(vehicle.VehicleID); err == nil && loc != nil {
+                locationData := map[string]interface{}{
+                    "vehicle_id": vehicle.VehicleID,
+                    "lat": loc.Latitude,
+                    "lng": loc.Longitude,
+                    "speed": loc.Speed,
+                    "heading": loc.Heading,
+                    "status": loc.Status,
+                    "last_update": loc.Timestamp.Unix(),
+                }
+                busLocations = append(busLocations, locationData)
+            }
+        }
+        
+        locations["buses"] = busLocations
         sendAPIResponse(w, "Vehicle locations retrieved", locations)
     } else {
         // Return specific vehicle location
+        loc, err := gpsTracker.GetLatestLocation(vehicleID)
+        if err != nil || loc == nil {
+            sendAPIError(w, "Vehicle location not found", http.StatusNotFound)
+            return
+        }
+        
         location := map[string]interface{}{
             "vehicle_id": vehicleID,
-            "lat": 41.8781,
-            "lng": -87.6298,
-            "speed": 0,
-            "heading": 0,
-            "last_update": time.Now().Unix(),
+            "lat": loc.Latitude,
+            "lng": loc.Longitude,
+            "speed": loc.Speed,
+            "heading": loc.Heading,
+            "status": loc.Status,
+            "last_update": loc.Timestamp.Unix(),
         }
         
         sendAPIResponse(w, "Vehicle location retrieved", location)
