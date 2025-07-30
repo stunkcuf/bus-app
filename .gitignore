@@ -56,11 +56,11 @@ test.exe
 main.exe
 *.exe~
 
-# Local testing files
-check_*.go
-test_*.go
-fix_*.go
-verify_*.go
+# Local testing files (removed patterns that were excluding important files)
+# check_*.go
+# test_*.go  
+# fix_*.go
+# verify_*.go
 
 # Compiled binary
 hs-bus
