@@ -709,33 +709,81 @@ func setupRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
 
 	// Static file server with proper content types
-	mux.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
-		// Remove /static/ prefix
-		path := r.URL.Path[8:]
-
-		// Set cache control headers to prevent caching during development
-		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-		w.Header().Set("Pragma", "no-cache")
-		w.Header().Set("Expires", "0")
-
-		// Set content type based on file extension
-		switch {
-		case strings.HasSuffix(path, ".css"):
-			w.Header().Set("Content-Type", "text/css; charset=utf-8")
-		case strings.HasSuffix(path, ".js"):
-			w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-		case strings.HasSuffix(path, ".png"):
-			w.Header().Set("Content-Type", "image/png")
-		case strings.HasSuffix(path, ".jpg"), strings.HasSuffix(path, ".jpeg"):
-			w.Header().Set("Content-Type", "image/jpeg")
-		case strings.HasSuffix(path, ".svg"):
-			w.Header().Set("Content-Type", "image/svg+xml")
-		}
-
-		// Serve the file
-		http.ServeFile(w, r, filepath.Join("static", path))
-	})
-
+mux.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
+    // Clean the path to prevent directory traversal
+    path := filepath.Clean(r.URL.Path[8:]) // Remove /static/ prefix
+    
+    // Security check
+    if strings.Contains(path, "..") {
+        http.Error(w, "Invalid path", http.StatusBadRequest)
+        return
+    }
+    
+    // Construct full file path
+    fullPath := filepath.Join("static", path)
+    
+    // Check if file exists
+    if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+        http.NotFound(w, r)
+        return
+    }
+    
+    // Set cache control headers
+    if isDevelopment() {
+        // No cache in development
+        w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+        w.Header().Set("Pragma", "no-cache")
+        w.Header().Set("Expires", "0")
+    } else {
+        // Cache static assets in production
+        w.Header().Set("Cache-Control", "public, max-age=3600")
+    }
+    
+    // Set content type based on file extension
+    ext := strings.ToLower(filepath.Ext(path))
+    switch ext {
+    case ".css":
+        w.Header().Set("Content-Type", "text/css; charset=utf-8")
+    case ".js":
+        w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+    case ".html":
+        w.Header().Set("Content-Type", "text/html; charset=utf-8")
+    case ".json":
+        w.Header().Set("Content-Type", "application/json; charset=utf-8")
+    case ".png":
+        w.Header().Set("Content-Type", "image/png")
+    case ".jpg", ".jpeg":
+        w.Header().Set("Content-Type", "image/jpeg")
+    case ".gif":
+        w.Header().Set("Content-Type", "image/gif")
+    case ".svg":
+        w.Header().Set("Content-Type", "image/svg+xml")
+    case ".ico":
+        w.Header().Set("Content-Type", "image/x-icon")
+    case ".woff":
+        w.Header().Set("Content-Type", "font/woff")
+    case ".woff2":
+        w.Header().Set("Content-Type", "font/woff2")
+    case ".ttf":
+        w.Header().Set("Content-Type", "font/ttf")
+    case ".eot":
+        w.Header().Set("Content-Type", "application/vnd.ms-fontobject")
+    case ".map":
+        w.Header().Set("Content-Type", "application/json")
+    default:
+        // Try to detect content type
+        http.ServeFile(w, r, fullPath)
+        return
+    }
+    
+    // Log the request in development
+    if isDevelopment() {
+        log.Printf("Serving static file: %s with content-type: %s", path, w.Header().Get("Content-Type"))
+    }
+    
+    // Serve the file
+    http.ServeFile(w, r, fullPath)
+})
 	// Register public test routes FIRST (no middleware)
 	setupPublicTestRoutes(mux)
 	
