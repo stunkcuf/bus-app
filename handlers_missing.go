@@ -161,49 +161,46 @@ func approveUserHandler(w http.ResponseWriter, r *http.Request) {
 
 // manageUsersHandler shows all users for management
 func manageUsersHandler(w http.ResponseWriter, r *http.Request) {
-    user := getUserFromSession(r)
-    if user == nil || user.Role != "manager" {
-        http.Redirect(w, r, "/", http.StatusFound)
-        return
-    }
+	user := getUserFromSession(r)
+	if user == nil || user.Role != "manager" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
 
-    // DON'T generate your own nonce or set CSP header - the middleware already did it!
-    // Get the nonce from the request context that was set by CSPMiddleware
-    nonce := getCSPNonce(r.Context())
+	// Direct database query - skip cache entirely to avoid issues
+	var users []User
+	query := `SELECT username, password, role, status, registration_date, created_at 
+	          FROM users ORDER BY created_at DESC`
+	
+	err := db.Select(&users, query)
+	if err != nil {
+		log.Printf("Error loading users from database: %v", err)
+		// Don't fail completely - show page with empty user list
+		users = []User{}
+		
+		// Try alternate query without all fields
+		err2 := db.Select(&users, "SELECT * FROM users ORDER BY username")
+		if err2 != nil {
+			log.Printf("Alternate query also failed: %v", err2)
+		}
+	}
+	
+	log.Printf("Loaded %d users for management page", len(users))
 
-    // Direct database query - skip cache entirely to avoid issues
-    var users []User
-    query := `SELECT username, password, role, status, registration_date, created_at 
-              FROM users ORDER BY created_at DESC`
-    
-    err := db.Select(&users, query)
-    if err != nil {
-        log.Printf("Error loading users from database: %v", err)
-        // Don't fail completely - show page with empty user list
-        users = []User{}
-        
-        // Try alternate query without all fields
-        err2 := db.Select(&users, "SELECT * FROM users ORDER BY username")
-        if err2 != nil {
-            log.Printf("Alternate query also failed: %v", err2)
-        }
-    }
-    
-    log.Printf("Loaded %d users for management page", len(users))
+	// Get CSRF token
+	csrfToken := getSessionCSRFToken(r)
 
-    // Get CSRF token
-    csrfToken := getSessionCSRFToken(r)
+	// Include CSPNonce in the data
+	data := map[string]interface{}{
+		"User":      user,
+		"Users":     users,
+		"CSRFToken": csrfToken,
+		"CSPNonce":  getCSPNonce(r.Context()),  // Get nonce from context, don't generate new
+	}
 
-    // Include CSPNonce in the data
-    data := map[string]interface{}{
-        "User":      user,
-        "Users":     users,
-        "CSRFToken": csrfToken,
-        "CSPNonce":  nonce,  // Use the nonce from context, not a new one
-    }
-
-    renderTemplate(w, r, "manage_users.html", data)
+	renderTemplate(w, r, "manage_users.html", data)
 }
+
 // editUserHandler handles user editing
 func editUserHandler(w http.ResponseWriter, r *http.Request) {
 	// Handle GET request to show edit form
