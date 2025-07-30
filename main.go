@@ -723,8 +723,15 @@ mux.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
     fullPath := filepath.Join("static", path)
     
     // Check if file exists
-    if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+    fileInfo, err := os.Stat(fullPath)
+    if os.IsNotExist(err) {
         log.Printf("Static file not found: %s", fullPath)
+        http.NotFound(w, r)
+        return
+    }
+    
+    // Don't serve directories
+    if fileInfo.IsDir() {
         http.NotFound(w, r)
         return
     }
@@ -742,39 +749,63 @@ mux.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
     
     // Set content type based on file extension
     ext := strings.ToLower(filepath.Ext(path))
+    contentType := ""
+    
     switch ext {
     case ".css":
-        w.Header().Set("Content-Type", "text/css; charset=utf-8")
+        contentType = "text/css; charset=utf-8"
     case ".js":
-        w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+        contentType = "application/javascript; charset=utf-8"
     case ".html":
-        w.Header().Set("Content-Type", "text/html; charset=utf-8")
+        contentType = "text/html; charset=utf-8"
     case ".json":
-        w.Header().Set("Content-Type", "application/json; charset=utf-8")
+        contentType = "application/json; charset=utf-8"
     case ".png":
-        w.Header().Set("Content-Type", "image/png")
+        contentType = "image/png"
     case ".jpg", ".jpeg":
-        w.Header().Set("Content-Type", "image/jpeg")
+        contentType = "image/jpeg"
     case ".gif":
-        w.Header().Set("Content-Type", "image/gif")
+        contentType = "image/gif"
     case ".svg":
-        w.Header().Set("Content-Type", "image/svg+xml")
+        contentType = "image/svg+xml"
     case ".ico":
-        w.Header().Set("Content-Type", "image/x-icon")
+        contentType = "image/x-icon"
     case ".woff":
-        w.Header().Set("Content-Type", "font/woff")
+        contentType = "font/woff"
     case ".woff2":
-        w.Header().Set("Content-Type", "font/woff2")
+        contentType = "font/woff2"
     case ".ttf":
-        w.Header().Set("Content-Type", "font/ttf")
+        contentType = "font/ttf"
     case ".eot":
-        w.Header().Set("Content-Type", "application/vnd.ms-fontobject")
+        contentType = "application/vnd.ms-fontobject"
     case ".map":
-        w.Header().Set("Content-Type", "application/json")
-    default:
-        // Try to detect content type
-        http.ServeFile(w, r, fullPath)
+        contentType = "application/json"
+    }
+    
+    // For JS and CSS files, we need to ensure the Content-Type is preserved
+    if ext == ".js" || ext == ".css" {
+        // Read the file content
+        content, err := os.ReadFile(fullPath)
+        if err != nil {
+            log.Printf("Error reading file %s: %v", fullPath, err)
+            http.Error(w, "Error reading file", http.StatusInternalServerError)
+            return
+        }
+        
+        // Set the content type
+        w.Header().Set("Content-Type", contentType)
+        
+        // Log the request
+        log.Printf("Serving %s file: %s with content-type: %s", ext, path, contentType)
+        
+        // Write the content
+        w.Write(content)
         return
+    }
+    
+    // For other files, set content type if we have one
+    if contentType != "" {
+        w.Header().Set("Content-Type", contentType)
     }
     
     // Log the request in development
