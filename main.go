@@ -708,7 +708,7 @@ func main() {
 func setupRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	// Static file server with proper content types
+// Static file server with proper content types
 mux.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
     // Clean the path to prevent directory traversal
     path := filepath.Clean(r.URL.Path[8:]) // Remove /static/ prefix
@@ -724,6 +724,7 @@ mux.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
     
     // Check if file exists
     if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+        log.Printf("Static file not found: %s", fullPath)
         http.NotFound(w, r)
         return
     }
@@ -777,13 +778,12 @@ mux.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
     }
     
     // Log the request in development
-    if isDevelopment() {
-        log.Printf("Serving static file: %s with content-type: %s", path, w.Header().Get("Content-Type"))
-    }
+    log.Printf("Serving static file: %s with content-type: %s", path, w.Header().Get("Content-Type"))
     
     // Serve the file
     http.ServeFile(w, r, fullPath)
 })
+	
 	// Register public test routes FIRST (no middleware)
 	setupPublicTestRoutes(mux)
 	
