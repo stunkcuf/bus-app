@@ -708,112 +708,125 @@ func main() {
 func setupRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
 
-// Static file server with proper content types
-mux.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
-    // Clean the path to prevent directory traversal
-    path := filepath.Clean(r.URL.Path[8:]) // Remove /static/ prefix
-    
-    // Security check
-    if strings.Contains(path, "..") {
-        http.Error(w, "Invalid path", http.StatusBadRequest)
-        return
-    }
-    
-    // Construct full file path
-    fullPath := filepath.Join("static", path)
-    
-    // Check if file exists
-    fileInfo, err := os.Stat(fullPath)
-    if os.IsNotExist(err) {
-        log.Printf("Static file not found: %s", fullPath)
-        http.NotFound(w, r)
-        return
-    }
-    
-    // Don't serve directories
-    if fileInfo.IsDir() {
-        http.NotFound(w, r)
-        return
-    }
-    
-    // Set cache control headers
-    if isDevelopment() {
-        // No cache in development
-        w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-        w.Header().Set("Pragma", "no-cache")
-        w.Header().Set("Expires", "0")
-    } else {
-        // Cache static assets in production
-        w.Header().Set("Cache-Control", "public, max-age=3600")
-    }
-    
-    // Set content type based on file extension
-    ext := strings.ToLower(filepath.Ext(path))
-    contentType := ""
-    
-    switch ext {
-    case ".css":
-        contentType = "text/css; charset=utf-8"
-    case ".js":
-        contentType = "application/javascript; charset=utf-8"
-    case ".html":
-        contentType = "text/html; charset=utf-8"
-    case ".json":
-        contentType = "application/json; charset=utf-8"
-    case ".png":
-        contentType = "image/png"
-    case ".jpg", ".jpeg":
-        contentType = "image/jpeg"
-    case ".gif":
-        contentType = "image/gif"
-    case ".svg":
-        contentType = "image/svg+xml"
-    case ".ico":
-        contentType = "image/x-icon"
-    case ".woff":
-        contentType = "font/woff"
-    case ".woff2":
-        contentType = "font/woff2"
-    case ".ttf":
-        contentType = "font/ttf"
-    case ".eot":
-        contentType = "application/vnd.ms-fontobject"
-    case ".map":
-        contentType = "application/json"
-    }
-    
-    // For JS and CSS files, we need to ensure the Content-Type is preserved
-    if ext == ".js" || ext == ".css" {
-        // Read the file content
-        content, err := os.ReadFile(fullPath)
-        if err != nil {
-            log.Printf("Error reading file %s: %v", fullPath, err)
-            http.Error(w, "Error reading file", http.StatusInternalServerError)
-            return
-        }
-        
-        // Set the content type
-        w.Header().Set("Content-Type", contentType)
-        
-        // Log the request
-        log.Printf("Serving %s file: %s with content-type: %s", ext, path, contentType)
-        
-        // Write the content
-        w.Write(content)
-        return
-    }
-    
-    // For other files, set content type if we have one
-    if contentType != "" {
-        w.Header().Set("Content-Type", contentType)
-    }
-    
-    // Log the request in development
-    log.Printf("Serving static file: %s with content-type: %s", path, w.Header().Get("Content-Type"))
-    
-    // Serve the file
-    http.ServeFile(w, r, fullPath)
-})
+	// Static file server with proper content types - UPDATED WITH DEBUGGING
+	mux.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
+		// ADD THIS: Debug log to see if handler is called
+		log.Printf("STATIC HANDLER: Request for %s from %s", r.URL.Path, r.RemoteAddr)
+		
+		// Clean the path to prevent directory traversal
+		path := filepath.Clean(r.URL.Path[8:]) // Remove /static/ prefix
+		
+		// Security check
+		if strings.Contains(path, "..") {
+			log.Printf("STATIC HANDLER: Invalid path attempted: %s", path)
+			http.Error(w, "Invalid path", http.StatusBadRequest)
+			return
+		}
+		
+		// Construct full file path
+		fullPath := filepath.Join("static", path)
+		
+		// Check if file exists
+		fileInfo, err := os.Stat(fullPath)
+		if os.IsNotExist(err) {
+			log.Printf("STATIC HANDLER: File not found: %s (full path: %s)", path, fullPath)
+			http.NotFound(w, r)
+			return
+		}
+		
+		// Don't serve directories
+		if fileInfo.IsDir() {
+			log.Printf("STATIC HANDLER: Attempted to serve directory: %s", fullPath)
+			http.NotFound(w, r)
+			return
+		}
+		
+		// Set cache control headers
+		if isDevelopment() {
+			// No cache in development
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("Expires", "0")
+		} else {
+			// Cache static assets in production
+			w.Header().Set("Cache-Control", "public, max-age=3600")
+		}
+		
+		// Set content type based on file extension
+		ext := strings.ToLower(filepath.Ext(path))
+		contentType := ""
+		
+		switch ext {
+		case ".css":
+			contentType = "text/css; charset=utf-8"
+		case ".js":
+			contentType = "application/javascript; charset=utf-8"
+		case ".html":
+			contentType = "text/html; charset=utf-8"
+		case ".json":
+			contentType = "application/json; charset=utf-8"
+		case ".png":
+			contentType = "image/png"
+		case ".jpg", ".jpeg":
+			contentType = "image/jpeg"
+		case ".gif":
+			contentType = "image/gif"
+		case ".svg":
+			contentType = "image/svg+xml"
+		case ".ico":
+			contentType = "image/x-icon"
+		case ".woff":
+			contentType = "font/woff"
+		case ".woff2":
+			contentType = "font/woff2"
+		case ".ttf":
+			contentType = "font/ttf"
+		case ".eot":
+			contentType = "application/vnd.ms-fontobject"
+		case ".map":
+			contentType = "application/json"
+		}
+		
+		// For JS and CSS files, we need to ensure the Content-Type is preserved
+		if ext == ".js" || ext == ".css" {
+			// Read the file content
+			content, err := os.ReadFile(fullPath)
+			if err != nil {
+				log.Printf("STATIC HANDLER ERROR: Failed to read %s file %s: %v", ext, fullPath, err)
+				http.Error(w, "Error reading file", http.StatusInternalServerError)
+				return
+			}
+			
+			// Set the content type
+			w.Header().Set("Content-Type", contentType)
+			
+			// Log successful serving
+			log.Printf("STATIC HANDLER SUCCESS: Serving %s file: %s with content-type: %s (size: %d bytes)", 
+				ext, path, contentType, len(content))
+			
+			// Write the content
+			w.Write(content)
+			return
+		}
+		
+		// For other files, set content type if we have one
+		if contentType != "" {
+			w.Header().Set("Content-Type", contentType)
+		}
+		
+		// Log the request
+		log.Printf("STATIC HANDLER: Serving file: %s with content-type: %s", path, contentType)
+		
+		// Serve the file
+		http.ServeFile(w, r, fullPath)
+	})
+
+	// ADD THIS: Test handler to verify routes are working
+	mux.HandleFunc("/test-static", withRecovery(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte("Static test working! Your handlers are being registered correctly."))
+		log.Printf("TEST HANDLER: /test-static accessed from %s", r.RemoteAddr)
+	}))
 	
 	// Register public test routes FIRST (no middleware)
 	setupPublicTestRoutes(mux)
@@ -1632,4 +1645,3 @@ func restoreBackupHandler(w http.ResponseWriter, r *http.Request) {
 		"message": "Backup restored successfully",
 	})
 }
-
