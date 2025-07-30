@@ -24,25 +24,30 @@ func approveUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get pending users
 	var pendingUsers []User
-	err := db.Select(&pendingUsers, "SELECT * FROM users WHERE status = 'pending' ORDER BY created_at DESC")
+	err := db.Select(&pendingUsers, `
+		SELECT id, username, password, role, status, registration_date, created_at 
+		FROM users 
+		WHERE status = 'pending' 
+		ORDER BY created_at DESC
+	`)
 	if err != nil {
 		log.Printf("Error loading pending users: %v", err)
 		http.Error(w, "Failed to load pending users", http.StatusInternalServerError)
 		return
 	}
 
-	// Use TemplateData structure
-	templateData := TemplateData{
-		Title: "Approve Users",
-		User:  user,
-		Data: map[string]interface{}{
+	// Use regular template rendering
+	data := map[string]interface{}{
+		"Title":     "Approve Users",
+		"User":      user,
+		"CSRFToken": getSessionCSRFToken(r),
+		"Data": map[string]interface{}{
 			"PendingUsers": pendingUsers,
 			"CSRFToken":    getSessionCSRFToken(r),
 		},
-		CSRFToken: getSessionCSRFToken(r),
 	}
 
-	renderTemplateData(w, r, "approve_users.html", templateData)
+	renderTemplate(w, r, "approve_users.html", data)
 }
 
 // viewECSEStudentHandler displays ECSE student details
@@ -85,15 +90,35 @@ func viewECSEStudentHandler(w http.ResponseWriter, r *http.Request) {
 
 // approveUserHandler handles user approval
 func approveUserHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("APPROVE USER: Method=%s", r.Method)
+	
 	if r.Method != http.MethodPost {
+		log.Printf("APPROVE USER: Invalid method: %s", r.Method)
 		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
+		return
+	}
+
+	// Parse form to get values
+	if err := r.ParseForm(); err != nil {
+		log.Printf("APPROVE USER: Failed to parse form: %v", err)
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	// Validate CSRF token
+	if !validateCSRF(r) {
+		log.Printf("APPROVE USER: Invalid CSRF token")
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
 		return
 	}
 
 	username := r.FormValue("username")
 	action := r.FormValue("action")
 	
+	log.Printf("APPROVE USER: username=%s, action=%s", username, action)
+	
 	if username == "" || action == "" {
+		log.Printf("APPROVE USER: Missing username or action")
 		http.Error(w, "Username and action required", http.StatusBadRequest)
 		return
 	}
@@ -104,16 +129,31 @@ func approveUserHandler(w http.ResponseWriter, r *http.Request) {
 	} else if action == "reject" {
 		query = "DELETE FROM users WHERE username = $1 AND status = 'pending'"
 	} else {
+		log.Printf("APPROVE USER: Invalid action: %s", action)
 		http.Error(w, "Invalid action", http.StatusBadRequest)
 		return
 	}
 
 	// Execute the action
-	_, err := db.Exec(query, username)
+	result, err := db.Exec(query, username)
 	if err != nil {
-		log.Printf("Error %s user %s: %v", action, username, err)
+		log.Printf("APPROVE USER: Database error %s user %s: %v", action, username, err)
 		http.Error(w, fmt.Sprintf("Failed to %s user", action), http.StatusInternalServerError)
 		return
+	}
+
+	// Check if any rows were affected
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("APPROVE USER: Error checking rows affected: %v", err)
+	} else {
+		log.Printf("APPROVE USER: %d rows affected for %s action on user %s", rowsAffected, action, username)
+	}
+
+	// Clear user cache to force reload
+	if dataCache != nil {
+		dataCache.clear()
+		log.Printf("APPROVE USER: Cache cleared after %s action", action)
 	}
 
 	http.Redirect(w, r, "/approve-users", http.StatusSeeOther)
@@ -146,6 +186,9 @@ func manageUsersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	log.Printf("Loaded %d users for management page", len(users))
+	for i, u := range users {
+		log.Printf("User %d: %s, Role: %s, Status: %s", i, u.Username, u.Role, u.Status)
+	}
 
 	data := map[string]interface{}{
 		"User":      user,
@@ -158,8 +201,48 @@ func manageUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 // editUserHandler handles user editing
 func editUserHandler(w http.ResponseWriter, r *http.Request) {
+	// Handle GET request to show edit form
+	if r.Method == http.MethodGet {
+		username := r.URL.Query().Get("username")
+		if username == "" {
+			http.Error(w, "Username required", http.StatusBadRequest)
+			return
+		}
+		
+		// Load user data
+		var user struct {
+			Username string
+			Role     string
+			Status   string
+			Email    string
+			Phone    string
+		}
+		
+		err := db.QueryRow(`
+			SELECT username, role, status, COALESCE(email, ''), COALESCE(phone, '')
+			FROM users WHERE username = $1
+		`, username).Scan(&user.Username, &user.Role, &user.Status, &user.Email, &user.Phone)
+		
+		if err != nil {
+			log.Printf("Error loading user: %v", err)
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+		
+		data := map[string]interface{}{
+			"Title":     "Edit User",
+			"User":      getUserFromSession(r),
+			"CSRFToken": generateCSRFToken(),
+			"Data":      user,
+		}
+		
+		renderTemplate(w, r, "edit_user.html", data)
+		return
+	}
+	
+	// Handle POST request
 	if r.Method != http.MethodPost {
-		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
+		SendError(w, ErrMethodNotAllowed("Only GET or POST method allowed"))
 		return
 	}
 
@@ -229,6 +312,7 @@ func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Error loading users: %v", err)
 	}
+	log.Printf("DEBUG: Total users loaded: %d", len(allUsers))
 
 	// Filter for active drivers
 	var drivers []User
@@ -237,11 +321,13 @@ func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
 			drivers = append(drivers, u)
 		}
 	}
+	log.Printf("DEBUG: Active drivers found: %d", len(drivers))
 
 	buses, err := dataCache.getBuses()
 	if err != nil {
 		log.Printf("Error loading buses: %v", err)
 	}
+	log.Printf("DEBUG: Total buses loaded: %d", len(buses))
 
 	// Filter for active buses
 	var activeBuses []Bus
@@ -250,11 +336,13 @@ func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
 			activeBuses = append(activeBuses, b)
 		}
 	}
+	log.Printf("DEBUG: Active buses found: %d", len(activeBuses))
 
 	routes, err := dataCache.getRoutes()
 	if err != nil {
 		log.Printf("Error loading routes: %v", err)
 	}
+	log.Printf("DEBUG: Total routes loaded: %d", len(routes))
 
 	// Get current assignments
 	assignments, err := getRouteAssignments()
@@ -310,13 +398,33 @@ func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	var routesWithStatus []RouteWithStatus
+	var availableRoutes []Route
 	for _, r := range routes {
 		routesWithStatus = append(routesWithStatus, RouteWithStatus{
 			Route:      r,
 			IsAssigned: assignedRoutes[r.RouteID],
 		})
+		// Add to available routes if not assigned
+		if !assignedRoutes[r.RouteID] {
+			availableRoutes = append(availableRoutes, r)
+		}
+	}
+	
+	// Build available buses list (those not assigned)
+	var availableBuses []Bus
+	for _, b := range activeBuses {
+		if !assignedBuses[b.BusID] {
+			availableBuses = append(availableBuses, b)
+		}
 	}
 
+	// Debug logging to verify data
+	log.Printf("DEBUG: RoutesWithStatus count: %d", len(routesWithStatus))
+	if len(routesWithStatus) > 0 {
+		log.Printf("DEBUG: First route: %+v", routesWithStatus[0])
+	}
+	log.Printf("DEBUG: Assignments count: %d", len(assignments))
+	
 	data := map[string]interface{}{
 		"User": user,
 		"Data": map[string]interface{}{
@@ -324,6 +432,8 @@ func assignRoutesHandler(w http.ResponseWriter, r *http.Request) {
 			"Buses":                activeBuses,
 			"Routes":               routes,
 			"RoutesWithStatus":     routesWithStatus,
+			"AvailableRoutes":      availableRoutes,
+			"AvailableBuses":       availableBuses,
 			"Assignments":          assignments,
 			"StudentCounts":        studentCounts,
 			"TotalAssignments":     totalAssignments,
@@ -590,6 +700,12 @@ func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	
 	rowsAffected, _ := result.RowsAffected()
 	log.Printf("DELETE USER: Successfully deleted user %s (rows affected: %d)", username, rowsAffected)
+
+	// Clear user cache to force reload
+	if dataCache != nil {
+		dataCache.clear()
+		log.Printf("DELETE USER: Cache cleared after deletion")
+	}
 
 	http.Redirect(w, r, "/manage-users", http.StatusSeeOther)
 }
