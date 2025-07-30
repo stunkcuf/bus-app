@@ -728,8 +728,3 @@ func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/manage-users", http.StatusSeeOther)
 }
-
-// getNonce gets the CSP nonce from the request context
-func getNonce(r *http.Request) string {
-	return getCSPNonce(r.Context())
-}
