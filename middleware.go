@@ -117,21 +117,29 @@ func SecurityHeaders(next http.Handler) http.Handler {
 // CSPMiddleware adds Content Security Policy headers
 func CSPMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check if CSP header is already set by a handler
+		if w.Header().Get("Content-Security-Policy") != "" {
+			// CSP already set, don't override
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		// Generate nonce for inline scripts
 		nonce := generateNonce()
 
-		// Set CSP header
+		// Set CSP header WITHOUT 'unsafe-inline' for scripts
+		// Using nonce makes 'unsafe-inline' ignored anyway, but it's cleaner to remove it
 		csp := fmt.Sprintf(
 			"default-src 'self'; "+
-				"script-src 'self' 'unsafe-inline' 'nonce-%s' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "+
-				"style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "+
+				"script-src 'self' 'nonce-%s' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "+
+				"style-src 'self' 'unsafe-inline' 'nonce-%s' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "+
 				"img-src 'self' data: https:; "+
 				"font-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "+
 				"connect-src 'self'; "+
 				"frame-ancestors 'none'; "+
 				"base-uri 'self'; "+
 				"form-action 'self'",
-			nonce,
+			nonce, nonce,
 		)
 		w.Header().Set("Content-Security-Policy", csp)
 
