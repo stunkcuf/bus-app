@@ -500,10 +500,67 @@
     </div>
   </div>
 
+  <!-- Include Confirmation Dialog System -->
+  <script src="/static/confirmation_dialog.js" nonce="{{.CSPNonce}}"></script>
   
-  <!-- Embedded Confirmation Dialog (fallback for MIME type issues) -->
+  <!-- Include Responsive Tables System -->
+  <script src="/static/responsive_tables.js" nonce="{{.CSPNonce}}"></script>
+  
+  <!-- CSP Debugging -->
   <script nonce="{{.CSPNonce}}">
-    // Minimal confirmation dialog implementation
+    // Debug CSP issues
+    document.addEventListener('securitypolicyviolation', function(e) {
+      console.error('CSP Violation:', {
+        blockedURI: e.blockedURI,
+        violatedDirective: e.violatedDirective,
+        originalPolicy: e.originalPolicy
+      });
+    });
+  </script>
+  
+  <!-- Script Loading Verification -->
+  <script nonce="{{.CSPNonce}}">
+    // Verify external scripts loaded
+    function verifyScriptsLoaded() {
+      const scripts = [
+        { name: 'confirmation_dialog.js', check: () => typeof confirmationHelpers !== 'undefined' },
+        { name: 'responsive_tables.js', check: () => typeof ResponsiveTable !== 'undefined' }
+      ];
+      
+      scripts.forEach(script => {
+        if (!script.check()) {
+          console.error(`Failed to load: ${script.name}`);
+          // Try to reload the script
+          const scriptTag = document.querySelector(`script[src*="${script.name}"]`);
+          if (scriptTag) {
+            const newScript = document.createElement('script');
+            newScript.src = scriptTag.src;
+            newScript.nonce = '{{.CSPNonce}}';
+            newScript.onerror = function() {
+              console.error(`Failed to reload: ${script.name}`);
+            };
+            newScript.onload = function() {
+              console.log(`Successfully reloaded: ${script.name}`);
+              // Re-initialize delete buttons if confirmation dialog was reloaded
+              if (script.name === 'confirmation_dialog.js') {
+                initializeDeleteButtons();
+              }
+            };
+            document.head.appendChild(newScript);
+          }
+        } else {
+          console.log(`Successfully loaded: ${script.name}`);
+        }
+      });
+    }
+    
+    // Check after a delay
+    setTimeout(verifyScriptsLoaded, 500);
+  </script>
+  
+  <!-- Fallback Confirmation Dialog -->
+  <script nonce="{{.CSPNonce}}">
+    // Minimal confirmation dialog implementation (fallback)
     if (typeof confirmationHelpers === 'undefined') {
       window.confirmationHelpers = {
         confirmDelete: function(itemName, onConfirm) {
@@ -567,41 +624,46 @@
     }
   </script>
   
-  <!-- Include Confirmation Dialog System -->
-  <script src="/static/confirmation_dialog.js" nonce="{{.CSPNonce}}"></script>
-  
-  <!-- Include Responsive Tables System -->
-  <script src="/static/responsive_tables.js" nonce="{{.CSPNonce}}"></script>
-  
+  <!-- Responsive Tables Initialization -->
   <script nonce="{{.CSPNonce}}">
+    // Store reference to initialization function
+    let initializeDeleteButtons;
+    
     // Initialize responsive table for users
     document.addEventListener('DOMContentLoaded', function() {
-      const usersTable = document.querySelector('.users-table');
-      if (usersTable) {
+      const usersTable = document.querySelector('.table-responsive table');
+      if (usersTable && typeof ResponsiveTable !== 'undefined') {
         new ResponsiveTable(usersTable, {
           breakpoint: 768,
-          enableSearch: false, // Already has search functionality
+          enableSearch: false,
           enableSort: true,
+          onTransform: function() {
+            // Re-initialize delete buttons after table transformation
+            console.log('Table transformed, re-initializing delete buttons');
+            if (typeof initializeDeleteButtons === 'function') {
+              initializeDeleteButtons();
+            }
+          },
           cardTemplate: function(cells, headers, row) {
             // Custom card template for users
             const username = cells[0]?.textContent.trim() || '';
-            const email = cells[1]?.textContent.trim() || '';
-            const role = cells[2]?.querySelector('.table-status')?.textContent.trim() || '';
-            const status = cells[3]?.querySelector('.table-status')?.textContent.trim() || '';
+            const role = cells[1]?.querySelector('.status-badge')?.textContent.trim() || '';
+            const status = cells[2]?.querySelector('.status-badge')?.textContent.trim() || '';
+            const date = cells[3]?.textContent.trim() || '';
             const actions = cells[4]?.innerHTML || '';
             
             return `
               <div class="table-card-header">
                 <h3 class="table-card-title">${username}</h3>
                 <div class="table-card-badges">
+                  ${cells[1]?.innerHTML || ''}
                   ${cells[2]?.innerHTML || ''}
-                  ${cells[3]?.innerHTML || ''}
                 </div>
               </div>
               <div class="table-card-body">
                 <div class="table-card-field">
-                  <span class="table-card-label">Email:</span>
-                  <span class="table-card-value">${email}</span>
+                  <span class="table-card-label">Registration Date:</span>
+                  <span class="table-card-value">${date}</span>
                 </div>
               </div>
               <div class="table-card-actions">
@@ -614,39 +676,73 @@
     });
   </script>
   
-  <!-- Delete user functionality - must be after all other scripts -->
+  <!-- Delete User Functionality -->
   <script nonce="{{.CSPNonce}}">
     // Function to handle user deletion
     function deleteUser(username) {
-      console.log('Deleting user:', username);
-      
-      // Create and submit form
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = '/delete-user';
-      
-      const csrfInput = document.createElement('input');
-      csrfInput.type = 'hidden';
-      csrfInput.name = 'csrf_token';
-      csrfInput.value = '{{.CSRFToken}}';
-      form.appendChild(csrfInput);
-      
-      const usernameInput = document.createElement('input');
-      usernameInput.type = 'hidden';
-      usernameInput.name = 'username';
-      usernameInput.value = username;
-      form.appendChild(usernameInput);
-      
-      document.body.appendChild(form);
-      console.log('Submitting form to delete user:', username);
-      form.submit();
+      try {
+        console.log('Starting delete for user:', username);
+        
+        // Check CSRF token exists
+        const csrfToken = '{{.CSRFToken}}';
+        if (!csrfToken) {
+          console.error('CSRF token is missing');
+          alert('Security token missing. Please refresh the page.');
+          return;
+        }
+        
+        // Create form
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/delete-user';
+        form.style.display = 'none';
+        
+        // Add CSRF token
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        // Add username
+        const usernameInput = document.createElement('input');
+        usernameInput.type = 'hidden';
+        usernameInput.name = 'username';
+        usernameInput.value = username;
+        form.appendChild(usernameInput);
+        
+        // Add to DOM and submit
+        document.body.appendChild(form);
+        console.log('Submitting delete form for user:', username);
+        form.submit();
+      } catch (error) {
+        console.error('Error in deleteUser:', error);
+        alert('Failed to delete user. Check console for details.');
+      }
     }
     
-    // Setup delete button handlers after everything is loaded
-    setTimeout(function() {
-      console.log('Setting up delete button handlers');
+    // Initialize delete buttons
+    initializeDeleteButtons = function() {
+      console.log('Initializing delete buttons');
       
-      // Add click handlers to delete buttons
+      // Check if confirmation dialog is ready
+      if (typeof confirmationHelpers === 'undefined') {
+        console.error('confirmationHelpers not loaded yet, retrying...');
+        // Retry after a short delay
+        setTimeout(initializeDeleteButtons, 50);
+        return;
+      }
+      
+      console.log('confirmationHelpers is ready');
+      
+      // Remove existing event listeners by cloning buttons
+      const buttons = document.querySelectorAll('.delete-user-btn');
+      buttons.forEach(function(btn) {
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+      });
+      
+      // Setup delete handlers on cloned buttons
       document.querySelectorAll('.delete-user-btn').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
           e.preventDefault();
@@ -655,24 +751,76 @@
           const username = this.getAttribute('data-username');
           console.log('Delete button clicked for user:', username);
           
-          // Check if confirmation dialog is available
-          if (typeof confirmationHelpers !== 'undefined' && confirmationHelpers.confirmDelete) {
-            console.log('Using confirmation dialog');
-            confirmationHelpers.confirmDelete(`user "${username}"`, function() {
-              deleteUser(username);
-            });
-          } else {
-            console.log('Using browser confirm');
-            // Fallback to browser confirm
-            if (confirm(`Are you sure you want to delete user "${username}"?`)) {
-              deleteUser(username);
-            }
-          }
+          confirmationHelpers.confirmDelete(`user "${username}"`, function() {
+            deleteUser(username);
+          });
         });
       });
       
-      console.log('Found', document.querySelectorAll('.delete-user-btn').length, 'delete buttons');
-    }, 100); // Small delay to ensure all scripts are loaded
+      console.log('Found and initialized', document.querySelectorAll('.delete-user-btn').length, 'delete buttons');
+    };
+    
+    // Start initialization when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeDeleteButtons);
+    } else {
+      // DOM already loaded
+      initializeDeleteButtons();
+    }
+  </script>
+  
+  <!-- Comprehensive Debugging Script -->
+  <script nonce="{{.CSPNonce}}">
+    console.log('=== DELETE BUTTON DIAGNOSTIC ===');
+    
+    // 1. Check page state
+    console.log('Document ready state:', document.readyState);
+    console.log('CSRF Token present:', '{{.CSRFToken}}' !== '');
+    
+    // 2. Check script loading
+    window.addEventListener('load', function() {
+      console.log('Window loaded');
+      console.log('confirmationHelpers available:', typeof confirmationHelpers !== 'undefined');
+      console.log('ResponsiveTable available:', typeof ResponsiveTable !== 'undefined');
+      
+      // 3. Check DOM elements
+      const deleteButtons = document.querySelectorAll('.delete-user-btn');
+      console.log('Delete buttons found:', deleteButtons.length);
+      
+      if (deleteButtons.length > 0) {
+        console.log('First button HTML:', deleteButtons[0].outerHTML);
+        console.log('First button data-username:', deleteButtons[0].getAttribute('data-username'));
+      }
+      
+      // 4. Check for script errors
+      const scripts = document.querySelectorAll('script[src*="/static/"]');
+      scripts.forEach(script => {
+        script.addEventListener('error', function() {
+          console.error('Failed to load script:', script.src);
+        });
+      });
+    });
+    
+    // 5. Monitor for dynamic changes
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList') {
+          mutation.removedNodes.forEach(node => {
+            if (node.nodeType === 1 && node.querySelector && node.querySelector('.delete-user-btn')) {
+              console.warn('Delete button removed from DOM:', node);
+            }
+          });
+          mutation.addedNodes.forEach(node => {
+            if (node.nodeType === 1 && node.querySelector && node.querySelector('.delete-user-btn')) {
+              console.log('Delete button added to DOM, re-initializing...');
+              setTimeout(initializeDeleteButtons, 100);
+            }
+          });
+        }
+      });
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true });
   </script>
 </body>
 </html>
