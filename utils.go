@@ -67,11 +67,8 @@ func executeTemplate(w http.ResponseWriter, name string, data interface{}) {
 
 // renderTemplate renders a template with CSP nonce support
 func renderTemplate(w http.ResponseWriter, r *http.Request, name string, data interface{}) {
-	// Get nonce from context
-	nonce := ""
-	if n, ok := r.Context().Value("csp-nonce").(string); ok {
-		nonce = n
-	}
+	// Get nonce from context using the function from middleware.go
+	nonce := getCSPNonce(r.Context())
 
 	// Get user from session for navigation
 	user := getUserFromSession(r)
@@ -91,12 +88,6 @@ func renderTemplate(w http.ResponseWriter, r *http.Request, name string, data in
 	}
 
 	// For struct data, we need to use reflection to add CSPNonce
-	// For now, just pass the data directly with CSPNonce in a wrapper
-	// that preserves the original structure
-	type TemplateData struct {
-		CSPNonce string
-	}
-
 	// Create a map to hold all the data
 	templateData := make(map[string]interface{})
 
@@ -212,6 +203,8 @@ func getPageFromTemplate(templateName string) string {
 		return "approve-users"
 	case "users":
 		return "users"
+	case "manage-users":
+		return "manage-users"
 	case "fleet-vehicles":
 		return "fleet-vehicles"
 	case "maintenance-records":
@@ -285,10 +278,12 @@ func renderJSON(w http.ResponseWriter, data interface{}) {
 
 // getNonce gets or generates a CSP nonce for the request
 func getNonce(r *http.Request) string {
-	if nonce := r.Context().Value("csp-nonce"); nonce != nil {
-		return nonce.(string)
+	// Use the getCSPNonce function from middleware.go
+	nonce := getCSPNonce(r.Context())
+	if nonce != "" {
+		return nonce
 	}
-	// Generate a new nonce if not found
+	// Generate a new nonce if not found (shouldn't happen if middleware is working)
 	return generateSecureToken(16)
 }
 
