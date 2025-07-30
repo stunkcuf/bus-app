@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"runtime/debug"
+	"strings"
 )
 
 // withRecovery wraps a handler to recover from panics
@@ -184,6 +185,11 @@ func getCSPNonce(ctx context.Context) string {
 // MetricsHandler wraps MetricsMiddleware to work with http.Handler
 func MetricsHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// ADD THIS: Log static requests to see if they reach middleware
+		if strings.HasPrefix(r.URL.Path, "/static/") {
+			log.Printf("METRICS MIDDLEWARE: Static request for %s from %s", r.URL.Path, r.RemoteAddr)
+		}
+		
 		// Use MetricsMiddleware by wrapping the ServeHTTP method
 		MetricsMiddleware(func(w http.ResponseWriter, r *http.Request) {
 			next.ServeHTTP(w, r)
