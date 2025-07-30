@@ -167,6 +167,23 @@ func manageUsersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Generate CSP nonce using the existing function
+	nonce := generateNonce()
+	
+	// Set CSP header with the nonce (without 'unsafe-inline' for scripts)
+	cspHeader := fmt.Sprintf(
+		"default-src 'self'; "+
+		"script-src 'self' 'nonce-%s' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "+
+		"style-src 'self' 'nonce-%s' https://cdn.jsdelivr.net 'unsafe-inline'; "+
+		"img-src 'self' data:; "+
+		"font-src 'self' https://cdn.jsdelivr.net; "+
+		"connect-src 'self'; "+
+		"frame-ancestors 'none'; "+
+		"form-action 'self'",
+		nonce, nonce,
+	)
+	w.Header().Set("Content-Security-Policy", cspHeader)
+
 	// Direct database query - skip cache entirely to avoid issues
 	var users []User
 	query := `SELECT username, password, role, status, registration_date, created_at 
@@ -186,14 +203,16 @@ func manageUsersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	log.Printf("Loaded %d users for management page", len(users))
-	for i, u := range users {
-		log.Printf("User %d: %s, Role: %s, Status: %s", i, u.Username, u.Role, u.Status)
-	}
 
+	// Get CSRF token
+	csrfToken := getSessionCSRFToken(r)
+
+	// Include CSPNonce in the data
 	data := map[string]interface{}{
 		"User":      user,
 		"Users":     users,
-		"CSRFToken": getSessionCSRFToken(r),
+		"CSRFToken": csrfToken,
+		"CSPNonce":  nonce,  // Add this for the template
 	}
 
 	renderTemplate(w, r, "manage_users.html", data)
@@ -708,4 +727,9 @@ func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/manage-users", http.StatusSeeOther)
+}
+
+// getNonce gets the CSP nonce from the request context
+func getNonce(r *http.Request) string {
+	return getCSPNonce(r.Context())
 }
