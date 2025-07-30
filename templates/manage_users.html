@@ -417,7 +417,7 @@
                     <i class="bi bi-pencil"></i> Edit
                   </a>
                   {{if ne .Username $.User.Username}}
-                  <button type="button" class="btn btn-danger" onclick="deleteUser('{{.Username}}')" title="Delete user">
+                  <button type="button" class="btn btn-danger delete-user-btn" data-username="{{.Username}}" title="Delete user">
                     <i class="bi bi-trash"></i>
                   </button>
                   {{end}}
@@ -438,36 +438,68 @@
   </div>
 
   <script nonce="{{.CSPNonce}}">
-    function deleteUser(username) {
-      // Use the confirmation dialog instead of browser confirm
-      confirmationHelpers.confirmDelete(`user "${username}"`, function() {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/delete-user';
-        
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = 'csrf_token';
-        csrfInput.value = '{{.CSRFToken}}';
-        form.appendChild(csrfInput);
-        
-        const usernameInput = document.createElement('input');
-        usernameInput.type = 'hidden';
-        usernameInput.name = 'username';
-        usernameInput.value = username;
-        form.appendChild(usernameInput);
-        
-        document.body.appendChild(form);
-        form.submit();
+    // Wait for DOM to be ready
+    document.addEventListener('DOMContentLoaded', function() {
+      // Add click handlers to delete buttons
+      document.querySelectorAll('.delete-user-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          const username = this.getAttribute('data-username');
+          
+          // Use the confirmation dialog instead of browser confirm
+          if (typeof confirmationHelpers !== 'undefined') {
+            confirmationHelpers.confirmDelete(`user "${username}"`, function() {
+              const form = document.createElement('form');
+              form.method = 'POST';
+              form.action = '/delete-user';
+              
+              const csrfInput = document.createElement('input');
+              csrfInput.type = 'hidden';
+              csrfInput.name = 'csrf_token';
+              csrfInput.value = '{{.CSRFToken}}';
+              form.appendChild(csrfInput);
+              
+              const usernameInput = document.createElement('input');
+              usernameInput.type = 'hidden';
+              usernameInput.name = 'username';
+              usernameInput.value = username;
+              form.appendChild(usernameInput);
+              
+              document.body.appendChild(form);
+              form.submit();
+            });
+          } else {
+            // Fallback if confirmation dialog not loaded
+            if (confirm(`Are you sure you want to delete user "${username}"?`)) {
+              const form = document.createElement('form');
+              form.method = 'POST';
+              form.action = '/delete-user';
+              
+              const csrfInput = document.createElement('input');
+              csrfInput.type = 'hidden';
+              csrfInput.name = 'csrf_token';
+              csrfInput.value = '{{.CSRFToken}}';
+              form.appendChild(csrfInput);
+              
+              const usernameInput = document.createElement('input');
+              usernameInput.type = 'hidden';
+              usernameInput.name = 'username';
+              usernameInput.value = username;
+              form.appendChild(usernameInput);
+              
+              document.body.appendChild(form);
+              form.submit();
+            }
+          }
+        });
       });
-    }
+    });
   </script>
   
   <!-- Include Confirmation Dialog System -->
-  <script src="/static/confirmation_dialog.js"></script>
+  <script src="/static/confirmation_dialog.js" nonce="{{.CSPNonce}}"></script>
   
   <!-- Include Responsive Tables System -->
-  <script src="/static/responsive_tables.js"></script>
+  <script src="/static/responsive_tables.js" nonce="{{.CSPNonce}}"></script>
   
   <script nonce="{{.CSPNonce}}">
     // Initialize responsive table for users
