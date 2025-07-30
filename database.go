@@ -252,6 +252,54 @@ func createPerformanceIndexes() error {
 	log.Printf("Performance indexes creation completed")
 	return nil
 }
+// Add this function to your database.go file after the runMigrations function
+
+func fixDatabaseCompatibilityIssues() error {
+	log.Println("Fixing database compatibility issues...")
+	
+	// Fix 1: Add log_date column to driver_logs for compatibility
+	_, err := db.Exec(`
+		DO $$ 
+		BEGIN
+			-- Add log_date column if it doesn't exist
+			IF NOT EXISTS (
+				SELECT 1 FROM information_schema.columns 
+				WHERE table_name = 'driver_logs' AND column_name = 'log_date'
+			) THEN
+				ALTER TABLE driver_logs ADD COLUMN log_date DATE;
+				-- Copy data from date column
+				UPDATE driver_logs SET log_date = date WHERE log_date IS NULL;
+				-- Set default
+				ALTER TABLE driver_logs ALTER COLUMN log_date SET DEFAULT CURRENT_DATE;
+				-- Create index
+				CREATE INDEX IF NOT EXISTS idx_driver_logs_log_date ON driver_logs(log_date);
+				RAISE NOTICE 'Added log_date column to driver_logs';
+			END IF;
+			
+			-- Fix 2: Set default for metrics metadata column
+			ALTER TABLE metrics ALTER COLUMN metadata SET DEFAULT '{}';
+		EXCEPTION
+			WHEN others THEN
+				RAISE NOTICE 'Some compatibility fixes may have failed: %', SQLERRM;
+		END $$;
+	`)
+	
+	if err != nil {
+		log.Printf("Warning: Failed to apply some compatibility fixes: %v", err)
+		// Don't fail startup
+	}
+	
+	return nil
+}
+
+// Call this function in InitDB after runMigrations:
+// Add this after line 65 in InitDB function:
+// 
+// // Fix compatibility issues
+// log.Println("Fixing compatibility issues...")
+// if err := fixDatabaseCompatibilityIssues(); err != nil {
+//     log.Printf("Warning: Failed to fix compatibility issues: %v", err)
+// }
 
 // ensureAdminUser ensures that an admin user exists in the database
 func ensureAdminUser() error {
