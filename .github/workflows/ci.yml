@@ -83,7 +83,7 @@ jobs:
         echo "COVERAGE=$total_coverage" >> $GITHUB_ENV
 
     - name: Upload coverage artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: coverage-report
         path: |
@@ -140,7 +140,7 @@ jobs:
         args: '-fmt json -out security-report.json ./...'
 
     - name: Upload security report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-report
@@ -180,9 +180,9 @@ jobs:
         go build -ldflags="-s -w" -o $output_name .
         
     - name: Upload binary
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: binaries
+        name: binaries-${{ matrix.os }}-${{ matrix.arch }}
         path: hs-bus-*
 
   docker:
