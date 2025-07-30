@@ -789,16 +789,20 @@ func setupRoutes() *http.ServeMux {
 		
 		// For JS and CSS files, we need to ensure the Content-Type is preserved
 		if ext == ".js" || ext == ".css" {
-			// Read the file content
-			content, err := os.ReadFile(fullPath)
-			if err != nil {
-				log.Printf("STATIC HANDLER ERROR: Failed to read %s file %s: %v", ext, fullPath, err)
-				http.Error(w, "Error reading file", http.StatusInternalServerError)
-				return
-			}
-			
-			// Set the content type
-			w.Header().Set("Content-Type", contentType)
+		    // Read the file content
+		    content, err := os.ReadFile(fullPath)
+		    if err != nil {
+		        log.Printf("STATIC HANDLER ERROR: Failed to read %s file %s: %v", ext, fullPath, err)
+		        http.Error(w, "Error reading file", http.StatusInternalServerError)
+		        return
+		    }
+		    
+		    // Set the CORRECT content type
+		    if ext == ".js" {
+		        w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+		    } else if ext == ".css" {
+		        w.Header().Set("Content-Type", "text/css; charset=utf-8")
+		    }
 			
 			// Log successful serving
 			log.Printf("STATIC HANDLER SUCCESS: Serving %s file: %s with content-type: %s (size: %d bytes)", 
