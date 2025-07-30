@@ -161,63 +161,49 @@ func approveUserHandler(w http.ResponseWriter, r *http.Request) {
 
 // manageUsersHandler shows all users for management
 func manageUsersHandler(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromSession(r)
-	if user == nil || user.Role != "manager" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
+    user := getUserFromSession(r)
+    if user == nil || user.Role != "manager" {
+        http.Redirect(w, r, "/", http.StatusFound)
+        return
+    }
 
-	// Generate CSP nonce using the existing function
-	nonce := generateNonce()
-	
-	// Set CSP header with the nonce (without 'unsafe-inline' for scripts)
-	cspHeader := fmt.Sprintf(
-		"default-src 'self'; "+
-		"script-src 'self' 'nonce-%s' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "+
-		"style-src 'self' 'nonce-%s' https://cdn.jsdelivr.net 'unsafe-inline'; "+
-		"img-src 'self' data:; "+
-		"font-src 'self' https://cdn.jsdelivr.net; "+
-		"connect-src 'self'; "+
-		"frame-ancestors 'none'; "+
-		"form-action 'self'",
-		nonce, nonce,
-	)
-	w.Header().Set("Content-Security-Policy", cspHeader)
+    // DON'T generate your own nonce or set CSP header - the middleware already did it!
+    // Get the nonce from the request context that was set by CSPMiddleware
+    nonce := getCSPNonce(r.Context())
 
-	// Direct database query - skip cache entirely to avoid issues
-	var users []User
-	query := `SELECT username, password, role, status, registration_date, created_at 
-	          FROM users ORDER BY created_at DESC`
-	
-	err := db.Select(&users, query)
-	if err != nil {
-		log.Printf("Error loading users from database: %v", err)
-		// Don't fail completely - show page with empty user list
-		users = []User{}
-		
-		// Try alternate query without all fields
-		err2 := db.Select(&users, "SELECT * FROM users ORDER BY username")
-		if err2 != nil {
-			log.Printf("Alternate query also failed: %v", err2)
-		}
-	}
-	
-	log.Printf("Loaded %d users for management page", len(users))
+    // Direct database query - skip cache entirely to avoid issues
+    var users []User
+    query := `SELECT username, password, role, status, registration_date, created_at 
+              FROM users ORDER BY created_at DESC`
+    
+    err := db.Select(&users, query)
+    if err != nil {
+        log.Printf("Error loading users from database: %v", err)
+        // Don't fail completely - show page with empty user list
+        users = []User{}
+        
+        // Try alternate query without all fields
+        err2 := db.Select(&users, "SELECT * FROM users ORDER BY username")
+        if err2 != nil {
+            log.Printf("Alternate query also failed: %v", err2)
+        }
+    }
+    
+    log.Printf("Loaded %d users for management page", len(users))
 
-	// Get CSRF token
-	csrfToken := getSessionCSRFToken(r)
+    // Get CSRF token
+    csrfToken := getSessionCSRFToken(r)
 
-	// Include CSPNonce in the data
-	data := map[string]interface{}{
-		"User":      user,
-		"Users":     users,
-		"CSRFToken": csrfToken,
-		"CSPNonce":  nonce,  // Add this for the template
-	}
+    // Include CSPNonce in the data
+    data := map[string]interface{}{
+        "User":      user,
+        "Users":     users,
+        "CSRFToken": csrfToken,
+        "CSPNonce":  nonce,  // Use the nonce from context, not a new one
+    }
 
-	renderTemplate(w, r, "manage_users.html", data)
+    renderTemplate(w, r, "manage_users.html", data)
 }
-
 // editUserHandler handles user editing
 func editUserHandler(w http.ResponseWriter, r *http.Request) {
 	// Handle GET request to show edit form
