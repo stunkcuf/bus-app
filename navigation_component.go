@@ -71,10 +71,10 @@ func getNavigationData(user *User, currentPage string) NavigationData {
 	// Create main navigation based on user role
 	if user.Role == "manager" {
 		nav.MainNav = getManagerNavigation(currentPage)
-		nav.QuickLinks = getManagerQuickLinks()
+		nav.QuickLinks = convertQuickLinksToNavItems(getManagerQuickLinks())
 	} else {
 		nav.MainNav = getDriverNavigation(currentPage)
-		nav.QuickLinks = getDriverQuickLinks()
+		nav.QuickLinks = convertQuickLinksToNavItems(getDriverQuickLinks())
 	}
 	
 	// Set Items as alias for MainNav for backward compatibility
@@ -259,52 +259,9 @@ func getDriverNavigation(currentPage string) []NavigationItem {
 	return items
 }
 
-// getManagerQuickLinks returns quick action links for managers
-func getManagerQuickLinks() []NavigationItem {
-	return []NavigationItem{
-		{
-			Title:       "Add New Bus",
-			URL:         "/fleet#add-bus",
-			Icon:        "plus-circle",
-			Description: "Register a new vehicle",
-			Role:        "manager",
-		},
-		{
-			Title:       "Import Data",
-			URL:         "/import-mileage",
-			Icon:        "upload",
-			Description: "Import Excel files",
-			Role:        "manager",
-		},
-		{
-			Title:       "Generate Reports",
-			URL:         "/report-builder",
-			Icon:        "file-earmark-pdf",
-			Description: "Create custom reports",
-			Role:        "manager",
-		},
-	}
-}
+// getManagerQuickLinks is already defined in handlers_getting_started.go
 
-// getDriverQuickLinks returns quick action links for drivers
-func getDriverQuickLinks() []NavigationItem {
-	return []NavigationItem{
-		{
-			Title:       "Log Trip",
-			URL:         "/driver-dashboard#log-trip",
-			Icon:        "plus-circle",
-			Description: "Record a new trip",
-			Role:        "driver",
-		},
-		{
-			Title:       "Report Issue",
-			URL:         "/fleet#maintenance",
-			Icon:        "exclamation-triangle",
-			Description: "Report vehicle problems",
-			Role:        "driver",
-		},
-	}
-}
+// getDriverQuickLinks is already defined in handlers_getting_started.go
 
 // getDashboardURL returns the appropriate dashboard URL for the user
 func getDashboardURL(user *User) string {
@@ -384,3 +341,17 @@ func getNavigation(user *User, activePage string, subPage string) map[string]int
 }
 
 // Note: Template functions are now integrated in main.go funcMap
+
+// convertQuickLinksToNavItems converts QuickLink structs to NavigationItem structs
+func convertQuickLinksToNavItems(links []QuickLink) []NavigationItem {
+	items := make([]NavigationItem, len(links))
+	for i, link := range links {
+		items[i] = NavigationItem{
+			Title:       link.Title,
+			URL:         link.URL,
+			Icon:        link.Icon,
+			Description: link.Description,
+		}
+	}
+	return items
+}

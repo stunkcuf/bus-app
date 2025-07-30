@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - HS Bus Fleet Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/modern_theme.css">
+    <style nonce="{{.CSPNonce}}">
+        #map {
+            height: 500px;
+            width: 100%;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tracking-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .bus-info-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .status-indicator.active {
+            background: #e6f7e6;
+            color: #2e7d2e;
+        }
+        
+        .status-indicator.stopped {
+            background: #fff4e6;
+            color: #cc6600;
+        }
+        
+        .status-indicator.offline {
+            background: #fee;
+            color: #c33;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f0f4f8;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .info-item i {
+            color: #667eea;
+            font-size: 1.25rem;
+            width: 24px;
+        }
+        
+        .eta-display {
+            background: #f8f9ff;
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        .eta-time {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.25rem;
+        }
+        
+        .route-progress {
+            background: #f0f4f8;
+            border-radius: 8px;
+            height: 8px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+        
+        .route-progress-bar {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        .student-selector {
+            background: white;
+            border: 2px solid #e0e6ed;
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .student-selector:hover {
+            border-color: #667eea;
+        }
+        
+        .student-selector.active {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        
+        .refresh-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: white;
+            border: 2px solid #e0e6ed;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .refresh-btn:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        
+        .refresh-btn.spinning {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+        
+        .alert-box {
+            background: #fff4e6;
+            border: 2px solid #ffcc66;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .alert-box i {
+            color: #cc6600;
+            font-size: 1.5rem;
+        }
+        
+        .map-controls {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border-radius: 12px;
+            padding: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+        }
+        
+        .map-control-btn {
+            background: white;
+            border: 1px solid #e0e6ed;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .map-control-btn:hover {
+            background: #f8f9ff;
+            border-color: #667eea;
+        }
+        
+        .map-control-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+    </style>
+  <style nonce="{{.CSPNonce}}">
+    /* Ultimate beautiful design system */
+    :root {
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
+      color: white;
+    }
+    
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
+    }
+    
+    /* Glassmorphism navigation */
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+      transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
+    }
+    
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
+    }
+    
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+    /* Glass cards */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+    
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 2rem 0 1.5rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
+    }
+    
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    /* Form styling */
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
+    }
+    
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    /* Button styling */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+      color: white;
+    }
+    
+    /* Tables */
+    .table {
+      color: white;
+    }
+    
+    .table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+    }
+    
+    .table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(10px);
+    }
+    
+    /* Text colors for dark theme */
+    h1, h2, h3, h4, h5, h6, p, span, label, a, td, th, li {
+      color: white !important;
+    }
+    
+    .text-muted {
+      color: rgba(255, 255, 255, 0.7) !important;
+    }
+    
+    /* Card styling */
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      color: white;
+    }
+    
+    .card-header {
+      background: rgba(255, 255, 255, 0.15);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    /* Modal styling */
+    .modal-content {
+      background: rgba(30, 30, 50, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    .modal-header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .modal-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+    <!-- Dark Theme Text Colors -->
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
+</head>
+<body>
+  <!-- Floating orbs -->
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-glass">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/parent/dashboard">
+                <i class="bi bi-bus-front-fill text-primary me-2"></i>Parent Portal
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="navbar navbar-glass" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/parent/dashboard">
+                            <i class="bi bi-house me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/parent/bus-tracking">
+                            <i class="bi bi-geo-alt me-1"></i>Track Bus
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/parent/notification-settings">
+                            <i class="bi bi-bell me-1"></i>Notifications
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-1"></i>{{.Parent.Name}}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/parent/logout">
+                                <i class="bi bi-box-arrow-right me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Tracking Header -->
+    <div class="tracking-header">
+        <div class="container">
+            <h1 class="h3 mb-0">Bus Tracking</h1>
+            <p class="mb-0">Real-time location of your children's buses</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <!-- Left Column - Bus Info -->
+            <div class="col-lg-4">
+                <!-- Student Selector -->
+                {{if gt (len .TrackingInfo) 1}}
+                <div class="mb-3">
+                    <h5 class="mb-2">Select Student</h5>
+                    {{range .TrackingInfo}}
+                    <div class="student-selector" data-bus-id="{{.BusID}}" data-student-id="{{.StudentID}}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">{{.StudentName}}</h6>
+                                <small class="text-muted">Route: {{.RouteName}}</small>
+                            </div>
+                            <i class="bi bi-chevron-right"></i>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+                {{end}}
+
+                <!-- Current Bus Info -->
+                {{range $index, $tracking := .TrackingInfo}}
+                <div class="bus-info-card" data-bus-info="{{.BusID}}" {{if gt $index 0}}style="display: none;"{{end}}>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">{{.StudentName}}'s Bus</h5>
+                        <div class="status-indicator {{.Status}}">
+                            <i class="bi bi-circle-fill"></i>
+                            <span>{{.Status}}</span>
+                        </div>
+                    </div>
+
+                    {{if .EstimatedArrival}}
+                    <div class="eta-display">
+                        <div class="eta-time">{{.EstimatedArrival.Format "3:04 PM"}}</div>
+                        <div class="text-muted">Estimated Arrival</div>
+                    </div>
+                    {{end}}
+
+                    <div class="info-item">
+                        <i class="bi bi-bus-front"></i>
+                        <div>
+                            <div class="fw-semibold">Bus Number</div>
+                            <div class="text-muted">{{.BusID}}</div>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <i class="bi bi-map"></i>
+                        <div>
+                            <div class="fw-semibold">Route</div>
+                            <div class="text-muted">{{.RouteName}}</div>
+                        </div>
+                    </div>
+
+                    {{if .CurrentLocation}}
+                    <div class="info-item">
+                        <i class="bi bi-speedometer2"></i>
+                        <div>
+                            <div class="fw-semibold">Current Speed</div>
+                            <div class="text-muted">{{.CurrentLocation.Speed}} mph</div>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <i class="bi bi-clock-history"></i>
+                        <div>
+                            <div class="fw-semibold">Last Update</div>
+                            <div class="text-muted">{{.CurrentLocation.Timestamp.Format "3:04:05 PM"}}</div>
+                        </div>
+                    </div>
+                    {{end}}
+
+                    <!-- Route Progress -->
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Route Progress</small>
+                            <small class="text-muted">65%</small>
+                        </div>
+                        <div class="route-progress">
+                            <div class="route-progress-bar" style="width: 65%;"></div>
+                        </div>
+                    </div>
+                </div>
+                {{end}}
+
+                <!-- Alerts -->
+                <div class="alert-box">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <div>
+                        <div class="fw-semibold">Normal Operations</div>
+                        <div class="small">All buses are running on schedule</div>
+                    </div>
+                </div>
+
+                <!-- Contact Options -->
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary">
+                        <i class="bi bi-telephone me-2"></i>Contact School
+                    </button>
+                    <button class="btn btn-outline-secondary">
+                        <i class="bi bi-question-circle me-2"></i>Report Issue
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Column - Map -->
+            <div class="col-lg-8">
+                <div class="position-relative">
+                    <div class="refresh-btn" onclick="refreshTracking()">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </div>
+                    <div id="map"></div>
+                    <div class="map-controls">
+                        <button class="map-control-btn active" onclick="centerOnBus()">
+                            <i class="bi bi-geo-alt me-1"></i>Center on Bus
+                        </button>
+                        <button class="map-control-btn" onclick="showFullRoute()">
+                            <i class="bi bi-map me-1"></i>Show Full Route
+                        </button>
+                        <button class="map-control-btn" onclick="toggleTraffic()">
+                            <i class="bi bi-stoplights me-1"></i>Traffic
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    {{if .MapAPIKey}}
+    <script src="https://maps.googleapis.com/maps/api/js?key={{.MapAPIKey}}&callback=initMap" async defer></script>
+    {{end}}
+    <script nonce="{{.CSPNonce}}">
+        let map;
+        let busMarkers = {};
+        let currentBusId = null;
+        let autoRefreshInterval;
+        
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 40.7128, lng: -74.0060 }, // Default to NYC
+                zoom: 13,
+                styles: [
+                    {
+                        featureType: "poi",
+                        elementType: "labels",
+                        stylers: [{ visibility: "off" }]
+                    }
+                ]
+            });
+            
+            // Initialize bus markers
+            {{range .TrackingInfo}}
+            {{if .CurrentLocation}}
+            addBusMarker('{{.BusID}}', {{.CurrentLocation.Latitude}}, {{.CurrentLocation.Longitude}}, '{{.StudentName}}');
+            {{end}}
+            {{end}}
+            
+            // Center on first bus
+            {{if .TrackingInfo}}
+            {{with index .TrackingInfo 0}}
+            {{if .CurrentLocation}}
+            currentBusId = '{{.BusID}}';
+            map.setCenter({ lat: {{.CurrentLocation.Latitude}}, lng: {{.CurrentLocation.Longitude}} });
+            {{end}}
+            {{end}}
+            {{end}}
+            
+            // Start auto-refresh
+            startAutoRefresh();
+        }
+        
+        function addBusMarker(busId, lat, lng, studentName) {
+            const marker = new google.maps.Marker({
+                position: { lat: lat, lng: lng },
+                map: map,
+                title: `Bus ${busId} - ${studentName}`,
+                icon: {
+                    url: '/static/bus-icon.png',
+                    scaledSize: new google.maps.Size(40, 40)
+                }
+            });
+            
+            busMarkers[busId] = marker;
+            
+            const infoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div>
+                        <h6>Bus ${busId}</h6>
+                        <p class="mb-0">Student: ${studentName}</p>
+                    </div>
+                `
+            });
+            
+            marker.addListener('click', () => {
+                infoWindow.open(map, marker);
+            });
+        }
+        
+        function updateBusLocation(busId, lat, lng) {
+            if (busMarkers[busId]) {
+                busMarkers[busId].setPosition({ lat: lat, lng: lng });
+                if (busId === currentBusId) {
+                    map.panTo({ lat: lat, lng: lng });
+                }
+            }
+        }
+        
+        function centerOnBus() {
+            if (currentBusId && busMarkers[currentBusId]) {
+                map.panTo(busMarkers[currentBusId].getPosition());
+                map.setZoom(15);
+            }
+        }
+        
+        function showFullRoute() {
+            // In production, this would show the full route path
+            alert('Full route view coming soon!');
+        }
+        
+        function toggleTraffic() {
+            // Toggle traffic layer
+            if (!window.trafficLayer) {
+                window.trafficLayer = new google.maps.TrafficLayer();
+            }
+            
+            if (window.trafficLayer.getMap()) {
+                window.trafficLayer.setMap(null);
+            } else {
+                window.trafficLayer.setMap(map);
+            }
+        }
+        
+        function refreshTracking() {
+            const refreshBtn = document.querySelector('.refresh-btn');
+            refreshBtn.classList.add('spinning');
+            
+            // Fetch updated locations
+            fetch(`/parent/api/bus-location?student_id=${currentBusId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.current_location) {
+                        updateBusLocation(data.bus_id, data.current_location.latitude, data.current_location.longitude);
+                        
+                        // Update info display
+                        updateBusInfo(data);
+                    }
+                })
+                .finally(() => {
+                    setTimeout(() => {
+                        refreshBtn.classList.remove('spinning');
+                    }, 500);
+                });
+        }
+        
+        function updateBusInfo(data) {
+            // Update speed
+            const speedElement = document.querySelector(`[data-bus-info="${data.bus_id}"] .bi-speedometer2`).parentElement.querySelector('.text-muted');
+            if (speedElement) {
+                speedElement.textContent = `${data.current_location.speed} mph`;
+            }
+            
+            // Update last update time
+            const timeElement = document.querySelector(`[data-bus-info="${data.bus_id}"] .bi-clock-history`).parentElement.querySelector('.text-muted');
+            if (timeElement) {
+                const time = new Date(data.current_location.timestamp);
+                timeElement.textContent = time.toLocaleTimeString();
+            }
+        }
+        
+        function startAutoRefresh() {
+            autoRefreshInterval = setInterval(refreshTracking, 30000); // Every 30 seconds
+        }
+        
+        // Student selector
+        document.querySelectorAll('.student-selector').forEach(selector => {
+            selector.addEventListener('click', function() {
+                // Update active selector
+                document.querySelectorAll('.student-selector').forEach(s => s.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Show corresponding bus info
+                const busId = this.dataset.busId;
+                currentBusId = busId;
+                
+                document.querySelectorAll('.bus-info-card').forEach(card => {
+                    card.style.display = card.dataset.busInfo === busId ? 'block' : 'none';
+                });
+                
+                // Center map on selected bus
+                centerOnBus();
+            });
+        });
+        
+        // Set first student as active
+        const firstSelector = document.querySelector('.student-selector');
+        if (firstSelector) {
+            firstSelector.classList.add('active');
+        }
+        
+        // Cleanup on page leave
+        window.addEventListener('beforeunload', () => {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>

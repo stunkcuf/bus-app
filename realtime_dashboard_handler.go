@@ -332,8 +332,8 @@ func checkVehicleHealth() {
 				vehicle_id,
 				date,
 				CASE 
-					WHEN gallons > 0 AND mileage > LAG(mileage) OVER (PARTITION BY vehicle_id ORDER BY date)
-					THEN (mileage - LAG(mileage) OVER (PARTITION BY vehicle_id ORDER BY date)) / gallons
+					WHEN gallons > 0 AND current_mileage > LAG(current_mileage) OVER (PARTITION BY vehicle_id ORDER BY date)
+					THEN (current_mileage - LAG(current_mileage) OVER (PARTITION BY vehicle_id ORDER BY date)) / gallons
 					ELSE NULL
 				END as mpg
 			FROM fuel_records
@@ -341,13 +341,14 @@ func checkVehicleHealth() {
 		)
 		SELECT 
 			f.vehicle_id,
-			v.model,
+			COALESCE(v.model::text, b.model::text, 'Unknown') as model,
 			AVG(f.mpg) as avg_mpg,
 			MIN(f.mpg) as min_mpg
 		FROM fuel_efficiency f
-		JOIN vehicles v ON f.vehicle_id = v.vehicle_id
+		LEFT JOIN vehicles v ON f.vehicle_id = v.vehicle_id
+		LEFT JOIN buses b ON f.vehicle_id = b.bus_id
 		WHERE f.mpg IS NOT NULL
-		GROUP BY f.vehicle_id, v.model
+		GROUP BY f.vehicle_id, COALESCE(v.model::text, b.model::text, 'Unknown')
 		HAVING MIN(f.mpg) < AVG(f.mpg) * 0.7
 	`)
 	if err != nil {

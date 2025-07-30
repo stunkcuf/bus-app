@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Fleet Management System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/enhanced_ui.css">
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
+    
+    <style nonce="{{.CSPNonce}}">
+        body {
+            background: #f8f9fa;
+            color: #212529;
+            min-height: 100vh;
+        }
+        
+        .manual-container {
+            display: flex;
+            min-height: calc(100vh - 60px);
+        }
+        
+        /* Sidebar Navigation */
+        .manual-sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #dee2e6;
+            padding: 2rem 0;
+            position: sticky;
+            top: 60px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+        
+        .chapter-nav {
+            padding: 0 1.5rem;
+        }
+        
+        .chapter-item {
+            margin-bottom: 1.5rem;
+        }
+        
+        .chapter-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #495057;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .chapter-title:hover {
+            background: #e9ecef;
+            color: #212529;
+            text-decoration: none;
+        }
+        
+        .chapter-title.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .chapter-icon {
+            font-size: 1.25rem;
+            opacity: 0.8;
+        }
+        
+        .section-list {
+            margin-top: 0.5rem;
+            margin-left: 2.5rem;
+            display: none;
+        }
+        
+        .chapter-item.expanded .section-list {
+            display: block;
+        }
+        
+        .section-link {
+            display: block;
+            padding: 0.5rem 1rem;
+            color: #6c757d;
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            border-left: 2px solid transparent;
+        }
+        
+        .section-link:hover {
+            color: #495057;
+            border-left-color: #667eea;
+            background: #f8f9fa;
+        }
+        
+        .section-link.active {
+            color: #667eea;
+            font-weight: 600;
+            border-left-color: #667eea;
+            background: #f8f9fa;
+        }
+        
+        /* Content Area */
+        .manual-content {
+            flex: 1;
+            padding: 3rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .content-header {
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .content-header h1 {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            color: #212529;
+        }
+        
+        .content-header .description {
+            font-size: 1.125rem;
+            color: #6c757d;
+        }
+        
+        .section {
+            margin-bottom: 4rem;
+        }
+        
+        .section h2 {
+            color: #495057;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .section-content {
+            font-size: 1rem;
+            line-height: 1.8;
+            color: #495057;
+        }
+        
+        .section-content h4 {
+            color: #212529;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        .section-content h5 {
+            color: #495057;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .section-content ul, .section-content ol {
+            margin-bottom: 1rem;
+        }
+        
+        .section-content li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .tips-box {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+        }
+        
+        .tips-box h5 {
+            color: #0c5460;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .tips-box ul {
+            margin-bottom: 0;
+            color: #0c5460;
+        }
+        
+        .warning-box {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+        }
+        
+        .warning-box h5 {
+            color: #721c24;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .warning-box ul {
+            margin-bottom: 0;
+            color: #721c24;
+        }
+        
+        /* Search Box */
+        .manual-search {
+            padding: 0 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        /* Navigation Buttons */
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #495057;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        
+        .nav-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        /* Print Styles */
+        @media print {
+            .manual-sidebar,
+            .navbar,
+            .nav-buttons,
+            .no-print {
+                display: none !important;
+            }
+            
+            .manual-content {
+                padding: 0;
+                max-width: 100%;
+            }
+            
+            .section {
+                page-break-inside: avoid;
+            }
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .manual-sidebar {
+                display: none;
+            }
+            
+            .manual-content {
+                padding: 1.5rem;
+            }
+            
+            .mobile-menu-toggle {
+                display: block;
+                position: fixed;
+                bottom: 2rem;
+                right: 2rem;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+                z-index: 1000;
+            }
+        }
+        
+        /* Code Examples */
+        .code-example {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
+        
+        /* Tables */
+        .table {
+            margin: 1.5rem 0;
+        }
+        
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+    </style>
+  <style nonce="{{.CSPNonce}}">
+    /* Ultimate beautiful design system */
+    :root {
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
+      color: white;
+    }
+    
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
+    }
+    
+    /* Glassmorphism navigation */
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+      transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
+    }
+    
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
+    }
+    
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+    /* Glass cards */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+    
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 2rem 0 1.5rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
+    }
+    
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    /* Form styling */
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
+    }
+    
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    /* Button styling */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+      color: white;
+    }
+    
+    /* Tables */
+    .table {
+      color: white;
+    }
+    
+    .table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+    }
+    
+    .table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(10px);
+    }
+    
+    /* Text colors for dark theme */
+    h1, h2, h3, h4, h5, h6, p, span, label, a, td, th, li {
+      color: white !important;
+    }
+    
+    .text-muted {
+      color: rgba(255, 255, 255, 0.7) !important;
+    }
+    
+    /* Card styling */
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      color: white;
+    }
+    
+    .card-header {
+      background: rgba(255, 255, 255, 0.15);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    /* Modal styling */
+    .modal-content {
+      background: rgba(30, 30, 50, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    .modal-header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .modal-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Floating orbs -->
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-glass">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{if eq .UserType "Manager"}}/manager-dashboard{{else}}/driver-dashboard{{end}}">
+                <i class="bi bi-arrow-left-circle me-2"></i>Back to Dashboard
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <a href="/help-center" class="btn btn-primary btn-sm">
+                    <i class="bi bi-question-circle"></i> Help Center
+                </a>
+                <button class="btn btn-primary btn-sm" onclick="window.print()">
+                    <i class="bi bi-printer"></i> Print
+                </button>
+            </div>
+        </div>
+              <form method="POST" action="/logout" class="m-0">
+            <button type="submit" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+          </form>
+
+</nav>
+    
+    <div class="manual-container">
+        <!-- Sidebar -->
+        <aside class="manual-sidebar">
+            <div class="manual-search">
+                <input type="text" class="search-input" placeholder="Search manual..." id="manualSearch">
+            </div>
+            
+            <nav class="chapter-nav">
+                {{range .Chapters}}
+                <div class="chapter-item {{if eq $.SelectedChapter.ID .ID}}expanded{{end}}">
+                    <a href="?chapter={{.ID}}" class="chapter-title {{if eq $.SelectedChapter.ID .ID}}active{{end}}">
+                        <i class="{{.Icon}} chapter-icon"></i>
+                        <span>{{.Title}}</span>
+                    </a>
+                    {{if .Sections}}
+                    <div class="section-list">
+                        {{range .Sections}}
+                        <a href="#{{.ID}}" class="section-link">{{.Title}}</a>
+                        {{end}}
+                    </div>
+                    {{end}}
+                </div>
+                {{end}}
+            </nav>
+        </aside>
+        
+        <!-- Content -->
+        <main class="manual-content">
+            {{if .SelectedChapter}}
+            <div class="content-header">
+                <h1>
+                    <i class="{{.SelectedChapter.Icon}}"></i>
+                    {{.SelectedChapter.Title}}
+                </h1>
+                <p class="description">{{.SelectedChapter.Description}}</p>
+            </div>
+            
+            {{range .SelectedChapter.Sections}}
+            <section class="section" id="{{.ID}}">
+                <h2>{{.Title}}</h2>
+                <div class="section-content">
+                    {{.Content}}
+                </div>
+                
+                {{if .Tips}}
+                <div class="tips-box">
+                    <h5><i class="bi bi-lightbulb"></i> Tips</h5>
+                    <ul>
+                        {{range .Tips}}
+                        <li>{{.}}</li>
+                        {{end}}
+                    </ul>
+                </div>
+                {{end}}
+                
+                {{if .Warnings}}
+                <div class="warning-box">
+                    <h5><i class="bi bi-exclamation-triangle"></i> Important</h5>
+                    <ul>
+                        {{range .Warnings}}
+                        <li>{{.}}</li>
+                        {{end}}
+                    </ul>
+                </div>
+                {{end}}
+            </section>
+            {{end}}
+            {{else}}
+            <div class="text-center py-5">
+                <i class="bi bi-book" style="font-size: 4rem; color: #6c757d;"></i>
+                <h2 class="mt-3">Welcome to the User Manual</h2>
+                <p class="text-muted">Select a chapter from the sidebar to begin</p>
+            </div>
+            {{end}}
+        </main>
+    </div>
+    
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle d-lg-none" onclick="toggleMobileMenu()">
+        <i class="bi bi-list"></i>
+    </button>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script nonce="{{.CSPNonce}}">
+        // Search functionality
+        document.getElementById('manualSearch').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const sections = document.querySelectorAll('.section');
+            
+            sections.forEach(section => {
+                const content = section.textContent.toLowerCase();
+                if (content.includes(searchTerm)) {
+                    section.style.display = 'block';
+                    // Highlight search term
+                    if (searchTerm) {
+                        highlightText(section, searchTerm);
+                    }
+                } else if (searchTerm) {
+                    section.style.display = 'none';
+                }
+            });
+        });
+        
+        // Smooth scroll to sections
+        document.querySelectorAll('.section-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetSection = document.getElementById(targetId);
+                if (targetSection) {
+                    targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Update active state
+                    document.querySelectorAll('.section-link').forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                }
+            });
+        });
+        
+        // Highlight active section on scroll
+        const sections = document.querySelectorAll('.section');
+        const sectionLinks = document.querySelectorAll('.section-link');
+        
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (pageYOffset >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+            
+            sectionLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').substring(1) === current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+        
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const sidebar = document.querySelector('.manual-sidebar');
+            sidebar.classList.toggle('show');
+        }
+        
+        // Text highlighting function
+        function highlightText(element, searchTerm) {
+            // This is a simple implementation - for production, use a proper highlighting library
+            const walker = document.createTreeWalker(
+                element,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+            
+            let node;
+            while (node = walker.nextNode()) {
+                if (node.nodeValue.toLowerCase().includes(searchTerm)) {
+                    // Would implement actual highlighting here
+                }
+            }
+        }
+        
+        // Print chapter
+        function printChapter() {
+            window.print();
+        }
+    </script>
+</body>
+</html>

@@ -10,13 +10,30 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <!-- Modern Theme CSS - Primary styling -->
   <link rel="stylesheet" href="/static/modern_theme.css">
-    <!-- Dark Theme Text Colors -->
-    <link rel="stylesheet" href="/static/dark_theme_text.css">
+  <!-- Dark Theme Text Colors -->
+  <link rel="stylesheet" href="/static/dark_theme_text.css">
   <!-- Help System CSS -->
   <link rel="stylesheet" href="/static/help_system.css">
   <link rel="stylesheet" href="/static/enhanced_help_system.css">
+  <!-- Confirmation Dialog CSS -->
+  <link rel="stylesheet" href="/static/confirmation_dialog.css">
+  <!-- Responsive Tables CSS -->
+  <link rel="stylesheet" href="/static/responsive_tables.css">
   
   <style nonce="{{.CSPNonce}}">
+    /* CRITICAL: Override conflicting styles from dark_theme_text.css */
+    body .table tbody tr,
+    body .table-dark tbody tr {
+      background: rgba(0, 0, 0, 0.4) !important;
+      color: white !important;
+    }
+    
+    body .table tbody tr:hover,
+    body .table-dark tbody tr:hover {
+      background: rgba(0, 0, 0, 0.6) !important;
+      color: white !important;
+    }
+    
     /* Ultimate beautiful design system */
     :root {
       --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -66,9 +83,9 @@
       66% { transform: translate(20px, -10px) rotate(240deg); }
     }
     
-    /* Glass cards */
+    /* Glass cards - ensure dark background */
     .glass-card {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.6) !important;
       backdrop-filter: blur(20px);
       border-radius: 30px;
       border: 1px solid rgba(255, 255, 255, 0.2);
@@ -78,34 +95,55 @@
       color: white;
     }
     
-    /* Tables */
+    /* Tables - Override Bootstrap completely */
     .table {
-      color: white;
+      --bs-table-bg: transparent !important;
+      --bs-table-accent-bg: transparent !important;
+      --bs-table-striped-bg: rgba(0, 0, 0, 0.3) !important;
+      --bs-table-striped-color: white !important;
+      --bs-table-active-bg: rgba(0, 0, 0, 0.5) !important;
+      --bs-table-active-color: white !important;
+      --bs-table-hover-bg: rgba(0, 0, 0, 0.6) !important;
+      --bs-table-hover-color: white !important;
+      color: white !important;
+      margin-bottom: 0;
+      background-color: transparent !important;
     }
     
     .table thead th {
       background: rgba(255, 255, 255, 0.15);
-      color: white;
+      color: white !important;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
       padding: 1rem;
       border: none;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.2);
     }
     
     .table tbody tr {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(0, 0, 0, 0.4) !important;
       transition: all 0.3s ease;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
     
     .table tbody tr:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.6) !important;
       transform: translateX(10px);
     }
     
     .table tbody td {
-      color: white;
-      border-color: rgba(255, 255, 255, 0.1);
+      color: white !important;
+      border: none;
+      padding: 1rem;
+      vertical-align: middle;
+    }
+    
+    /* Fix table responsive wrapper */
+    .table-responsive {
+      background: transparent !important;
+      border: none;
+      overflow-x: auto;
     }
     
     /* Button styling */
@@ -149,6 +187,95 @@
       font-size: 0.875rem;
     }
     
+    /* Table action buttons */
+    .table .btn-group .btn-primary {
+      background: var(--gradient-1);
+      color: white !important;
+      border: none;
+    }
+    
+    .table .btn-group .btn-danger {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+      color: white !important;
+      border: none;
+    }
+    
+    .table .btn-group .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Force all table text to be visible */
+    table, th, td {
+      color: white !important;
+    }
+    
+    /* Search input styling */
+    .search-input {
+      background: rgba(0, 0, 0, 0.5) !important;
+      border: 2px solid rgba(255, 255, 255, 0.2) !important;
+      color: white !important;
+    }
+    
+    .search-input::placeholder {
+      color: rgba(255, 255, 255, 0.6) !important;
+    }
+    
+    /* Username display in table */
+    .table td .d-flex {
+      color: white !important;
+    }
+    
+    /* Ensure dark backgrounds throughout */
+    .glass-card .table-responsive {
+      background: transparent !important;
+    }
+    
+    .table {
+      background: transparent !important;
+    }
+    
+    /* Override any Bootstrap defaults */
+    .table-hover tbody tr:hover {
+      background-color: rgba(0, 0, 0, 0.6) !important;
+      color: white !important;
+    }
+    
+    /* Force dark theme on all Bootstrap table variations */
+    .table-dark,
+    .table-striped,
+    .table-hover,
+    .table-bordered,
+    .table {
+      --bs-table-color: white !important;
+      --bs-table-bg: transparent !important;
+      --bs-table-border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    /* Ensure all text stays white */
+    .glass-card,
+    .glass-card * {
+      color: white !important;
+    }
+    
+    /* Override Bootstrap table colors completely */
+    body .table,
+    body .table > thead > tr > th,
+    body .table > tbody > tr > th,
+    body .table > tfoot > tr > th,
+    body .table > thead > tr > td,
+    body .table > tbody > tr > td,
+    body .table > tfoot > tr > td {
+      background-color: transparent !important;
+      color: white !important;
+      border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    /* Override metric-card text color from dark_theme_text.css */
+    .metric-card {
+      color: white !important;
+    }
+    
     /* Page header */
     .page-header {
       color: white;
@@ -162,12 +289,23 @@
     /* Fix button visibility */
     .btn-group .btn {
       background: rgba(255, 255, 255, 0.1);
-      color: white;
+      color: white !important;
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
     
     .btn-group .btn:hover {
       background: rgba(255, 255, 255, 0.2);
+      color: white !important;
+    }
+    
+    /* Ensure links in table are visible */
+    .table a {
+      color: white !important;
+      text-decoration: none;
+    }
+    
+    .table a:hover {
+      text-decoration: underline;
     }
     
     /* Status badges */
@@ -176,6 +314,7 @@
       border-radius: 20px;
       font-size: 0.85rem;
       font-weight: 600;
+      display: inline-block;
     }
     
     .status-active {
@@ -209,6 +348,12 @@
   </style>
 </head>
 <body>
+  <!-- Floating orbs -->
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  
+
   <div class="container-fluid py-4">
     <!-- Header -->
     <header class="page-header mb-4">
@@ -236,7 +381,7 @@
       
       {{if .Users}}
       <div class="table-responsive">
-        <table class="table table-hover">
+        <table class="table" style="--bs-table-bg: transparent; --bs-table-color: white;">
           <thead>
             <tr>
               <th>Username</th>
@@ -268,7 +413,7 @@
               <td>{{.CreatedAt.Format "Jan 02, 2006"}}</td>
               <td>
                 <div class="btn-group btn-group-sm" role="group">
-                  <a href="/users?username={{.Username}}" class="btn btn-primary" title="Edit user">
+                  <a href="/edit-user?username={{.Username}}" class="btn btn-primary" title="Edit user">
                     <i class="bi bi-pencil"></i> Edit
                   </a>
                   {{if ne .Username $.User.Username}}
@@ -294,29 +439,75 @@
 
   <script nonce="{{.CSPNonce}}">
     function deleteUser(username) {
-      if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
-        return;
-      }
-      
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = '/delete-user';
-      
-      const csrfInput = document.createElement('input');
-      csrfInput.type = 'hidden';
-      csrfInput.name = 'csrf_token';
-      csrfInput.value = '{{.CSRFToken}}';
-      form.appendChild(csrfInput);
-      
-      const usernameInput = document.createElement('input');
-      usernameInput.type = 'hidden';
-      usernameInput.name = 'username';
-      usernameInput.value = username;
-      form.appendChild(usernameInput);
-      
-      document.body.appendChild(form);
-      form.submit();
+      // Use the confirmation dialog instead of browser confirm
+      confirmationHelpers.confirmDelete(`user "${username}"`, function() {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/delete-user';
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = '{{.CSRFToken}}';
+        form.appendChild(csrfInput);
+        
+        const usernameInput = document.createElement('input');
+        usernameInput.type = 'hidden';
+        usernameInput.name = 'username';
+        usernameInput.value = username;
+        form.appendChild(usernameInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+      });
     }
+  </script>
+  
+  <!-- Include Confirmation Dialog System -->
+  <script src="/static/confirmation_dialog.js"></script>
+  
+  <!-- Include Responsive Tables System -->
+  <script src="/static/responsive_tables.js"></script>
+  
+  <script nonce="{{.CSPNonce}}">
+    // Initialize responsive table for users
+    document.addEventListener('DOMContentLoaded', function() {
+      const usersTable = document.querySelector('.users-table');
+      if (usersTable) {
+        new ResponsiveTable(usersTable, {
+          breakpoint: 768,
+          enableSearch: false, // Already has search functionality
+          enableSort: true,
+          cardTemplate: function(cells, headers, row) {
+            // Custom card template for users
+            const username = cells[0]?.textContent.trim() || '';
+            const email = cells[1]?.textContent.trim() || '';
+            const role = cells[2]?.querySelector('.table-status')?.textContent.trim() || '';
+            const status = cells[3]?.querySelector('.table-status')?.textContent.trim() || '';
+            const actions = cells[4]?.innerHTML || '';
+            
+            return `
+              <div class="table-card-header">
+                <h3 class="table-card-title">${username}</h3>
+                <div class="table-card-badges">
+                  ${cells[2]?.innerHTML || ''}
+                  ${cells[3]?.innerHTML || ''}
+                </div>
+              </div>
+              <div class="table-card-body">
+                <div class="table-card-field">
+                  <span class="table-card-label">Email:</span>
+                  <span class="table-card-value">${email}</span>
+                </div>
+              </div>
+              <div class="table-card-actions">
+                ${actions}
+              </div>
+            `;
+          }
+        });
+      }
+    });
   </script>
 </body>
 </html>

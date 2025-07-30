@@ -2,6 +2,8 @@
 
 A secure web-based fleet management system for managing bus routes, drivers, students, and maintenance records. Built with Go and PostgreSQL.
 
+📚 **For complete documentation, see [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)**
+
 ## 🔒 Security Updates (v2.0)
 
 This version includes significant security improvements:

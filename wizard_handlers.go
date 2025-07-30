@@ -16,7 +16,7 @@ import (
 // availableDriversHandler returns drivers available for route assignment
 func availableDriversHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
+		SendError(w, ErrMethodNotAllowed("Only GET method allowed"))
 		return
 	}
 
@@ -61,7 +61,7 @@ func availableDriversHandler(w http.ResponseWriter, r *http.Request) {
 // availableBusesHandler returns buses available for route assignment
 func availableBusesHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
+		SendError(w, ErrMethodNotAllowed("Only GET method allowed"))
 		return
 	}
 
@@ -107,7 +107,7 @@ func availableBusesHandler(w http.ResponseWriter, r *http.Request) {
 // availableRoutesHandler returns routes available for assignment
 func availableRoutesHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
+		SendError(w, ErrMethodNotAllowed("Only GET method allowed"))
 		return
 	}
 
@@ -156,7 +156,7 @@ func availableRoutesHandler(w http.ResponseWriter, r *http.Request) {
 // checkAssignmentConflictsHandler checks for conflicts in route assignments
 func checkAssignmentConflictsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
+		SendError(w, ErrMethodNotAllowed("Only GET method allowed"))
 		return
 	}
 
@@ -210,7 +210,7 @@ func checkAssignmentConflictsHandler(w http.ResponseWriter, r *http.Request) {
 // vehicleMileageHandler returns the last recorded mileage for a vehicle
 func vehicleMileageHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
+		SendError(w, ErrMethodNotAllowed("Only GET method allowed"))
 		return
 	}
 
@@ -273,7 +273,7 @@ func vehicleMileageHandler(w http.ResponseWriter, r *http.Request) {
 // maintenanceVendorsHandler returns common maintenance vendors
 func maintenanceVendorsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
+		SendError(w, ErrMethodNotAllowed("Only GET method allowed"))
 		return
 	}
 
@@ -322,7 +322,7 @@ func maintenanceVendorsHandler(w http.ResponseWriter, r *http.Request) {
 // analyzeImportFileHandler analyzes an Excel file for import
 func analyzeImportFileHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
+		SendError(w, ErrMethodNotAllowed("Only GET method allowed"))
 		return
 	}
 

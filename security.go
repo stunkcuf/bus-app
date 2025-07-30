@@ -352,11 +352,22 @@ func getUserFromSession(r *http.Request) *User {
 
 	log.Printf("DEBUG: Session found for user: %s (role: %s)", session.Username, session.Role)
 
+	// Try to get full user details from database
+	if db != nil {
+		var user User
+		err := db.Get(&user, "SELECT id, username, password, role, status, registration_date, created_at FROM users WHERE username = $1", session.Username)
+		if err == nil {
+			return &user
+		}
+		log.Printf("DEBUG: Failed to get user from database: %v", err)
+	}
+
 	return &User{
 		Username: session.Username,
 		Role:     session.Role,
 	}
 }
+
 
 // createUser creates a new user
 func createUser(username, password, role, status string) error {

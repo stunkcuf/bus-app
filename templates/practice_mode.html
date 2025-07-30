@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice Mode - Fleet Management System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/enhanced_ui.css">
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
+    
+    <style nonce="{{.CSPNonce}}">
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .practice-hero {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 4rem;
+            text-align: center;
+            margin-bottom: 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .practice-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -30%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.3) 0%, transparent 70%);
+            filter: blur(100px);
+        }
+        
+        .practice-hero h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .practice-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #10b981, #059669);
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 20px rgba(16, 185, 129, 0.4);
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .feature-icon.buses { color: #8b5cf6; }
+        .feature-icon.routes { color: #3b82f6; }
+        .feature-icon.students { color: #f59e0b; }
+        .feature-icon.logs { color: #ef4444; }
+        
+        .practice-status {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .status-active {
+            border-color: rgba(16, 185, 129, 0.5);
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .btn-practice {
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border-radius: 30px;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+        }
+        
+        .btn-start:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(16, 185, 129, 0.6);
+        }
+        
+        .btn-stop {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4);
+        }
+        
+        .btn-stop:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(239, 68, 68, 0.6);
+        }
+        
+        .data-preview {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            font-family: monospace;
+        }
+        
+        .warning-banner {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2));
+            border: 1px solid rgba(251, 191, 36, 0.5);
+            border-radius: 15px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .warning-banner i {
+            font-size: 2rem;
+            color: #fbbf24;
+        }
+        
+        .sample-data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .sample-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .sample-item .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #10b981;
+        }
+        
+        .sample-item .label {
+            font-size: 0.875rem;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+  <style nonce="{{.CSPNonce}}">
+    /* Ultimate beautiful design system */
+    :root {
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
+      color: white;
+    }
+    
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
+    }
+    
+    /* Glassmorphism navigation */
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+      transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
+    }
+    
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
+    }
+    
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+    /* Glass cards */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+    
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 2rem 0 1.5rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
+    }
+    
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    /* Form styling */
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
+    }
+    
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    /* Button styling */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+      color: white;
+    }
+    
+    /* Tables */
+    .table {
+      color: white;
+    }
+    
+    .table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+    }
+    
+    .table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(10px);
+    }
+    
+    /* Text colors for dark theme */
+    h1, h2, h3, h4, h5, h6, p, span, label, a, td, th, li {
+      color: white !important;
+    }
+    
+    .text-muted {
+      color: rgba(255, 255, 255, 0.7) !important;
+    }
+    
+    /* Card styling */
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      color: white;
+    }
+    
+    .card-header {
+      background: rgba(255, 255, 255, 0.15);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    /* Modal styling */
+    .modal-content {
+      background: rgba(30, 30, 50, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    .modal-header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .modal-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Floating orbs -->
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-glass">
+        <div class="container">
+            <a href="{{if eq .UserType "Manager"}}/manager-dashboard{{else}}/driver-dashboard{{end}}" class="navbar-brand">
+                <i class="bi bi-arrow-left-circle me-2"></i>
+                Back to Dashboard
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <a href="/help-center" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-question-circle"></i> Help
+                </a>
+                <span class="text-white opacity-75">
+                    <i class="bi bi-person-circle me-2"></i>{{.Username}}
+                </span>
+            </div>
+        </div>
+              <form method="POST" action="/logout" class="m-0">
+            <button type="submit" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+          </form>
+
+</nav>
+    
+    <div class="container py-5">
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <div class="practice-badge">
+                <i class="bi bi-mortarboard me-2"></i>Practice Mode
+            </div>
+            <h1>Learn Without Limits</h1>
+            <p class="lead mb-0">Explore all features safely with sample data. Nothing you do here affects real records.</p>
+        </div>
+        
+        {{if .IsActive}}
+        <!-- Active Practice Mode -->
+        <div class="practice-status status-active">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <h3 class="mb-1">
+                        <i class="bi bi-check-circle me-2"></i>Practice Mode Active
+                    </h3>
+                    <p class="mb-0 opacity-75">You're currently working with sample data. Feel free to experiment!</p>
+                </div>
+                <form method="POST" action="/practice-mode" class="m-0">
+                    <input type="hidden" name="action" value="stop">
+                    <button type="submit" class="btn btn-stop btn-practice">
+                        <i class="bi bi-stop-circle me-2"></i>Exit Practice Mode
+                    </button>
+                </form>
+            </div>
+            
+            {{if .PracticeData}}
+            <div class="sample-data-grid mt-4">
+                <div class="sample-item">
+                    <div class="value">{{len .PracticeData.Buses}}</div>
+                    <div class="label">Sample Buses</div>
+                </div>
+                <div class="sample-item">
+                    <div class="value">{{len .PracticeData.Routes}}</div>
+                    <div class="label">Sample Routes</div>
+                </div>
+                <div class="sample-item">
+                    <div class="value">{{len .PracticeData.Students}}</div>
+                    <div class="label">Sample Students</div>
+                </div>
+                <div class="sample-item">
+                    <div class="value">{{len .PracticeData.Logs}}</div>
+                    <div class="label">Sample Logs</div>
+                </div>
+            </div>
+            {{end}}
+        </div>
+        
+        <div class="warning-banner">
+            <i class="bi bi-info-circle-fill"></i>
+            <div>
+                <strong>Remember:</strong> All data in practice mode is temporary and will be cleared when you exit or after 2 hours of inactivity.
+            </div>
+        </div>
+        
+        {{else}}
+        <!-- Inactive Practice Mode -->
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="feature-card">
+                    <i class="bi bi-shield-check feature-icon buses"></i>
+                    <h3>Safe Learning Environment</h3>
+                    <p>Practice mode creates a sandbox with sample data. You can:</p>
+                    <ul>
+                        <li>Try all features without fear</li>
+                        <li>Make mistakes and learn from them</li>
+                        <li>Test different scenarios</li>
+                        <li>Understand the workflow</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-lg-6 mb-4">
+                <div class="feature-card">
+                    <i class="bi bi-database feature-icon routes"></i>
+                    <h3>What's Included</h3>
+                    <p>Your practice environment will have:</p>
+                    <ul>
+                        <li>5 sample buses with maintenance records</li>
+                        <li>5 routes with different configurations</li>
+                        <li>20 students with complete information</li>
+                        <li>10 days of historical trip logs</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-lg-6 mb-4">
+                <div class="feature-card">
+                    <i class="bi bi-person-workspace feature-icon students"></i>
+                    <h3>Perfect For</h3>
+                    <ul>
+                        <li>New users learning the system</li>
+                        <li>Training sessions and demonstrations</li>
+                        <li>Testing new features before using them</li>
+                        <li>Understanding reports and analytics</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-lg-6 mb-4">
+                <div class="feature-card">
+                    <i class="bi bi-clock-history feature-icon logs"></i>
+                    <h3>How It Works</h3>
+                    <ol>
+                        <li>Click "Start Practice Mode" below</li>
+                        <li>Sample data will be generated instantly</li>
+                        <li>Navigate normally - a green banner shows you're in practice mode</li>
+                        <li>Exit anytime to return to real data</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-5">
+            <form method="POST" action="/practice-mode" class="d-inline">
+                <input type="hidden" name="action" value="start">
+                <button type="submit" class="btn btn-start btn-practice">
+                    <i class="bi bi-play-circle me-2"></i>Start Practice Mode
+                </button>
+            </form>
+            <p class="mt-3 opacity-75">Practice mode lasts for 2 hours or until you exit</p>
+        </div>
+        {{end}}
+        
+        <!-- Tips Section -->
+        <div class="feature-card mt-5">
+            <h3><i class="bi bi-lightbulb me-2"></i>Practice Mode Tips</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="mt-3">Try These Actions:</h5>
+                    <ul>
+                        <li>Log a morning route with student attendance</li>
+                        <li>Add a new student to your roster</li>
+                        <li>Schedule bus maintenance</li>
+                        <li>Generate and export reports</li>
+                        <li>Assign drivers to routes (managers)</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="mt-3">What to Expect:</h5>
+                    <ul>
+                        <li>Green banner on all pages in practice mode</li>
+                        <li>All features work exactly like real mode</li>
+                        <li>Data persists during your session</li>
+                        <li>No emails or notifications are sent</li>
+                        <li>Can't affect other users or real data</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script nonce="{{.CSPNonce}}">
+        // Animate elements on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const elements = document.querySelectorAll('.feature-card, .practice-status');
+            elements.forEach((el, index) => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    el.style.transition = 'all 0.6s ease';
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+    </script>
+</body>
+</html>

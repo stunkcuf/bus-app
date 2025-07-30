@@ -24,6 +24,7 @@ func fleetVehicleEditHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get vehicle ID from URL
 	vehicleID := strings.TrimPrefix(r.URL.Path, "/fleet-vehicle/edit/")
+	log.Printf("Fleet vehicle edit handler - extracted ID: '%s' from path: '%s'", vehicleID, r.URL.Path)
 	if vehicleID == "" {
 		http.Error(w, "Vehicle ID required", http.StatusBadRequest)
 		return

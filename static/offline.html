@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Fleet Management System</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .offline-container {
+            text-align: center;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .offline-icon {
+            font-size: 80px;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        p {
+            font-size: 1.1rem;
+            opacity: 0.8;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        
+        .offline-features {
+            text-align: left;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .offline-features h3 {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+        
+        .offline-features ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .offline-features li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .offline-features li::before {
+            content: "✓";
+            color: #10b981;
+            font-weight: bold;
+        }
+        
+        .retry-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .retry-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+        }
+        
+        .sync-status {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .sync-status.syncing {
+            border-left: 3px solid #f59e0b;
+        }
+        
+        .sync-status.synced {
+            border-left: 3px solid #10b981;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon">📡</div>
+        <h1>You're Offline</h1>
+        <p>Don't worry! The Fleet Management System works offline too.</p>
+        
+        <div class="offline-features">
+            <h3>Available Offline:</h3>
+            <ul>
+                <li>View your assigned routes and students</li>
+                <li>Log trips and mark attendance</li>
+                <li>Access help documentation</li>
+                <li>View previously loaded data</li>
+            </ul>
+        </div>
+        
+        <p>Your data will automatically sync when you're back online.</p>
+        
+        <button class="retry-button" onclick="checkConnection()">
+            Try Again
+        </button>
+        
+        <div id="syncStatus" class="sync-status" style="display: none;">
+            <span class="spinner"></span>
+            <span id="syncMessage">Checking connection...</span>
+        </div>
+    </div>
+    
+    <script>
+        // Check for pending sync data
+        async function checkPendingData() {
+            try {
+                const db = await openIndexedDB();
+                const pendingTrips = await countPending(db, 'tripLogs');
+                const pendingAttendance = await countPending(db, 'attendance');
+                
+                if (pendingTrips > 0 || pendingAttendance > 0) {
+                    const syncStatus = document.getElementById('syncStatus');
+                    const syncMessage = document.getElementById('syncMessage');
+                    
+                    syncStatus.style.display = 'block';
+                    syncStatus.className = 'sync-status syncing';
+                    syncMessage.textContent = `${pendingTrips + pendingAttendance} items waiting to sync`;
+                }
+            } catch (error) {
+                console.error('Error checking pending data:', error);
+            }
+        }
+        
+        function openIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('FleetManagementDB', 1);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        function countPending(db, storeName) {
+            return new Promise((resolve, reject) => {
+                try {
+                    const transaction = db.transaction([storeName], 'readonly');
+                    const store = transaction.objectStore(storeName);
+                    const index = store.index('synced');
+                    const request = index.count(false);
+                    
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                } catch (error) {
+                    resolve(0); // Store might not exist yet
+                }
+            });
+        }
+        
+        function checkConnection() {
+            const syncStatus = document.getElementById('syncStatus');
+            const syncMessage = document.getElementById('syncMessage');
+            
+            syncStatus.style.display = 'block';
+            syncStatus.className = 'sync-status syncing';
+            syncMessage.textContent = 'Checking connection...';
+            
+            // Try to fetch a small resource
+            fetch('/api/ping', { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        syncStatus.className = 'sync-status synced';
+                        syncMessage.textContent = 'Connection restored! Redirecting...';
+                        
+                        // Redirect to previous page or dashboard
+                        setTimeout(() => {
+                            const referrer = document.referrer;
+                            if (referrer && !referrer.includes('offline')) {
+                                window.location.href = referrer;
+                            } else {
+                                window.location.href = '/';
+                            }
+                        }, 1500);
+                    }
+                })
+                .catch(() => {
+                    syncStatus.className = 'sync-status';
+                    syncMessage.textContent = 'Still offline. Please try again later.';
+                    
+                    setTimeout(() => {
+                        syncStatus.style.display = 'none';
+                    }, 3000);
+                });
+        }
+        
+        // Check pending data on load
+        checkPendingData();
+        
+        // Periodically check connection
+        setInterval(checkConnection, 30000); // Every 30 seconds
+        
+        // Listen for online event
+        window.addEventListener('online', () => {
+            checkConnection();
+        });
+    </script>
+</body>
+</html>

@@ -6,6 +6,8 @@
   <title>Driver Dashboard - Fleet Management System</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <!-- Touch-Friendly Controls -->
+  <link rel="stylesheet" href="/static/touch_friendly.css">
   
   <style nonce="{{.CSPNonce}}">
     /* Ultimate beautiful design system */
@@ -60,7 +62,7 @@
     /* Glassmorphism navigation */
     .navbar-glass {
       background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
+      /* backdrop-filter: blur(20px); */ /* Disabled to prevent blur issues */
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
       padding: 1rem 0;
       position: sticky;
@@ -129,7 +131,7 @@
     /* Glass cards */
     .glass-card {
       background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
+      /* backdrop-filter: blur(20px); */ /* Disabled to prevent blur issues */
       border-radius: 30px;
       border: 1px solid rgba(255, 255, 255, 0.2);
       padding: 2rem;
@@ -186,7 +188,7 @@
     .metric-card {
       position: relative;
       background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
+      /* backdrop-filter: blur(20px); */ /* Disabled to prevent blur issues */
       border-radius: 30px;
       padding: 2.5rem;
       text-align: center;
@@ -277,9 +279,23 @@
           <span>Driver Portal</span>
         </a>
         <div class="d-flex align-items-center gap-3">
-          <span class="text-white">
-            <i class="bi bi-person-circle me-2"></i>{{.Data.User.Username}}
-          </span>
+          <a href="/getting-started" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-rocket-takeoff"></i> Getting Started
+          </a>
+          <a href="/help-center" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-question-circle"></i> Help
+          </a>
+          <div class="dropdown">
+            <button class="btn btn-link text-white text-decoration-none dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="bi bi-person-circle me-2"></i>{{.Data.User.Username}}
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="/profile"><i class="bi bi-person me-2"></i>Profile</a></li>
+              <li><a class="dropdown-item" href="/progress"><i class="bi bi-graph-up me-2"></i>My Progress</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="/change-password"><i class="bi bi-key me-2"></i>Change Password</a></li>
+            </ul>
+          </div>
           <form method="POST" action="/logout" class="m-0">
             <button type="submit" class="btn btn-outline-light btn-sm">
               <i class="bi bi-box-arrow-right"></i> Logout
@@ -350,6 +366,14 @@
       <a href="/reports" class="action-card fade-in">
         <i class="bi bi-graph-up"></i>
         <span>View Reports</span>
+      </a>
+      <a href="/messaging" class="action-card fade-in">
+        <i class="bi bi-chat-dots"></i>
+        <span>Messages</span>
+      </a>
+      <a href="/emergency" class="action-card fade-in emergency-card">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span>Emergency</span>
       </a>
     </div>
     
@@ -597,5 +621,61 @@
       }
     });
   </script>
+  <!-- Include Loading Indicators System -->
+  <script src="/static/loading_indicators.js"></script>
+  
+  <!-- Include Session Timeout Warning System -->
+  <script src="/static/session_timeout_warning.js"></script>
+  
+  <!-- Include Touch-Friendly System -->
+  <script src="/static/touch_friendly.js"></script>
+  
+  <!-- Include Onboarding Tour System -->
+  <script src="/static/onboarding_tour.js"></script>
+  
+  <!-- Include Practice Mode Banner -->
+  <script src="/static/practice_mode_banner.js"></script>
+  
+  <!-- Include Progress Tracking -->
+  <script src="/static/progress_tracking.js"></script>
+  
+  <script nonce="{{.CSPNonce}}">
+    // Show loading indicator when fetching data
+    document.addEventListener('DOMContentLoaded', function() {
+      // Add loading states to any buttons that trigger actions
+      document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function() {
+          // Show progress loader for form submissions
+          loadingIndicators.showProgress('Saving your changes...');
+        });
+      });
+      
+      // Add loading to navigation links
+      document.querySelectorAll('a.action-card').forEach(link => {
+        link.addEventListener('click', function(e) {
+          if (!e.ctrlKey && !e.metaKey) {
+            loadingIndicators.showProgress('Loading page...');
+          }
+        });
+      });
+      
+      // Add floating action button for quick trip logging
+      if (window.touchFriendly) {
+        touchFriendly.createFAB({
+          icon: 'bi-plus-lg',
+          onClick: function() {
+            // Navigate to the first action card (Log Morning Trip)
+            const logTripCard = document.querySelector('.action-card');
+            if (logTripCard) {
+              logTripCard.click();
+            }
+          }
+        });
+      }
+    });
+  </script>
+  
+  <!-- Real-time Notifications -->
+  <script src="/static/realtime_notifications.js"></script>
 </body>
 </html>

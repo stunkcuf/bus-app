@@ -17,7 +17,7 @@ import (
 
 // Constants for better maintainability
 const (
-	DefaultPort       = "5000"
+	DefaultPort       = "8080"
 	SessionCookieName = "session_id"
 	CSRFTokenHeader   = "X-CSRF-Token"
 	TemplateGlob      = "templates/*.html"
@@ -378,6 +378,16 @@ func init() {
 
 	// Start session cleanup in security.go
 	go periodicSessionCleanup()
+	
+	// Start practice data cleanup
+	go cleanupPracticeData()
+	
+	// Create progress tracking table if needed
+	if db != nil {
+		if err := createProgressTable(db.DB); err != nil {
+			log.Printf("Failed to create progress table: %v", err)
+		}
+	}
 }
 
 // Helper function to convert interface{} to float64
@@ -597,6 +607,10 @@ func main() {
 	
 	// Test server is handled by public_test_routes.go when needed
 
+	// Initialize globals
+	LogInfo("🌍 Initializing global variables...")
+	// initializeGlobals() - function removed, globals initialized inline
+
 	// Initialize session manager
 	LogInfo("🔐 Setting up session manager...")
 	if err := initializeSessionManager(); err != nil {
@@ -606,6 +620,21 @@ func main() {
 	// Initialize query cache
 	LogInfo("🚀 Setting up query cache...")
 	initQueryCache()
+
+	// Fix schema issues
+	LogInfo("🔧 Fixing database schema issues...")
+	if err := FixSchemaIssues(); err != nil {
+		LogError("Failed to fix schema issues", err)
+		// Continue anyway
+	}
+
+	// Check data issues
+	CheckDataIssues()
+	
+	// Add test data if needed
+	if err := AddTestData(); err != nil {
+		LogError("Failed to add test data", err)
+	}
 
 	// Database monitoring has been consolidated
 	// startDBMonitoring() - removed
@@ -641,8 +670,8 @@ func main() {
 	compressionConfig := DefaultCompressionConfig()
 	compressionConfig.Enabled = os.Getenv("DISABLE_COMPRESSION") != "true"
 
-	// Chain middlewares: Metrics -> CSP -> Security -> Router (Compression disabled for now)
-	handler := MetricsHandler(CSPMiddleware(SecurityHeaders(mux)))
+	// Chain middlewares: Metrics -> CSP -> Security -> WebSocketFix -> Router (Compression disabled for now)
+	handler := MetricsHandler(CSPMiddleware(SecurityHeaders(WebSocketFixMiddleware(mux))))
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -663,6 +692,11 @@ func main() {
 
 	// Graceful shutdown
 	go gracefulShutdown(server)
+
+	// Check and fix drivers before starting
+	if err := checkAndFixDrivers(); err != nil {
+		log.Printf("Warning: Failed to check drivers: %v", err)
+	}
 
 	log.Printf("🚀 Server starting on port %s", port)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -741,6 +775,37 @@ func setupRoutes() *http.ServeMux {
 	mux.HandleFunc("/settings", withRecovery(requireAuth(requireRole("manager")(requireDatabase(settingsHandler)))))
 	mux.HandleFunc("/help-demo", withRecovery(requireAuth(requireDatabase(helpDemoHandler))))
 	
+	// Help Center routes
+	mux.HandleFunc("/help-center", withRecovery(requireAuth(helpCenterHandler)))
+	mux.HandleFunc("/help/article/", withRecovery(requireAuth(helpArticleHandler)))
+	mux.HandleFunc("/api/help/search", withRecovery(requireAuth(helpSearchHandler)))
+	mux.HandleFunc("/getting-started", withRecovery(requireAuth(gettingStartedHandler)))
+	mux.HandleFunc("/help/videos/", withRecovery(requireAuth(helpVideoHandler)))
+	
+	// Practice Mode routes
+	mux.HandleFunc("/practice-mode", withRecovery(requireAuth(practiceModeHandler)))
+	mux.HandleFunc("/api/practice-data", withRecovery(requireAuth(practiceModeDataHandler)))
+	
+	// Quick Reference routes
+	mux.HandleFunc("/quick-reference", withRecovery(requireAuth(quickReferenceHandler)))
+	
+	// Progress Tracking routes
+	mux.HandleFunc("/api/progress", withRecovery(requireAuth(requireDatabase(progressTrackingHandler))))
+	mux.HandleFunc("/progress", withRecovery(requireAuth(requireDatabase(progressDashboardHandler))))
+	
+	// User Manual routes
+	mux.HandleFunc("/user-manual", withRecovery(requireAuth(userManualHandler)))
+	
+	// Video Tutorial routes
+	mux.HandleFunc("/videos", withRecovery(requireAuth(videoTutorialsHandler)))
+	mux.HandleFunc("/video/", withRecovery(requireAuth(videoPlayerHandler)))
+	mux.HandleFunc("/api/video-search", withRecovery(requireAuth(videoSearchHandler)))
+	
+	// Troubleshooting routes
+	mux.HandleFunc("/troubleshooting", withRecovery(requireAuth(troubleshootingHandler)))
+	mux.HandleFunc("/troubleshooting/issue/", withRecovery(requireAuth(troubleshootingIssueHandler)))
+	mux.HandleFunc("/api/diagnostics", withRecovery(requireAuth(requireRole("manager")(diagnosticsHandler))))
+	
 	// Password management routes
 	mux.HandleFunc("/change-password", withRecovery(requireAuth(requireDatabase(passwordChangeHandler))))
 	mux.HandleFunc("/reset-password", withRecovery(RateLimitMiddleware(passwordResetRequestHandler)))
@@ -751,7 +816,9 @@ func setupRoutes() *http.ServeMux {
 	mux.HandleFunc("/notification-history", withRecovery(requireAuth(requireDatabase(notificationHistoryHandler))))
 	mux.HandleFunc("/api/test-notification", withRecovery(requireAuth(requireDatabase(testNotificationHandler))))
 	mux.HandleFunc("/api/notifications/mark-read", withRecovery(requireAuth(requireDatabase(markNotificationReadHandler))))
+	mux.HandleFunc("/api/notifications/mark-all-read", withRecovery(requireAuth(requireDatabase(markAllNotificationsReadHandler))))
 	mux.HandleFunc("/api/notifications/unread-count", withRecovery(requireAuth(requireDatabase(getUnreadNotificationsHandler))))
+	mux.HandleFunc("/api/notifications/recent", withRecovery(requireAuth(requireDatabase(getRecentNotificationsHandler))))
 
 	// Common protected routes
 	mux.HandleFunc("/dashboard", withRecovery(requireAuth(requireDatabase(dashboardHandler))))
@@ -764,8 +831,15 @@ func setupAPIRoutes(mux *http.ServeMux) {
 	// Versioned API routes
 	setupV1APIRoutes(mux)
 	
-	// Core API routes (from api_handlers.go)
-	registerAPIRoutes(mux)
+	// Core API routes
+	mux.HandleFunc("/api/routes", withRecovery(requireAuth(requireDatabase(apiRoutesHandler))))
+	mux.HandleFunc("/api/buses", withRecovery(requireAuth(requireDatabase(apiBusesHandler))))
+	mux.HandleFunc("/api/drivers", withRecovery(requireAuth(requireRole("manager")(requireDatabase(apiDriversHandler)))))
+	mux.HandleFunc("/api/students", withRecovery(requireAuth(requireDatabase(apiStudentsHandler))))
+	mux.HandleFunc("/api/fleet-vehicles", withRecovery(requireAuth(requireDatabase(apiFleetVehiclesHandler))))
+	mux.HandleFunc("/api/route-assignments", withRecovery(requireAuth(requireDatabase(apiRouteAssignmentsHandler))))
+	mux.HandleFunc("/api/ecse-students", withRecovery(requireAuth(requireRole("manager")(requireDatabase(apiECSEStudentsHandler)))))
+	mux.HandleFunc("/api/maintenance-records", withRecovery(requireAuth(requireDatabase(apiMaintenanceRecordsHandler))))
 	
 	// Maintenance API routes
 	mux.HandleFunc("/api/check-maintenance", withRecovery(requireAuth(requireDatabase(checkMaintenanceDueHandler))))
@@ -831,8 +905,12 @@ func setupAPIRoutes(mux *http.ServeMux) {
 	// Real-time WebSocket endpoint
 	mux.HandleFunc("/ws", withRecovery(requireAuth(WebSocketHandler)))
 
-	// Emergency Response API
+	// Emergency Response System
+	mux.HandleFunc("/emergency", withRecovery(requireAuth(requireDatabase(emergencyDashboardHandler))))
 	mux.HandleFunc("/api/emergency", withRecovery(requireAuth(EmergencyResponseHandler)))
+	mux.HandleFunc("/api/emergency/create", withRecovery(requireAuth(requireDatabase(createEmergencyHandler))))
+	mux.HandleFunc("/api/emergency/update", withRecovery(requireAuth(requireDatabase(updateEmergencyHandler))))
+	mux.HandleFunc("/api/emergency/sos", withRecovery(requireAuth(requireDatabase(emergencySOSHandler))))
 
 	// Performance Monitoring API
 	mux.HandleFunc("/api/performance/metrics", withRecovery(requireAuth(requireRole("manager")(performanceMetricsHandler))))
@@ -853,6 +931,43 @@ func setupAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/gps/vehicles", withRecovery(requireAuth(gpsVehiclesHandler)))
 	mux.HandleFunc("/api/geofence", withRecovery(requireAuth(requireRole("manager")(geofenceHandler))))
 	mux.HandleFunc("/ws/gps", withRecovery(gpsWebSocketHandler))
+	
+	// Route Monitoring & Deviation Alerts
+	mux.HandleFunc("/route-monitoring", withRecovery(requireAuth(requireRole("manager")(requireDatabase(routeMonitoringHandler)))))
+	mux.HandleFunc("/route-planner", withRecovery(requireAuth(requireRole("manager")(requireDatabase(routePlannerHandler)))))
+	mux.HandleFunc("/api/route-monitoring/start", withRecovery(requireAuth(requireDatabase(startRouteMonitoringHandler))))
+	mux.HandleFunc("/api/route-monitoring/stop", withRecovery(requireAuth(requireDatabase(stopRouteMonitoringHandler))))
+	mux.HandleFunc("/api/route-monitoring/deviations", withRecovery(requireAuth(requireDatabase(getRouteDeviationsHandler))))
+	mux.HandleFunc("/api/route-plan", withRecovery(requireAuth(requireRole("manager")(requireDatabase(getRoutePlanHandler)))))
+	mux.HandleFunc("/api/route-plan/save", withRecovery(requireAuth(requireRole("manager")(requireDatabase(saveRoutePlanHandler)))))
+	mux.HandleFunc("/api/route-monitoring/settings", withRecovery(requireAuth(requireRole("manager")(updateDeviationSettingsHandler))))
+	
+	// Messaging system
+	mux.HandleFunc("/messaging", withRecovery(requireAuth(requireDatabase(messagingHandler))))
+	mux.HandleFunc("/api/conversation", withRecovery(requireAuth(requireDatabase(getConversationHandler))))
+	mux.HandleFunc("/api/send-message", withRecovery(requireAuth(requireDatabase(sendMessageHandler))))
+	mux.HandleFunc("/api/create-conversation", withRecovery(requireAuth(requireDatabase(createConversationHandler))))
+	
+	// Mobile UI endpoints
+	mux.HandleFunc("/mobile/dashboard", withRecovery(requireAuth(requireDatabase(mobileDriverDashboardHandler))))
+	mux.HandleFunc("/mobile/manager-dashboard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(mobileManagerDashboardHandler)))))
+	mux.HandleFunc("/mobile/route/", withRecovery(requireAuth(requireDatabase(mobileRouteDetailsHandler))))
+	mux.HandleFunc("/mobile/attendance", withRecovery(requireAuth(requireDatabase(mobileStudentAttendanceHandler))))
+	mux.HandleFunc("/mobile/vehicle-check", withRecovery(requireAuth(requireDatabase(mobileVehicleCheckHandler))))
+	mux.HandleFunc("/mobile/gps/update", withRecovery(requireAuth(mobileGPSTrackingHandler)))
+	mux.HandleFunc("/api/mobile/students", withRecovery(requireAuth(mobileAPIStudentsHandler)))
+	mux.HandleFunc("/api/mobile/notifications", withRecovery(requireAuth(mobileAPINotificationsHandler)))
+	
+	// Parent Portal
+	mux.HandleFunc("/parent/login", withRecovery(parentLoginHandler))
+	mux.HandleFunc("/parent/register", withRecovery(parentRegistrationHandler))
+	mux.HandleFunc("/parent/dashboard", withRecovery(parentDashboardHandler))
+	mux.HandleFunc("/parent/bus-tracking", withRecovery(parentBusTrackingHandler))
+	mux.HandleFunc("/parent/student/", withRecovery(parentStudentDetailsHandler))
+	mux.HandleFunc("/parent/notification-settings", withRecovery(parentNotificationSettingsHandler))
+	mux.HandleFunc("/parent/api/bus-location", withRecovery(parentAPIBusLocationHandler))
+	mux.HandleFunc("/parent/api/notifications", withRecovery(parentAPINotificationsHandler))
+	mux.HandleFunc("/parent/api/notifications/read", withRecovery(parentAPIMarkNotificationReadHandler))
 }
 
 // setupV1APIRoutes configures Version 1 API endpoints
@@ -946,6 +1061,7 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/update-vehicle-status", withRecovery(requireAuth(requireDatabase(updateVehicleStatusHandler))))
 	mux.HandleFunc("/add-bus", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addBusHandler)))))
 	mux.HandleFunc("/add-bus-wizard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addBusWizardHandler)))))
+	mux.HandleFunc("/edit-bus", withRecovery(requireAuth(requireRole("manager")(requireDatabase(editBusHandler)))))
 
 	// Maintenance - Available to both managers and drivers
 	mux.HandleFunc("/bus-maintenance/", withRecovery(requireAuth(requireDatabase(busMaintenanceHandler))))
@@ -1263,6 +1379,13 @@ func initializeAdvancedFeatures() {
 		// Continue without GPS tracking
 	}
 	
+	// Initialize route deviation monitoring
+	LogInfo("🚨 Initializing route deviation monitoring...")
+	if err := InitializeRouteMonitor(); err != nil {
+		LogError("Failed to initialize route monitoring", err)
+		// Continue without route monitoring
+	}
+	
 	// Initialize mobile app tables
 	LogInfo("📱 Initializing mobile app database tables...")
 	if err := InitializeMobileAppTables(db); err != nil {
@@ -1272,6 +1395,13 @@ func initializeAdvancedFeatures() {
 	if err := CreateMobileAppTriggers(db); err != nil {
 		LogError("Failed to create mobile app triggers", err)
 		// Continue without triggers
+	}
+
+	// Initialize parent portal tables
+	LogInfo("👨‍👩‍👧‍👦 Initializing parent portal tables...")
+	if err := createParentTables(db.DB); err != nil {
+		LogError("Failed to initialize parent portal tables", err)
+		// Continue without parent portal
 	}
 
 	// Load production configuration

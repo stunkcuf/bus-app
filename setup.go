@@ -36,7 +36,14 @@ func setupDatabase() error {
 	}
 
 	// Initialize the database connection
-	return InitDB(dbURL)
+	if err := InitDB(dbURL); err != nil {
+		return err
+	}
+
+	// Run comprehensive fixes after database is initialized
+	RunComprehensiveFix()
+	
+	return nil
 }
 
 // closeDatabase closes the database connection

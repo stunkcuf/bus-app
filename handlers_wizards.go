@@ -196,6 +196,15 @@ func routeAssignmentWizardHandler(w http.ResponseWriter, r *http.Request) {
 	drivers, _ := dataCache.getUsers()
 	buses, _ := dataCache.getBuses()
 	routes, _ := dataCache.getRoutes()
+	assignments, _ := loadRouteAssignments()
+
+	// Create maps for quick lookup
+	driverAssignments := make(map[string][]RouteAssignment)
+	busAssignments := make(map[string][]RouteAssignment)
+	for _, a := range assignments {
+		driverAssignments[a.Driver] = append(driverAssignments[a.Driver], a)
+		busAssignments[a.BusID] = append(busAssignments[a.BusID], a)
+	}
 
 	// Filter active drivers
 	var activeDrivers []User
@@ -216,10 +225,12 @@ func routeAssignmentWizardHandler(w http.ResponseWriter, r *http.Request) {
 	data := map[string]interface{}{
 		"User":      user,
 		"Title":     "Route Assignment Wizard",
-		"Drivers":   activeDrivers,
-		"Buses":     activeBuses,
-		"Routes":    routes,
 		"CSRFToken": getSessionCSRFToken(r),
+		"Data": map[string]interface{}{
+			"Drivers":   activeDrivers,
+			"Buses":     activeBuses,
+			"Routes":    routes,
+		},
 	}
 
 	renderTemplate(w, r, "route_assignment_wizard.html", data)

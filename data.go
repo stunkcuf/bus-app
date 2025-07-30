@@ -788,9 +788,9 @@ func loadUsersFromDB() ([]User, error) {
 	}
 
 	var users []User
-	// FIXED: Select only columns that exist in the User struct
+	// FIXED: Select only columns that exist in the User struct, including id
 	err := db.Select(&users, `
-		SELECT username, password, role, status, registration_date, created_at 
+		SELECT id, username, password, role, status, registration_date, created_at 
 		FROM users 
 		ORDER BY username
 	`)
@@ -1031,31 +1031,31 @@ func generateCurrentMonthMileageReports() ([]MonthlyMileageReport, error) {
 		WITH all_vehicles AS (
 			-- Get all buses
 			SELECT 
-				v.id,
-				v.bus_number as vehicle_id,
-				v.year,
-				v.make,
-				v.model,
-				v.license_plate,
+				b.bus_id as id,
+				b.bus_id as vehicle_id,
+				EXTRACT(YEAR FROM NOW())::VARCHAR as year,
+				'School Bus' as make,
+				COALESCE(b.model::text, 'Standard') as model,
+				'' as license_plate,
 				'Bus' as vehicle_type,
-				COALESCE(v.current_mileage, 0) as current_mileage
-			FROM vehicles v
-			WHERE v.type = 'bus' AND v.status = 'active'
+				COALESCE(b.current_mileage::int, 0) as current_mileage
+			FROM buses b
+			WHERE b.status = 'active'
 			
 			UNION ALL
 			
 			-- Get all company vehicles
 			SELECT 
-				v.id,
-				v.bus_number as vehicle_id,
-				v.year,
-				v.make,
-				v.model,
-				v.license_plate,
+				v.vehicle_id as id,
+				v.vehicle_id,
+				COALESCE(v.year, EXTRACT(YEAR FROM NOW())::VARCHAR) as year,
+				'Vehicle' as make,
+				COALESCE(v.model::text, 'Company Vehicle') as model,
+				COALESCE(v.license::text, '') as license_plate,
 				'Vehicle' as vehicle_type,
-				COALESCE(v.current_mileage, 0) as current_mileage
+				COALESCE(v.current_mileage::int, 0) as current_mileage
 			FROM vehicles v
-			WHERE v.type != 'bus' AND v.status = 'active'
+			WHERE v.status = 'active'
 		),
 		monthly_data AS (
 			-- Get mileage data from driver logs for current month

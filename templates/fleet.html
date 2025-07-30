@@ -204,14 +204,14 @@
     /* Hero section */
     .hero-section {
       position: relative;
-      padding: 5rem 0 3rem;
+      padding: 2rem 0 1.5rem; /* Reduced from 5rem to 2rem */
       text-align: center;
       color: white;
       overflow: hidden;
     }
     
     .hero-content h1 {
-      font-size: 3.5rem;
+      font-size: 2.5rem; /* Reduced from 3.5rem */
       font-weight: 800;
       margin-bottom: 1rem;
       background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
@@ -524,6 +524,74 @@
         padding: 0.75rem 0.5rem;
       }
     }
+    /* Fix dropdown overlap issues */
+    .form-select {
+      position: relative;
+      z-index: 10;
+    }
+    
+    /* Ensure dropdowns don't overlap with buttons below */
+    .fleet-table td {
+      position: relative;
+    }
+    
+    .fleet-table tbody tr {
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* Increase z-index for rows being hovered */
+    .fleet-table tbody tr:hover {
+      z-index: 100;
+    }
+    
+    /* Fix dropdown menu positioning */
+    select.form-control,
+    select.form-select {
+      position: relative;
+      z-index: 999;
+    }
+    
+    /* Ensure dropdown options appear above other elements */
+    select:focus {
+      position: relative;
+      z-index: 1000;
+    }
+    /* Fix for status dropdowns in maintenance columns */
+    .maintenance-status {
+      position: relative;
+    }
+    
+    /* Make table cells have proper stacking context */
+    .fleet-table tbody tr td {
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* When hovering on a row, increase its z-index */
+    .fleet-table tbody tr:hover td {
+      z-index: 100;
+    }
+    
+    /* Status dropdowns should appear above other content */
+    .maintenance-status select,
+    td select.form-select,
+    td select.form-control {
+      position: relative;
+      z-index: 999 !important;
+    }
+    
+    /* When dropdown is focused/opened */
+    .maintenance-status select:focus,
+    td select.form-select:focus,
+    td select.form-control:focus {
+      z-index: 1000 !important;
+    }
+    
+    /* Add some margin to prevent overlap */
+    .fleet-table td {
+      padding-bottom: 10px;
+    }
   </style>
     <!-- Dark Theme Text Colors -->
     <link rel="stylesheet" href="/static/dark_theme_text.css">
@@ -733,7 +801,8 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="{{.CSPNonce}}">
     function editBus(busId) {
-      alert('Edit functionality for ' + busId + ' coming soon!');
+      // Redirect to edit bus page
+      window.location.href = '/edit-bus?id=' + busId;
     }
     
     // Animate numbers on load

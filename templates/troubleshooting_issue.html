@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Fleet Management System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/enhanced_ui.css">
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
+    
+    <style nonce="{{.CSPNonce}}">
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .breadcrumb {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(10px);
+            padding: 1rem 1.5rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+        }
+        
+        .breadcrumb-item a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+        }
+        
+        .breadcrumb-item a:hover {
+            color: white;
+        }
+        
+        .breadcrumb-item.active {
+            color: white;
+        }
+        
+        .issue-header {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 3rem;
+            margin-bottom: 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .issue-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        .issue-description {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+        
+        .symptoms-list {
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .symptoms-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .symptom-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        
+        .symptom-icon {
+            color: #f59e0b;
+            font-size: 1.25rem;
+        }
+        
+        .quick-fix {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .quick-fix-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #10b981;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .quick-fix-content {
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        
+        .solution-steps {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .solution-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+        }
+        
+        .step-item {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .step-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .step-number {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .step-action {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .step-details {
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+        
+        .step-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 10px;
+            padding: 0.75rem;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .step-warning i {
+            color: #f59e0b;
+            font-size: 1.25rem;
+        }
+        
+        .prevention-tips {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .prevention-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #a5b4fc;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .tip-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        
+        .tip-icon {
+            color: #667eea;
+            font-size: 1.25rem;
+            margin-top: 0.125rem;
+        }
+        
+        .contact-section {
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+        
+        .contact-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+        
+        .contact-text {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .contact-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .contact-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .contact-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .related-issues {
+            margin-bottom: 3rem;
+        }
+        
+        .related-header {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+        
+        .related-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .related-card {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .related-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-3px);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .related-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .related-description {
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+        
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .helpful-section {
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .helpful-question {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .helpful-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
+        .helpful-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .helpful-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .helpful-btn.yes {
+            border-color: rgba(16, 185, 129, 0.5);
+        }
+        
+        .helpful-btn.yes:hover {
+            background: rgba(16, 185, 129, 0.2);
+        }
+        
+        .helpful-btn.no {
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+        
+        .helpful-btn.no:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .issue-title {
+                font-size: 2rem;
+            }
+            
+            .step-item {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .contact-buttons {
+                flex-direction: column;
+            }
+            
+            .related-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+  <!-- Floating orbs -->
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-glass">
+        <div class="container">
+            <a href="/troubleshooting" class="navbar-brand">
+                <i class="bi bi-arrow-left-circle me-2"></i>
+                Back to Troubleshooting
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <a href="/help-center" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-question-circle"></i> Help
+                </a>
+                <span class="text-white opacity-75">
+                    <i class="bi bi-person-circle me-2"></i>{{.Username}}
+                </span>
+            </div>
+        </div>
+              <form method="POST" action="/logout" class="m-0">
+            <button type="submit" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+          </form>
+
+</nav>
+    
+    <div class="container py-5">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/troubleshooting">Troubleshooting</a></li>
+                <li class="breadcrumb-item"><a href="/troubleshooting?category={{.Issue.Category}}">{{.Issue.Category}}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{.Issue.Title}}</li>
+            </ol>
+        </nav>
+        
+        <!-- Issue Header -->
+        <div class="issue-header">
+            <h1 class="issue-title">{{.Issue.Title}}</h1>
+            <p class="issue-description">{{.Issue.Description}}</p>
+            
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="action-btn" onclick="printSolution()">
+                    <i class="bi bi-printer"></i>
+                    Print Solution
+                </button>
+                <button class="action-btn" onclick="shareSolution()">
+                    <i class="bi bi-share"></i>
+                    Share
+                </button>
+                {{if .CanRunDiagnostics}}
+                <button class="action-btn" onclick="runIssueDiagnostics()">
+                    <i class="bi bi-activity"></i>
+                    Run Diagnostics
+                </button>
+                {{end}}
+            </div>
+        </div>
+        
+        <!-- Symptoms -->
+        {{if .Issue.Symptoms}}
+        <div class="symptoms-list">
+            <h3 class="symptoms-title">
+                <i class="bi bi-exclamation-triangle"></i>
+                Common Symptoms
+            </h3>
+            {{range .Issue.Symptoms}}
+            <div class="symptom-item">
+                <i class="bi bi-chevron-right symptom-icon"></i>
+                <span>{{.}}</span>
+            </div>
+            {{end}}
+        </div>
+        {{end}}
+        
+        <!-- Quick Fix -->
+        {{if .Issue.Solution.QuickFix}}
+        <div class="quick-fix">
+            <h3 class="quick-fix-title">
+                <i class="bi bi-lightning"></i>
+                Quick Fix
+            </h3>
+            <div class="quick-fix-content">
+                {{.Issue.Solution.QuickFix}}
+            </div>
+        </div>
+        {{end}}
+        
+        <!-- Solution Steps -->
+        {{if .Issue.Solution.Steps}}
+        <div class="solution-steps">
+            <h2 class="solution-title">Step-by-Step Solution</h2>
+            
+            {{range .Issue.Solution.Steps}}
+            <div class="step-item">
+                <div class="step-number">{{.Number}}</div>
+                <div class="step-content">
+                    <div class="step-action">{{.Action}}</div>
+                    <div class="step-details">{{.Details}}</div>
+                    {{if .Warning}}
+                    <div class="step-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <span>{{.Warning}}</span>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+            {{end}}
+        </div>
+        {{end}}
+        
+        <!-- Prevention Tips -->
+        {{if .Issue.Solution.PreventTips}}
+        <div class="prevention-tips">
+            <h3 class="prevention-title">
+                <i class="bi bi-shield-check"></i>
+                How to Prevent This Issue
+            </h3>
+            {{range .Issue.Solution.PreventTips}}
+            <div class="tip-item">
+                <i class="bi bi-check-circle-fill tip-icon"></i>
+                <span>{{.}}</span>
+            </div>
+            {{end}}
+        </div>
+        {{end}}
+        
+        <!-- Contact Support -->
+        {{if .Issue.Solution.Contact}}
+        <div class="contact-section">
+            <i class="bi bi-headset contact-icon"></i>
+            <p class="contact-text">{{.Issue.Solution.Contact}}</p>
+            <div class="contact-buttons">
+                <a href="mailto:support@fleetmanagement.com" class="contact-btn">
+                    <i class="bi bi-envelope"></i>
+                    Email Support
+                </a>
+                <a href="tel:1-800-353-3801" class="contact-btn">
+                    <i class="bi bi-telephone"></i>
+                    Call Support
+                </a>
+            </div>
+        </div>
+        {{end}}
+        
+        <!-- Was This Helpful -->
+        <div class="helpful-section">
+            <p class="helpful-question">Was this solution helpful?</p>
+            <div class="helpful-buttons">
+                <button class="helpful-btn yes" onclick="markHelpful(true)">
+                    <i class="bi bi-hand-thumbs-up"></i>
+                    Yes, it helped
+                </button>
+                <button class="helpful-btn no" onclick="markHelpful(false)">
+                    <i class="bi bi-hand-thumbs-down"></i>
+                    No, I need more help
+                </button>
+            </div>
+            <div id="helpfulFeedback" style="display: none; margin-top: 1rem;">
+                <!-- Feedback will appear here -->
+            </div>
+        </div>
+        
+        <!-- Related Issues -->
+        {{if .RelatedIssues}}
+        <div class="related-issues">
+            <h3 class="related-header">Related Issues</h3>
+            <div class="related-grid">
+                {{range .RelatedIssues}}
+                <a href="/troubleshooting/issue/{{.ID}}" class="related-card">
+                    <h4 class="related-title">{{.Title}}</h4>
+                    <p class="related-description">{{.Description}}</p>
+                </a>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script nonce="{{.CSPNonce}}">
+        // Print solution
+        function printSolution() {
+            window.print();
+        }
+        
+        // Share solution
+        function shareSolution() {
+            const url = window.location.href;
+            const title = '{{.Issue.Title}}';
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: title,
+                    text: 'Solution for: ' + title,
+                    url: url
+                });
+            } else {
+                // Copy to clipboard
+                navigator.clipboard.writeText(url);
+                showNotification('Link copied to clipboard!');
+            }
+        }
+        
+        // Mark helpful
+        function markHelpful(wasHelpful) {
+            const feedbackDiv = document.getElementById('helpfulFeedback');
+            
+            if (wasHelpful) {
+                feedbackDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Great! We're glad this helped.
+                    </div>
+                `;
+            } else {
+                feedbackDiv.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Please contact support for additional assistance.
+                        <div class="mt-2">
+                            <a href="mailto:support@fleetmanagement.com" class="btn btn-sm btn-primary">
+                                <i class="bi bi-envelope me-1"></i>Email Support
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            feedbackDiv.style.display = 'block';
+            
+            // Track feedback
+            if (window.progressTracker) {
+                progressTracker.trackFeature('troubleshooting_feedback', wasHelpful ? 'helpful' : 'not_helpful');
+            }
+        }
+        
+        // Show notification
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'position-fixed top-0 end-0 p-3';
+            notification.style.zIndex = '1050';
+            notification.innerHTML = `
+                <div class="toast show" role="alert">
+                    <div class="toast-header">
+                        <strong class="me-auto">Success</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        {{if .CanRunDiagnostics}}
+        // Run diagnostics for this specific issue
+        async function runIssueDiagnostics() {
+            const button = event.target.closest('button');
+            button.disabled = true;
+            button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Running...';
+            
+            try {
+                const response = await fetch('/api/diagnostics');
+                const results = await response.json();
+                
+                // Show results in a modal or alert
+                showDiagnosticResults(results);
+                
+                button.innerHTML = '<i class="bi bi-activity me-1"></i>Run Diagnostics';
+            } catch (error) {
+                console.error('Diagnostic error:', error);
+                button.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Error';
+            } finally {
+                button.disabled = false;
+            }
+        }
+        
+        function showDiagnosticResults(results) {
+            // You could show this in a modal or inline
+            console.log('Diagnostic results:', results);
+            showNotification('Diagnostics completed. Check console for results.');
+        }
+        {{end}}
+        
+        // Track page view
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.progressTracker) {
+                progressTracker.trackFeature('troubleshooting_issue_{{.Issue.ID}}');
+            }
+        });
+    </script>
+    
+    <!-- Print styles -->
+    <style media="print">
+        .navbar, .action-buttons, .helpful-section, .related-issues {
+            display: none !important;
+        }
+        
+        body {
+            background: white !important;
+            color: black !important;
+        }
+        
+        .issue-header, .symptoms-list, .quick-fix, .solution-steps, 
+        .prevention-tips, .contact-section {
+            background: white !important;
+            border: 1px solid #ddd !important;
+            color: black !important;
+        }
+        
+        .step-number {
+            background: #333 !important;
+            color: white !important;
+        }
+    </style>
+  <style nonce="{{.CSPNonce}}">
+    /* Ultimate beautiful design system */
+    :root {
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
+      color: white;
+    }
+    
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
+    }
+    
+    /* Glassmorphism navigation */
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+      transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
+    }
+    
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
+    }
+    
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+    /* Glass cards */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+    
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 2rem 0 1.5rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
+    }
+    
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    /* Form styling */
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
+    }
+    
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    /* Button styling */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+      color: white;
+    }
+    
+    /* Tables */
+    .table {
+      color: white;
+    }
+    
+    .table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+    }
+    
+    .table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(10px);
+    }
+    
+    /* Text colors for dark theme */
+    h1, h2, h3, h4, h5, h6, p, span, label, a, td, th, li {
+      color: white !important;
+    }
+    
+    .text-muted {
+      color: rgba(255, 255, 255, 0.7) !important;
+    }
+    
+    /* Card styling */
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      color: white;
+    }
+    
+    .card-header {
+      background: rgba(255, 255, 255, 0.15);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    /* Modal styling */
+    .modal-content {
+      background: rgba(30, 30, 50, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    .modal-header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .modal-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</body>
+</html>

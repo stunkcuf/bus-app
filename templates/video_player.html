@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Video.Title}} - Fleet Management System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/enhanced_ui.css">
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
+    
+    <style nonce="{{.CSPNonce}}">
+        body {
+            background: #0f0f0f;
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .video-container {
+            background: black;
+            position: relative;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .video-wrapper {
+            position: relative;
+            padding-top: 56.25%; /* 16:9 aspect ratio */
+            background: #000;
+        }
+        
+        .video-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+        
+        .placeholder-icon {
+            font-size: 6rem;
+            color: #667eea;
+            margin-bottom: 2rem;
+        }
+        
+        .placeholder-text {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .placeholder-note {
+            font-size: 1rem;
+            opacity: 0.7;
+            text-align: center;
+            max-width: 500px;
+            padding: 0 2rem;
+        }
+        
+        video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .video-info {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .video-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .video-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        .video-meta {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            opacity: 0.8;
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .video-description {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin-bottom: 2rem;
+        }
+        
+        .video-topics {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 3rem;
+        }
+        
+        .topic-tag {
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+        }
+        
+        .transcript-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .transcript-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .transcript-toggle {
+            background: none;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .transcript-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .transcript-content {
+            display: none;
+            line-height: 1.8;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 1rem;
+        }
+        
+        .transcript-content.show {
+            display: block;
+        }
+        
+        .related-videos {
+            margin-bottom: 3rem;
+        }
+        
+        .related-header {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+        
+        .related-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .related-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: white;
+        }
+        
+        .related-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-5px);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .related-thumbnail {
+            position: relative;
+            padding-top: 56.25%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .related-thumbnail img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .related-duration {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+        
+        .related-info {
+            padding: 1rem;
+        }
+        
+        .related-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+        
+        .related-views {
+            font-size: 0.875rem;
+            opacity: 0.6;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .action-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .next-video {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        
+        .next-video-label {
+            font-size: 0.875rem;
+            opacity: 0.7;
+            margin-bottom: 0.5rem;
+        }
+        
+        .next-video-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .next-video-btn {
+            margin-left: auto;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        
+        .next-video-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+            color: white;
+            text-decoration: none;
+        }
+        
+        @media (max-width: 768px) {
+            .video-title {
+                font-size: 1.5rem;
+            }
+            
+            .video-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            
+            .related-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-wrap: wrap;
+            }
+            
+            .next-video {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .next-video-btn {
+                margin: 1rem auto 0;
+            }
+        }
+    </style>
+  <style nonce="{{.CSPNonce}}">
+    /* Ultimate beautiful design system */
+    :root {
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
+      color: white;
+    }
+    
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
+    }
+    
+    /* Glassmorphism navigation */
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+      transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
+    }
+    
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
+    }
+    
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+    /* Glass cards */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+    
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 2rem 0 1.5rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
+    }
+    
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    /* Form styling */
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
+    }
+    
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    /* Button styling */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+      color: white;
+    }
+    
+    /* Tables */
+    .table {
+      color: white;
+    }
+    
+    .table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+    }
+    
+    .table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(10px);
+    }
+    
+    /* Text colors for dark theme */
+    h1, h2, h3, h4, h5, h6, p, span, label, a, td, th, li {
+      color: white !important;
+    }
+    
+    .text-muted {
+      color: rgba(255, 255, 255, 0.7) !important;
+    }
+    
+    /* Card styling */
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      color: white;
+    }
+    
+    .card-header {
+      background: rgba(255, 255, 255, 0.15);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    /* Modal styling */
+    .modal-content {
+      background: rgba(30, 30, 50, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    .modal-header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .modal-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Floating orbs -->
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-glass">
+        <div class="container-fluid">
+            <a href="/videos" class="navbar-brand">
+                <i class="bi bi-arrow-left-circle me-2"></i>
+                Back to Videos
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <a href="/help-center" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-question-circle"></i> Help
+                </a>
+            </div>
+        </div>
+              <form method="POST" action="/logout" class="m-0">
+            <button type="submit" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+          </form>
+
+</nav>
+    
+    <!-- Video Player -->
+    <div class="video-container">
+        <div class="video-wrapper">
+            <div class="video-placeholder">
+                <i class="bi bi-play-circle placeholder-icon"></i>
+                <div class="placeholder-text">Video Tutorial Placeholder</div>
+                <div class="placeholder-note">
+                    In production, this would display the actual video content. 
+                    Videos would be hosted on a streaming service like Vimeo, YouTube, or AWS.
+                </div>
+            </div>
+            <!-- In production, replace with actual video player -->
+            <!-- <video controls>
+                <source src="{{.Video.VideoURL}}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video> -->
+        </div>
+    </div>
+    
+    <!-- Video Information -->
+    <div class="video-info">
+        <div class="video-header">
+            <h1 class="video-title">{{.Video.Title}}</h1>
+            <div class="video-meta">
+                <div class="meta-item">
+                    <i class="bi bi-clock"></i>
+                    <span>{{.Video.Duration}}</span>
+                </div>
+                <div class="meta-item">
+                    <i class="bi bi-folder"></i>
+                    <span>{{.Video.Category}}</span>
+                </div>
+                <div class="meta-item">
+                    <i class="bi bi-eye"></i>
+                    <span>{{if .Video.Views}}{{.Video.Views}}{{else}}0{{end}} views</span>
+                </div>
+            </div>
+        </div>
+        
+        <p class="video-description">{{.Video.Description}}</p>
+        
+        <div class="video-topics">
+            {{range .Video.Topics}}
+            <span class="topic-tag">{{.}}</span>
+            {{end}}
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="action-btn" onclick="markComplete()">
+                <i class="bi bi-check-circle"></i>
+                Mark as Complete
+            </button>
+            <a href="/practice-mode" class="action-btn">
+                <i class="bi bi-mortarboard"></i>
+                Practice This
+            </a>
+            <button class="action-btn" onclick="shareVideo()">
+                <i class="bi bi-share"></i>
+                Share
+            </button>
+        </div>
+        
+        {{if .NextVideo}}
+        <!-- Next Video -->
+        <div class="next-video">
+            <div>
+                <div class="next-video-label">Up Next</div>
+                <div class="next-video-title">{{.NextVideo.Title}}</div>
+            </div>
+            <a href="/video/{{.NextVideo.ID}}" class="next-video-btn">
+                Watch Next <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+        {{end}}
+        
+        <!-- Transcript Section -->
+        <div class="transcript-section">
+            <div class="transcript-header">
+                <h3><i class="bi bi-file-text me-2"></i>Video Transcript</h3>
+                <button class="transcript-toggle" onclick="toggleTranscript()">
+                    <i class="bi bi-chevron-down"></i> Show Transcript
+                </button>
+            </div>
+            <div class="transcript-content" id="transcript">
+                <p>This is a placeholder for the video transcript. In a production environment, this would contain the full text transcript of the video, making the content accessible and searchable.</p>
+                <p>The transcript would be time-coded and could be synchronized with the video playback for enhanced learning.</p>
+            </div>
+        </div>
+        
+        <!-- Related Videos -->
+        {{if .RelatedVideos}}
+        <div class="related-videos">
+            <h3 class="related-header">Related Videos</h3>
+            <div class="related-grid">
+                {{range .RelatedVideos}}
+                <a href="/video/{{.ID}}" class="related-card">
+                    <div class="related-thumbnail">
+                        <img src="{{.Thumbnail}}" alt="{{.Title}}" onerror="this.style.display='none'">
+                        <div class="related-duration">{{.Duration}}</div>
+                    </div>
+                    <div class="related-info">
+                        <div class="related-title">{{.Title}}</div>
+                        <div class="related-views">{{.Category}}</div>
+                    </div>
+                </a>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script nonce="{{.CSPNonce}}">
+        // Toggle transcript
+        function toggleTranscript() {
+            const transcript = document.getElementById('transcript');
+            const button = document.querySelector('.transcript-toggle');
+            
+            if (transcript.classList.contains('show')) {
+                transcript.classList.remove('show');
+                button.innerHTML = '<i class="bi bi-chevron-down"></i> Show Transcript';
+            } else {
+                transcript.classList.add('show');
+                button.innerHTML = '<i class="bi bi-chevron-up"></i> Hide Transcript';
+            }
+        }
+        
+        // Mark video as complete
+        function markComplete() {
+            const videoId = '{{.Video.ID}}';
+            
+            // Update local storage
+            const completed = JSON.parse(localStorage.getItem('completedVideos') || '{}');
+            completed[videoId] = true;
+            localStorage.setItem('completedVideos', JSON.stringify(completed));
+            
+            // Update progress tracking
+            if (window.progressTracker) {
+                progressTracker.trackFeature('video_' + videoId, 'completed');
+            }
+            
+            // Update button
+            const button = event.target.closest('button');
+            button.innerHTML = '<i class="bi bi-check-circle-fill"></i> Completed';
+            button.disabled = true;
+            
+            // Show success message
+            showNotification('Video marked as complete!');
+        }
+        
+        // Share video
+        function shareVideo() {
+            const url = window.location.href;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: '{{.Video.Title}}',
+                    text: '{{.Video.Description}}',
+                    url: url
+                });
+            } else {
+                // Copy to clipboard
+                navigator.clipboard.writeText(url);
+                showNotification('Link copied to clipboard!');
+            }
+        }
+        
+        // Show notification
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'position-fixed top-0 end-0 p-3';
+            notification.style.zIndex = '1050';
+            notification.innerHTML = `
+                <div class="toast show" role="alert">
+                    <div class="toast-header">
+                        <strong class="me-auto">Success</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        // Track video view
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mark as watched
+            const watched = JSON.parse(localStorage.getItem('watchedVideos') || '{}');
+            watched['{{.Video.ID}}'] = true;
+            localStorage.setItem('watchedVideos', JSON.stringify(watched));
+            
+            // Track progress
+            if (window.progressTracker) {
+                progressTracker.trackFeature('video_{{.Video.ID}}_viewed');
+            }
+        });
+    </script>
+</body>
+</html>

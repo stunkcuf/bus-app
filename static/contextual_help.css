@@ -1,0 +1,324 @@
+/* Contextual Help System Styles */
+/* Enhanced styles for better visibility and accessibility */
+
+/* Help Icon Styles */
+.help-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-left: 8px;
+    cursor: help;
+    vertical-align: middle;
+    color: #667eea;
+    transition: all 0.2s ease;
+    font-size: 16px;
+}
+
+.help-icon:hover {
+    color: #5a6fd8;
+    transform: scale(1.15);
+}
+
+.help-icon:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+    border-radius: 50%;
+}
+
+/* Dark theme support */
+.dark-theme .help-icon,
+body.dark .help-icon {
+    color: #a8b4ff;
+}
+
+/* Help Tooltip Styles */
+.help-tooltip {
+    position: fixed;
+    background: rgba(30, 30, 60, 0.98);
+    color: white;
+    padding: 16px 20px;
+    border-radius: 12px;
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 350px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    z-index: 10000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transform: translateY(5px);
+}
+
+.help-tooltip.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+/* Tooltip Arrow */
+.help-tooltip::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 12px;
+    background: rgba(30, 30, 60, 0.98);
+    transform: translateX(-50%) rotate(45deg);
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Tooltip positioned below */
+.help-tooltip.below::before {
+    top: auto;
+    bottom: -6px;
+    transform: translateX(-50%) rotate(225deg);
+    border: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Form Group with Help */
+.form-group-with-help {
+    position: relative;
+}
+
+.form-group-with-help label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Quick Tips */
+.help-quick-tip {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(102, 126, 234, 0.08);
+    color: #667eea;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    width: fit-content;
+}
+
+.help-quick-tip i {
+    font-size: 18px;
+    color: #fbbf24;
+}
+
+/* Dark theme quick tips */
+.dark-theme .help-quick-tip,
+body.dark .help-quick-tip {
+    background: rgba(168, 180, 255, 0.1);
+    color: #a8b4ff;
+    border-color: rgba(168, 180, 255, 0.3);
+}
+
+/* Video Links */
+.help-video-link {
+    color: #4facfe;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.help-video-link:hover {
+    color: #74c7ff;
+    text-decoration: underline;
+}
+
+.help-video-link i {
+    font-size: 16px;
+}
+
+/* Inline Help Text */
+.help-text {
+    font-size: 13px;
+    color: #6c757d;
+    margin-top: 4px;
+    display: block;
+}
+
+.dark-theme .help-text,
+body.dark .help-text {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Help Overlay for First-Time Users */
+.help-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 9998;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.help-overlay.show {
+    display: block;
+    opacity: 1;
+}
+
+/* Help Spotlight */
+.help-spotlight {
+    position: absolute;
+    border: 3px solid #667eea;
+    border-radius: 8px;
+    box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.7);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+/* Help Callout */
+.help-callout {
+    position: absolute;
+    background: white;
+    color: #2d3748;
+    padding: 20px 24px;
+    border-radius: 12px;
+    max-width: 400px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    z-index: 9999;
+}
+
+.help-callout h4 {
+    margin: 0 0 12px 0;
+    color: #667eea;
+    font-size: 18px;
+}
+
+.help-callout p {
+    margin: 0 0 16px 0;
+    line-height: 1.6;
+}
+
+.help-callout-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.help-callout-actions button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.help-callout-actions .btn-primary {
+    background: #667eea;
+    color: white;
+}
+
+.help-callout-actions .btn-secondary {
+    background: #e2e8f0;
+    color: #4a5568;
+}
+
+/* Help Button (F1 indicator) */
+.help-button-floating {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #667eea;
+    color: white;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    font-size: 24px;
+}
+
+.help-button-floating:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 30px rgba(102, 126, 234, 0.6);
+}
+
+.help-button-floating:active {
+    transform: scale(0.95);
+}
+
+/* Accessibility Improvements */
+@media (prefers-reduced-motion: reduce) {
+    .help-icon,
+    .help-tooltip,
+    .help-video-link,
+    .help-button-floating {
+        transition: none;
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .help-tooltip {
+        max-width: 90vw;
+        left: 5vw !important;
+        right: 5vw !important;
+        width: auto;
+    }
+    
+    .help-callout {
+        max-width: 90vw;
+        left: 5vw !important;
+        right: 5vw !important;
+    }
+    
+    .help-button-floating {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .help-icon {
+        color: #0066cc;
+        font-weight: bold;
+    }
+    
+    .help-tooltip {
+        background: black;
+        border: 2px solid white;
+    }
+    
+    .help-quick-tip {
+        border-width: 2px;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .help-icon,
+    .help-tooltip,
+    .help-button-floating,
+    .help-overlay,
+    .help-video-link {
+        display: none !important;
+    }
+}

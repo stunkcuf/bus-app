@@ -79,6 +79,47 @@ func InitDB(dataSourceName string) error {
 		// Don't fail startup for index creation errors
 	}
 
+	// Fix database sync issues
+	log.Println("Fixing database sync issues...")
+	if err := FixDatabaseSyncIssues(); err != nil {
+		log.Printf("Warning: Failed to fix some database sync issues: %v", err)
+		// Don't fail startup, but log the warning
+	}
+
+	// Clean up invalid data
+	log.Println("Cleaning up invalid data...")
+	if err := CleanupInvalidData(); err != nil {
+		log.Printf("Warning: Failed to clean up some invalid data: %v", err)
+		// Don't fail startup, but log the warning
+	}
+
+	// Fix notifications table
+	log.Println("Fixing notifications table...")
+	if err := FixNotificationsTable(); err != nil {
+		log.Printf("Warning: Failed to fix notifications table: %v", err)
+		// Don't fail startup, but log the warning
+	}
+
+	// Fix users table
+	log.Println("Fixing users table...")
+	if err := FixUsersTable(); err != nil {
+		log.Printf("Warning: Failed to fix users table: %v", err)
+		// Don't fail startup, but log the warning
+	}
+
+	// Fix routes display
+	log.Println("Fixing routes display...")
+	if err := FixRoutesDisplay(); err != nil {
+		log.Printf("Warning: Failed to fix routes display: %v", err)
+		// Don't fail startup, but log the warning
+	}
+
+	// Fix route assignments
+	if err := FixRouteAssignments(); err != nil {
+		log.Printf("Warning: Failed to fix route assignments: %v", err)
+		// Don't fail startup, but log the warning
+	}
+
 	log.Println("Database initialization complete!")
 	return nil
 }
@@ -443,6 +484,7 @@ func runMigrations() error {
 			provider VARCHAR(100),
 			start_date DATE,
 			end_date DATE,
+			goals TEXT,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
 
@@ -842,6 +884,147 @@ func runMigrations() error {
 		`CREATE INDEX IF NOT EXISTS idx_budget_transactions_category ON budget_transactions(category_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_budget_categories_budget ON budget_categories(budget_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_budget_alerts_active ON budget_alerts(budget_id, is_active) WHERE is_active = true`,
+
+		// Messaging tables
+		`CREATE TABLE IF NOT EXISTS conversations (
+			id VARCHAR(100) PRIMARY KEY,
+			type VARCHAR(20) NOT NULL DEFAULT 'direct', -- direct, group, broadcast
+			name VARCHAR(255),
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_conversations_updated ON conversations(updated_at DESC)`,
+		
+		`CREATE TABLE IF NOT EXISTS conversation_participants (
+			conversation_id VARCHAR(100) REFERENCES conversations(id) ON DELETE CASCADE,
+			user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+			joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			last_read_at TIMESTAMP,
+			PRIMARY KEY (conversation_id, user_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_participants_user ON conversation_participants(user_id)`,
+		
+		`CREATE TABLE IF NOT EXISTS messages (
+			id SERIAL PRIMARY KEY,
+			conversation_id VARCHAR(100) REFERENCES conversations(id) ON DELETE CASCADE,
+			sender_id INTEGER REFERENCES users(id),
+			recipient_id INTEGER REFERENCES users(id), -- For direct messages
+			content TEXT NOT NULL,
+			message_type VARCHAR(20) DEFAULT 'text', -- text, location, emergency, system
+			status VARCHAR(20) DEFAULT 'sent', -- sent, delivered, read
+			metadata JSONB,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			read_at TIMESTAMP,
+			CONSTRAINT check_message_type CHECK (message_type IN ('text', 'location', 'emergency', 'system')),
+			CONSTRAINT check_status CHECK (status IN ('sent', 'delivered', 'read'))
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id, created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_messages_unread ON messages(conversation_id, sender_id, read_at) WHERE read_at IS NULL`,
+		
+		`CREATE TABLE IF NOT EXISTS message_attachments (
+			id SERIAL PRIMARY KEY,
+			message_id INTEGER REFERENCES messages(id) ON DELETE CASCADE,
+			type VARCHAR(20) NOT NULL, -- image, document, location
+			url TEXT NOT NULL,
+			filename VARCHAR(255),
+			size BIGINT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_attachments_message ON message_attachments(message_id)`,
+		
+		// Trigger to update conversation timestamp when new message is added
+		`CREATE OR REPLACE FUNCTION update_conversation_timestamp()
+		RETURNS TRIGGER AS $$
+		BEGIN
+			UPDATE conversations 
+			SET updated_at = CURRENT_TIMESTAMP 
+			WHERE id = NEW.conversation_id;
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql`,
+		
+		`DROP TRIGGER IF EXISTS update_conversation_on_message ON messages`,
+		
+		`CREATE TRIGGER update_conversation_on_message
+		AFTER INSERT ON messages
+		FOR EACH ROW
+		EXECUTE FUNCTION update_conversation_timestamp()`,
+		
+		// Emergency system tables
+		`CREATE TABLE IF NOT EXISTS emergency_alerts (
+			id SERIAL PRIMARY KEY,
+			alert_id VARCHAR(100) UNIQUE NOT NULL,
+			type VARCHAR(50) NOT NULL, -- breakdown, accident, medical, security, weather, sos, other
+			severity VARCHAR(20) NOT NULL, -- critical, high, medium, low
+			status VARCHAR(20) NOT NULL DEFAULT 'active', -- active, acknowledged, resolved, cancelled
+			reporter_id INTEGER REFERENCES users(id),
+			vehicle_id VARCHAR(50),
+			route_id VARCHAR(50),
+			location_lat DECIMAL(10,8),
+			location_lng DECIMAL(11,8),
+			location_address TEXT,
+			title VARCHAR(255) NOT NULL,
+			description TEXT,
+			affected_users JSONB,
+			timeline JSONB,
+			metadata JSONB,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			acknowledged_at TIMESTAMP,
+			resolved_at TIMESTAMP,
+			CONSTRAINT check_emergency_type CHECK (type IN ('breakdown', 'accident', 'medical', 'security', 'weather', 'sos', 'other')),
+			CONSTRAINT check_severity CHECK (severity IN ('critical', 'high', 'medium', 'low')),
+			CONSTRAINT check_status CHECK (status IN ('active', 'acknowledged', 'resolved', 'cancelled'))
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_emergency_alerts_status ON emergency_alerts(status) WHERE status IN ('active', 'acknowledged')`,
+		`CREATE INDEX IF NOT EXISTS idx_emergency_alerts_severity ON emergency_alerts(severity, created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_emergency_alerts_reporter ON emergency_alerts(reporter_id)`,
+		
+		`CREATE TABLE IF NOT EXISTS emergency_responders (
+			id SERIAL PRIMARY KEY,
+			alert_id VARCHAR(100) REFERENCES emergency_alerts(alert_id) ON DELETE CASCADE,
+			user_id INTEGER REFERENCES users(id),
+			status VARCHAR(50) DEFAULT 'assigned', -- assigned, en_route, on_scene, completed
+			assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			eta TIMESTAMP,
+			notes TEXT
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_emergency_responders_alert ON emergency_responders(alert_id)`,
+		
+		`CREATE TABLE IF NOT EXISTS emergency_protocols (
+			id SERIAL PRIMARY KEY,
+			type VARCHAR(50) NOT NULL,
+			name VARCHAR(255) NOT NULL,
+			steps JSONB NOT NULL,
+			contacts JSONB,
+			resources JSONB,
+			is_active BOOLEAN DEFAULT TRUE,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		
+		`CREATE TABLE IF NOT EXISTS emergency_contacts (
+			id SERIAL PRIMARY KEY,
+			name VARCHAR(255) NOT NULL,
+			role VARCHAR(100),
+			phone VARCHAR(50),
+			email VARCHAR(255),
+			priority INTEGER DEFAULT 1,
+			is_active BOOLEAN DEFAULT TRUE,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		
+		`CREATE TABLE IF NOT EXISTS emergency_attachments (
+			id SERIAL PRIMARY KEY,
+			alert_id VARCHAR(100) REFERENCES emergency_alerts(alert_id) ON DELETE CASCADE,
+			type VARCHAR(50) NOT NULL, -- photo, document, audio
+			url TEXT NOT NULL,
+			filename VARCHAR(255),
+			size BIGINT,
+			uploaded_by INTEGER REFERENCES users(id),
+			uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_emergency_attachments_alert ON emergency_attachments(alert_id)`,
 	}
 
 	for i, migration := range migrations {

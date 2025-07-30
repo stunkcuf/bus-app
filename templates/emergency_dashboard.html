@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Fleet Management System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/modern_theme.css">
+    
+    <style nonce="{{.CSPNonce}}">
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .emergency-header {
+            background: rgba(239, 68, 68, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .emergency-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(239, 68, 68, 0.3), transparent);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(0.8); opacity: 0.3; }
+            50% { transform: scale(1.2); opacity: 0.6; }
+        }
+        
+        .sos-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.5);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            animation: sosGlow 2s ease-in-out infinite;
+        }
+        
+        @keyframes sosGlow {
+            0%, 100% { box-shadow: 0 10px 30px rgba(239, 68, 68, 0.5); }
+            50% { box-shadow: 0 10px 50px rgba(239, 68, 68, 0.8); }
+        }
+        
+        .sos-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 15px 40px rgba(239, 68, 68, 0.8);
+        }
+        
+        .emergency-card {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .emergency-card.critical {
+            border-color: rgba(239, 68, 68, 0.5);
+            background: rgba(239, 68, 68, 0.1);
+            animation: criticalPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes criticalPulse {
+            0%, 100% { border-color: rgba(239, 68, 68, 0.5); }
+            50% { border-color: rgba(239, 68, 68, 0.8); }
+        }
+        
+        .emergency-card.high {
+            border-color: rgba(251, 191, 36, 0.5);
+            background: rgba(251, 191, 36, 0.1);
+        }
+        
+        .severity-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .severity-critical {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .severity-high {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+        
+        .severity-medium {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+        
+        .severity-low {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        
+        .emergency-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .action-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .action-btn.primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+        }
+        
+        .action-btn.danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border: none;
+        }
+        
+        .emergency-timeline {
+            margin-top: 1.5rem;
+            padding-left: 1.5rem;
+            border-left: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .timeline-event {
+            position: relative;
+            padding-bottom: 1rem;
+        }
+        
+        .timeline-event::before {
+            content: '';
+            position: absolute;
+            left: -1.75rem;
+            top: 0.25rem;
+            width: 10px;
+            height: 10px;
+            background: #667eea;
+            border-radius: 50%;
+        }
+        
+        .emergency-map {
+            height: 400px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            margin-top: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .protocol-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .protocol-steps {
+            list-style: none;
+            padding: 0;
+            margin-top: 1rem;
+        }
+        
+        .protocol-steps li {
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .step-number {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        
+        .emergency-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            opacity: 0.7;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .emergency-filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-color: transparent;
+        }
+        
+        .emergency-contact {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .contact-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .contact-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .contact-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .contact-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.1);
+        }
+        
+        @media (max-width: 768px) {
+            .sos-button {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+            
+            .emergency-stats {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+  <style nonce="{{.CSPNonce}}">
+    /* Ultimate beautiful design system */
+    :root {
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
+      color: white;
+    }
+    
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
+    }
+    
+    /* Glassmorphism navigation */
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+      transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
+    }
+    
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
+    }
+    
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+    /* Glass cards */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+    
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 2rem 0 1.5rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
+    }
+    
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    /* Form styling */
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
+    }
+    
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    /* Button styling */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+      color: white;
+    }
+    
+    /* Tables */
+    .table {
+      color: white;
+    }
+    
+    .table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+    }
+    
+    .table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(10px);
+    }
+    
+    /* Text colors for dark theme */
+    h1, h2, h3, h4, h5, h6, p, span, label, a, td, th, li {
+      color: white !important;
+    }
+    
+    .text-muted {
+      color: rgba(255, 255, 255, 0.7) !important;
+    }
+    
+    /* Card styling */
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      color: white;
+    }
+    
+    .card-header {
+      background: rgba(255, 255, 255, 0.15);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    /* Modal styling */
+    .modal-content {
+      background: rgba(30, 30, 50, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    .modal-header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .modal-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+    <!-- Dark Theme Text Colors -->
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
+</head>
+<body>
+  <!-- Floating orbs -->
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-glass">
+        <div class="container-fluid">
+            <a href="{{if eq .UserType "Manager"}}/manager-dashboard{{else}}/driver-dashboard{{end}}" class="navbar-brand">
+                <i class="bi bi-arrow-left-circle me-2"></i>
+                Back to Dashboard
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <span class="text-white opacity-75">
+                    <i class="bi bi-person-circle me-2"></i>{{.Username}}
+                </span>
+            </div>
+        </div>
+              <form method="POST" action="/logout" class="m-0">
+            <button type="submit" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+          </form>
+
+</nav>
+    
+    <div class="container py-4">
+        <!-- Emergency Header -->
+        <div class="emergency-header">
+            <h1 class="display-4 fw-bold mb-3">
+                <i class="bi bi-exclamation-triangle-fill me-3"></i>
+                Emergency Management Center
+            </h1>
+            <p class="lead mb-0">Monitor and respond to emergency situations in real-time</p>
+        </div>
+        
+        <!-- Emergency Stats -->
+        <div class="emergency-stats">
+            <div class="stat-card">
+                <div class="stat-value text-danger">{{.Stats.ActiveCount}}</div>
+                <div class="stat-label">Active Emergencies</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value text-success">{{.Stats.ResolvedToday}}</div>
+                <div class="stat-label">Resolved Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value text-warning">{{.Stats.AvgResponseTime}}</div>
+                <div class="stat-label">Avg Response (min)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value text-info">{{len .Protocols}}</div>
+                <div class="stat-label">Active Protocols</div>
+            </div>
+        </div>
+        
+        <!-- Active Emergencies -->
+        <h2 class="mb-3">
+            <i class="bi bi-exclamation-circle me-2"></i>
+            Active Emergencies
+        </h2>
+        
+        <div class="emergency-filters">
+            <button class="filter-btn active" onclick="filterEmergencies('all')">All</button>
+            <button class="filter-btn" onclick="filterEmergencies('critical')">Critical</button>
+            <button class="filter-btn" onclick="filterEmergencies('high')">High</button>
+            <button class="filter-btn" onclick="filterEmergencies('medium')">Medium</button>
+            <button class="filter-btn" onclick="filterEmergencies('low')">Low</button>
+        </div>
+        
+        <div id="activeEmergencies">
+            {{if .ActiveEmergencies}}
+            {{range .ActiveEmergencies}}
+            <div class="emergency-card {{.Severity}}" data-severity="{{.Severity}}">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h4 class="mb-2">{{.Title}}</h4>
+                        <div class="d-flex gap-2 align-items-center">
+                            <span class="severity-badge severity-{{.Severity}}">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                {{.Severity}}
+                            </span>
+                            <span class="badge bg-secondary">{{.Type}}</span>
+                            <span class="text-muted">{{.CreatedAt.Format "3:04 PM"}}</span>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted">Alert ID: {{.AlertID}}</small>
+                    </div>
+                </div>
+                
+                <p class="mb-3">{{.Description}}</p>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <small class="text-muted">Reported by:</small>
+                        <div>{{.ReporterName}} ({{.ReporterRole}})</div>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted">Location:</small>
+                        <div>
+                            <i class="bi bi-geo-alt me-1"></i>
+                            {{.Location.Address}}
+                        </div>
+                    </div>
+                </div>
+                
+                {{if .VehicleID}}
+                <div class="mb-3">
+                    <small class="text-muted">Vehicle:</small>
+                    <span class="badge bg-info">{{.VehicleID}}</span>
+                    {{if .RouteID}}
+                    <small class="text-muted ms-3">Route:</small>
+                    <span class="badge bg-info">{{.RouteID}}</span>
+                    {{end}}
+                </div>
+                {{end}}
+                
+                <div class="emergency-actions">
+                    {{if eq .Status "active"}}
+                    <button class="action-btn primary" onclick="acknowledgeEmergency('{{.AlertID}}')">
+                        <i class="bi bi-check-circle"></i>
+                        Acknowledge
+                    </button>
+                    {{end}}
+                    <button class="action-btn" onclick="viewEmergencyDetails('{{.AlertID}}')">
+                        <i class="bi bi-eye"></i>
+                        View Details
+                    </button>
+                    <button class="action-btn" onclick="assignResponder('{{.AlertID}}')">
+                        <i class="bi bi-person-plus"></i>
+                        Assign Responder
+                    </button>
+                    {{if ne .Status "resolved"}}
+                    <button class="action-btn danger" onclick="resolveEmergency('{{.AlertID}}')">
+                        <i class="bi bi-x-circle"></i>
+                        Resolve
+                    </button>
+                    {{end}}
+                </div>
+                
+                {{if .Timeline}}
+                <div class="emergency-timeline">
+                    <h6 class="mb-3">Timeline</h6>
+                    {{range .Timeline}}
+                    <div class="timeline-event">
+                        <small class="text-muted">{{.Timestamp.Format "3:04 PM"}}</small>
+                        <div>{{.Description}} - {{.Username}}</div>
+                    </div>
+                    {{end}}
+                </div>
+                {{end}}
+            </div>
+            {{end}}
+            {{else}}
+            <div class="text-center py-5 opacity-50">
+                <i class="bi bi-shield-check" style="font-size: 3rem;"></i>
+                <p class="mt-3">No active emergencies</p>
+            </div>
+            {{end}}
+        </div>
+        
+        <!-- Emergency Protocols -->
+        <h2 class="mb-3 mt-5">
+            <i class="bi bi-clipboard-check me-2"></i>
+            Emergency Protocols
+        </h2>
+        
+        <div class="row">
+            {{range .Protocols}}
+            <div class="col-md-6 mb-3">
+                <div class="protocol-card">
+                    <h5 class="mb-3">{{.Name}}</h5>
+                    <div class="badge bg-info mb-3">{{.Type}}</div>
+                    
+                    <ul class="protocol-steps">
+                        {{range $index, $step := .Steps}}
+                        <li>
+                            <span class="step-number">{{add $index 1}}</span>
+                            <span>{{$step}}</span>
+                        </li>
+                        {{end}}
+                    </ul>
+                    
+                    {{if .Contacts}}
+                    <h6 class="mt-4 mb-3">Emergency Contacts</h6>
+                    {{range .Contacts}}
+                    <div class="emergency-contact">
+                        <div class="contact-info">
+                            <strong>{{.Name}}</strong>
+                            <small class="text-muted">{{.Role}}</small>
+                        </div>
+                        <div class="contact-actions">
+                            <button class="contact-btn" onclick="callContact('{{.Phone}}')" title="Call">
+                                <i class="bi bi-telephone"></i>
+                            </button>
+                            <button class="contact-btn" onclick="emailContact('{{.Email}}')" title="Email">
+                                <i class="bi bi-envelope"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {{end}}
+                    {{end}}
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+    
+    <!-- SOS Button -->
+    <button class="sos-button" onclick="activateSOS()" title="Emergency SOS">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+    </button>
+    
+    <!-- Emergency Modal -->
+    <div class="modal fade" id="emergencyModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content" style="background: #1a1a2e; color: white;">
+                <div class="modal-header">
+                    <h5 class="modal-title">Report Emergency</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="emergencyForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Emergency Type</label>
+                                <select class="form-select" id="emergencyType" required>
+                                    <option value="">Select type...</option>
+                                    <option value="breakdown">Vehicle Breakdown</option>
+                                    <option value="accident">Accident</option>
+                                    <option value="medical">Medical Emergency</option>
+                                    <option value="security">Security Issue</option>
+                                    <option value="weather">Severe Weather</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Severity</label>
+                                <select class="form-select" id="emergencySeverity" required>
+                                    <option value="">Select severity...</option>
+                                    <option value="critical">Critical - Immediate Response</option>
+                                    <option value="high">High - Urgent</option>
+                                    <option value="medium">Medium - Important</option>
+                                    <option value="low">Low - Non-urgent</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Title</label>
+                            <input type="text" class="form-control" id="emergencyTitle" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" id="emergencyDescription" rows="3" required></textarea>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Vehicle (if applicable)</label>
+                                <select class="form-select" id="emergencyVehicle">
+                                    <option value="">Not vehicle related</option>
+                                    <!-- Populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Route (if applicable)</label>
+                                <select class="form-select" id="emergencyRoute">
+                                    <option value="">Not route related</option>
+                                    <!-- Populated dynamically -->
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Location</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="emergencyLocation" placeholder="Getting current location..." readonly>
+                                <button class="btn btn-outline-secondary" type="button" onclick="getCurrentLocation()">
+                                    <i class="bi bi-geo-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="submitEmergency()">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Report Emergency
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script nonce="{{.CSPNonce}}">
+        let currentLocation = null;
+        let ws = null;
+        
+        // Initialize WebSocket for real-time updates
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log('Connected to emergency updates');
+            };
+            
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                handleEmergencyUpdate(message);
+            };
+            
+            ws.onclose = () => {
+                console.log('Disconnected from emergency updates, reconnecting...');
+                setTimeout(initWebSocket, 3000);
+            };
+        }
+        
+        // Handle emergency updates
+        function handleEmergencyUpdate(message) {
+            switch (message.type) {
+                case 'emergency_alert':
+                    handleNewEmergency(message.data.alert);
+                    break;
+                case 'sos_emergency':
+                    handleSOSEmergency(message.data.alert);
+                    break;
+                case 'emergency_update':
+                    updateEmergencyCard(message.data.alert);
+                    break;
+            }
+        }
+        
+        // Handle new emergency
+        function handleNewEmergency(alert) {
+            // Play alert sound
+            playEmergencySound(alert.severity);
+            
+            // Show notification
+            showEmergencyNotification(alert);
+            
+            // Reload active emergencies
+            loadActiveEmergencies();
+        }
+        
+        // Handle SOS emergency
+        function handleSOSEmergency(alert) {
+            // Critical alert handling
+            playSOSSound();
+            
+            // Show popup
+            showSOSPopup(alert);
+            
+            // Auto-focus on emergency
+            loadActiveEmergencies();
+        }
+        
+        // Activate SOS
+        function activateSOS() {
+            if (!confirm('Activate Emergency SOS?\n\nThis will immediately notify all managers and emergency contacts.')) {
+                return;
+            }
+            
+            // Get location first
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        sendSOS({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        });
+                    },
+                    error => {
+                        // Send SOS without location
+                        sendSOS(null);
+                    },
+                    { enableHighAccuracy: true, timeout: 5000 }
+                );
+            } else {
+                sendSOS(null);
+            }
+        }
+        
+        // Send SOS alert
+        async function sendSOS(location) {
+            const sosData = {
+                location: location || {
+                    latitude: 0,
+                    longitude: 0,
+                    address: 'Location unavailable'
+                },
+                message: 'EMERGENCY SOS ACTIVATED - Immediate assistance required'
+            };
+            
+            try {
+                const response = await fetch('/api/emergency/sos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '{{.CSPNonce}}'
+                    },
+                    body: JSON.stringify(sosData)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    alert('SOS Alert Sent!\n\nEmergency services have been notified.\nAlert ID: ' + result.alert.alert_id);
+                } else {
+                    alert('Failed to send SOS. Please call emergency services directly.');
+                }
+            } catch (error) {
+                console.error('SOS error:', error);
+                alert('Failed to send SOS. Please call emergency services directly.');
+            }
+        }
+        
+        // Submit emergency report
+        async function submitEmergency() {
+            const form = document.getElementById('emergencyForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            const emergencyData = {
+                type: document.getElementById('emergencyType').value,
+                severity: document.getElementById('emergencySeverity').value,
+                title: document.getElementById('emergencyTitle').value,
+                description: document.getElementById('emergencyDescription').value,
+                vehicle_id: document.getElementById('emergencyVehicle').value || null,
+                route_id: document.getElementById('emergencyRoute').value || null,
+                location: currentLocation || {
+                    latitude: 0,
+                    longitude: 0,
+                    address: document.getElementById('emergencyLocation').value
+                }
+            };
+            
+            try {
+                const response = await fetch('/api/emergency/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '{{.CSPNonce}}'
+                    },
+                    body: JSON.stringify(emergencyData)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    bootstrap.Modal.getInstance(document.getElementById('emergencyModal')).hide();
+                    alert('Emergency reported successfully. Alert ID: ' + result.alert.alert_id);
+                    loadActiveEmergencies();
+                } else {
+                    alert('Failed to report emergency. Please try again.');
+                }
+            } catch (error) {
+                console.error('Emergency submission error:', error);
+                alert('Failed to report emergency. Please try again.');
+            }
+        }
+        
+        // Acknowledge emergency
+        async function acknowledgeEmergency(alertId) {
+            try {
+                const response = await fetch('/api/emergency/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '{{.CSPNonce}}'
+                    },
+                    body: JSON.stringify({
+                        alert_id: alertId,
+                        status: 'acknowledged',
+                        description: 'Emergency acknowledged and response initiated'
+                    })
+                });
+                
+                if (response.ok) {
+                    loadActiveEmergencies();
+                }
+            } catch (error) {
+                console.error('Failed to acknowledge emergency:', error);
+            }
+        }
+        
+        // Resolve emergency
+        async function resolveEmergency(alertId) {
+            const resolution = prompt('Please provide resolution details:');
+            if (!resolution) return;
+            
+            try {
+                const response = await fetch('/api/emergency/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '{{.CSPNonce}}'
+                    },
+                    body: JSON.stringify({
+                        alert_id: alertId,
+                        status: 'resolved',
+                        description: resolution
+                    })
+                });
+                
+                if (response.ok) {
+                    loadActiveEmergencies();
+                }
+            } catch (error) {
+                console.error('Failed to resolve emergency:', error);
+            }
+        }
+        
+        // Get current location
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        currentLocation = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy,
+                            timestamp: new Date()
+                        };
+                        
+                        // Reverse geocode to get address
+                        document.getElementById('emergencyLocation').value = 
+                            `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`;
+                    },
+                    error => {
+                        alert('Unable to get location. Please enter manually.');
+                    },
+                    { enableHighAccuracy: true }
+                );
+            } else {
+                alert('Geolocation is not supported by your browser.');
+            }
+        }
+        
+        // Filter emergencies by severity
+        function filterEmergencies(severity) {
+            // Update active button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Filter cards
+            document.querySelectorAll('.emergency-card').forEach(card => {
+                if (severity === 'all' || card.dataset.severity === severity) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        
+        // Play emergency sound
+        function playEmergencySound(severity) {
+            // Implementation would include actual sound files
+            console.log('Playing emergency sound for severity:', severity);
+        }
+        
+        // Play SOS sound
+        function playSOSSound() {
+            // Critical alert sound
+            console.log('Playing SOS alert sound');
+        }
+        
+        // Show emergency notification
+        function showEmergencyNotification(alert) {
+            if (window.notificationSystem) {
+                window.notificationSystem.showToast({
+                    subject: `EMERGENCY: ${alert.title}`,
+                    message: alert.description,
+                    type: 'emergency',
+                    priority: alert.severity
+                });
+            }
+        }
+        
+        // Show SOS popup
+        function showSOSPopup(alert) {
+            // Create and show critical alert popup
+            const popup = document.createElement('div');
+            popup.className = 'sos-popup';
+            popup.innerHTML = `
+                <h2>🚨 SOS EMERGENCY</h2>
+                <p><strong>${alert.reporter_name}</strong> has activated SOS</p>
+                <p>${alert.description}</p>
+                <p>Location: ${alert.location.latitude}, ${alert.location.longitude}</p>
+                <button onclick="this.parentElement.remove()">Acknowledge</button>
+            `;
+            document.body.appendChild(popup);
+        }
+        
+        // Load active emergencies
+        async function loadActiveEmergencies() {
+            // In a real implementation, this would fetch updated data
+            location.reload();
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            initWebSocket();
+            
+            // Get initial location
+            getCurrentLocation();
+            
+            // Setup auto-refresh
+            setInterval(loadActiveEmergencies, 60000); // Refresh every minute
+        });
+        
+        // Template helper
+        function add(a, b) {
+            return a + b;
+        }
+    </script>
+    
+    <!-- Real-time Notifications -->
+    <script src="/static/realtime_notifications.js"></script>
+</body>
+</html>

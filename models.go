@@ -10,8 +10,8 @@ import (
 
 // User represents a user in the system
 type User struct {
-	// NO ID field - username is the primary key
-	Username         string           `json:"username" db:"username"`
+	ID               int              `json:"id" db:"id"`              // Added for messaging system compatibility
+	Username         string           `json:"username" db:"username"`  // Still primary identifier
 	Password         string           `json:"password,omitempty" db:"password"`
 	Role             string           `json:"role" db:"role"`
 	Status           string           `json:"status" db:"status"`
@@ -242,11 +242,11 @@ type MileageValidation struct {
 // Route represents a bus route
 type Route struct {
 	// NO ID field - route_id is the primary key
-	RouteID     string    `json:"route_id" db:"route_id"`
-	RouteName   string    `json:"route_name" db:"route_name"`
-	Description string    `json:"description" db:"description"`
-	Positions   string    `json:"positions" db:"positions"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	RouteID     string         `json:"route_id" db:"route_id"`
+	RouteName   string         `json:"route_name" db:"route_name"`
+	Description string         `json:"description" db:"description"`
+	Positions   sql.NullString `json:"positions" db:"positions"`
+	CreatedAt   time.Time      `json:"created_at" db:"created_at"`
 }
 
 // RouteAssignment represents a driver-bus-route assignment
@@ -344,6 +344,7 @@ type ECSEService struct {
 	Provider    string    `json:"provider" db:"provider"`
 	StartDate   time.Time `json:"start_date" db:"start_date"`
 	EndDate     time.Time `json:"end_date" db:"end_date"`
+	Goals       string    `json:"goals" db:"goals"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 }
 

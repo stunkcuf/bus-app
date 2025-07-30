@@ -263,6 +263,15 @@
         transform: translateY(0);
       }
     }
+    /* Info variant for conflict warning */
+    .conflict-warning.info {
+      background: rgba(59, 130, 246, 0.1) !important;
+      border: 2px solid rgba(59, 130, 246, 0.3) !important;
+    }
+    
+    .conflict-warning.info h4 {
+      color: #3b82f6 !important;
+    }
   </style>
 </head>
 <body>
@@ -381,13 +390,8 @@
                       data-help-content="Choose a driver for this route. The system will check for conflicts and warn you if the driver is already assigned.">
                 <option value="">-- Select a Driver --</option>
                 {{range .Data.Drivers}}
-                <option value="{{.Username}}" data-assigned="{{if .Assignment}}true{{else}}false{{end}}">
+                <option value="{{.Username}}">
                   {{.Username}}
-                  {{if .Assignment}}
-                    <span class="text-warning">(Currently assigned to {{.Assignment.RouteName}})</span>
-                  {{else}}
-                    <span class="text-success">(Available)</span>
-                  {{end}}
                 </option>
                 {{end}}
               </select>
@@ -433,10 +437,12 @@
                 <option value="">-- Select a Bus --</option>
                 {{range .Data.Buses}}
                 {{if eq .Status "active"}}
-                <option value="{{.BusID}}" data-capacity="{{.Capacity}}" data-assigned="{{if .Assignment}}true{{else}}false{{end}}">
-                  Bus {{.BusID}} - {{.Model}} (Capacity: {{.Capacity}})
-                  {{if .Assignment}}
-                    <span class="text-warning">(Assigned to {{.Assignment.RouteName}})</span>
+                <option value="{{.BusID}}" data-capacity="{{.GetCapacity}}" data-assigned="{{if .Assignments}}true{{else}}false{{end}}"
+                        data-assignments="{{range $i, $a := .Assignments}}{{if $i}},{{end}}{{$a.RouteID}}{{end}}"
+                        data-drivers="{{range $i, $a := .Assignments}}{{if $i}},{{end}}{{$a.Driver}}{{end}}">
+                  Bus {{.BusID}} - {{.GetModel}} (Capacity: {{.GetCapacity}})
+                  {{if .Assignments}}
+                    <span class="text-info">(Assigned to: {{range $i, $a := .Assignments}}{{if $i}}, {{end}}{{$a.RouteID}} ({{$a.Driver}}){{end}})</span>
                   {{else}}
                     <span class="text-success">(Available)</span>
                   {{end}}
@@ -611,16 +617,47 @@
         const conflictMessage = document.getElementById('conflictMessage');
         
         if (isAssigned) {
-          conflictMessage.textContent = 'This driver is already assigned to another route. Selecting them will remove their previous assignment.';
+          const assignedRoutes = option.dataset.assignments ? option.dataset.assignments.split(',') : [];
+          const assignedBuses = option.dataset.buses ? option.dataset.buses.split(',') : [];
+          
+          // Show current assignments
+          let message = `This driver is currently assigned to: `;
+          for (let i = 0; i < assignedRoutes.length; i++) {
+            if (i > 0) message += ', ';
+            message += `Route ${assignedRoutes[i]} with Bus ${assignedBuses[i]}`;
+          }
+          message += '. They can be assigned to additional routes.';
+          
+          conflictMessage.textContent = message;
           conflictWarning.style.display = 'block';
+          conflictWarning.className = 'conflict-warning info'; // Change to info instead of warning
         } else {
           conflictWarning.style.display = 'none';
         }
         
         document.getElementById('step2Next').disabled = false;
+        
+        // Update available buses based on driver's existing assignments
+        updateAvailableBuses(driver, option.dataset.buses);
       } else {
         document.getElementById('driverConflictWarning').style.display = 'none';
         document.getElementById('step2Next').disabled = true;
+      }
+    }
+    
+    function updateAvailableBuses(driver, driverBuses) {
+      const busSelect = document.getElementById('bus_id');
+      const busOptions = busSelect.querySelectorAll('option');
+      
+      // If driver has buses, suggest using the same bus for consistency
+      if (driverBuses) {
+        const assignedBusList = driverBuses.split(',');
+        busOptions.forEach(option => {
+          if (option.value && assignedBusList.includes(option.value)) {
+            option.text = option.text.replace(' (Recommended)', '');
+            option.text += ' (Recommended - Driver already uses this bus)';
+          }
+        });
       }
     }
     

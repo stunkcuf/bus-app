@@ -49,15 +49,19 @@ type DriverStatus struct {
 	LastUpdated time.Time `json:"last_updated"`
 }
 
-type RouteDetails struct {
-	RouteID      string              `json:"route_id"`
-	RouteName    string              `json:"route_name"`
-	BusID        string              `json:"bus_id"`
-	BusNumber    string              `json:"bus_number"`
-	Students     []MobileStudentInfo `json:"students"`
-	Stops        []RouteStop         `json:"stops"`
-	StartTime    string              `json:"start_time"`
-	EstimatedEnd string              `json:"estimated_end"`
+// MobileRouteDetails extends RouteDetails with mobile-specific fields
+type MobileRouteDetails struct {
+	RouteID      string               `json:"route_id"`
+	RouteName    string               `json:"route_name"`
+	BusID        string               `json:"bus_id"`
+	BusNumber    string               `json:"bus_number"`
+	StartTime    time.Time            `json:"start_time"`
+	EstimatedEnd time.Time            `json:"estimated_end"`
+	Students     []MobileStudentInfo  `json:"students"`
+	Stops        []RouteStop          `json:"stops"`
+	Description  string               `json:"description"`
+	TotalStops   int                  `json:"total_stops"`
+	Distance     float64              `json:"distance"`
 }
 
 // MobileStudentInfo for mobile API (different from import_ecse.go StudentInfo)
@@ -71,18 +75,11 @@ type MobileStudentInfo struct {
 	SpecialNeeds  string `json:"special_needs"`
 }
 
-type RouteStop struct {
-	StopID       string    `json:"stop_id"`
-	StopName     string    `json:"stop_name"`
-	Address      string    `json:"address"`
-	Latitude     float64   `json:"latitude"`
-	Longitude    float64   `json:"longitude"`
-	ScheduledTime string   `json:"scheduled_time"`
-	StudentCount int       `json:"student_count"`
-	Order        int       `json:"order"`
-}
+// RouteStop is already defined in route_deviation_alerts.go
 
-type AttendanceRecord struct {
+// AttendanceRecord is already defined in handlers_parent_portal.go
+// Using MobileAttendanceRecord to avoid conflict
+type MobileAttendanceRecord struct {
 	StudentID   string    `json:"student_id"`
 	Status      string    `json:"status"` // present, absent, excused
 	BoardedAt   time.Time `json:"boarded_at,omitempty"`
@@ -193,7 +190,7 @@ func (api *MobileAPI) GetCurrentRouteHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Get today's route assignment
-	var route RouteDetails
+	var route MobileRouteDetails
 	err := api.db.QueryRow(`
 		SELECT 
 			ra.route_id,
@@ -326,7 +323,7 @@ func (api *MobileAPI) SubmitAttendanceHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	var attendance []AttendanceRecord
+	var attendance []MobileAttendanceRecord
 	if err := json.NewDecoder(r.Body).Decode(&attendance); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
@@ -761,24 +758,26 @@ func (api *MobileAPI) getRouteStops(routeID string) []RouteStop {
 	// For now, return simulated data
 	return []RouteStop{
 		{
-			StopID:       "STOP-001",
-			StopName:     "Main Street & 1st Ave",
-			Address:      "100 Main Street",
+			ID:           1,
+			StopNumber:   1,
+			Name:         "Main Street & 1st Ave",
 			Latitude:     40.7128,
 			Longitude:    -74.0060,
-			ScheduledTime: "07:00 AM",
+			ArrivalTime:  time.Now().Add(15 * time.Minute),
+			DepartureTime: time.Now().Add(17 * time.Minute),
 			StudentCount: 5,
-			Order:        1,
+			StopRadius:   50,
 		},
 		{
-			StopID:       "STOP-002",
-			StopName:     "Oak Drive & 2nd Street",
-			Address:      "200 Oak Drive",
+			ID:           2,
+			StopNumber:   2,
+			Name:         "Oak Drive & 2nd Street",
 			Latitude:     40.7180,
 			Longitude:    -74.0100,
-			ScheduledTime: "07:10 AM",
+			ArrivalTime:  time.Now().Add(25 * time.Minute),
+			DepartureTime: time.Now().Add(27 * time.Minute),
 			StudentCount: 3,
-			Order:        2,
+			StopRadius:   50,
 		},
 	}
 }

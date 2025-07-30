@@ -292,7 +292,7 @@
     <main id="main-content" class="main-content">
       <div class="wizard-container">
         <!-- Progress Indicator -->
-        {{template "progress_indicator" (dict "CurrentStep" 1 "TotalSteps" 5 "Steps" (list "Select Vehicle" "Choose Category" "Enter Details" "Add Cost" "Review & Save"))}}
+        {{template "progress-indicator" (dict "CurrentStep" 1 "TotalSteps" 5 "Steps" (list (dict "Title" "Select Vehicle") (dict "Title" "Choose Category") (dict "Title" "Enter Details") (dict "Title" "Add Cost") (dict "Title" "Review & Save")) "ProgressPercent" 20 "ShowNavigation" false)}}
         
         <form id="maintenanceWizardForm" method="POST" action="/save-maintenance-wizard" class="accessible-form">
           <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
@@ -1010,5 +1010,23 @@
       display: none !important;
     }
   </style>
+  
+  <!-- Include Auto-Save System -->
+  <script src="/static/auto_save.js"></script>
+  
+  <!-- Enable auto-save for maintenance form -->
+  <script nonce="{{.CSPNonce}}">
+    document.addEventListener('DOMContentLoaded', function() {
+      // Mark the form for auto-save
+      const maintenanceForm = document.getElementById('maintenanceWizardForm');
+      if (maintenanceForm) {
+        maintenanceForm.setAttribute('data-autosave', 'true');
+        // Re-initialize auto-save to pick up this form
+        if (window.autoSave) {
+          window.autoSave.findAutoSaveForms();
+        }
+      }
+    });
+  </script>
 </body>
 </html>

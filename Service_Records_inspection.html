@@ -1,0 +1,2356 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Records - Fleet Management System</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <link rel="stylesheet" href="/static/modern_theme.css">
+    
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
+    
+    <link rel="stylesheet" href="/static/help_system.css">
+    <link rel="stylesheet" href="/static/enhanced_help_system.css">
+    
+    <link rel="stylesheet" href="/static/autocomplete.css">
+    
+  <style nonce="">
+     
+    :root {
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
+    }
+    
+     
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
+    }
+    
+     
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+      transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    }
+    
+     
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
+    }
+    
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
+    }
+    
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+     
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+    
+     
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
+    }
+    
+     
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+    }
+    
+     
+    .metric-card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      padding: 2.5rem;
+      text-align: center;
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .metric-card:hover {
+      transform: translateY(-10px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+     
+    .hero-section {
+      position: relative;
+      padding: 5rem 0 3rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
+    }
+    
+     
+    .table {
+      color: white;
+    }
+    
+    .table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+    }
+    
+    .table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(10px);
+    }
+    
+     
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+
+    <div class="header">
+        <h1>
+            📋 Service Records
+        </h1>
+    </div>
+
+    <div class="nav">
+        <a href="/manager-dashboard">Dashboard</a>
+        <a href="/fleet">Fleet</a>
+        <a href="/maintenance-records">Maintenance Records</a>
+        <a href="/service-records" style="border-bottom-color: #667eea;">Service Records</a>
+        
+        <a href="/assign-routes">Routes</a>
+        
+    </div>
+
+    <div class="container">
+        <div class="notice">
+            <h4>About Service Records</h4>
+            <p>This data was imported from spreadsheets with unstructured columns. The system attempts to interpret and display the information meaningfully, but some data may appear in generic field formats.</p>
+        </div>
+
+        
+        <div class="filters">
+            <h3>Filter Service Records</h3>
+            <form method="GET" action="/service-records">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="vehicle_filter">Vehicle Search:</label>
+                        <input type="text" name="vehicle_filter" id="vehicle_filter" value="" placeholder="Vehicle info, number, or make">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="start_date">Start Date:</label>
+                        <input type="date" name="start_date" id="start_date" value="">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="end_date">End Date:</label>
+                        <input type="date" name="end_date" id="end_date" value="">
+                    </div>
+
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        <a href="/service-records" class="btn btn-secondary">Clear</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        
+        <div class="summary-cards">
+            <div class="summary-card">
+                <h3>55</h3>
+                <p>Total Records</p>
+            </div>
+            <div class="summary-card">
+                <h3>55</h3>
+                <p>With Data</p>
+            </div>
+            <div class="summary-card">
+                <h3>40</h3>
+                <p>Unique Vehicles</p>
+            </div>
+            <div class="summary-card">
+                <h3>55</h3>
+                <p>With Maintenance Date</p>
+            </div>
+        </div>
+
+        
+        <div class="records-table">
+            <div class="table-header">
+                <h3>Service Records</h3>
+                <div class="results-info">
+                    Showing 1 - 0 of 55 records
+                </div>
+            </div>
+
+            
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">VEH. NUMBER</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">SERVICED MILES</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">LAST MILAGE</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">NEEDS SERVICES</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">MILES TO SERVICE</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">SERVICE AT:</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">SERVICED MILES</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">NEEDS SERVICES</div>
+                    </div>
+                    
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">SERVICE AT:</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2012 CHEVY IMPALA</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2012 CHEVY IMPALA</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">6</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">HCSR</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">100707</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">102869</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">105707</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value">2838</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">2012</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">HCSR</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">100707</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">105707</div>
+                    </div>
+                    
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2012 DODGE RAM</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2012 DODGE RAM</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">7</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">AOC</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">74488</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">80251</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">79488</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value">-763</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">2013</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">AOC</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">74488</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">79488</div>
+                    </div>
+                    
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2013 FORD FOCUS</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2013 FORD FOCUS</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">8</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">VICTORY SQ</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">60851</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">80251</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">65851</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value">-14400</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">2013</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">VICTORY SQ</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">60851</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">65851</div>
+                    </div>
+                    
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2011 COROLLA</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2011 COROLLA</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">27</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">UMATILLA</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">63680</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">63756</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">68680</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value"> </div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">4924</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 10</div>
+                        <div class="field-value">2011</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">UMATILLA</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">63680</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">68680</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Needs Service</div>
+                        <div class="field-value"> </div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2013 RAV 4</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2013 RAV 4</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">28</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">PELC</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">109148</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">111059</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">114148</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value">3089</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">2013</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">PELC</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">109148</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">114148</div>
+                    </div>
+                    
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2013 SIENNA</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2013 SIENNA</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">29</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">LA GRANDE</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">75488</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">75522</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">80488</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value">4966</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">2013</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">LA GRANDE</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">75488</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">80488</div>
+                    </div>
+                    
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2016 COROLLA</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2016 COROLLA</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">30</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">IRRIGON</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">94508</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">94333</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">99508</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value">5175</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">2025-05-15 00:00:00</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 10</div>
+                        <div class="field-value">2016</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">IRRIGON</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">94508</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">99508</div>
+                    </div>
+                    
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Service At</div>
+                        <div class="field-value">2025-05-15 00:00:00</div>
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2016 COROLLA</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2016 COROLLA</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">31</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">HCSR</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">68684</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">72269</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">73684</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value">1415</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">2016</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">HCSR</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">68684</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">73684</div>
+                    </div>
+                    
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2016 AV 4</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2016 AV 4</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">32</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">MILTON FW</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">69756</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">74831</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">74756</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value">-75</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">2016</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">MILTON FW</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">69756</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">74756</div>
+                    </div>
+                    
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2018 CAMRY</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2018 CAMRY</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">33</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">HCDC</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">35949</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">36605</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">40949</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value"> </div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">4344</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 10</div>
+                        <div class="field-value">2025-04-28 00:00:00</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 11</div>
+                        <div class="field-value">2018</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">HCDC</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">35949</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">40949</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Needs Service</div>
+                        <div class="field-value"> </div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Service At</div>
+                        <div class="field-value">2025-04-28 00:00:00</div>
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2018 CAMRY</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2018 CAMRY</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">34</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">PELC</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">29672</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">33454</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">34672</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value">1218</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">2018</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">PELC</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">29672</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">34672</div>
+                    </div>
+                    
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2018 CAMRY</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2018 CAMRY</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">35</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">LA GRANDE</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">34535</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">38102</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">39535</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value">1433</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">2018</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">LA GRANDE</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">34535</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">39535</div>
+                    </div>
+                    
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2018 RAV 4</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2018 RAV 4</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">36</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">ENTERPRISE</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">39984</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">40069</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">44984</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value"> </div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">4915</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 10</div>
+                        <div class="field-value">2018</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">ENTERPRISE</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">39984</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">44984</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Needs Service</div>
+                        <div class="field-value"> </div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2020 SIENNA</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2020 SIENNA</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">37</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">MAIN OFFICE?</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">31385</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">35398</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">36385</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value">987</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">2020</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">MAIN OFFICE?</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">31385</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">36385</div>
+                    </div>
+                    
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2010 RAV 4</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2010 RAV 4</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">39</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">CCR&amp;R</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">143388</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">143388</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">148388</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value"> </div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 10</div>
+                        <div class="field-value">2010</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">CCR&amp;R</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">143388</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">148388</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Needs Service</div>
+                        <div class="field-value"> </div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2014 PILOT</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2014 PILOT</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">40</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">HCSR/WIC</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">84577</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">67871</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">89577</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value"> </div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">21706</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 10</div>
+                        <div class="field-value">2014</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">HCSR/WIC</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">84577</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">89577</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Needs Service</div>
+                        <div class="field-value"> </div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2021 RAV 4</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2021 RAV 4</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">45</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">WIC</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">35409</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">35407</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">45409</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value">10002</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">10000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">2025-04-30 00:00:00</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 10</div>
+                        <div class="field-value">2021</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">WIC</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">35409</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">45409</div>
+                    </div>
+                    
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">10000</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Service At</div>
+                        <div class="field-value">2025-04-30 00:00:00</div>
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2014 GRAND CARAVAN SILVER</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2014 GRAND CARAVAN SILVER</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">46</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">AOC</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">69872</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">71263</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">73872</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value">2609</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">2014</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">AOC</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">69872</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">73872</div>
+                    </div>
+                    
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            <div class="record-item">
+                <div class="record-header">
+                    <span class="record-id">2014 DODGE CARAVAN BLUE</span>
+                    <span class="record-date">
+                        
+                        <span class="badge badge-secondary">Jun 17, 2025</span>
+                        
+                    </span>
+                </div>
+
+                
+                
+                <div class="record-fields">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 1</div>
+                        <div class="field-value">2014 DODGE CARAVAN BLUE</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 2</div>
+                        <div class="field-value">47</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 3</div>
+                        <div class="field-value">FACE</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 4</div>
+                        <div class="field-value">88173</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 5</div>
+                        <div class="field-value">88980</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 6</div>
+                        <div class="field-value">93172</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 7</div>
+                        <div class="field-value"> </div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 8</div>
+                        <div class="field-value">4192</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 9</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    <div class="field-item">
+                        <div class="field-label">Field 10</div>
+                        <div class="field-value">2014</div>
+                    </div>
+                    
+                </div>
+                
+
+                
+                
+                <div class="record-fields" style="margin-top: 0.75rem; border-top: 1px solid #e0e0e0; padding-top: 0.75rem;">
+                    
+                    <div class="field-item">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><span class="badge badge-primary">FACE</span></div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Serviced Miles</div>
+                        <div class="field-value">88173</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Last Mileage</div>
+                        <div class="field-value">93172</div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Needs Service</div>
+                        <div class="field-value"> </div>
+                    </div>
+                    
+                    
+                    <div class="field-item">
+                        <div class="field-label">Miles to Service</div>
+                        <div class="field-value">5000</div>
+                    </div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+
+            
+            
+            <div class="pagination">
+                
+
+                
+                
+                <span class="current">1</span>
+                
+                
+                
+                <a href="?page=2">2</a>
+                
+                
+                
+                <a href="?page=3">3</a>
+                
+                
+
+                
+                <a href="?page=2">Next &raquo;</a>
+                
+            </div>
+            
+
+            
+        </div>
+    </div>
+</body>
+</html>

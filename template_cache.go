@@ -100,6 +100,10 @@ func (tc *TemplateCache) LoadTemplates(templateDir string) error {
 		"add_student_wizard.html",
 		"assign_routes.html",
 		
+		// Wizards
+		"maintenance_wizard.html",
+		"route_assignment_wizard.html",
+		
 		// ECSE Management
 		"import_ecse.html",
 		"view_ecse_reports.html",

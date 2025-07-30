@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help Center - Fleet Management System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/modern_theme.css">
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
+    <link rel="stylesheet" href="/static/contextual_help.css">
+    
+    <style nonce="{{.CSPNonce}}">
+        /* Navigation spacing fix */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+        
+        /* Add spacing after fixed navbar */
+        body {
+            padding-top: 80px;
+        }
+        
+        /* Hero section styling */
+        .hero-section {
+            background: rgba(102, 126, 234, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 40px;
+        }
+        
+        /* Help Center Specific Styles */
+        .help-search {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            padding: 15px 30px;
+            font-size: 18px;
+            color: white;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            display: block;
+        }
+        
+        .help-search:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+        }
+        
+        .help-category {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .help-category:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .help-category h3 {
+            color: white;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .help-category h3 i {
+            font-size: 30px;
+            color: #667eea;
+        }
+        
+        .help-article {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .help-article:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(10px);
+        }
+        
+        .help-article h4 {
+            color: white;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        
+        .help-article p {
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 0;
+            font-size: 14px;
+        }
+        
+        .video-tutorials {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .video-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .video-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .video-thumbnail {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .video-play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 60px;
+            color: white;
+            opacity: 0.8;
+            transition: all 0.3s ease;
+        }
+        
+        .video-card:hover .video-play-button {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+        
+        .video-info {
+            padding: 15px;
+        }
+        
+        .video-info h5 {
+            color: white;
+            margin-bottom: 5px;
+        }
+        
+        .video-info p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            margin-bottom: 0;
+        }
+        
+        .faq-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+        
+        .faq-question {
+            padding: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .faq-question:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .faq-answer {
+            padding: 0 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .faq-item.active .faq-answer {
+            padding: 0 20px 20px;
+            max-height: 500px;
+        }
+        
+        .faq-item.active .faq-question i {
+            transform: rotate(180deg);
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .quick-action-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .quick-action-card:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-5px);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .quick-action-card i {
+            font-size: 40px;
+            margin-bottom: 10px;
+            display: block;
+        }
+    </style>
+  <style nonce="{{.CSPNonce}}">
+    /* Ultimate beautiful design system */
+    :root {
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
+      color: white;
+    }
+    
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
+    }
+    
+    /* Glassmorphism navigation */
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+      transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
+    }
+    
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
+    }
+    
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+    /* Glass cards */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+    
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 2rem 0 1.5rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
+    }
+    
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    /* Form styling */
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
+    }
+    
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    /* Button styling */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+      color: white;
+    }
+    
+    /* Tables */
+    .table {
+      color: white;
+    }
+    
+    .table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+    }
+    
+    .table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(10px);
+    }
+    
+    /* Text colors for dark theme */
+    h1, h2, h3, h4, h5, h6, p, span, label, a, td, th, li {
+      color: white !important;
+    }
+    
+    .text-muted {
+      color: rgba(255, 255, 255, 0.7) !important;
+    }
+    
+    /* Card styling */
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      color: white;
+    }
+    
+    .card-header {
+      background: rgba(255, 255, 255, 0.15);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    /* Modal styling */
+    .modal-content {
+      background: rgba(30, 30, 50, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    .modal-header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .modal-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Floating orbs -->
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-glass" style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(20px);">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/" style="color: white;">
+                <i class="bi bi-bus-front-fill"></i> Fleet Management
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <a href="{{if eq .User.Role "manager"}}/manager-dashboard{{else}}/driver-dashboard{{end}}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+              <form method="POST" action="/logout" class="m-0">
+            <button type="submit" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+          </form>
+
+</nav>
+    
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container">
+            <h1 class="display-4 fw-bold text-white mb-3">How Can We Help You?</h1>
+            <p class="lead text-white-50 mb-4">Search our knowledge base or browse categories below</p>
+            <input type="text" class="help-search" placeholder="Search for help..." id="helpSearch">
+        </div>
+    </div>
+    
+    <div class="container py-5">
+        <!-- Quick Actions -->
+        <div class="quick-actions mb-5">
+            <a href="/getting-started" class="quick-action-card">
+                <i class="bi bi-rocket-takeoff" style="color: #667eea;"></i>
+                <h5>Getting Started Guide</h5>
+            </a>
+            <a href="/practice-mode" class="quick-action-card">
+                <i class="bi bi-mortarboard" style="color: #10b981;"></i>
+                <h5>Practice Mode</h5>
+            </a>
+            <a href="/videos" class="quick-action-card">
+                <i class="bi bi-play-circle" style="color: #3b82f6;"></i>
+                <h5>Video Tutorials</h5>
+            </a>
+            <a href="#daily-tasks" class="quick-action-card">
+                <i class="bi bi-calendar-check" style="color: #f59e0b;"></i>
+                <h5>Daily Tasks</h5>
+            </a>
+            <a href="/troubleshooting" class="quick-action-card">
+                <i class="bi bi-tools" style="color: #8b5cf6;"></i>
+                <h5>Troubleshooting</h5>
+            </a>
+            <a href="/user-manual" class="quick-action-card">
+                <i class="bi bi-book" style="color: #8b5cf6;"></i>
+                <h5>User Manual</h5>
+            </a>
+            <a href="/quick-reference" class="quick-action-card" target="_blank">
+                <i class="bi bi-printer" style="color: #3b82f6;"></i>
+                <h5>Quick Reference</h5>
+            </a>
+            <a href="#contact-support" class="quick-action-card">
+                <i class="bi bi-headset" style="color: #ef4444;"></i>
+                <h5>Contact Support</h5>
+            </a>
+        </div>
+        
+        <!-- Help Categories -->
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="help-category" id="getting-started">
+                    <h3><i class="bi bi-book"></i> Getting Started</h3>
+                    <div class="help-article" onclick="showArticle('first-login')">
+                        <h4>Your First Login</h4>
+                        <p>Learn how to log in and set up your account</p>
+                    </div>
+                    <div class="help-article" onclick="showArticle('navigation')">
+                        <h4>Navigating the System</h4>
+                        <p>Understanding the dashboard and menu options</p>
+                    </div>
+                    <div class="help-article" onclick="showArticle('profile-setup')">
+                        <h4>Setting Up Your Profile</h4>
+                        <p>Customize your account settings and preferences</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="help-category" id="daily-tasks">
+                    <h3><i class="bi bi-clipboard-check"></i> Daily Operations</h3>
+                    <div class="help-article" onclick="showArticle('daily-log')">
+                        <h4>Recording Daily Trips</h4>
+                        <p>How to log your morning and afternoon routes</p>
+                    </div>
+                    <div class="help-article" onclick="showArticle('student-attendance')">
+                        <h4>Taking Student Attendance</h4>
+                        <p>Mark students present and record pickup times</p>
+                    </div>
+                    <div class="help-article" onclick="showArticle('mileage-tracking')">
+                        <h4>Recording Mileage</h4>
+                        <p>Enter beginning and ending odometer readings</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="help-category">
+                    <h3><i class="bi bi-people"></i> Student Management</h3>
+                    <div class="help-article" onclick="showArticle('add-student')">
+                        <h4>Adding New Students</h4>
+                        <p>Step-by-step guide to enroll students</p>
+                    </div>
+                    <div class="help-article" onclick="showArticle('update-student')">
+                        <h4>Updating Student Information</h4>
+                        <p>Change addresses, phone numbers, and schedules</p>
+                    </div>
+                    <div class="help-article" onclick="showArticle('student-routes')">
+                        <h4>Assigning Students to Routes</h4>
+                        <p>How to assign and manage student route positions</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="help-category">
+                    <h3><i class="bi bi-bus-front"></i> Fleet Management</h3>
+                    <div class="help-article" onclick="showArticle('add-vehicle')">
+                        <h4>Adding New Vehicles</h4>
+                        <p>Register buses and company vehicles</p>
+                    </div>
+                    <div class="help-article" onclick="showArticle('maintenance-log')">
+                        <h4>Logging Maintenance</h4>
+                        <p>Track service records and maintenance history</p>
+                    </div>
+                    <div class="help-article" onclick="showArticle('vehicle-status')">
+                        <h4>Managing Vehicle Status</h4>
+                        <p>Update vehicle availability and condition</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Video Tutorials Section -->
+        <div class="help-category mt-5">
+            <h3><i class="bi bi-play-circle"></i> Video Tutorials</h3>
+            <div class="video-tutorials">
+                <div class="video-card" onclick="playVideo('getting-started')">
+                    <div class="video-thumbnail">
+                        <i class="bi bi-play-circle-fill video-play-button"></i>
+                    </div>
+                    <div class="video-info">
+                        <h5>Getting Started Guide</h5>
+                        <p>5 minutes • Beginner</p>
+                    </div>
+                </div>
+                
+                <div class="video-card" onclick="playVideo('daily-operations')">
+                    <div class="video-thumbnail">
+                        <i class="bi bi-play-circle-fill video-play-button"></i>
+                    </div>
+                    <div class="video-info">
+                        <h5>Daily Operations Walkthrough</h5>
+                        <p>8 minutes • All Users</p>
+                    </div>
+                </div>
+                
+                <div class="video-card" onclick="playVideo('route-management')">
+                    <div class="video-thumbnail">
+                        <i class="bi bi-play-circle-fill video-play-button"></i>
+                    </div>
+                    <div class="video-info">
+                        <h5>Route Management</h5>
+                        <p>10 minutes • Managers</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- FAQ Section -->
+        <div class="help-category mt-5">
+            <h3><i class="bi bi-question-circle"></i> Frequently Asked Questions</h3>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>How do I reset my password?</span>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>To reset your password:</p>
+                    <ol>
+                        <li>Click on your username in the top right corner</li>
+                        <li>Select "Profile" from the dropdown menu</li>
+                        <li>Click "Change Password"</li>
+                        <li>Enter your current password and new password</li>
+                        <li>Click "Update Password"</li>
+                    </ol>
+                    <p>If you've forgotten your password, contact your administrator.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>What do I do if a student is absent?</span>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>When a student is absent:</p>
+                    <ol>
+                        <li>Leave their attendance checkbox unchecked</li>
+                        <li>Don't enter a pickup time</li>
+                        <li>Add a note in the trip notes section if needed</li>
+                        <li>The system will automatically mark them as absent</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>How do I view my past trip logs?</span>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>To view your trip history:</p>
+                    <ol>
+                        <li>Go to your Driver Dashboard</li>
+                        <li>Scroll down to "Recent Trip Logs"</li>
+                        <li>For older logs, click "View Reports" in the navigation</li>
+                        <li>Select "Driver Reports" and choose your date range</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>Can I use the system on my phone?</span>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Yes! The Fleet Management System is mobile-friendly:</p>
+                    <ul>
+                        <li>Open your phone's web browser</li>
+                        <li>Go to the same website address you use on computer</li>
+                        <li>Log in with your usual credentials</li>
+                        <li>The interface will automatically adjust for your screen</li>
+                    </ul>
+                    <p>For best experience, use Chrome or Safari browsers.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Contact Support -->
+        <div class="help-category mt-5" id="contact-support">
+            <h3><i class="bi bi-headset"></i> Need More Help?</h3>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="text-center p-4">
+                        <i class="bi bi-telephone-fill" style="font-size: 40px; color: #10b981;"></i>
+                        <h5 class="mt-3">Call Support</h5>
+                        <p class="text-white-50">Monday-Friday 7AM-5PM</p>
+                        <h4>(555) 123-4567</h4>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-4">
+                        <i class="bi bi-envelope-fill" style="font-size: 40px; color: #667eea;"></i>
+                        <h5 class="mt-3">Email Support</h5>
+                        <p class="text-white-50">Response within 24 hours</p>
+                        <h4>support@fleetmgmt.com</h4>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-4">
+                        <i class="bi bi-chat-dots-fill" style="font-size: 40px; color: #f59e0b;"></i>
+                        <h5 class="mt-3">Live Chat</h5>
+                        <p class="text-white-50">Available during business hours</p>
+                        <button class="btn btn-primary" onclick="startChat()">Start Chat</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script nonce="{{.CSPNonce}}">
+        // Search functionality
+        document.getElementById('helpSearch').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const articles = document.querySelectorAll('.help-article');
+            
+            articles.forEach(article => {
+                const title = article.querySelector('h4').textContent.toLowerCase();
+                const description = article.querySelector('p').textContent.toLowerCase();
+                
+                if (title.includes(searchTerm) || description.includes(searchTerm)) {
+                    article.style.display = 'block';
+                } else {
+                    article.style.display = 'none';
+                }
+            });
+        });
+        
+        // FAQ toggle
+        function toggleFAQ(element) {
+            const faqItem = element.parentElement;
+            faqItem.classList.toggle('active');
+        }
+        
+        // Show article (would open detailed help)
+        function showArticle(articleId) {
+            console.log('Opening article:', articleId);
+            // This would navigate to detailed article
+            window.location.href = '/help/article/' + articleId;
+        }
+        
+        // Play video
+        function playVideo(videoId) {
+            console.log('Playing video:', videoId);
+            // This would open video player
+        }
+        
+        // Start chat
+        function startChat() {
+            console.log('Starting live chat...');
+            // This would open chat widget
+            alert('Live chat will open here');
+        }
+        
+        // Smooth scroll to sections
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

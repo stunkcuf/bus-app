@@ -3,32 +3,41 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
+	"strconv"
 )
 
 // Updated functions to work with consolidated vehicles table
 
-// loadFleetVehicleByIDNew loads a fleet vehicle from the vehicles table
+// loadFleetVehicleByIDNew loads a fleet vehicle from the fleet_vehicles table
 func loadFleetVehicleByIDNew(id string) (*FleetVehicle, error) {
-	vehicleID := fmt.Sprintf("FV%s", id)
+	// Convert string ID to int
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid vehicle ID: %s", id)
+	}
+	
+	log.Printf("loadFleetVehicleByIDNew - looking for vehicle with ID: %d", idInt)
 	query := `
 		SELECT 
-			CASE 
-				WHEN vehicle_id LIKE 'FV%' THEN SUBSTRING(vehicle_id FROM 3)::INTEGER
-				ELSE NULL
-			END as id,
-			vehicle_number, 
-			NULL as sheet_name, 
-			CASE 
-				WHEN year ~ '^\d+$' THEN year::INTEGER
-				ELSE NULL
-			END as year,
-			make, model, description, serial_number, license, location, tire_size,
-			created_at, updated_at
-		FROM vehicles
-		WHERE vehicle_id = $1 AND vehicle_type = 'fleet'`
+			id,
+			COALESCE(vehicle_number, 0), 
+			COALESCE(sheet_name, ''), 
+			COALESCE(year, 0),
+			COALESCE(make, ''), 
+			COALESCE(model, ''), 
+			COALESCE(description, ''), 
+			COALESCE(serial_number, ''), 
+			COALESCE(license, ''), 
+			COALESCE(location, ''), 
+			COALESCE(tire_size, ''),
+			created_at, 
+			COALESCE(updated_at, created_at)
+		FROM fleet_vehicles
+		WHERE id = $1`
 
 	var vehicle FleetVehicle
-	err := db.QueryRow(query, vehicleID).Scan(
+	err = db.QueryRow(query, idInt).Scan(
 		&vehicle.ID,
 		&vehicle.VehicleNumber,
 		&vehicle.SheetName,

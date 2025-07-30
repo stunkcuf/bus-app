@@ -1,0 +1,93 @@
+{{define "universal_nav"}}
+<!-- Universal Navigation Bar -->
+<nav class="navbar navbar-dark navbar-glass navbar-expand-lg">
+  <div class="container-fluid">
+    <!-- Logo/Brand -->
+    <a class="navbar-brand" href="{{if eq .User.Role "driver"}}/driver-dashboard{{else if eq .User.Role "manager"}}/manager-dashboard{{else}}/{{end}}">
+      <i class="bi bi-bus-front-fill"></i>
+      <span>Fleet Management</span>
+    </a>
+    
+    <!-- Mobile Toggle -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    
+    <!-- Navigation Links -->
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto">
+        {{if eq .User.Role "manager"}}
+        <li class="nav-item">
+          <a class="nav-link" href="/manager-dashboard">
+            <i class="bi bi-speedometer2"></i> Dashboard
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/fleet">
+            <i class="bi bi-truck"></i> Fleet
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/maintenance-records">
+            <i class="bi bi-wrench"></i> Maintenance
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/assign-routes">
+            <i class="bi bi-map"></i> Routes
+          </a>
+        </li>
+        {{else if eq .User.Role "driver"}}
+        <li class="nav-item">
+          <a class="nav-link" href="/driver-dashboard">
+            <i class="bi bi-speedometer2"></i> Dashboard
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/driver-logs">
+            <i class="bi bi-journal-text"></i> My Logs
+          </a>
+        </li>
+        {{end}}
+      </ul>
+      
+      <!-- User Menu -->
+      <ul class="navbar-nav">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+            <i class="bi bi-person-circle"></i>
+            <span>{{.User.Username}}</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+              <a class="dropdown-item" href="/profile">
+                <i class="bi bi-person"></i> Profile
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="/settings">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item" href="/logout">
+                <i class="bi bi-box-arrow-right"></i> Logout
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Back Button (if needed) -->
+{{if .ShowBackButton}}
+<div class="container-fluid mt-3">
+  <a href="javascript:history.back()" class="btn btn-outline-light btn-sm">
+    <i class="bi bi-arrow-left"></i> Back
+  </a>
+</div>
+{{end}}
+{{end}}

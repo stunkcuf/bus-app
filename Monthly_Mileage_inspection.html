@@ -1,0 +1,1803 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Mileage Reports - Fleet Management System</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <link rel="stylesheet" href="/static/modern_theme.css">
+    
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
+    
+    <link rel="stylesheet" href="/static/help_system.css">
+    <link rel="stylesheet" href="/static/enhanced_help_system.css">
+    
+    <link rel="stylesheet" href="/static/autocomplete.css">
+    
+  <style nonce="">
+     
+    :root {
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
+    }
+    
+     
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
+    }
+    
+     
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+         
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+      transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    }
+    
+     
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+         
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
+    }
+    
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
+    }
+    
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+     
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+         
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+    
+     
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
+    }
+    
+     
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+    }
+    
+     
+    .metric-card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.1);
+         
+      border-radius: 30px;
+      padding: 2.5rem;
+      text-align: center;
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .metric-card:hover {
+      transform: translateY(-10px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    .metric-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.9;
+    }
+    
+    .metric-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin: 0.5rem 0;
+      color: white;
+    }
+    
+    .metric-label {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.7);
+      font-weight: 500;
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+    
+     
+    .hero-section {
+      position: relative;
+      padding: 5rem 0 3rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
+    }
+    
+     
+    .table {
+      color: white;
+    }
+    
+    .table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+    }
+    
+    .table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(10px);
+    }
+    
+     
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+     
+    .form-select option {
+      background: #2d3748 !important;
+      color: white !important;
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+
+  
+  <nav class="navbar-glass">
+    <div class="container-fluid">
+      <div class="d-flex justify-content-between align-items-center w-100">
+        <a href="/manager-dashboard" class="navbar-brand">
+          <i class="bi bi-speedometer2"></i>
+          <span>Fleet Management System</span>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+          <span class="text-white opacity-75">
+            <i class="bi bi-person-circle me-2"></i>admin
+          </span>
+          <form method="POST" action="/logout" class="m-0">
+            <button type="submit" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  
+  <div class="hero-section">
+    <div class="hero-content">
+      <h1>Monthly Mileage Reports</h1>
+      <p class="lead opacity-75">Track and analyze vehicle mileage data by month</p>
+    </div>
+  </div>
+
+  <div class="container">
+    
+    <div class="glass-card mb-4">
+      <h4 class="text-white mb-4">
+        <i class="bi bi-funnel"></i> Filter Reports
+      </h4>
+      <form method="GET" action="/monthly-mileage-reports">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label for="year" class="form-label text-white-50">Year</label>
+            <select name="year" id="year" class="form-select">
+              <option value="">All Years</option>
+              
+              <option value="2025" >2025</option>
+              
+              <option value="2024" >2024</option>
+              
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label for="month" class="form-label text-white-50">Month</label>
+            <select name="month" id="month" class="form-select">
+              <option value="">All Months</option>
+              
+              <option value="January" >January</option>
+              
+              <option value="February" >February</option>
+              
+              <option value="March" >March</option>
+              
+              <option value="April" >April</option>
+              
+              <option value="May" >May</option>
+              
+              <option value="June" >June</option>
+              
+              <option value="July" >July</option>
+              
+              <option value="August" >August</option>
+              
+              <option value="September" >September</option>
+              
+              <option value="October" >October</option>
+              
+              <option value="November" >November</option>
+              
+              <option value="December" >December</option>
+              
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label for="vehicle_type" class="form-label text-white-50">Vehicle Type</label>
+            <select name="vehicle_type" id="vehicle_type" class="form-select">
+              <option value="">All Vehicles</option>
+              <option value="bus" >Buses Only</option>
+              <option value="vehicle" >Company Vehicles Only</option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label for="bus_id" class="form-label text-white-50">Vehicle ID</label>
+            <select name="bus_id" id="bus_id" class="form-select">
+              <option value="">All Vehicles</option>
+              
+              <option value="BUS3" >BUS3</option>
+              
+              <option value="BUS52" >BUS52</option>
+              
+              <option value="BUS58" >BUS58</option>
+              
+              <option value="BUS21" >BUS21</option>
+              
+              <option value="BUS59" >BUS59</option>
+              
+              <option value="BUS17" >BUS17</option>
+              
+              <option value="BUS18" >BUS18</option>
+              
+              <option value="BUS20" >BUS20</option>
+              
+              <option value="BUS25" >BUS25</option>
+              
+              <option value="BUS60" >BUS60</option>
+              
+              <option value="BUS15" >BUS15</option>
+              
+              <option value="BUS15-2" >BUS15-2</option>
+              
+              <option value="BUS16" >BUS16</option>
+              
+              <option value="BUS22" >BUS22</option>
+              
+              <option value="BUS23" >BUS23</option>
+              
+              <option value="BUS24" >BUS24</option>
+              
+              <option value="BUS26" >BUS26</option>
+              
+            </select>
+          </div>
+
+          <div class="col-12 mt-4">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-funnel"></i> Apply Filters
+            </button>
+            <a href="/monthly-mileage-reports" class="btn btn-secondary ms-2">
+              <i class="bi bi-x-circle"></i> Clear
+            </a>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    
+    <div class="row g-4 mb-4">
+      <div class="col-md-3">
+        <div class="metric-card">
+          <i class="bi bi-file-text metric-icon" style="color: #667eea;"></i>
+          <div class="metric-value">269</div>
+          <div class="metric-label">Total Reports</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="metric-card">
+          <i class="bi bi-speedometer2 metric-icon" style="color: #10b981;"></i>
+          <div class="metric-value">288,204</div>
+          <div class="metric-label">Total Miles</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="metric-card">
+          <i class="bi bi-truck metric-icon" style="color: #f59e0b;"></i>
+          <div class="metric-value">17</div>
+          <div class="metric-label">Active Vehicles</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="metric-card">
+          <i class="bi bi-calculator metric-icon" style="color: #ef4444;"></i>
+          <div class="metric-value">1071</div>
+          <div class="metric-label">Avg Miles/Report</div>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="glass-card">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="text-white mb-0">
+          <i class="bi bi-table"></i> Monthly Mileage Reports
+        </h4>
+        <div class="text-white-50">
+          Showing 1 - 0 of 269 reports
+        </div>
+      </div>
+
+      
+      <div class="table-responsive">
+        <table class="table text-white">
+                    <thead>
+                        <tr>
+                            <th>Period</th>
+                            <th>Bus ID</th>
+                            <th>Bus Make</th>
+                            <th>Bus Year</th>
+                            <th>License Plate</th>
+                            <th>Location</th>
+                            <th class="text-right">Beginning Miles</th>
+                            <th class="text-right">Ending Miles</th>
+                            <th class="text-right">Total Miles</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                        <tr>
+                            <td>
+                                <strong>June 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS15</span>
+                                
+                            </td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td>SPARE</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>June 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS15-2</span>
+                                
+                            </td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td>CWEC</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>June 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS16</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2008</td>
+                            <td>SC06568</td>
+                            <td>SPARE</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>June 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS17</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2008</td>
+                            <td>SC06675</td>
+                            <td>SPARE</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>June 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS18</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2008</td>
+                            <td>SC06686</td>
+                            <td>SPARE</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>June 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS20</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2013</td>
+                            <td>SC07832</td>
+                            <td>SLATED FOR MILTON</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>June 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS21</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2013</td>
+                            <td>SC07831</td>
+                            <td>VICTORY 1</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>June 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS22</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2016</td>
+                            <td>SC08190</td>
+                            <td>SPARE</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>June 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS23</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2017</td>
+                            <td>SC08643</td>
+                            <td>sub for victory 2</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>June 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS24</span>
+                                
+                            </td>
+                            <td>CHEV</td>
+                            <td>2017</td>
+                            <td>SC09099</td>
+                            <td>ROCKY HTS.</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>June 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS25</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2017</td>
+                            <td>SC09100</td>
+                            <td>PENDLETON</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>June 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS26</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2020</td>
+                            <td>SC0</td>
+                            <td>ROCKY HTS.</td>
+                            <td class="text-right">35,790</td>
+                            <td class="text-right">35,976</td>
+                            <td class="text-right">
+                                <strong>186</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>June 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS52</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2021</td>
+                            <td>SC0</td>
+                            <td>AWOC-2</td>
+                            <td class="text-right">20,181</td>
+                            <td class="text-right">21,213</td>
+                            <td class="text-right">
+                                <strong>1,032</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>June 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS58</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2022</td>
+                            <td>NEW</td>
+                            <td>IRRIGON</td>
+                            <td class="text-right">9,851</td>
+                            <td class="text-right">10,371</td>
+                            <td class="text-right">
+                                <strong>520</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>June 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS59</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2022</td>
+                            <td>NEW</td>
+                            <td>BOARDMAN</td>
+                            <td class="text-right">15,388</td>
+                            <td class="text-right">15,775</td>
+                            <td class="text-right">
+                                <strong>387</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>June 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS60</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2022</td>
+                            <td>NEW</td>
+                            <td>VICTORY 2</td>
+                            <td class="text-right">14,340</td>
+                            <td class="text-right">14,792</td>
+                            <td class="text-right">
+                                <strong>452</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>May 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS15</span>
+                                
+                            </td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td>SPARE</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>May 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS15-2</span>
+                                
+                            </td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td>CWEC</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>May 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS16</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2008</td>
+                            <td>SC06568</td>
+                            <td>SPARE</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>May 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS17</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2008</td>
+                            <td>SC06675</td>
+                            <td>SPARE</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>May 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS18</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2008</td>
+                            <td>SC06686</td>
+                            <td>SPARE</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>May 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS20</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2013</td>
+                            <td>SC07832</td>
+                            <td>SLATED FOR MILTON</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>May 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS21</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2013</td>
+                            <td>SC07831</td>
+                            <td>VICTORY 1</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>May 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS22</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2016</td>
+                            <td>SC08190</td>
+                            <td>SPARE</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>May 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS23</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2017</td>
+                            <td>SC08643</td>
+                            <td>sub for victory 2</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>May 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS24</span>
+                                
+                            </td>
+                            <td>CHEV</td>
+                            <td>2017</td>
+                            <td>SC09099</td>
+                            <td>ROCKY HTS.</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>May 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS25</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2017</td>
+                            <td>SC09100</td>
+                            <td>PENDLETON</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>May 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS26</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2020</td>
+                            <td>SC0</td>
+                            <td>ROCKY HTS.</td>
+                            <td class="text-right">35,790</td>
+                            <td class="text-right">35,976</td>
+                            <td class="text-right">
+                                <strong>186</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>May 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS52</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2021</td>
+                            <td>SC0</td>
+                            <td>AWOC-2</td>
+                            <td class="text-right">19,216</td>
+                            <td class="text-right">20,181</td>
+                            <td class="text-right">
+                                <strong>965</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>May 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS58</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2022</td>
+                            <td>NEW</td>
+                            <td>IRRIGON</td>
+                            <td class="text-right">9,294</td>
+                            <td class="text-right">9,851</td>
+                            <td class="text-right">
+                                <strong>557</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>May 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS59</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2022</td>
+                            <td>NEW</td>
+                            <td>BOARDMAN</td>
+                            <td class="text-right">14,730</td>
+                            <td class="text-right">15,388</td>
+                            <td class="text-right">
+                                <strong>658</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>May 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS60</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2022</td>
+                            <td>NEW</td>
+                            <td>VICTORY 2</td>
+                            <td class="text-right">13,721</td>
+                            <td class="text-right">14,340</td>
+                            <td class="text-right">
+                                <strong>619</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>April 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS15</span>
+                                
+                            </td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td>SPARE</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>April 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS15-2</span>
+                                
+                            </td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td>CWEC</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>April 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS16</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2008</td>
+                            <td>SC06568</td>
+                            <td>SPARE</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>April 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS17</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2008</td>
+                            <td>SC06675</td>
+                            <td>SPARE</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>April 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS18</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2008</td>
+                            <td>SC06686</td>
+                            <td>SPARE</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>April 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS20</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2013</td>
+                            <td>SC07832</td>
+                            <td>SLATED FOR MILTON</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>April 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS21</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2013</td>
+                            <td>SC07831</td>
+                            <td>VICTORY 1</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>April 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS22</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2016</td>
+                            <td>SC08190</td>
+                            <td>SPARE</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>April 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS23</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2017</td>
+                            <td>SC08643</td>
+                            <td>sub for victory 2</td>
+                            <td class="text-right">45,274</td>
+                            <td class="text-right">45,281</td>
+                            <td class="text-right">
+                                <strong>7</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>April 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS24</span>
+                                
+                            </td>
+                            <td>CHEV</td>
+                            <td>2017</td>
+                            <td>SC09099</td>
+                            <td>ROCKY HTS.</td>
+                            <td class="text-right">28,834</td>
+                            <td class="text-right">29,162</td>
+                            <td class="text-right">
+                                <strong>328</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>April 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS25</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2017</td>
+                            <td>SC09100</td>
+                            <td>PENDLETON</td>
+                            <td class="text-right">35,467</td>
+                            <td class="text-right">35,790</td>
+                            <td class="text-right">
+                                <strong>323</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>April 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS26</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2020</td>
+                            <td>SC0</td>
+                            <td>ROCKY HTS.</td>
+                            <td class="text-right">18,276</td>
+                            <td class="text-right">18,395</td>
+                            <td class="text-right">
+                                <strong>119</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>April 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS52</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2021</td>
+                            <td>SC0</td>
+                            <td>AWOC-2</td>
+                            <td class="text-right">17,973</td>
+                            <td class="text-right">19,216</td>
+                            <td class="text-right">
+                                <strong>1,243</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>April 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS58</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2022</td>
+                            <td>NEW</td>
+                            <td>IRRIGON</td>
+                            <td class="text-right">8,361</td>
+                            <td class="text-right">9,294</td>
+                            <td class="text-right">
+                                <strong>933</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>April 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS59</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2022</td>
+                            <td>NEW</td>
+                            <td>BOARDMAN</td>
+                            <td class="text-right">13,970</td>
+                            <td class="text-right">14,730</td>
+                            <td class="text-right">
+                                <strong>760</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>April 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS60</span>
+                                
+                            </td>
+                            <td>CHEV.</td>
+                            <td>2022</td>
+                            <td>NEW</td>
+                            <td>VICTORY 2</td>
+                            <td class="text-right">13,116</td>
+                            <td class="text-right">13,721</td>
+                            <td class="text-right">
+                                <strong>605</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #28a745;">✓ Active</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>March 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS15</span>
+                                
+                            </td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td>SPARE</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <strong>March 2025</strong>
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-primary">BUS15-2</span>
+                                
+                            </td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td><span style="color: #999;">—</span></td>
+                            <td>CWEC</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">0</td>
+                            <td class="text-right">
+                                <strong>0</strong>
+                            </td>
+                            <td class="text-center">
+                                
+                                <span style="color: #6c757d;">— No Miles</span>
+                                
+                            </td>
+                        </tr>
+                        
+                    </tbody>
+        </table>
+      </div>
+
+      
+      
+      <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+          
+
+          
+
+          
+          <li class="page-item">
+            <a class="page-link" href="?page=2">Next &raquo;</a>
+          </li>
+          
+        </ul>
+      </nav>
+      
+
+      
+    </div>
+  </div>
+</body>
+</html>

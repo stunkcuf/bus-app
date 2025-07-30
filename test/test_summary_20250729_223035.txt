@@ -1,0 +1,36 @@
+Fleet Management System Test Summary
+Date: 2025-07-29 22:30:35
+
+Total Tests: 26
+Passed: 12
+Warnings: 1
+Failed: 13
+Success Rate: 46.2%
+
+Details:
+Login                          ✓ PASS Successfully logged in as admin
+Manager Dashboard              ✓ PASS Page loaded
+Fleet Overview                 ✓ PASS 19 records
+Assign Routes                  ✓ PASS 6 records
+Company Fleet                  ⚠️ WARN throw new Error('Failed to update status');
+Fleet Vehicles                 ❌ FAIL Status 500
+Manage Users                   ✓ PASS 13 records
+ECSE Dashboard                 ✓ PASS Page loaded
+Students                       ✓ PASS Page loaded
+Maintenance Records            ✓ PASS 24 records
+Service Records                ✓ PASS Page loaded
+Monthly Mileage Reports        ✓ PASS 49 records
+User Activity Report           ❌ FAIL Status 404
+Reports                        ✓ PASS Page loaded
+Approve Users                  ✓ PASS Page loaded
+Add Fleet Vehicle              ❌ FAIL Status 404
+Add Student                    ❌ FAIL Status 401
+System Metrics                 ❌ FAIL Status 404
+Routes API                     ❌ FAIL Status 404
+Buses API                      ❌ FAIL Status 404
+Drivers API                    ❌ FAIL Status 404
+Students API                   ❌ FAIL Status 404
+Fleet Vehicles API             ❌ FAIL Status 404
+Route Assignments API          ❌ FAIL Status 404
+ECSE Students API              ❌ FAIL Status 404
+Maintenance Records API        ❌ FAIL Status 404

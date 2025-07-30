@@ -204,14 +204,14 @@
     /* Hero section */
     .hero-section {
       position: relative;
-      padding: 5rem 0 3rem;
+      padding: 2rem 0 1.5rem; /* Reduced from 5rem to 2rem */
       text-align: center;
       color: white;
       overflow: hidden;
     }
     
     .hero-content h1 {
-      font-size: 3.5rem;
+      font-size: 2.5rem; /* Reduced from 3.5rem */
       font-weight: 800;
       margin-bottom: 1rem;
       background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
@@ -258,6 +258,227 @@
         transform: translateY(0);
       }
     }
+    
+    @keyframes gradientShift {
+      0%, 100% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+    }
+    
+    /* Additional styling for assign routes page */
+    .btn-outline-light {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      color: white;
+    }
+    
+    .btn-outline-light:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: white;
+      color: white;
+    }
+    
+    /* Glass card header */
+    .glass-card-header {
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .glass-card-header h2 {
+      color: white;
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+    
+    .stat-card {
+      background: rgba(255, 255, 255, 0.1);
+      /* backdrop-filter: blur(20px); */ /* Disabled to prevent blur issues */
+      border-radius: 20px;
+      padding: 2rem;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+    
+    .stat-label {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    /* Route table styling */
+    .route-table {
+      width: 100%;
+      color: white;
+    }
+    
+    .route-table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+    }
+    
+    .route-table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .route-table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(5px);
+    }
+    
+    .route-table td {
+      padding: 1rem;
+      vertical-align: middle;
+    }
+    
+    /* Assignment icons */
+    .assignment-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 1rem;
+      font-size: 1.5rem;
+    }
+    
+    .driver-icon {
+      background: rgba(102, 126, 234, 0.2);
+      color: #667eea;
+    }
+    
+    .route-icon {
+      background: rgba(240, 147, 251, 0.2);
+      color: #f093fb;
+    }
+    
+    .bus-icon {
+      background: rgba(79, 172, 254, 0.2);
+      color: #4facfe;
+    }
+    
+    /* Status badges */
+    .status-assigned {
+      background: rgba(67, 233, 123, 0.2);
+      color: #43e97b;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    
+    .status-available {
+      background: rgba(96, 165, 250, 0.2);
+      color: #60a5fa;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+    
+    .empty-state h3, .empty-state h4 {
+      color: white;
+      margin-bottom: 0.5rem;
+    }
+    
+    /* Bus list */
+    .bus-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .bus-item {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      padding: 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .bus-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(5px);
+    }
+    
+    /* Button block */
+    .btn-block {
+      width: 100%;
+    }
+    
+    /* Wizard button */
+    .wizard-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--gradient-1);
+      color: white;
+      padding: 0.75rem 2rem;
+      border-radius: 30px;
+      text-decoration: none;
+      font-weight: 600;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+      transition: all 0.3s ease;
+    }
+    
+    .wizard-button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+      color: white;
+    }
   </style>
     <!-- Dark Theme Text Colors -->
     <link rel="stylesheet" href="/static/dark_theme_text.css">
@@ -268,24 +489,19 @@
   <div class="orb orb2"></div>
   <div class="orb orb3"></div>
   
-  <!-- Navigation -->
+  <!-- Navigation Bar -->
   <nav class="navbar navbar-glass">
-    <div class="container">
-      <div class="d-flex justify-content-between align-items-center">
-        <a href="/manager-dashboard" class="navbar navbar-glass">
-          <i class="bi bi-diagram-3-fill"></i>
-          <span>Fleet Management</span>
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/manager-dashboard">
+        <i class="bi bi-bus-front-fill"></i> Fleet Management
+      </a>
+      <div class="d-flex align-items-center gap-3">
+        <a href="/manager-dashboard" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-speedometer2"></i> Dashboard
         </a>
-        <div class="d-flex align-items-center gap-3">
-          <a href="/manager-dashboard" class="btn btn-outline-light btn-sm">
-            <i class="bi bi-arrow-left"></i> Back to Dashboard
-          </a>
-          <form method="POST" action="/logout" class="m-0">
-            <button type="submit" class="btn btn-outline-light btn-sm">
-              <i class="bi bi-box-arrow-right"></i> Logout
-            </button>
-          </form>
-        </div>
+        <a href="/logout" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
       </div>
     </div>
   </nav>
@@ -297,7 +513,7 @@
         <h1 class="fade-in">Route Management</h1>
         <p class="lead fade-in" style="opacity: 0.9;">Assign drivers to bus routes and manage route definitions</p>
         <p class="fade-in" style="opacity: 0.8; font-size: 0.9rem;">
-          <i class="bi bi-info-circle"></i> Drivers and buses can be assigned to multiple routes
+          <i class="bi bi-info-circle"></i> One driver with one bus can be assigned to multiple routes
         </p>
         <div class="mt-4 fade-in">
           <a href="/route-assignment-wizard" class="wizard-button">
@@ -501,6 +717,7 @@
                       <input type="hidden" name="csrf_token" value="{{$.Data.CSRFToken}}">
                       <input type="hidden" name="driver" value="{{.Driver}}">
                       <input type="hidden" name="bus_id" value="{{.BusID}}">
+                      <input type="hidden" name="route_id" value="{{.RouteID}}">
                       <button type="submit" class="btn btn-sm btn-outline-danger">
                         <i class="bi bi-x-circle"></i>
                         Unassign
@@ -540,14 +757,17 @@
                 <i class="bi bi-person"></i>
                 Select Driver
               </label>
-              <input type="text" id="driver" name="driver" class="form-control" 
-                     placeholder="Start typing driver name..." required
-                     list="driver-list">
-              <datalist id="driver-list">
+              <select id="driver" name="driver" class="form-select" required>
+                <option value="" disabled selected>Choose a driver...</option>
                 {{range .Data.Drivers}}
                 <option value="{{.Username}}">{{.Username}}</option>
                 {{end}}
-              </datalist>
+              </select>
+              {{if not .Data.Drivers}}
+              <small class="text-warning mt-1 d-block">
+                <i class="bi bi-exclamation-triangle"></i> No available drivers found
+              </small>
+              {{end}}
             </div>
             
             <div class="form-group mb-3">
@@ -555,14 +775,17 @@
                 <i class="bi bi-map"></i>
                 Select Route
               </label>
-              <input type="text" id="route_id" name="route_id" class="form-control" 
-                     placeholder="Start typing route name or ID..." required
-                     list="route-list">
-              <datalist id="route-list">
+              <select id="route_id" name="route_id" class="form-select" required>
+                <option value="" disabled selected>Choose a route...</option>
                 {{range .Data.AvailableRoutes}}
-                <option value="{{.RouteID}}">{{.RouteName}}</option>
+                <option value="{{.RouteID}}">{{.RouteName}} ({{.RouteID}})</option>
                 {{end}}
-              </datalist>
+              </select>
+              {{if not .Data.AvailableRoutes}}
+              <small class="text-warning mt-1 d-block">
+                <i class="bi bi-exclamation-triangle"></i> No available routes found
+              </small>
+              {{end}}
             </div>
             
             <div class="form-group mb-4">
@@ -570,14 +793,17 @@
                 <i class="bi bi-bus-front"></i>
                 Select Bus
               </label>
-              <input type="text" id="bus_id" name="bus_id" class="form-control" 
-                     placeholder="Start typing bus ID..." required
-                     list="bus-list">
-              <datalist id="bus-list">
+              <select id="bus_id" name="bus_id" class="form-select" required>
+                <option value="" disabled selected>Choose a bus...</option>
                 {{range .Data.AvailableBuses}}
-                <option value="{{.BusID}}">Bus #{{.BusID}} ({{.Status}})</option>
+                <option value="{{.BusID}}">Bus #{{.BusID}}{{if .Model}} - {{.Model}}{{end}}</option>
                 {{end}}
-              </datalist>
+              </select>
+              {{if not .Data.AvailableBuses}}
+              <small class="text-warning mt-1 d-block">
+                <i class="bi bi-exclamation-triangle"></i> No available buses found
+              </small>
+              {{end}}
             </div>
             
             <button type="submit" class="btn btn-primary btn-block">

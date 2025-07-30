@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}} - Fleet Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  
+  <style nonce="{{.CSPNonce}}">
+    :root {
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      color: white;
+    }
+    
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+    
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
+    }
+    
+    .form-select option {
+      background: #2d3748 !important;
+      color: white !important;
+    }
+    
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+      /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
+    }
+    
+</style>
+    <!-- Dark Theme Text Colors -->
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
+</head>
+<body>
+  <!-- Floating orbs -->
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  
+
+  <!-- Navigation -->
+  <nav class="navbar navbar-glass">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center w-100">
+        <a href="/manage-users" class="navbar-brand">
+          <i class="bi bi-person-gear"></i>
+          <span>Edit User</span>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+          <a href="/manage-users" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to Users
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+  
+  <div class="container mt-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="glass-card">
+          <h2 class="mb-4">
+            <i class="bi bi-pencil-square me-2"></i>Edit User: {{.Data.Username}}
+          </h2>
+          
+          <!-- Update Role Form -->
+          <div class="mb-4">
+            <h4 class="mb-3">Update Role</h4>
+            <form method="POST" action="/edit-user">
+              <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+              <input type="hidden" name="username" value="{{.Data.Username}}">
+              <input type="hidden" name="action" value="update_role">
+              
+              <div class="row">
+                <div class="col-md-8 mb-3">
+                  <label for="role" class="form-label">User Role</label>
+                  <select id="role" name="role" class="form-select" required>
+                    <option value="driver" {{if eq .Data.Role "driver"}}selected{{end}}>Driver</option>
+                    <option value="manager" {{if eq .Data.Role "manager"}}selected{{end}}>Manager</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-4 mb-3 d-flex align-items-end">
+                  <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-person-check"></i> Update Role
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+          
+          <hr class="my-4" style="border-color: rgba(255, 255, 255, 0.2);">
+          
+          <!-- Reset Password Form -->
+          <div class="mb-4">
+            <h4 class="mb-3">Reset Password</h4>
+            <form method="POST" action="/edit-user">
+              <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+              <input type="hidden" name="username" value="{{.Data.Username}}">
+              <input type="hidden" name="action" value="reset_password">
+              
+              <div class="row">
+                <div class="col-md-8 mb-3">
+                  <label for="password" class="form-label">New Password</label>
+                  <input type="password" id="password" name="password" class="form-control" 
+                         required minlength="6" placeholder="Enter new password">
+                </div>
+                
+                <div class="col-md-4 mb-3 d-flex align-items-end">
+                  <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-key"></i> Reset Password
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+          
+          <hr class="my-4" style="border-color: rgba(255, 255, 255, 0.2);">
+          
+          <!-- User Information -->
+          <div>
+            <h4 class="mb-3">User Information</h4>
+            <div class="row">
+              <div class="col-md-6">
+                <p><strong>Username:</strong> {{.Data.Username}}</p>
+                <p><strong>Current Role:</strong> {{.Data.Role}}</p>
+                <p><strong>Status:</strong> {{.Data.Status}}</p>
+              </div>
+              <div class="col-md-6">
+                {{if .Data.Email}}
+                <p><strong>Email:</strong> {{.Data.Email}}</p>
+                {{end}}
+                {{if .Data.Phone}}
+                <p><strong>Phone:</strong> {{.Data.Phone}}</p>
+                {{end}}
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-4">
+            <a href="/manage-users" class="btn btn-secondary">
+              <i class="bi bi-arrow-left"></i> Back to Users
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

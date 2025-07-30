@@ -71,7 +71,7 @@
     /* Glassmorphism navigation */
     .navbar-glass {
       background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
+      /* backdrop-filter: blur(20px); */ /* Disabled to fix blur issue */
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
       padding: 1rem 0;
       position: sticky;
@@ -100,7 +100,7 @@
     .orb {
       position: absolute;
       border-radius: 50%;
-      filter: blur(40px);
+      /* filter: blur(40px); */ /* Disabled to fix blur issue */
       opacity: 0.6;
       animation: float 20s infinite ease-in-out;
     }
@@ -140,7 +140,7 @@
     /* Glass cards */
     .glass-card {
       background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
+      /* backdrop-filter: blur(20px); */ /* Disabled to fix blur issue */
       border-radius: 30px;
       border: 1px solid rgba(255, 255, 255, 0.2);
       padding: 2rem;
@@ -197,7 +197,7 @@
     .metric-card {
       position: relative;
       background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
+      /* backdrop-filter: blur(20px); */ /* Disabled to fix blur issue */
       border-radius: 30px;
       padding: 2.5rem;
       text-align: center;
@@ -245,14 +245,14 @@
     /* Hero section */
     .hero-section {
       position: relative;
-      padding: 5rem 0 3rem;
+      padding: 2rem 0 1.5rem; /* Reduced padding */
       text-align: center;
       color: white;
       overflow: hidden;
     }
     
     .hero-content h1 {
-      font-size: 3.5rem;
+      font-size: 2.5rem; /* Reduced size */
       font-weight: 800;
       margin-bottom: 1rem;
       background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);

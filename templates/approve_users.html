@@ -215,14 +215,14 @@
     /* Hero section */
     .hero-section {
       position: relative;
-      padding: 5rem 0 3rem;
+      padding: 2rem 0 1.5rem; /* Reduced from 5rem to 2rem */
       text-align: center;
       color: white;
       overflow: hidden;
     }
     
     .hero-content h1 {
-      font-size: 3.5rem;
+      font-size: 2.5rem; /* Reduced from 3.5rem */
       font-weight: 800;
       margin-bottom: 1rem;
       background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
@@ -269,6 +269,128 @@
         transform: translateY(0);
       }
     }
+    
+    @keyframes gradientShift {
+      0%, 100% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+    }
+    
+    /* Button styling enhancements */
+    .btn-outline-light {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      color: white;
+    }
+    
+    .btn-outline-light:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: white;
+      color: white;
+    }
+    
+    /* Glass card header */
+    .glass-card-header {
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .glass-card-header h2 {
+      color: white;
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin: 0;
+      display: flex;
+      align-items: center;
+    }
+    
+    /* Approval specific styles */
+    .approval-card {
+      margin-bottom: 1rem;
+    }
+    
+    .user-avatar {
+      width: 60px;
+      height: 60px;
+      background: rgba(102, 126, 234, 0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 1rem;
+      font-size: 2rem;
+      color: #667eea;
+    }
+    
+    .user-info h3 {
+      color: white;
+      margin: 0;
+      font-size: 1.25rem;
+    }
+    
+    .btn-approve {
+      background: var(--gradient-4);
+      color: white;
+      box-shadow: 0 5px 20px rgba(67, 233, 123, 0.5);
+    }
+    
+    .btn-approve:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(67, 233, 123, 0.7);
+      color: white;
+    }
+    
+    .btn-reject {
+      background: var(--gradient-2);
+      color: white;
+      box-shadow: 0 5px 20px rgba(245, 87, 108, 0.5);
+    }
+    
+    .btn-reject:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(245, 87, 108, 0.7);
+      color: white;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: white;
+    }
+    
+    .empty-state i {
+      font-size: 4rem;
+      color: #43e97b;
+      margin-bottom: 1rem;
+    }
+    
+    .pending-badge {
+      background: rgba(250, 112, 154, 0.2);
+      color: #fa709a;
+      padding: 0.5rem 1rem;
+      border-radius: 30px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.1rem;
+    }
+    
+    .info-box {
+      background: rgba(96, 165, 250, 0.1);
+      border: 1px solid rgba(96, 165, 250, 0.3);
+      border-radius: 20px;
+      padding: 2rem;
+      color: white;
+    }
+    
+    .info-box h3 {
+      color: #60a5fa;
+      margin-bottom: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -278,23 +400,39 @@
   <div class="orb orb3"></div>
 
   <div class="page-wrapper">
-    <!-- Navigation Component -->
-    {{template "navigation" (dict "Navigation" .Navigation "CSPNonce" .CSPNonce "ShowHelpButton" .ShowHelpButton "PageDescription" "Review and approve pending driver registrations")}}
-    
-    <!-- Page Actions -->
-    <header class="page-actions">
-      <div class="page-header-content">
-        <nav class="page-header-nav">
-          <button class="btn btn-outline-primary" onclick="toggleHelpMode()">
-            <i class="bi bi-question-circle" aria-hidden="true"></i>
-            Help
-          </button>
-        </nav>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-glass">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/manager-dashboard">
+          <i class="bi bi-bus-front-fill"></i> Fleet Management
+        </a>
+        <div class="d-flex align-items-center gap-3">
+          <a href="/manage-users" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to Users
+          </a>
+          <a href="/manager-dashboard" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-speedometer2"></i> Dashboard
+          </a>
+          <a href="/logout" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-box-arrow-right"></i> Logout
+          </a>
+        </div>
       </div>
-    </header>
+    </nav>
+    
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="container">
+        <div class="hero-content">
+          <h1 class="fade-in">Approve Users</h1>
+          <p class="lead fade-in" style="opacity: 0.9;">Review and approve pending driver registrations</p>
+        </div>
+      </div>
+    </section>
     
     <!-- Main Content -->
-    <main id="main-content" class="main-content">
+    <div class="container">
+      <main id="main-content" class="main-content">
       {{if .Data.PendingUsers}}
       <section aria-labelledby="pending-heading">
         <h2 id="pending-heading" class="mb-3">
@@ -314,10 +452,10 @@
                 </div>
                 <div class="user-info">
                   <h3>{{.Username}}</h3>
-                  <div class="text-muted">
+                  <div style="color: rgba(255, 255, 255, 0.7);">
                     <div>
                       <i class="bi bi-calendar" aria-hidden="true"></i>
-                      Registered: {{.CreatedAt}}
+                      Registered: {{.CreatedAt.Format "Jan 02, 2006"}}
                     </div>
                     <div>
                       <i class="bi bi-shield" aria-hidden="true"></i>
@@ -377,6 +515,7 @@
         <p class="mb-0">Approved drivers will receive the standard "driver" role. For manager access, use the User Management page after approval.</p>
       </div>
     </main>
+    </div>
   </div>
   
   <script src="/static/help_system.js"></script>

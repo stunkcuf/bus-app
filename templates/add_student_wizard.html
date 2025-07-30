@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="/static/dark_theme_text.css">
   <link rel="stylesheet" href="/static/wizard.css">
   <link rel="stylesheet" href="/static/help_system.css">
+  <link rel="stylesheet" href="/static/contextual_help.css">
+  <link rel="stylesheet" href="/static/autocomplete.css">
   
   <style nonce="{{.CSPNonce}}">
     /* Ultimate beautiful design system */
@@ -209,14 +211,14 @@
     /* Hero section */
     .hero-section {
       position: relative;
-      padding: 5rem 0 3rem;
+      padding: 2rem 0 1.5rem; /* Reduced from 5rem to 2rem */
       text-align: center;
       color: white;
       overflow: hidden;
     }
     
     .hero-content h1 {
-      font-size: 3.5rem;
+      font-size: 2.5rem; /* Reduced from 3.5rem */
       font-weight: 800;
       margin-bottom: 1rem;
       background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
@@ -272,8 +274,35 @@
   <div class="orb orb3"></div>
 
   <div class="page-wrapper">
-    <!-- Navigation Component -->
-    {{template "navigation" (dict "Navigation" .Navigation "CSPNonce" .CSPNonce "ShowHelpButton" .ShowHelpButton "PageDescription" "Add a new student to the system")}}
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-glass">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/manager-dashboard">
+          <i class="bi bi-bus-front-fill"></i> Fleet Management
+        </a>
+        <div class="d-flex align-items-center gap-3">
+          <a href="/students" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to Students
+          </a>
+          <a href="/manager-dashboard" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-speedometer2"></i> Dashboard
+          </a>
+          <a href="/logout" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-box-arrow-right"></i> Logout
+          </a>
+        </div>
+      </div>
+    </nav>
+    
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="container">
+        <div class="hero-content">
+          <h1 class="fade-in">Add New Student</h1>
+          <p class="lead fade-in" style="opacity: 0.9;">Add a new student to the system</p>
+        </div>
+      </div>
+    </section>
     
     <!-- Main Content -->
     <main id="main-content" class="main-content">
@@ -825,6 +854,94 @@
           e.target.value = value;
         });
       });
+    });
+  </script>
+  
+  <!-- Include Contextual Help System -->
+  <script src="/static/contextual_help.js"></script>
+  
+  <!-- Include Auto-Save System -->
+  <script src="/static/auto_save.js"></script>
+  
+  <!-- Include Friendly Error System -->
+  <script src="/static/friendly_errors.js"></script>
+  
+  <!-- Include Autocomplete System -->
+  <script src="/static/autocomplete.js"></script>
+  
+  <!-- Enable auto-save for this form -->
+  <script nonce="{{.CSPNonce}}">
+    document.addEventListener('DOMContentLoaded', function() {
+      // Mark the form for auto-save
+      const studentForm = document.getElementById('addStudentForm');
+      if (studentForm) {
+        studentForm.setAttribute('data-autosave', 'true');
+        // Re-initialize auto-save to pick up this form
+        if (window.autoSave) {
+          window.autoSave.findAutoSaveForms();
+        }
+      }
+      
+      // Initialize autocomplete for address field
+      if (window.AutoComplete) {
+        // Common addresses for autocomplete
+        const commonAddresses = [
+          '123 Main Street',
+          '456 Oak Avenue', 
+          '789 Elm Street',
+          '321 Pine Road',
+          '654 Maple Drive',
+          '987 Cedar Lane',
+          '147 Birch Boulevard',
+          '258 Spruce Court',
+          '369 Willow Way',
+          '741 Cherry Street'
+        ];
+        
+        new AutoComplete('pickupAddress', {
+          source: function(query, callback) {
+            // Filter addresses based on query
+            const filtered = commonAddresses.filter(addr => 
+              addr.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            // Also fetch from server if available
+            fetch(`/api/search-addresses?q=${encodeURIComponent(query)}`)
+              .then(response => response.json())
+              .then(data => {
+                const combined = [...filtered, ...data];
+                callback(combined.slice(0, 10));
+              })
+              .catch(() => {
+                // Fallback to local addresses only
+                callback(filtered);
+              });
+          },
+          minChars: 1,
+          onSelect: function(address) {
+            // Could auto-fill city/state based on address
+            console.log('Selected address:', address);
+          }
+        });
+        
+        // Initialize autocomplete for guardian name
+        new AutoComplete('guardianName', {
+          source: function(query, callback) {
+            // Common names for demonstration
+            const commonNames = [
+              'John Smith', 'Jane Doe', 'Michael Johnson', 
+              'Sarah Williams', 'Robert Brown', 'Maria Garcia',
+              'David Martinez', 'Jennifer Davis', 'James Wilson'
+            ];
+            
+            const filtered = commonNames.filter(name => 
+              name.toLowerCase().includes(query.toLowerCase())
+            );
+            callback(filtered);
+          },
+          minChars: 2
+        });
+      }
     });
   </script>
 </body>

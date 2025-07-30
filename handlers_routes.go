@@ -66,12 +66,19 @@ func unassignRouteHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse form data
 	driver := r.FormValue("driver")
 	busID := r.FormValue("bus_id")
+	routeID := r.FormValue("route_id")
 
-	// Delete assignment
-	_, err := db.Exec(`
-		DELETE FROM route_assignments 
-		WHERE driver = $1 AND bus_id = $2
-	`, driver, busID)
+	// Delete specific assignment
+	query := `DELETE FROM route_assignments WHERE driver = $1 AND bus_id = $2`
+	args := []interface{}{driver, busID}
+	
+	// If route_id is provided, delete specific route assignment
+	if routeID != "" {
+		query += ` AND route_id = $3`
+		args = append(args, routeID)
+	}
+	
+	_, err := db.Exec(query, args...)
 
 	if err != nil {
 		log.Printf("Error removing route assignment: %v", err)

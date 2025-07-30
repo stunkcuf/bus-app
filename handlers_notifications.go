@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -348,4 +349,87 @@ func processAttendanceNotifications() {
 			notificationTriggers.TriggerAttendanceIssueNotifications()
 		}
 	})
+}
+
+// markAllNotificationsReadHandler marks all notifications as read for the user
+func markAllNotificationsReadHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		SendError(w, ErrUnauthorized("Authentication required"))
+		return
+	}
+
+	if r.Method != "POST" {
+		SendError(w, ErrMethodNotAllowed("Only POST method allowed"))
+		return
+	}
+
+	// Mark all as read
+	_, err := db.Exec(`
+		UPDATE in_app_notifications 
+		SET read = true, read_at = CURRENT_TIMESTAMP
+		WHERE user_id = $1 AND read = false
+	`, user.Username)
+
+	if err != nil {
+		SendError(w, ErrDatabase("Failed to mark notifications as read", err))
+		return
+	}
+
+	SendJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+// getRecentNotificationsHandler returns recent notifications for the user
+func getRecentNotificationsHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession(r)
+	if user == nil {
+		SendError(w, ErrUnauthorized("Authentication required"))
+		return
+	}
+
+	// Get limit from query param
+	limit := 10
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 && parsed <= 50 {
+			limit = parsed
+		}
+	}
+
+	rows, err := db.Query(`
+		SELECT n.notification_id, n.type, n.subject, n.message, 
+		       n.created_at, n.read
+		FROM in_app_notifications n
+		WHERE n.user_id = $1
+		ORDER BY n.created_at DESC
+		LIMIT $2
+	`, user.Username, limit)
+
+	if err != nil {
+		SendError(w, ErrDatabase("Failed to get notifications", err))
+		return
+	}
+	defer rows.Close()
+
+	type NotificationItem struct {
+		ID        string    `json:"id"`
+		Type      string    `json:"type"`
+		Subject   string    `json:"subject"`
+		Message   string    `json:"message"`
+		CreatedAt time.Time `json:"created_at"`
+		Read      bool      `json:"read"`
+		Priority  string    `json:"priority"`
+	}
+
+	var notifications []NotificationItem
+	for rows.Next() {
+		var n NotificationItem
+		err := rows.Scan(&n.ID, &n.Type, &n.Subject, &n.Message, 
+			&n.CreatedAt, &n.Read, &n.Priority)
+		if err != nil {
+			continue
+		}
+		notifications = append(notifications, n)
+	}
+
+	SendJSON(w, http.StatusOK, notifications)
 }

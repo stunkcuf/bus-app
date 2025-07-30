@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Fleet Management System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/modern_theme.css">
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
+    
+    <style nonce="{{.CSPNonce}}">
+        /* ECSE Student Details Specific Styles */
+        .student-header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .student-name {
+            color: white;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .student-id {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.1rem;
+        }
+        
+        .info-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .info-card h3 {
+            color: white;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .info-card h3 i {
+            color: #667eea;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 500;
+        }
+        
+        .info-value {
+            color: white;
+            text-align: right;
+        }
+        
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .status-active {
+            background: rgba(67, 233, 123, 0.2);
+            color: #43e97b;
+            border: 1px solid rgba(67, 233, 123, 0.5);
+        }
+        
+        .status-pending {
+            background: rgba(250, 112, 154, 0.2);
+            color: #fa709a;
+            border: 1px solid rgba(250, 112, 154, 0.5);
+        }
+        
+        .service-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.3s ease;
+        }
+        
+        .service-card:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateX(5px);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+    </style>
+  <style nonce="{{.CSPNonce}}">
+    /* Ultimate beautiful design system */
+    :root {
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+      --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0f0c29;
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
+      color: white;
+    }
+    
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-20px, -20px) rotate(120deg); }
+      66% { transform: translate(20px, -10px) rotate(240deg); }
+    }
+    
+    /* Glassmorphism navigation */
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+      transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
+    }
+    
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
+    }
+    
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+    /* Glass cards */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+    
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 2rem 0 1.5rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
+    }
+    
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    /* Form styling */
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white;
+      outline: none;
+    }
+    
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    /* Button styling */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+      color: white;
+    }
+    
+    /* Tables */
+    .table {
+      color: white;
+    }
+    
+    .table thead th {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem;
+      border: none;
+    }
+    
+    .table tbody tr {
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(10px);
+    }
+    
+    /* Text colors for dark theme */
+    h1, h2, h3, h4, h5, h6, p, span, label, a, td, th, li {
+      color: white !important;
+    }
+    
+    .text-muted {
+      color: rgba(255, 255, 255, 0.7) !important;
+    }
+    
+    /* Card styling */
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      color: white;
+    }
+    
+    .card-header {
+      background: rgba(255, 255, 255, 0.15);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    /* Modal styling */
+    .modal-content {
+      background: rgba(30, 30, 50, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    .modal-header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .modal-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Floating orbs -->
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-glass" style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(20px);">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/" style="color: white;">
+                <i class="bi bi-bus-front-fill"></i> Fleet Management
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <a href="/ecse-dashboard" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back to ECSE Dashboard
+                </a>
+            </div>
+        </div>
+              <form method="POST" action="/logout" class="m-0">
+            <button type="submit" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+          </form>
+
+</nav>
+    
+    <div class="container py-5">
+        <!-- Student Header -->
+        <div class="student-header">
+            <h1 class="student-name">
+                {{if .Data.Student.FirstName}}{{.Data.Student.FirstName}}{{else}}Unknown{{end}}
+                {{if .Data.Student.LastName}}{{.Data.Student.LastName}}{{end}}
+            </h1>
+            <div class="student-id">
+                <i class="bi bi-person-badge"></i> {{.Data.Student.StudentID}}
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Basic Information -->
+            <div class="col-lg-6 mb-4">
+                <div class="info-card">
+                    <h3><i class="bi bi-info-circle-fill"></i> Basic Information</h3>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Date of Birth</span>
+                        <span class="info-value">
+                            {{if .Data.Student.DateOfBirth.Valid}}
+                                {{.Data.Student.DateOfBirth.String}}
+                            {{else}}
+                                Not provided
+                            {{end}}
+                        </span>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Grade</span>
+                        <span class="info-value">
+                            {{if .Data.Student.Grade.Valid}}{{.Data.Student.Grade.String}}{{else}}Not specified{{end}}
+                        </span>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Enrollment Status</span>
+                        <span class="info-value">
+                            {{if eq .Data.Student.EnrollmentStatus.String "Active"}}
+                                <span class="status-badge status-active">Active</span>
+                            {{else}}
+                                <span class="status-badge status-pending">{{.Data.Student.EnrollmentStatus.String}}</span>
+                            {{end}}
+                        </span>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="info-label">IEP Status</span>
+                        <span class="info-value">
+                            {{if .Data.Student.IEPStatus.Valid}}
+                                {{.Data.Student.IEPStatus.String}}
+                            {{else}}
+                                Not specified
+                            {{end}}
+                        </span>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Primary Disability</span>
+                        <span class="info-value">
+                            {{if .Data.Student.PrimaryDisability.Valid}}
+                                {{.Data.Student.PrimaryDisability.String}}
+                            {{else}}
+                                Not specified
+                            {{end}}
+                        </span>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Service Minutes</span>
+                        <span class="info-value">
+                            {{if .Data.Student.ServiceMinutes.Valid}}
+                                {{.Data.Student.ServiceMinutes.Int32}} minutes/week
+                            {{else}}
+                                Not specified
+                            {{end}}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Contact & Transportation -->
+            <div class="col-lg-6 mb-4">
+                <div class="info-card">
+                    <h3><i class="bi bi-telephone-fill"></i> Contact Information</h3>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Parent/Guardian</span>
+                        <span class="info-value">
+                            {{if .Data.Student.ParentName.Valid}}
+                                {{.Data.Student.ParentName.String}}
+                            {{else}}
+                                Not provided
+                            {{end}}
+                        </span>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Phone</span>
+                        <span class="info-value">
+                            {{if .Data.Student.ParentPhone.Valid}}
+                                {{.Data.Student.ParentPhone.String}}
+                            {{else}}
+                                Not provided
+                            {{end}}
+                        </span>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Email</span>
+                        <span class="info-value">
+                            {{if .Data.Student.ParentEmail.Valid}}
+                                {{.Data.Student.ParentEmail.String}}
+                            {{else}}
+                                Not provided
+                            {{end}}
+                        </span>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Address</span>
+                        <span class="info-value">
+                            {{if .Data.Student.Address.Valid}}
+                                {{.Data.Student.Address.String}}
+                            {{else}}
+                                Not provided
+                            {{end}}
+                        </span>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="info-label">City, State ZIP</span>
+                        <span class="info-value">
+                            {{if .Data.Student.City.Valid}}{{.Data.Student.City.String}},{{end}}
+                            {{if .Data.Student.State.Valid}}{{.Data.Student.State.String}}{{end}}
+                            {{if .Data.Student.ZipCode.Valid}}{{.Data.Student.ZipCode.String}}{{end}}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="info-card mt-4">
+                    <h3><i class="bi bi-bus-front-fill"></i> Transportation</h3>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Transportation Required</span>
+                        <span class="info-value">
+                            {{if .Data.Student.TransportationRequired.Valid}}
+                                {{if .Data.Student.TransportationRequired.Bool}}
+                                    <span class="status-badge status-active">Yes</span>
+                                {{else}}
+                                    <span class="status-badge status-pending">No</span>
+                                {{end}}
+                            {{else}}
+                                Not specified
+                            {{end}}
+                        </span>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Bus Route</span>
+                        <span class="info-value">
+                            {{if .Data.Student.BusRoute.Valid}}
+                                {{.Data.Student.BusRoute.String}}
+                            {{else}}
+                                Not assigned
+                            {{end}}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Services Section -->
+        <div class="row mt-4">
+            <div class="col-lg-12">
+                <div class="info-card">
+                    <h3><i class="bi bi-clipboard-check"></i> Services</h3>
+                    
+                    {{if .Data.Services}}
+                        {{range .Data.Services}}
+                        <div class="service-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{.ServiceType}}</strong>
+                                    <div class="text-muted small">
+                                        Provider: {{.Provider}} | {{.Frequency}}
+                                    </div>
+                                </div>
+                                <div>
+                                    {{if eq .Status "Active"}}
+                                        <span class="status-badge status-active">Active</span>
+                                    {{else}}
+                                        <span class="status-badge status-pending">{{.Status}}</span>
+                                    {{end}}
+                                </div>
+                            </div>
+                        </div>
+                        {{end}}
+                    {{else}}
+                        <div class="empty-state">
+                            <i class="bi bi-clipboard-x"></i>
+                            <p>No services recorded</p>
+                        </div>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notes Section -->
+        {{if .Data.Student.Notes.Valid}}
+        <div class="row mt-4">
+            <div class="col-lg-12">
+                <div class="info-card">
+                    <h3><i class="bi bi-journal-text"></i> Notes</h3>
+                    <p style="color: rgba(255, 255, 255, 0.8);">{{.Data.Student.Notes.String}}</p>
+                </div>
+            </div>
+        </div>
+        {{end}}
+    </div>
+</body>
+</html>

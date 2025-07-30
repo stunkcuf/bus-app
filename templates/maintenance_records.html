@@ -71,7 +71,7 @@
     /* Glassmorphism navigation */
     .navbar-glass {
       background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
+      /* backdrop-filter: blur(20px); */ /* Disabled to prevent blur issues */
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
       padding: 1rem 0;
       position: sticky;
@@ -140,7 +140,7 @@
     /* Glass cards */
     .glass-card {
       background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
+      /* backdrop-filter: blur(20px); */ /* Disabled to prevent blur issues */
       border-radius: 30px;
       border: 1px solid rgba(255, 255, 255, 0.2);
       padding: 2rem;
@@ -197,7 +197,7 @@
     .metric-card {
       position: relative;
       background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
+      /* backdrop-filter: blur(20px); */ /* Disabled to prevent blur issues */
       border-radius: 30px;
       padding: 2.5rem;
       text-align: center;
@@ -276,6 +276,23 @@
   <div class="orb orb1"></div>
   <div class="orb orb2"></div>
   <div class="orb orb3"></div>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-dark navbar-glass">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/manager-dashboard">
+        <i class="bi bi-bus-front-fill"></i> Fleet Management
+      </a>
+      <div class="d-flex align-items-center gap-3">
+        <a href="/manager-dashboard" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a href="/logout" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
+      </div>
+    </div>
+  </nav>
 
     <div class="header">
         <h1>

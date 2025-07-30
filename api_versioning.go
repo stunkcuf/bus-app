@@ -18,6 +18,14 @@ const (
 	// Add more versions as needed
 )
 
+// APIResponse represents a standard API response
+type APIResponse struct {
+	Success bool        `json:"success"`
+	Data    interface{} `json:"data,omitempty"`
+	Error   string      `json:"error,omitempty"`
+	Message string      `json:"message,omitempty"`
+}
+
 // VersionedAPIResponse extends the existing APIResponse with versioning
 type VersionedAPIResponse struct {
 	APIResponse
