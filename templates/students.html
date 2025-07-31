@@ -6,16 +6,11 @@
   <title>Student Management - Fleet Management System</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="/static/modern_theme.css">
-    <!-- Dark Theme Text Colors -->
-    <link rel="stylesheet" href="/static/dark_theme_text.css">
-  <link rel="stylesheet" href="/static/responsive_tables.css">
-  <link rel="stylesheet" href="/static/help_system.css">
-  <link rel="stylesheet" href="/static/enhanced_help_system.css">
-  <link rel="stylesheet" href="/static/autocomplete.css">
+  <!-- Touch-Friendly Controls -->
+  <link rel="stylesheet" href="/static/touch_friendly.css">
   
   <style nonce="{{.CSPNonce}}">
-    /* Ultimate beautiful design system */
+    /* Enhanced glass morphism design system */
     :root {
       --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
@@ -26,6 +21,12 @@
       --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
       --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
       --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      
+      /* Glass morphism variables */
+      --glass-bg: rgba(255, 255, 255, 0.1);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+      --glass-blur: 20px;
     }
     
     * {
@@ -40,41 +41,59 @@
       min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       overflow-x: hidden;
+      position: relative;
+      color: white;
     }
     
-    /* Animated background */
+    /* Enhanced animated background */
     body::before {
       content: '';
       position: fixed;
-      top: 0;
-      left: 0;
+      top: -50%;
+      right: -30%;
       width: 100%;
       height: 100%;
-      background-image: 
-        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
-      animation: backgroundShift 20s ease-in-out infinite;
+      background: radial-gradient(circle, rgba(147, 51, 234, 0.3) 0%, transparent 70%);
+      filter: blur(100px);
       z-index: -1;
+      animation: floatBackground 20s ease-in-out infinite;
     }
     
-    @keyframes backgroundShift {
-      0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      33% { transform: translate(-20px, -20px) rotate(120deg); }
-      66% { transform: translate(20px, -10px) rotate(240deg); }
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -50%;
+      left: -30%;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
+      filter: blur(100px);
+      z-index: -1;
+      animation: floatBackground 20s ease-in-out infinite reverse;
     }
     
-    /* Glassmorphism navigation */
+    @keyframes floatBackground {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+    /* Enhanced navigation */
     .navbar-glass {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 1rem 0;
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border-bottom: 1px solid var(--glass-border);
+      padding: 1.2rem 0;
       position: sticky;
       top: 0;
       z-index: 1000;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      box-shadow: var(--glass-shadow);
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-glass:hover {
+      background: rgba(255, 255, 255, 0.12);
     }
     
     .navbar-brand {
@@ -93,78 +112,71 @@
       text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
     }
     
-    /* Floating orbs */
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(40px);
-      opacity: 0.6;
-      animation: float 20s infinite ease-in-out;
-    }
-    
-    .orb1 {
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
-      top: -150px;
-      left: -150px;
-    }
-    
-    .orb2 {
-      width: 400px;
-      height: 400px;
-      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
-      bottom: -200px;
-      right: -200px;
-      animation-delay: -5s;
-    }
-    
-    .orb3 {
-      width: 250px;
-      height: 250px;
-      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
-      top: 50%;
-      left: 50%;
-      animation-delay: -10s;
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(30px, -30px) scale(1.1); }
-      66% { transform: translate(-20px, 20px) scale(0.9); }
-    }
-    
-    /* Glass cards */
+    /* Enhanced glass cards */
     .glass-card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 2rem;
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border-radius: 24px;
+      border: 1px solid var(--glass-border);
+      padding: 2.5rem;
       margin-bottom: 2rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      box-shadow: var(--glass-shadow);
       color: white;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
     }
     
-    /* Form styling */
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    
+    .glass-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+    
+    /* Enhanced form styling */
     .form-control,
     .form-select {
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
       color: white;
-      padding: 0.75rem 1rem;
+      padding: 0.875rem 1.25rem;
       transition: all 0.3s ease;
+      font-size: 0.95rem;
     }
     
     .form-control:focus,
     .form-select:focus {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(102, 126, 234, 0.5);
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
       color: white;
       outline: none;
+    }
+    
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .form-select option {
+      background: #1a1a2e;
+      color: white;
+    }
+    
+    /* Fix Bootstrap dropdown colors */
+    .form-select {
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
     }
     
     /* Button styling */
@@ -182,7 +194,7 @@
     
     .btn-primary {
       background: var(--gradient-1);
-      color: white;
+      color: white !important;
       box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
     }
     
@@ -191,68 +203,375 @@
       box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
     }
     
-    /* Metric cards */
+    .btn-outline-primary {
+      background: transparent;
+      border: 1px solid rgba(102, 126, 234, 0.5);
+      color: #a8b9ff !important;
+    }
+    
+    .btn-outline-primary:hover {
+      background: rgba(102, 126, 234, 0.1);
+      border-color: #667eea;
+      color: #c8d4ff !important;
+    }
+    
+    .btn-outline-danger {
+      background: transparent;
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #ff9999 !important;
+    }
+    
+    .btn-outline-danger:hover {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: #ef4444;
+      color: #ffb3b3 !important;
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white !important;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+      color: white !important;
+    }
+    
+    /* Ensure badge text is visible */
+    .badge {
+      color: white !important;
+    }
+    
+    /* Small buttons */
+    .btn-sm {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+    }
+    
+    /* Enhanced metrics grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
     .metric-card {
       position: relative;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 30px;
-      padding: 2.5rem;
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border-radius: 16px;
+      padding: 1rem;
       text-align: center;
       color: white;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid var(--glass-border);
       overflow: hidden;
       transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: var(--gradient-1);
+      border-radius: 16px;
+      opacity: 0;
+      z-index: -1;
+      transition: opacity 0.3s ease;
+    }
+    
     .metric-card:hover {
-      transform: translateY(-10px) scale(1.02);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    .metric-card:hover::before {
+      opacity: 0.3;
+    }
+    
+    .metric-icon {
+      font-size: 1.25rem;
+      margin-bottom: 0.5rem;
+      background: var(--gradient-1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .metric-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      letter-spacing: -0.5px;
+    }
+    
+    .metric-label {
+      font-size: 0.75rem;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: white;
     }
     
     /* Hero section */
     .hero-section {
       position: relative;
-      padding: 5rem 0 3rem;
+      padding: 2rem 0;
       text-align: center;
       color: white;
       overflow: hidden;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, transparent 100%);
+      border-radius: 0 0 50px 50px;
+      margin-bottom: 2rem;
     }
     
     .hero-content h1 {
-      font-size: 3.5rem;
+      font-size: 2.5rem;
       font-weight: 800;
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem;
       background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      background-clip: text;
       animation: gradientShift 8s ease-in-out infinite;
+      text-shadow: 0 0 40px rgba(255, 255, 255, 0.2);
     }
     
-    /* Tables */
-    .table {
-      color: white;
+    .hero-content p {
+      font-size: 1.1rem;
+      opacity: 0.9;
     }
     
-    .table thead th {
-      background: rgba(255, 255, 255, 0.15);
-      color: white;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      padding: 1rem;
-      border: none;
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
     
-    .table tbody tr {
-      background: rgba(255, 255, 255, 0.05);
+    /* Student grid */
+    .student-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    .student-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border-radius: 20px;
+      border: 1px solid var(--glass-border);
+      padding: 0;
+      overflow: hidden;
       transition: all 0.3s ease;
+      color: white;
     }
     
-    .table tbody tr:hover {
-      background: rgba(255, 255, 255, 0.1);
-      transform: translateX(10px);
+    .student-card * {
+      color: inherit;
+    }
+    
+    .student-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    .student-card-header {
+      padding: 1.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .student-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .student-avatar {
+      width: 50px;
+      height: 50px;
+      background: var(--gradient-3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: white;
+      box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+    }
+    
+    .student-details h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: white;
+    }
+    
+    .student-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.875rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      margin-top: 0.25rem;
+    }
+    
+    .student-status.active {
+      background: rgba(67, 233, 123, 0.2);
+      color: #43e97b;
+      border: 1px solid rgba(67, 233, 123, 0.3);
+    }
+    
+    .student-status.inactive {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    
+    .student-card-body {
+      padding: 1.5rem;
+    }
+    
+    .student-schedule {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .schedule-badge {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.75rem;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 0.875rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+    
+    .schedule-badge strong {
+      color: white;
+    }
+    
+    .info-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      font-size: 0.9rem;
+      opacity: 0.9;
+      color: white;
+    }
+    
+    .info-row i {
+      color: #667eea;
+    }
+    
+    .locations-section {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .locations-section h4 {
+      color: white;
+    }
+    
+    .location-badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      margin: 0.25rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+    
+    .student-card-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 5rem 2rem;
+      color: white;
+    }
+    
+    .empty-state i {
+      font-size: 5rem;
+      opacity: 0.3;
+      margin-bottom: 1rem;
+    }
+    
+    .empty-state h3 {
+      font-size: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .empty-state p {
+      opacity: 0.7;
+      margin-bottom: 2rem;
+    }
+    
+    /* Modal styling */
+    .modal-content {
+      background: #1a1a2e;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      color: white;
+    }
+    
+    .modal-header {
+      background: rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px 20px 0 0;
+    }
+    
+    .modal-footer {
+      background: rgba(255, 255, 255, 0.05);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 0 0 20px 20px;
+    }
+    
+    .btn-close {
+      filter: invert(1);
+      opacity: 0.8;
+    }
+    
+    .btn-close:hover {
+      opacity: 1;
+    }
+    
+    /* Form sections */
+    fieldset {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    legend {
+      font-size: 1.1rem;
+      font-weight: 600;
+      padding: 0 1rem;
+      width: auto;
     }
     
     /* Animations */
@@ -268,175 +587,442 @@
         transform: translateY(0);
       }
     }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .navbar-glass {
+        padding: 0.75rem 0;
+      }
+      
+      .navbar-brand {
+        font-size: 1.25rem;
+      }
+      
+      .hero-section {
+        padding: 1.5rem 0;
+      }
+      
+      .hero-content h1 {
+        font-size: 2rem;
+      }
+      
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+      }
+      
+      .metric-card {
+        padding: 1rem;
+      }
+      
+      .student-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+      
+      .glass-card {
+        padding: 1.5rem;
+        border-radius: 16px;
+      }
+      
+      .btn-group {
+        display: none;
+      }
+    }
+    
+    /* Global text color fix */
+    .container,
+    .modal-body,
+    .modal-header,
+    .modal-footer {
+      color: white;
+    }
+    
+    /* Ensure all headings are white */
+    h1, h2, h3, h4, h5, h6 {
+      color: white;
+    }
+    
+    /* Ensure all paragraphs and spans are white */
+    p, span, div {
+      color: inherit;
+    }
+      .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+      
+      .hero-content h1 {
+        font-size: 1.75rem;
+      }
+      
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .student-schedule {
+        flex-direction: column;
+      }
+    }
+    
+    /* Button group styling */
+    .btn-group .btn {
+      border-radius: 0;
+      border-right: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .btn-group .btn:first-child {
+      border-radius: 15px 0 0 15px;
+    }
+    
+    .btn-group .btn:last-child {
+      border-radius: 0 15px 15px 0;
+      border-right: none;
+    }
+    
+    .btn-group .btn.active {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    .btn-outline-light {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+    }
+    
+    .btn-outline-light:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.5);
+      color: white;
+    }
+    
+    /* Global text color fixes */
+    .container {
+      color: white;
+    }
+    
+    .modal-body,
+    .modal-header,
+    .modal-footer {
+      color: white;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+      color: white;
+    }
+    
+    p {
+      color: white;
+    }
+    
+    /* Screen reader only */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+    
+    /* Ensure all text elements are white by default */
+    body, 
+    .container,
+    .student-card,
+    .glass-card,
+    .modal-content,
+    .modal-body,
+    .modal-header,
+    .modal-footer,
+    .stat-card,
+    .metric-card {
+      color: white;
+    }
+    
+    /* Ensure form elements text is white */
+    input, select, textarea, option {
+      color: white;
+    }
+    
+    /* Form labels */
+    .form-label {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: block;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      opacity: 0.9;
+      color: white;
+    }
+    
+    .form-label.required::after {
+      content: " *";
+      color: #ef4444;
+    }
+    
+    /* Form switch */
+    .form-check-input:checked {
+      background-color: #667eea;
+      border-color: #667eea;
+    }
+    
+    .form-check-label {
+      color: white;
+    }
+    
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+    
+    .stat-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+      border: 1px solid var(--glass-border);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-number {
+      display: block;
+      font-size: 2rem;
+      font-weight: 700;
+      background: var(--gradient-1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: white;
+    }
+    
+    /* Section styling */
+    section {
+      margin-bottom: 3rem;
+    }
+    
+    section h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: white;
+    }
+    
+    /* Global text color fix */
+    .container,
+    .modal-body,
+    .modal-header,
+    .modal-footer {
+      color: white;
+    }
+    
+    /* Ensure all headings are white */
+    h1, h2, h3, h4, h5, h6 {
+      color: white;
+    }
+    
+    /* Ensure legend text is white */
+    legend {
+      color: white;
+    }
   </style>
+    <!-- Dark Theme Text Colors -->
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
 </head>
 <body>
-  <!-- Floating orbs -->
-  <div class="orb orb1"></div>
-  <div class="orb orb2"></div>
-  <div class="orb orb3"></div>
-
-  <div class="container-fluid page-container">
-    <!-- Navigation Component -->
-    {{template "navigation" (dict "Navigation" .Navigation "CSPNonce" .CSPNonce "ShowHelpButton" .ShowHelpButton "PageDescription" "Manage student information and assignments")}}
-    
-    <!-- Header -->
-    <header class="page-header">
-      <div class="page-header-content">
-        <div class="page-header-text">
-          <h1>
-            <i class="bi bi-people-fill" aria-hidden="true"></i>
-            Student Management
-          </h1>
-          <p class="page-description">Manage student roster and transportation details</p>
-        </div>
-        <nav class="page-header-nav">
-          <a href="/add-student-wizard" class="btn btn-primary" data-help="add-student" data-help-title="Add New Student" data-help-content="Click here to start the step-by-step wizard for adding a new student to your roster. The wizard will guide you through entering basic information, contact details, pickup/dropoff locations, and route assignment.">
-            <i class="bi bi-person-plus" aria-hidden="true"></i>
-            Add Student
+  
+  <!-- Navigation -->
+  <nav class="navbar navbar-glass">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/driver-dashboard">
+        <i class="bi bi-bus-front-fill"></i> Fleet Management
+      </a>
+      <div class="d-flex align-items-center gap-3">
+        <span class="text-white">
+          <i class="bi bi-person-circle"></i> {{.User.Username}}
+        </span>
+        <div class="btn-group btn-group-sm" role="group">
+          <a href="/driver-dashboard" class="btn btn-outline-light" title="Dashboard">
+            <i class="bi bi-speedometer2"></i> Dashboard
           </a>
-        </nav>
-      </div>
-    </header>
-    
-    <!-- Main Content -->
-    <main id="main-content" class="main-content">
-      <!-- Student Statistics -->
-      <section aria-labelledby="stats-heading">
-        <h2 id="stats-heading" class="sr-only">Student Statistics</h2>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <span class="stat-number" id="totalStudents">{{len .Data.Students}}</span>
-            <div class="stat-label">Total Students</div>
-          </div>
-          <div class="stat-card">
-            <span class="stat-number" id="activeStudents">0</span>
-            <div class="stat-label">Active Students</div>
-          </div>
-          <div class="stat-card">
-            <span class="stat-number" id="morningPickups">0</span>
-            <div class="stat-label">Morning Pickups</div>
-          </div>
-          <div class="stat-card">
-            <span class="stat-number" id="afternoonDropoffs">0</span>
-            <div class="stat-label">Afternoon Dropoffs</div>
-          </div>
+          <a href="/students" class="btn btn-outline-light active" title="Students">
+            <i class="bi bi-people"></i> Students
+          </a>
+          <a href="/reports" class="btn btn-outline-light" title="Reports">
+            <i class="bi bi-graph-up"></i> Reports
+          </a>
         </div>
-      </section>
+        <a href="/logout" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="fade-in">Student Management</h1>
+        <p class="fade-in">Manage student roster and transportation details</p>
+      </div>
+    </div>
+  </section>
+  
+  <div class="container">
+    <!-- Statistics -->
+    <div class="stats-grid fade-in">
+      <div class="stat-card">
+        <span class="stat-number" id="totalStudents">{{len .Data.Students}}</span>
+        <div class="stat-label">Total Students</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number" id="activeStudents">0</span>
+        <div class="stat-label">Active Students</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number" id="morningPickups">0</span>
+        <div class="stat-label">Morning Pickups</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number" id="afternoonDropoffs">0</span>
+        <div class="stat-label">Afternoon Dropoffs</div>
+      </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="text-end mb-4 fade-in">
+      <a href="/add-student-wizard" class="btn btn-primary">
+        <i class="bi bi-person-plus-fill"></i> Add New Student
+      </a>
+    </div>
+    
+    <!-- Students Section -->
+    <section class="fade-in">
+      <h2>All Students</h2>
       
-      <!-- Students List -->
-      <section aria-labelledby="students-heading">
-        <h2 id="students-heading">All Students</h2>
-        
-        {{if .Data.Students}}
-        <div class="student-grid">
-          {{range .Data.Students}}
-          <div class="card glass-card student-card">
-            <div class="card glass-card-header">
-              <div class="student-info">
-                <div class="student-avatar">
-                  <i class="bi bi-person" aria-hidden="true"></i>
-                </div>
-                <div class="student-details">
-                  <h3>{{.Name}}</h3>
-                  <span class="student-status {{if .Active}}active{{else}}inactive{{end}}">
-                    {{if .Active}}
-                      <i class="bi bi-check-circle" aria-hidden="true"></i> Active
-                    {{else}}
-                      <i class="bi bi-x-circle" aria-hidden="true"></i> Inactive
-                    {{end}}
-                  </span>
-                </div>
+      {{if .Data.Students}}
+      <div class="student-grid">
+        {{range .Data.Students}}
+        <div class="student-card">
+          <div class="student-card-header">
+            <div class="student-info">
+              <div class="student-avatar">
+                <i class="bi bi-person-fill"></i>
+              </div>
+              <div class="student-details">
+                <h3>{{.Name}}</h3>
+                <span class="student-status {{if .Active}}active{{else}}inactive{{end}}">
+                  {{if .Active}}
+                    <i class="bi bi-check-circle-fill"></i> Active
+                  {{else}}
+                    <i class="bi bi-x-circle"></i> Inactive
+                  {{end}}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="student-card-body">
+            <!-- Schedule -->
+            <div class="student-schedule">
+              <div class="schedule-badge">
+                <i class="bi bi-sunrise"></i>
+                <div>Morning</div>
+                <strong>{{if .PickupTime}}{{.PickupTime}}{{else}}Not Set{{end}}</strong>
+              </div>
+              <div class="schedule-badge">
+                <i class="bi bi-sunset"></i>
+                <div>Afternoon</div>
+                <strong>{{if .DropoffTime}}{{.DropoffTime}}{{else}}Not Set{{end}}</strong>
               </div>
             </div>
             
-            <div class="card glass-card-body">
-              <!-- Schedule -->
-              <div class="student-schedule">
-                <div class="schedule-badge">
-                  <i class="bi bi-sunrise" aria-hidden="true"></i>
-                  Pickup: {{if .PickupTime}}{{.PickupTime}}{{else}}Not Set{{end}}
-                </div>
-                <div class="schedule-badge">
-                  <i class="bi bi-sunset" aria-hidden="true"></i>
-                  Dropoff: {{if .DropoffTime}}{{.DropoffTime}}{{else}}Not Set{{end}}
-                </div>
-              </div>
-              
-              <!-- Contact Information -->
-              <div class="info-row">
-                <i class="bi bi-person-heart" aria-hidden="true"></i>
-                <span>Guardian: {{.Guardian}}</span>
-              </div>
-              <div class="info-row">
-                <i class="bi bi-telephone" aria-hidden="true"></i>
-                <span>{{.PhoneNumber}}</span>
-              </div>
-              {{if .AltPhoneNumber}}
-              <div class="info-row">
-                <i class="bi bi-telephone-plus" aria-hidden="true"></i>
-                <span>{{.AltPhoneNumber}}</span>
-              </div>
+            <!-- Contact Information -->
+            <div class="info-row">
+              <i class="bi bi-person-heart"></i>
+              <span>{{.Guardian}}</span>
+            </div>
+            <div class="info-row">
+              <i class="bi bi-telephone"></i>
+              <span>{{.PhoneNumber}}</span>
+            </div>
+            {{if .AltPhoneNumber}}
+            <div class="info-row">
+              <i class="bi bi-telephone-plus"></i>
+              <span>{{.AltPhoneNumber}}</span>
+            </div>
+            {{end}}
+            
+            <!-- Locations -->
+            {{if .Locations}}
+            <div class="locations-section">
+              <h4 class="small mb-2" style="opacity: 0.8;">Locations:</h4>
+              {{range .Locations}}
+              <span class="location-badge">
+                <i class="bi bi-geo-alt-fill"></i>
+                {{.Type}}: {{.Address}}
+              </span>
               {{end}}
-              
-              <!-- Locations -->
-              {{if .Locations}}
-              <div class="locations-section">
-                <h4 class="small text-muted mb-2">Locations:</h4>
-                {{range .Locations}}
-                <span class="location-badge {{.Type}}">
-                  <i class="bi bi-geo-alt" aria-hidden="true"></i>
-                  {{.Type}}: {{.Address}}
-                </span>
-                {{end}}
-              </div>
-              {{end}}
-              
-              <!-- Actions -->
-              <div class="card glass-card-actions">
-                <button type="button" class="btn btn-sm btn-outline-primary edit-student-btn" data-help="edit-student" data-help-title="Edit Student" data-help-content="Update student information including contact details, routes, and pickup/dropoff times. Changes are saved immediately." 
-                        data-student-id="{{.StudentID}}" 
-                        data-name="{{.Name}}" 
-                        data-phone="{{.PhoneNumber}}" 
-                        data-alt-phone="{{.AltPhoneNumber}}" 
-                        data-guardian="{{.Guardian}}" 
-                        data-pickup-time="{{.PickupTime}}" 
-                        data-dropoff-time="{{.DropoffTime}}" 
-                        data-route-id="{{.RouteID}}" 
-                        data-active="{{.Active}}"
-                        data-locations='{{.Locations | json}}'
-                        aria-label="Edit {{.Name}}">
-                  <i class="bi bi-pencil" aria-hidden="true"></i>
-                  Edit
+            </div>
+            {{end}}
+            
+            <!-- Actions -->
+            <div class="student-card-actions">
+              <button type="button" class="btn btn-sm btn-outline-primary edit-student-btn" 
+                      data-student-id="{{.StudentID}}" 
+                      data-name="{{.Name}}" 
+                      data-phone="{{.PhoneNumber}}" 
+                      data-alt-phone="{{.AltPhoneNumber}}" 
+                      data-guardian="{{.Guardian}}" 
+                      data-pickup-time="{{.PickupTime}}" 
+                      data-dropoff-time="{{.DropoffTime}}" 
+                      data-route-id="{{.RouteID}}" 
+                      data-active="{{.Active}}"
+                      data-locations='{{.Locations | json}}'>
+                <i class="bi bi-pencil"></i> Edit
+              </button>
+              <form method="POST" action="/remove-student" class="remove-student-form" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{$.Data.CSRFToken}}">
+                <input type="hidden" name="student_id" value="{{.StudentID}}">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-trash"></i> Remove
                 </button>
-                <form method="POST" action="/remove-student" class="remove-student-form" style="display: inline;"
-                      data-confirm="Are you sure you want to remove {{.Name}}? This action cannot be undone."
-                      data-confirm-title="Remove Student">
-                  <input type="hidden" name="csrf_token" value="{{$.Data.CSRFToken}}">
-                  <input type="hidden" name="student_id" value="{{.StudentID}}">
-                  <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Remove {{.Name}}" data-help="remove-student" data-help-title="Remove Student" data-help-content="Permanently remove this student from the system. You will be asked to confirm this action. This cannot be undone.">
-                    <i class="bi bi-trash" aria-hidden="true"></i>
-                    Remove
-                  </button>
-                </form>
-              </div>
+              </form>
             </div>
           </div>
-          {{end}}
-        </div>
-        {{else}}
-        <div class="empty-state">
-          <i class="bi bi-person-plus" aria-hidden="true"></i>
-          <h3>No Students Added Yet</h3>
-          <p>Get started by adding your first student to the roster</p>
-          <a href="/add-student-wizard" class="btn btn-primary">
-            <i class="bi bi-person-plus" aria-hidden="true"></i>
-            Add First Student
-          </a>
         </div>
         {{end}}
-      </section>
-    </main>
+      </div>
+      {{else}}
+      <div class="empty-state">
+        <i class="bi bi-people"></i>
+        <h3>No Students Added Yet</h3>
+        <p>Get started by adding your first student to the roster</p>
+        <a href="/add-student-wizard" class="btn btn-primary">
+          <i class="bi bi-person-plus-fill"></i> Add First Student
+        </a>
+      </div>
+      {{end}}
+    </section>
   </div>
   
   <!-- Add Student Modal -->
@@ -447,61 +1033,49 @@
           <h2 class="modal-title" id="addStudentModalLabel">Add New Student</h2>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <form method="POST" action="/add-student" class="accessible-form">
+        <form method="POST" action="/add-student">
           <input type="hidden" name="csrf_token" value="{{$.Data.CSRFToken}}">
           <div class="modal-body">
-            <div class="form-group">
+            <div class="mb-3">
               <label for="name" class="form-label required">Student Name</label>
-              <input type="text" id="name" name="name" class="form-control" placeholder="Enter student's full name" required data-help="student-name" data-help-title="Student Name" data-help-content="Enter the student's full name as it appears on school records. This helps drivers identify students correctly.">
+              <input type="text" id="name" name="name" class="form-control" placeholder="Enter student's full name" required>
             </div>
             
             <div class="row">
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="guardian" class="form-label required">Guardian/Contact Person</label>
-                  <input type="text" id="guardian" name="guardian" class="form-control" placeholder="Parent or guardian name" required data-help="guardian-name" data-help-title="Guardian Information" data-help-content="Enter the name of the parent or guardian who should be contacted in case of emergency or schedule changes.">
-                </div>
+              <div class="col-md-6 mb-3">
+                <label for="guardian" class="form-label required">Guardian/Contact Person</label>
+                <input type="text" id="guardian" name="guardian" class="form-control" placeholder="Parent or guardian name" required>
               </div>
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="route_id" class="form-label required">Route</label>
-                  <select id="route_id" name="route_id" class="form-control form-select" required data-help="route-selection" data-help-title="Route Assignment" data-help-content="Select the bus route this student will be assigned to. Routes determine which driver will pick up and drop off the student.">
-                    <option value="">Select Route</option>
-                    {{range .Data.Routes}}
-                    <option value="{{.RouteID}}">{{.RouteName}}</option>
-                    {{end}}
-                  </select>
-                </div>
+              <div class="col-md-6 mb-3">
+                <label for="route_id" class="form-label required">Route</label>
+                <select id="route_id" name="route_id" class="form-select" required>
+                  <option value="">Select Route</option>
+                  {{range .Data.Routes}}
+                  <option value="{{.RouteID}}">{{.RouteName}}</option>
+                  {{end}}
+                </select>
               </div>
             </div>
             
             <div class="row">
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="phone_number" class="form-label required">Phone Number</label>
-                  <input type="tel" id="phone_number" name="phone_number" class="form-control" placeholder="123-456-7890" required data-help="phone-number" data-help-title="Primary Phone" data-help-content="Enter the primary contact phone number. This will be used for urgent communications and emergencies.">
-                </div>
+              <div class="col-md-6 mb-3">
+                <label for="phone_number" class="form-label required">Phone Number</label>
+                <input type="tel" id="phone_number" name="phone_number" class="form-control" placeholder="123-456-7890" required>
               </div>
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="alt_phone_number" class="form-label">Alternate Phone</label>
-                  <input type="tel" id="alt_phone_number" name="alt_phone_number" class="form-control" placeholder="123-456-7890">
-                </div>
+              <div class="col-md-6 mb-3">
+                <label for="alt_phone_number" class="form-label">Alternate Phone</label>
+                <input type="tel" id="alt_phone_number" name="alt_phone_number" class="form-control" placeholder="123-456-7890">
               </div>
             </div>
             
             <div class="row">
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="pickup_time" class="form-label">Pickup Time</label>
-                  <input type="time" id="pickup_time" name="pickup_time" class="form-control" data-help="pickup-time" data-help-title="Pickup Time" data-help-content="Set the scheduled morning pickup time for this student. This helps drivers plan their routes efficiently.">
-                </div>
+              <div class="col-md-6 mb-3">
+                <label for="pickup_time" class="form-label">Pickup Time</label>
+                <input type="time" id="pickup_time" name="pickup_time" class="form-control">
               </div>
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="dropoff_time" class="form-label">Dropoff Time</label>
-                  <input type="time" id="dropoff_time" name="dropoff_time" class="form-control">
-                </div>
+              <div class="col-md-6 mb-3">
+                <label for="dropoff_time" class="form-label">Dropoff Time</label>
+                <input type="time" id="dropoff_time" name="dropoff_time" class="form-control">
               </div>
             </div>
             
@@ -510,7 +1084,7 @@
               <div id="pickupLocations">
                 <div class="row mb-2">
                   <div class="col-md-6">
-                    <input type="text" class="form-control pickup-address" name="pickup_address" placeholder="123 Main Street" data-help="pickup-address" data-help-title="Pickup Location" data-help-content="Enter the complete street address where the student will be picked up. Include house number, street name, and any helpful landmarks.">
+                    <input type="text" class="form-control pickup-address" name="pickup_address" placeholder="123 Main Street">
                   </div>
                   <div class="col-md-6">
                     <input type="text" class="form-control" name="pickup_description" placeholder="Description (optional)">
@@ -518,7 +1092,7 @@
                 </div>
               </div>
               <button type="button" class="btn btn-sm btn-outline-primary add-pickup-location">
-                <i class="bi bi-plus-circle" aria-hidden="true"></i> Add Another Pickup Location
+                <i class="bi bi-plus-circle"></i> Add Another Pickup Location
               </button>
             </fieldset>
             
@@ -527,7 +1101,7 @@
               <div id="dropoffLocations">
                 <div class="row mb-2">
                   <div class="col-md-6">
-                    <input type="text" class="form-control dropoff-address" name="dropoff_address" placeholder="123 School Street" data-help="dropoff-address" data-help-title="Dropoff Location" data-help-content="Enter the complete street address where the student will be dropped off. This may be different from the pickup address.">
+                    <input type="text" class="form-control dropoff-address" name="dropoff_address" placeholder="123 School Street">
                   </div>
                   <div class="col-md-6">
                     <input type="text" class="form-control" name="dropoff_description" placeholder="Description (optional)">
@@ -535,7 +1109,7 @@
                 </div>
               </div>
               <button type="button" class="btn btn-sm btn-outline-primary add-dropoff-location">
-                <i class="bi bi-plus-circle" aria-hidden="true"></i> Add Another Dropoff Location
+                <i class="bi bi-plus-circle"></i> Add Another Dropoff Location
               </button>
             </fieldset>
           </div>
@@ -556,72 +1130,58 @@
           <h2 class="modal-title" id="editStudentModalLabel">Edit Student</h2>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <form method="POST" action="/edit-student" class="accessible-form">
+        <form method="POST" action="/edit-student">
           <input type="hidden" name="csrf_token" value="{{$.Data.CSRFToken}}">
           <input type="hidden" name="student_id" id="edit_student_id">
           <input type="hidden" name="position_number" id="edit_position_number" value="0">
           <div class="modal-body">
-            <div class="form-group">
+            <div class="mb-3">
               <label for="edit_name" class="form-label required">Student Name</label>
               <input type="text" id="edit_name" name="name" class="form-control" required>
             </div>
             
             <div class="row">
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="edit_guardian" class="form-label required">Guardian/Contact Person</label>
-                  <input type="text" id="edit_guardian" name="guardian" class="form-control" required>
-                </div>
+              <div class="col-md-6 mb-3">
+                <label for="edit_guardian" class="form-label required">Guardian/Contact Person</label>
+                <input type="text" id="edit_guardian" name="guardian" class="form-control" required>
               </div>
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="edit_route_id" class="form-label required">Route</label>
-                  <select id="edit_route_id" name="route_id" class="form-control form-select" required>
-                    <option value="">Select Route</option>
-                    {{range .Data.Routes}}
-                    <option value="{{.RouteID}}">{{.RouteName}}</option>
-                    {{end}}
-                  </select>
+              <div class="col-md-6 mb-3">
+                <label for="edit_route_id" class="form-label required">Route</label>
+                <select id="edit_route_id" name="route_id" class="form-select" required>
+                  <option value="">Select Route</option>
+                  {{range .Data.Routes}}
+                  <option value="{{.RouteID}}">{{.RouteName}}</option>
+                  {{end}}
+                </select>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="edit_phone_number" class="form-label required">Phone Number</label>
+                <input type="tel" id="edit_phone_number" name="phone_number" class="form-control" required>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="edit_alt_phone_number" class="form-label">Alt Phone Number</label>
+                <input type="tel" id="edit_alt_phone_number" name="alt_phone_number" class="form-control">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="edit_active" class="form-label">Status</label>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="edit_active" name="active">
+                  <label class="form-check-label" for="edit_active">Active Student</label>
                 </div>
               </div>
             </div>
             
             <div class="row">
-              <div class="col-md-4">
-                <div class="form-group">
-                  <label for="edit_phone_number" class="form-label required">Phone Number</label>
-                  <input type="tel" id="edit_phone_number" name="phone_number" class="form-control" required>
-                </div>
+              <div class="col-md-6 mb-3">
+                <label for="edit_pickup_time" class="form-label">Pickup Time</label>
+                <input type="time" id="edit_pickup_time" name="pickup_time" class="form-control">
               </div>
-              <div class="col-md-4">
-                <div class="form-group">
-                  <label for="edit_alt_phone_number" class="form-label">Alt Phone Number</label>
-                  <input type="tel" id="edit_alt_phone_number" name="alt_phone_number" class="form-control">
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-group">
-                  <label for="edit_active" class="form-label">Status</label>
-                  <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="edit_active" name="active">
-                    <label class="form-check-label" for="edit_active">Active Student</label>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div class="row">
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="edit_pickup_time" class="form-label">Pickup Time</label>
-                  <input type="time" id="edit_pickup_time" name="pickup_time" class="form-control">
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="edit_dropoff_time" class="form-label">Dropoff Time</label>
-                  <input type="time" id="edit_dropoff_time" name="dropoff_time" class="form-control">
-                </div>
+              <div class="col-md-6 mb-3">
+                <label for="edit_dropoff_time" class="form-label">Dropoff Time</label>
+                <input type="time" id="edit_dropoff_time" name="dropoff_time" class="form-control">
               </div>
             </div>
             
@@ -629,7 +1189,7 @@
               <legend>Pickup Locations</legend>
               <div id="editPickupLocations"></div>
               <button type="button" class="btn btn-sm btn-outline-primary add-edit-pickup-location">
-                <i class="bi bi-plus-circle" aria-hidden="true"></i> Add Another Pickup Location
+                <i class="bi bi-plus-circle"></i> Add Another Pickup Location
               </button>
             </fieldset>
             
@@ -637,7 +1197,7 @@
               <legend>Dropoff Locations</legend>
               <div id="editDropoffLocations"></div>
               <button type="button" class="btn btn-sm btn-outline-primary add-edit-dropoff-location">
-                <i class="bi bi-plus-circle" aria-hidden="true"></i> Add Another Dropoff Location
+                <i class="bi bi-plus-circle"></i> Add Another Dropoff Location
               </button>
             </fieldset>
           </div>
@@ -651,12 +1211,6 @@
   </div>
   
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="/static/help_system.js"></script>
-  <script src="/static/accessible_forms.js"></script>
-  <script src="/static/enhanced_help_system.js"></script>
-  <script src="/static/autocomplete.js"></script>
-  
-  {{template "error_prevention_scripts" .}}
   
   <script nonce="{{.CSPNonce}}">
     document.addEventListener('DOMContentLoaded', function() {
@@ -697,7 +1251,14 @@
         }
       });
       
-      // Removed redundant confirmation code - now handled by confirmation_dialogs.js
+      // Confirm removal
+      document.querySelectorAll('.remove-student-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+          if (!confirm('Are you sure you want to remove this student? This action cannot be undone.')) {
+            e.preventDefault();
+          }
+        });
+      });
       
       function addPickupLocation() {
         const container = document.getElementById('pickupLocations');
@@ -836,130 +1397,63 @@
         const modal = new bootstrap.Modal(document.getElementById('editStudentModal'));
         modal.show();
       }
-    });
-    
-    // Initialize auto-complete and smart fields
-    initializeStudentAutoComplete();
-  </script>
-  
-  <script nonce="{{.CSPNonce}}">
-    function initializeStudentAutoComplete() {
-      // Initialize smart field suggestions for phone numbers
-      const smartFields = new SmartFieldSuggestions();
-      smartFields.enhance('phone_number', 'phone');
-      smartFields.enhance('alt_phone_number', 'phone');
-      smartFields.enhance('edit_phone_number', 'phone');
-      smartFields.enhance('edit_alt_phone_number', 'phone');
       
-      // Initialize smart field suggestions for times
-      smartFields.enhance('pickup_time', 'time');
-      smartFields.enhance('dropoff_time', 'time');
-      
-      // Common street suffixes for address auto-complete
-      const streetSuffixes = ['Street', 'St', 'Avenue', 'Ave', 'Road', 'Rd', 'Boulevard', 'Blvd', 
-                             'Drive', 'Dr', 'Lane', 'Ln', 'Court', 'Ct', 'Circle', 'Cir'];
-      
-      // Common local addresses (would be fetched from API in production)
-      const commonAddresses = [
-        '123 Main Street',
-        '456 Oak Avenue',
-        '789 Elm Drive',
-        '321 Pine Road',
-        '654 Maple Lane',
-        '987 Cedar Court',
-        'Washington Elementary School',
-        'Lincoln Middle School',
-        'Roosevelt High School',
-        'Community Center',
-        'Public Library',
-        'City Park Entrance'
-      ];
-      
-      // Auto-complete for pickup addresses
-      document.querySelectorAll('.pickup-address').forEach(input => {
-        const inputId = input.id || generateUniqueId();
-        if (!input.id) input.id = inputId;
-        
-        new AutoComplete(inputId, {
-          source: function(query) {
-            return fetch(`/api/search-addresses?q=${encodeURIComponent(query)}&type=pickup`)
-              .then(response => response.json());
-          },
-          minChars: 3,
-          template: function(item) {
-            return `
-              <div class="autocomplete-item-custom">
-                <i class="bi ${item.icon || 'bi-geo-alt'} autocomplete-item-icon"></i>
-                <div class="autocomplete-item-content">
-                  <div class="autocomplete-item-title">${item.label}</div>
-                  <div class="autocomplete-item-subtitle">${item.subtitle}</div>
-                </div>
-              </div>
-            `;
+      // Animate numbers
+      function animateValue(element, start, end, duration) {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+          if (!startTimestamp) startTimestamp = timestamp;
+          const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+          const value = Math.floor(progress * (end - start) + start);
+          element.textContent = value;
+          if (progress < 1) {
+            window.requestAnimationFrame(step);
           }
-        });
-      });
-      
-      // Auto-complete for dropoff addresses
-      document.querySelectorAll('.dropoff-address').forEach(input => {
-        const inputId = input.id || generateUniqueId();
-        if (!input.id) input.id = inputId;
-        
-        new AutoComplete(inputId, {
-          source: function(query) {
-            return fetch(`/api/search-addresses?q=${encodeURIComponent(query)}&type=dropoff`)
-              .then(response => response.json());
-          },
-          minChars: 3,
-          template: function(item) {
-            return `
-              <div class="autocomplete-item-custom">
-                <i class="bi ${item.icon || 'bi-geo-alt-fill'} autocomplete-item-icon"></i>
-                <div class="autocomplete-item-content">
-                  <div class="autocomplete-item-title">${item.label}</div>
-                  <div class="autocomplete-item-subtitle">${item.subtitle}</div>
-                </div>
-              </div>
-            `;
-          }
-        });
-      });
-      
-      // Helper function to generate unique IDs for dynamically created inputs
-      function generateUniqueId() {
-        return 'input-' + Math.random().toString(36).substr(2, 9);
+        };
+        window.requestAnimationFrame(step);
       }
       
-      // Re-initialize auto-complete when new address fields are added
-      const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-          if (mutation.type === 'childList') {
-            mutation.addedNodes.forEach(function(node) {
-              if (node.nodeType === Node.ELEMENT_NODE) {
-                // Check for new address inputs
-                const pickupInputs = node.querySelectorAll('.pickup-address:not([data-autocomplete])');
-                const dropoffInputs = node.querySelectorAll('.dropoff-address:not([data-autocomplete])');
-                
-                if (pickupInputs.length > 0 || dropoffInputs.length > 0) {
-                  initializeStudentAutoComplete();
-                }
-              }
-            });
+      // Animate stat values on load
+      document.querySelectorAll('.stat-number').forEach(el => {
+        const value = parseInt(el.textContent);
+        if (!isNaN(value)) {
+          animateValue(el, 0, value, 1000);
+        }
+      });
+    });
+  </script>
+  
+  <!-- Include Loading Indicators System -->
+  <script src="/static/loading_indicators.js"></script>
+  
+  <!-- Include Session Timeout Warning System -->
+  <script src="/static/session_timeout_warning.js"></script>
+  
+  <!-- Include Touch-Friendly System -->
+  <script src="/static/touch_friendly.js"></script>
+  
+  <script nonce="{{.CSPNonce}}">
+    // Show loading indicator when fetching data
+    document.addEventListener('DOMContentLoaded', function() {
+      // Add loading states to any buttons that trigger actions
+      document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function() {
+          // Show progress loader for form submissions
+          if (window.loadingIndicators) {
+            loadingIndicators.showProgress('Saving changes...');
           }
         });
       });
       
-      // Observe changes in the modals
-      const modals = document.querySelectorAll('.modal-body');
-      modals.forEach(modal => {
-        observer.observe(modal, { childList: true, subtree: true });
+      // Add loading to navigation links
+      document.querySelectorAll('a.btn').forEach(link => {
+        link.addEventListener('click', function(e) {
+          if (!e.ctrlKey && !e.metaKey && window.loadingIndicators) {
+            loadingIndicators.showProgress('Loading...');
+          }
+        });
       });
-      
-      // Mark initialized inputs
-      document.querySelectorAll('.pickup-address, .dropoff-address').forEach(input => {
-        input.setAttribute('data-autocomplete', 'true');
-      });
-    }
+    });
   </script>
 </body>
 </html>
