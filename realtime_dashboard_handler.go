@@ -195,30 +195,44 @@ func checkSystemAlerts(metrics map[string]interface{}) {
 	}
 }
 
-// Track driver locations (simulated for demo)
+// Track driver locations (dynamically pulls from users table)
 func trackDriverLocations() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	// Base locations for simulation
-	locations := []struct {
-		lat, lng float64
-		name     string
-	}{
-		{40.7128, -74.0060, "driver_north"},
-		{40.7580, -73.9855, "driver_south"},
-		{40.7614, -73.9776, "driver_east"},
-		{40.7489, -73.9680, "driver_west"},
-	}
-
 	for {
 		select {
 		case <-ticker.C:
-			// Simulate driver movements
-			for _, loc := range locations {
+			// Get all active drivers from database
+			rows, err := db.Query(`
+				SELECT username 
+				FROM users 
+				WHERE role = 'driver' 
+				AND username IS NOT NULL
+			`)
+			if err != nil {
+				log.Printf("Failed to get drivers: %v", err)
+				continue
+			}
+
+			var drivers []string
+			for rows.Next() {
+				var username string
+				if err := rows.Scan(&username); err == nil {
+					drivers = append(drivers, username)
+				}
+			}
+			rows.Close()
+
+			// Update location for each driver
+			for i, driver := range drivers {
+				// Generate different base locations for each driver
+				baseLat := 40.7128 + float64(i)*0.02
+				baseLng := -74.0060 + float64(i)*0.02
+				
 				// Add small random movement
-				lat := loc.lat + (rand.Float64()-0.5)*0.01
-				lng := loc.lng + (rand.Float64()-0.5)*0.01
+				lat := baseLat + (rand.Float64()-0.5)*0.01
+				lng := baseLng + (rand.Float64()-0.5)*0.01
 				
 				// Update location in database
 				_, err := db.Exec(`
@@ -226,15 +240,15 @@ func trackDriverLocations() {
 					VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
 					ON CONFLICT (driver_username) 
 					DO UPDATE SET latitude = $2, longitude = $3, updated_at = CURRENT_TIMESTAMP
-				`, loc.name, lat, lng)
+				`, driver, lat, lng)
 				
 				if err != nil {
-					log.Printf("Failed to update driver location: %v", err)
+					log.Printf("Failed to update driver location for %s: %v", driver, err)
 					continue
 				}
 				
 				// Broadcast location update
-				BroadcastDriverLocation(loc.name, lat, lng)
+				BroadcastDriverLocation(driver, lat, lng)
 			}
 		}
 	}
