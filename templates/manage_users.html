@@ -54,6 +54,7 @@
       transition: transform 0.3s ease;
       border: 1px solid rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
     }
     
     .confirmation-overlay.show .confirmation-dialog {
@@ -117,8 +118,8 @@
     }
     
     body {
-      background: #0f0c29;
-      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      background: #1a1a2e;
+      background: linear-gradient(135deg, #16213e 0%, #0f3460 50%, #533483 100%);
       min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       overflow-x: hidden;
@@ -150,6 +151,7 @@
     .glass-card {
       background: rgba(0, 0, 0, 0.6) !important;
       backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border-radius: 30px;
       border: 1px solid rgba(255, 255, 255, 0.2);
       padding: 2rem;

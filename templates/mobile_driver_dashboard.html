@@ -20,9 +20,13 @@
         /* Driver-specific styles */
         .driver-header {
             padding: var(--spacing-lg);
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border-radius: 0 0 var(--radius-xl) var(--radius-xl);
             margin-bottom: var(--spacing-lg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
         
         .driver-avatar {
@@ -69,19 +73,40 @@
         }
         
         .quick-action {
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: var(--radius-lg);
             padding: var(--spacing-lg);
             text-align: center;
             transition: var(--transition-base);
             text-decoration: none;
             color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .quick-action::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #667eea, #764ba2, #f093fb, #f5576c);
+            border-radius: var(--radius-lg);
+            opacity: 0;
+            z-index: -1;
+            transition: opacity 0.3s ease;
         }
         
         .quick-action:active {
             transform: scale(0.95);
-            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .quick-action:hover::before {
+            opacity: 0.3;
         }
         
         .quick-action-icon {
@@ -95,11 +120,20 @@
         }
         
         .route-card {
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: var(--radius-lg);
             padding: var(--spacing-lg);
             margin-bottom: var(--spacing-md);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+        
+        .route-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
         }
         
         .route-header {
@@ -179,37 +213,49 @@
     }
     
     body {
-      background: #0f0c29;
-      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      background: #1a1a2e;
+      background: linear-gradient(135deg, #16213e 0%, #0f3460 50%, #533483 100%);
       min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       overflow-x: hidden;
       color: white;
+      position: relative;
     }
     
-    /* Animated background */
+    /* Enhanced animated background */
     body::before {
       content: '';
       position: fixed;
-      top: 0;
-      left: 0;
+      top: -50%;
+      right: -30%;
       width: 100%;
       height: 100%;
-      background-image: 
-        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
-      animation: backgroundShift 20s ease-in-out infinite;
+      background: radial-gradient(circle, rgba(147, 51, 234, 0.3) 0%, transparent 70%);
+      filter: blur(100px);
       z-index: -1;
+      animation: floatBackground 20s ease-in-out infinite;
     }
     
-    @keyframes backgroundShift {
-      0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      33% { transform: translate(-20px, -20px) rotate(120deg); }
-      66% { transform: translate(20px, -10px) rotate(240deg); }
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -50%;
+      left: -30%;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
+      filter: blur(100px);
+      z-index: -1;
+      animation: floatBackground 20s ease-in-out infinite reverse;
     }
     
-    /* Glassmorphism navigation */
+    @keyframes floatBackground {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+    /* Enhanced navigation */
     .navbar-glass {
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(20px);
@@ -219,7 +265,20 @@
       position: sticky;
       top: 0;
       z-index: 1000;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+      transition: all 0.3s ease;
+    }
+    
+    .mobile-nav {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 0.75rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
     
     .navbar-brand {
@@ -238,58 +297,32 @@
       text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
     }
     
-    /* Floating orbs */
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(40px);
-      opacity: 0.6;
-      animation: float 20s infinite ease-in-out;
-    }
+    /* Remove floating orbs - using better background effects instead */
     
-    .orb1 {
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
-      top: -150px;
-      left: -150px;
-    }
-    
-    .orb2 {
-      width: 400px;
-      height: 400px;
-      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
-      bottom: -200px;
-      right: -200px;
-      animation-delay: -5s;
-    }
-    
-    .orb3 {
-      width: 250px;
-      height: 250px;
-      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
-      top: 50%;
-      left: 50%;
-      animation-delay: -10s;
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(30px, -30px) scale(1.1); }
-      66% { transform: translate(-20px, 20px) scale(0.9); }
-    }
-    
-    /* Glass cards */
+    /* Enhanced glass cards */
     .glass-card {
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border-radius: 30px;
+      border-radius: 24px;
       border: 1px solid rgba(255, 255, 255, 0.2);
       padding: 2rem;
       margin-bottom: 2rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
       color: white;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+      pointer-events: none;
     }
     
     /* Hero section */
@@ -340,10 +373,56 @@
       color: rgba(255, 255, 255, 0.7);
     }
     
-    /* Button styling */
+    /* Enhanced button styling */
     .btn {
-      padding: 0.75rem 1.5rem;
-      border-radius: 25px;
+      padding: 0.875rem 2rem;
+      border-radius: 12px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      transform: translate(-50%, -50%);
+      transition: width 0.3s, height 0.3s;
+    }
+    
+    .btn:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+      color: white;
+    }
+    
+    .mobile-btn {
+      width: 100%;
+      justify-content: center;
+      padding: 1rem;
+      border-radius: 12px;
       font-weight: 600;
       transition: all 0.3s ease;
       border: none;
@@ -353,16 +432,10 @@
       gap: 0.5rem;
     }
     
-    .btn-primary {
+    .mobile-btn-primary {
       background: var(--gradient-1);
       color: white;
-      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
-    }
-    
-    .btn-primary:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
-      color: white;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
     }
     
     /* Tables */
@@ -453,22 +526,24 @@
 
 </head>
 <body class="mobile">
-  <!-- Floating orbs -->
-  <div class="orb orb1"></div>
-  <div class="orb orb2"></div>
-  <div class="orb orb3"></div>
   
 
     <!-- Top Navigation -->
-    <nav class="mobile-nav">
-        <div class="mobile-nav-inner">
-            <button class="mobile-nav-btn" onclick="window.history.back()">
-                <i class="bi bi-arrow-left"></i>
-            </button>
-            <h1 class="mobile-nav-title">Driver Dashboard</h1>
-            <button class="mobile-nav-btn" onclick="mobileApp.openModal('menuModal')">
-                <i class="bi bi-three-dots-vertical"></i>
-            </button>
+    <nav class="navbar navbar-glass mobile-nav">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center w-100">
+                <a class="navbar-brand fs-6" href="/mobile/dashboard">
+                    <i class="bi bi-bus-front-fill"></i> Fleet Mobile
+                </a>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-white small">
+                        <i class="bi bi-person-circle"></i> {{if .User}}{{.User.Username}}{{else}}{{.Username}}{{end}}
+                    </span>
+                    <button class="btn btn-sm btn-outline-light" onclick="mobileApp.openModal('menuModal')">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                </div>
+            </div>
         </div>
     </nav>
     
@@ -575,23 +650,23 @@
     <!-- Bottom Navigation -->
     <nav class="mobile-bottom-nav">
         <div class="mobile-bottom-nav-inner">
-            <a href="/mobile/dashboard" class="mobile-nav-item active" data-page="/mobile/dashboard">
-                <i class="bi bi-house-door mobile-nav-icon"></i>
-                <span class="mobile-nav-label">Home</span>
+            <a href="/driver-dashboard" class="mobile-nav-item active" data-page="/driver-dashboard">
+                <i class="bi bi-speedometer2 mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Dashboard</span>
             </a>
-            <a href="/mobile/routes" class="mobile-nav-item" data-page="/mobile/routes">
-                <i class="bi bi-map mobile-nav-icon"></i>
-                <span class="mobile-nav-label">Routes</span>
+            <a href="/driver-reports" class="mobile-nav-item" data-page="/driver-reports">
+                <i class="bi bi-journal-text mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Reports</span>
             </a>
             <a href="/mobile/attendance" class="mobile-nav-item" data-page="/mobile/attendance">
                 <i class="bi bi-check2-square mobile-nav-icon"></i>
                 <span class="mobile-nav-label">Attendance</span>
             </a>
-            <a href="/mobile/reports" class="mobile-nav-item" data-page="/mobile/reports">
-                <i class="bi bi-file-text mobile-nav-icon"></i>
-                <span class="mobile-nav-label">Reports</span>
+            <a href="/messaging" class="mobile-nav-item" data-page="/messaging">
+                <i class="bi bi-chat-dots mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Messages</span>
             </a>
-            <a href="/mobile/profile" class="mobile-nav-item" data-page="/mobile/profile">
+            <a href="/driver-profile" class="mobile-nav-item" data-page="/driver-profile">
                 <i class="bi bi-person mobile-nav-icon"></i>
                 <span class="mobile-nav-label">Profile</span>
             </a>

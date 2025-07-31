@@ -26,8 +26,8 @@
     
 
     body {
-      background: #0f0c29;
-      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      background: #1a1a2e;
+      background: linear-gradient(135deg, #16213e 0%, #0f3460 50%, #533483 100%);
       min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
@@ -43,6 +43,7 @@
     .glass-card {
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border-radius: 20px;
       border: 1px solid rgba(255, 255, 255, 0.2);
       padding: 1.5rem;
@@ -182,7 +183,8 @@
   <div class="orb orb3"></div>
   
 
-  <nav class="navbar navbar-glass navbar-expand-lg" style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+  <nav class="navbar navbar-glass navbar-expand-lg" style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
     <div class="container-fluid">
       <a class="navbar navbar-glass-brand" href="/" style="color: white; text-decoration: none; font-weight: 600;">
         <i class="bi bi-geo-alt-fill"></i> GPS Tracking
