@@ -346,8 +346,8 @@ func checkVehicleHealth() {
 				vehicle_id,
 				date,
 				CASE 
-					WHEN gallons > 0 AND current_mileage > LAG(current_mileage) OVER (PARTITION BY vehicle_id ORDER BY date)
-					THEN (current_mileage - LAG(current_mileage) OVER (PARTITION BY vehicle_id ORDER BY date)) / gallons
+					WHEN gallons > 0 AND odometer > LAG(odometer) OVER (PARTITION BY vehicle_id ORDER BY date)
+					THEN (odometer - LAG(odometer) OVER (PARTITION BY vehicle_id ORDER BY date)) / gallons
 					ELSE NULL
 				END as mpg
 			FROM fuel_records
