@@ -262,8 +262,8 @@
       background: var(--glass-bg);
       backdrop-filter: blur(var(--glass-blur));
       -webkit-backdrop-filter: blur(var(--glass-blur));
-      border-radius: 20px;
-      padding: 2rem;
+      border-radius: 16px;
+      padding: 1rem;
       text-align: center;
       color: white;
       border: 1px solid var(--glass-border);
@@ -279,15 +279,15 @@
       right: -2px;
       bottom: -2px;
       background: var(--gradient-1);
-      border-radius: 20px;
+      border-radius: 16px;
       opacity: 0;
       z-index: -1;
       transition: opacity 0.3s ease;
     }
     
     .metric-card:hover {
-      transform: translateY(-8px) scale(1.02);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
     }
     
     .metric-card:hover::before {
@@ -295,8 +295,8 @@
     }
     
     .metric-icon {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
+      font-size: 1.25rem;
+      margin-bottom: 0.5rem;
       background: var(--gradient-1);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -304,23 +304,23 @@
     }
     
     .metric-value {
-      font-size: 2.5rem;
-      font-weight: 800;
-      margin-bottom: 0.5rem;
-      letter-spacing: -1px;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      letter-spacing: -0.5px;
     }
     
     .metric-label {
-      font-size: 0.9rem;
+      font-size: 0.75rem;
       opacity: 0.8;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 0.5px;
     }
     
     /* Hero section */
     .hero-section {
       position: relative;
-      padding: 3rem 0 2rem;
+      padding: 2rem 0;
       text-align: center;
       color: white;
       overflow: hidden;
@@ -332,29 +332,13 @@
     .hero-content h1 {
       font-size: 2.5rem;
       font-weight: 800;
-      margin-bottom: 1rem;
+      margin-bottom: 0;
       background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
       animation: gradientShift 8s ease-in-out infinite;
       text-shadow: 0 0 40px rgba(255, 255, 255, 0.2);
-    }
-    
-    .hero-date {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 2rem;
-      font-size: 1.1rem;
-      opacity: 0.9;
-      margin-top: 1rem;
-    }
-    
-    .hero-date span {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
     }
     
     @keyframes gradientShift {
@@ -539,39 +523,6 @@
       }
     }
     
-    /* Breadcrumb styling */
-    .glass-breadcrumb {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 0.75rem 1.5rem;
-      margin-bottom: 2rem;
-    }
-    
-    .breadcrumb-item {
-      color: rgba(255, 255, 255, 0.7);
-    }
-    
-    .breadcrumb-item a {
-      color: rgba(255, 255, 255, 0.8);
-      text-decoration: none;
-      transition: color 0.3s ease;
-    }
-    
-    .breadcrumb-item a:hover {
-      color: white;
-    }
-    
-    .breadcrumb-item.active {
-      color: white;
-    }
-    
-    .breadcrumb-item + .breadcrumb-item::before {
-      color: rgba(255, 255, 255, 0.5);
-    }
-    
     /* Enhanced responsive design */
     @media (max-width: 1024px) {
       .quick-actions {
@@ -589,16 +540,11 @@
       }
       
       .hero-section {
-        padding: 2rem 0 1.5rem;
+        padding: 1.5rem 0;
       }
       
       .hero-content h1 {
         font-size: 2rem;
-      }
-      
-      .hero-date {
-        flex-direction: column;
-        gap: 0.5rem;
       }
       
       .metrics-grid {
@@ -607,11 +553,11 @@
       }
       
       .metric-card {
-        padding: 1.5rem;
+        padding: 1rem;
       }
       
       .metric-value {
-        font-size: 2rem;
+        font-size: 1.1rem;
       }
       
       .quick-actions {
@@ -877,21 +823,9 @@
     <div class="container">
       <div class="hero-content">
         <h1 class="fade-in">Welcome, {{.Data.User.Username}}!</h1>
-        <div class="hero-date fade-in">
-          <span><i class="bi bi-calendar3 me-2"></i>{{.Data.Date}}</span>
-          <span><i class="bi bi-clock me-2"></i><span id="currentTime">--:--</span></span>
-        </div>
       </div>
     </div>
   </section>
-  
-  <!-- Breadcrumb -->
-  <nav aria-label="breadcrumb" class="container mt-3">
-    <ol class="breadcrumb glass-breadcrumb">
-      <li class="breadcrumb-item"><a href="/"><i class="bi bi-house"></i> Home</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Driver Dashboard</li>
-    </ol>
-  </nav>
   
   <div class="container">
     <!-- Metrics -->
@@ -922,64 +856,6 @@
       </div>
     </div>
     {{end}}
-    
-    <!-- Notifications Section -->
-    <div class="glass-card fade-in mb-4">
-      <div class="glass-card-header">
-        <h2 class="h5 mb-0">
-          <i class="bi bi-bell-fill me-2" style="color: #fbbf24;"></i>
-          Recent Notifications
-        </h2>
-        <span class="badge bg-warning text-dark">3 New</span>
-      </div>
-      <div class="notifications-list">
-        <div class="notification-item unread">
-          <div class="notification-icon">
-            <i class="bi bi-info-circle-fill text-info"></i>
-          </div>
-          <div class="notification-content">
-            <div class="notification-title">Route Update</div>
-            <div class="notification-text">Construction on Oak Street - use Pine Avenue detour</div>
-            <div class="notification-time">5 minutes ago</div>
-          </div>
-        </div>
-        <div class="notification-item unread">
-          <div class="notification-icon">
-            <i class="bi bi-person-x-fill text-warning"></i>
-          </div>
-          <div class="notification-content">
-            <div class="notification-title">Student Absence</div>
-            <div class="notification-text">Emma Johnson will not be riding today (parent notification)</div>
-            <div class="notification-time">1 hour ago</div>
-          </div>
-        </div>
-        <div class="notification-item unread">
-          <div class="notification-icon">
-            <i class="bi bi-cloud-rain-fill text-primary"></i>
-          </div>
-          <div class="notification-content">
-            <div class="notification-title">Weather Alert</div>
-            <div class="notification-text">Light rain expected this afternoon - drive carefully</div>
-            <div class="notification-time">2 hours ago</div>
-          </div>
-        </div>
-        <div class="notification-item">
-          <div class="notification-icon">
-            <i class="bi bi-check-circle-fill text-success"></i>
-          </div>
-          <div class="notification-content">
-            <div class="notification-title">Maintenance Complete</div>
-            <div class="notification-text">Your bus #{{if .Data.Bus}}{{.Data.Bus.BusID}}{{else}}--{{end}} oil change completed</div>
-            <div class="notification-time">Yesterday</div>
-          </div>
-        </div>
-      </div>
-      <div class="text-center mt-3">
-        <a href="/notifications" class="btn btn-sm btn-outline-light">
-          <i class="bi bi-bell me-2"></i>View All Notifications
-        </a>
-      </div>
-    </div>
     
     <!-- Quick Stats Summary -->
     <div class="glass-card fade-in mb-4">
@@ -1224,6 +1100,62 @@
         </div>
       </div>
     </div>
+    
+    <!-- Notifications Section -->
+    <div class="glass-card fade-in mb-4">
+      <h3 class="mb-4">
+        <i class="bi bi-bell-fill me-2" style="color: #fbbf24;"></i>
+        Recent Notifications
+        <span class="badge bg-warning text-dark ms-2">3 New</span>
+      </h3>
+      <div class="notifications-list">
+        <div class="notification-item unread">
+          <div class="notification-icon">
+            <i class="bi bi-info-circle-fill text-info"></i>
+          </div>
+          <div class="notification-content">
+            <div class="notification-title">Route Update</div>
+            <div class="notification-text">Construction on Oak Street - use Pine Avenue detour</div>
+            <div class="notification-time">5 minutes ago</div>
+          </div>
+        </div>
+        <div class="notification-item unread">
+          <div class="notification-icon">
+            <i class="bi bi-person-x-fill text-warning"></i>
+          </div>
+          <div class="notification-content">
+            <div class="notification-title">Student Absence</div>
+            <div class="notification-text">Emma Johnson will not be riding today (parent notification)</div>
+            <div class="notification-time">1 hour ago</div>
+          </div>
+        </div>
+        <div class="notification-item unread">
+          <div class="notification-icon">
+            <i class="bi bi-cloud-rain-fill text-primary"></i>
+          </div>
+          <div class="notification-content">
+            <div class="notification-title">Weather Alert</div>
+            <div class="notification-text">Light rain expected this afternoon - drive carefully</div>
+            <div class="notification-time">2 hours ago</div>
+          </div>
+        </div>
+        <div class="notification-item">
+          <div class="notification-icon">
+            <i class="bi bi-check-circle-fill text-success"></i>
+          </div>
+          <div class="notification-content">
+            <div class="notification-title">Maintenance Complete</div>
+            <div class="notification-text">Your bus #{{if .Data.Bus}}{{.Data.Bus.BusID}}{{else}}--{{end}} oil change completed</div>
+            <div class="notification-time">Yesterday</div>
+          </div>
+        </div>
+      </div>
+      <div class="text-center mt-3">
+        <a href="/notifications" class="btn btn-sm btn-outline-light">
+          <i class="bi bi-bell me-2"></i>View All Notifications
+        </a>
+      </div>
+    </div>
   </div>
   
   <script nonce="{{.CSPNonce}}">
@@ -1235,7 +1167,6 @@
         hour: '2-digit',
         minute: '2-digit'
       });
-      document.getElementById('currentTime').textContent = timeString;
       const metricTime = document.getElementById('currentTimeMetric');
       if (metricTime) metricTime.textContent = timeString;
     }
