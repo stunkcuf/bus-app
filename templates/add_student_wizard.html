@@ -6,16 +6,11 @@
   <title>Add New Student - Fleet Management System</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="/static/modern_theme.css">
-    <!-- Dark Theme Text Colors -->
-    <link rel="stylesheet" href="/static/dark_theme_text.css">
-  <link rel="stylesheet" href="/static/wizard.css">
-  <link rel="stylesheet" href="/static/help_system.css">
-  <link rel="stylesheet" href="/static/contextual_help.css">
-  <link rel="stylesheet" href="/static/autocomplete.css">
+  <!-- Touch-Friendly Controls -->
+  <link rel="stylesheet" href="/static/touch_friendly.css">
   
   <style nonce="{{.CSPNonce}}">
-    /* Ultimate beautiful design system */
+    /* Enhanced glass morphism design system */
     :root {
       --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
@@ -26,6 +21,12 @@
       --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
       --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
       --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      
+      /* Glass morphism variables */
+      --glass-bg: rgba(255, 255, 255, 0.1);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+      --glass-blur: 20px;
     }
     
     * {
@@ -40,41 +41,59 @@
       min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       overflow-x: hidden;
+      position: relative;
+      color: white;
     }
     
-    /* Animated background */
+    /* Enhanced animated background */
     body::before {
       content: '';
       position: fixed;
-      top: 0;
-      left: 0;
+      top: -50%;
+      right: -30%;
       width: 100%;
       height: 100%;
-      background-image: 
-        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 40% 40%, rgba(79, 172, 254, 0.2) 0%, transparent 50%);
-      animation: backgroundShift 20s ease-in-out infinite;
+      background: radial-gradient(circle, rgba(147, 51, 234, 0.3) 0%, transparent 70%);
+      filter: blur(100px);
       z-index: -1;
+      animation: floatBackground 20s ease-in-out infinite;
     }
     
-    @keyframes backgroundShift {
-      0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      33% { transform: translate(-20px, -20px) rotate(120deg); }
-      66% { transform: translate(20px, -10px) rotate(240deg); }
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -50%;
+      left: -30%;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
+      filter: blur(100px);
+      z-index: -1;
+      animation: floatBackground 20s ease-in-out infinite reverse;
     }
     
-    /* Glassmorphism navigation */
+    @keyframes floatBackground {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+    /* Enhanced navigation */
     .navbar-glass {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 1rem 0;
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border-bottom: 1px solid var(--glass-border);
+      padding: 1.2rem 0;
       position: sticky;
       top: 0;
       z-index: 1000;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      box-shadow: var(--glass-shadow);
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-glass:hover {
+      background: rgba(255, 255, 255, 0.12);
     }
     
     .navbar-brand {
@@ -93,78 +112,71 @@
       text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
     }
     
-    /* Floating orbs */
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(40px);
-      opacity: 0.6;
-      animation: float 20s infinite ease-in-out;
-    }
-    
-    .orb1 {
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
-      top: -150px;
-      left: -150px;
-    }
-    
-    .orb2 {
-      width: 400px;
-      height: 400px;
-      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
-      bottom: -200px;
-      right: -200px;
-      animation-delay: -5s;
-    }
-    
-    .orb3 {
-      width: 250px;
-      height: 250px;
-      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
-      top: 50%;
-      left: 50%;
-      animation-delay: -10s;
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(30px, -30px) scale(1.1); }
-      66% { transform: translate(-20px, 20px) scale(0.9); }
-    }
-    
-    /* Glass cards */
+    /* Enhanced glass cards */
     .glass-card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 2rem;
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border-radius: 24px;
+      border: 1px solid var(--glass-border);
+      padding: 2.5rem;
       margin-bottom: 2rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      box-shadow: var(--glass-shadow);
       color: white;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
     }
     
-    /* Form styling */
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    
+    .glass-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+    
+    /* Enhanced form styling */
     .form-control,
     .form-select {
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
       color: white;
-      padding: 0.75rem 1rem;
+      padding: 0.875rem 1.25rem;
       transition: all 0.3s ease;
+      font-size: 0.95rem;
     }
     
     .form-control:focus,
     .form-select:focus {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(102, 126, 234, 0.5);
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
       color: white;
       outline: none;
+    }
+    
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .form-select option {
+      background: #1a1a2e;
+      color: white;
+    }
+    
+    /* Fix Bootstrap dropdown colors */
+    .form-select {
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
     }
     
     /* Button styling */
@@ -182,7 +194,7 @@
     
     .btn-primary {
       background: var(--gradient-1);
-      color: white;
+      color: white !important;
       box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
     }
     
@@ -191,68 +203,349 @@
       box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
     }
     
-    /* Metric cards */
-    .metric-card {
-      position: relative;
+    .btn-secondary {
       background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 30px;
-      padding: 2.5rem;
-      text-align: center;
-      color: white;
       border: 1px solid rgba(255, 255, 255, 0.2);
-      overflow: hidden;
-      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      color: white !important;
     }
     
-    .metric-card:hover {
-      transform: translateY(-10px) scale(1.02);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+      color: white !important;
+    }
+    
+    .btn-outline-light {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white !important;
+    }
+    
+    .btn-outline-light:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.5);
+      color: white !important;
+    }
+    
+    .btn-sm {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
     }
     
     /* Hero section */
     .hero-section {
       position: relative;
-      padding: 2rem 0 1.5rem; /* Reduced from 5rem to 2rem */
+      padding: 2rem 0;
       text-align: center;
       color: white;
       overflow: hidden;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, transparent 100%);
+      border-radius: 0 0 50px 50px;
+      margin-bottom: 2rem;
     }
     
     .hero-content h1 {
-      font-size: 2.5rem; /* Reduced from 3.5rem */
+      font-size: 2.5rem;
       font-weight: 800;
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem;
       background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      background-clip: text;
       animation: gradientShift 8s ease-in-out infinite;
+      text-shadow: 0 0 40px rgba(255, 255, 255, 0.2);
     }
     
-    /* Tables */
-    .table {
+    .hero-content p {
+      font-size: 1.1rem;
+      opacity: 0.9;
       color: white;
     }
     
-    .table thead th {
-      background: rgba(255, 255, 255, 0.15);
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    /* Wizard specific styles */
+    .wizard-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .wizard-step {
+      display: none;
+    }
+    
+    .wizard-step.active {
+      display: block;
+      animation: fadeInUp 0.5s ease;
+    }
+    
+    /* Progress indicator */
+    .progress-container {
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      border: 1px solid var(--glass-border);
+    }
+    
+    .progress {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+    
+    .progress-bar {
+      background: var(--gradient-1);
+      height: 100%;
+      transition: width 0.5s ease;
+      border-radius: 10px;
+    }
+    
+    .progress-steps {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    
+    .progress-step {
+      text-align: center;
+      position: relative;
+      flex: 1;
       color: white;
+    }
+    
+    .progress-step-number {
+      width: 40px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      padding: 1rem;
-      border: none;
-    }
-    
-    .table tbody tr {
-      background: rgba(255, 255, 255, 0.05);
+      margin-bottom: 0.5rem;
       transition: all 0.3s ease;
     }
     
-    .table tbody tr:hover {
+    .progress-step.active .progress-step-number {
+      background: var(--gradient-1);
+      border-color: transparent;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .progress-step.completed .progress-step-number {
+      background: rgba(67, 233, 123, 0.2);
+      border-color: #43e97b;
+      color: #43e97b;
+    }
+    
+    .progress-step-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    
+    .progress-step-description {
+      font-size: 0.75rem;
+      opacity: 0.7;
+    }
+    
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+    }
+    
+    .progress-text {
+      font-size: 0.875rem;
+      opacity: 0.9;
+    }
+    
+    .progress-percentage {
+      font-weight: 600;
+      color: #667eea;
+    }
+    
+    /* Form sections */
+    .form-section {
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border-radius: 20px;
+      padding: 2rem;
+      border: 1px solid var(--glass-border);
+    }
+    
+    .form-section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .form-section-title i {
+      color: #667eea;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: block;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      opacity: 0.9;
+      color: white;
+    }
+    
+    .form-label.required::after {
+      content: " *";
+      color: #ef4444;
+    }
+    
+    .form-label i {
+      margin-right: 0.5rem;
+      opacity: 0.7;
+    }
+    
+    .form-text {
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 0.5rem;
+    }
+    
+    .form-check {
+      margin-bottom: 1rem;
+    }
+    
+    .form-check-input {
       background: rgba(255, 255, 255, 0.1);
-      transform: translateX(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .form-check-input:checked {
+      background-color: #667eea;
+      border-color: #667eea;
+    }
+    
+    .form-check-label {
+      color: white;
+      margin-left: 0.5rem;
+    }
+    
+    /* Location containers */
+    .location-container {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .subsection-heading {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    /* Time input group */
+    .time-input-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    
+    /* Preview section */
+    .preview-section {
+      min-height: 300px;
+    }
+    
+    .preview-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .preview-label {
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .preview-value {
+      color: white;
+      text-align: right;
+    }
+    
+    .location-badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      margin: 0.25rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    .location-badge.pickup {
+      background: rgba(79, 172, 254, 0.2);
+      border-color: rgba(79, 172, 254, 0.3);
+    }
+    
+    .location-badge.dropoff {
+      background: rgba(250, 112, 154, 0.2);
+      border-color: rgba(250, 112, 154, 0.3);
+    }
+    
+    /* Navigation buttons */
+    .wizard-navigation {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Alert styling */
+    .alert-info {
+      background: rgba(79, 172, 254, 0.1);
+      border: 1px solid rgba(79, 172, 254, 0.3);
+      color: white;
+      border-radius: 12px;
+    }
+    
+    .alert-info i {
+      margin-right: 0.5rem;
+    }
+    
+    /* Validation feedback */
+    .is-invalid {
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
     }
     
     /* Animations */
@@ -268,359 +561,451 @@
         transform: translateY(0);
       }
     }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .navbar-glass {
+        padding: 0.75rem 0;
+      }
+      
+      .navbar-brand {
+        font-size: 1.25rem;
+      }
+      
+      .hero-section {
+        padding: 1.5rem 0;
+      }
+      
+      .hero-content h1 {
+        font-size: 2rem;
+      }
+      
+      .progress-steps {
+        display: none;
+      }
+      
+      .form-section {
+        padding: 1.5rem;
+      }
+      
+      .time-input-group {
+        grid-template-columns: 1fr;
+      }
+      
+      .wizard-navigation {
+        flex-direction: column-reverse;
+        gap: 1rem;
+      }
+      
+      .wizard-navigation .btn {
+        width: 100%;
+      }
+    }
+    
+    /* Ensure all text is white */
+    h1, h2, h3, h4, h5, h6, p, span, div, label, small {
+      color: white;
+    }
+    
+    input, select, textarea {
+      color: white;
+    }
+    
+    /* Button group styling for navigation */
+    .btn-group .btn {
+      border-radius: 0;
+      border-right: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .btn-group .btn:first-child {
+      border-radius: 15px 0 0 15px;
+    }
+    
+    .btn-group .btn:last-child {
+      border-radius: 0 15px 15px 0;
+      border-right: none;
+    }
   </style>
+    <!-- Dark Theme Text Colors -->
+    <link rel="stylesheet" href="/static/dark_theme_text.css">
 </head>
 <body>
-  <!-- Floating orbs -->
-  <div class="orb orb1"></div>
-  <div class="orb orb2"></div>
-  <div class="orb orb3"></div>
-
-  <div class="page-wrapper">
-    <!-- Navigation Bar -->
-    <nav class="navbar navbar-glass">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="/manager-dashboard">
-          <i class="bi bi-bus-front-fill"></i> Fleet Management
+  
+  <!-- Navigation -->
+  <nav class="navbar navbar-glass">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/driver-dashboard">
+        <i class="bi bi-bus-front-fill"></i> Fleet Management
+      </a>
+      <div class="d-flex align-items-center gap-3">
+        <span class="text-white">
+          <i class="bi bi-person-circle"></i> {{.User.Username}}
+        </span>
+        <a href="/students" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-arrow-left"></i> Back to Students
         </a>
-        <div class="d-flex align-items-center gap-3">
-          <a href="/students" class="btn btn-outline-light btn-sm">
-            <i class="bi bi-arrow-left"></i> Back to Students
-          </a>
-          <a href="/manager-dashboard" class="btn btn-outline-light btn-sm">
-            <i class="bi bi-speedometer2"></i> Dashboard
-          </a>
-          <a href="/logout" class="btn btn-outline-light btn-sm">
-            <i class="bi bi-box-arrow-right"></i> Logout
-          </a>
-        </div>
+        <a href="/logout" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
       </div>
-    </nav>
-    
-    <!-- Hero Section -->
-    <section class="hero-section">
-      <div class="container">
-        <div class="hero-content">
-          <h1 class="fade-in">Add New Student</h1>
-          <p class="lead fade-in" style="opacity: 0.9;">Add a new student to the system</p>
-        </div>
+    </div>
+  </nav>
+  
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="fade-in">Add New Student</h1>
+        <p class="fade-in">Complete the form below to add a new student to the system</p>
       </div>
-    </section>
-    
-    <!-- Main Content -->
-    <main id="main-content" class="main-content">
-      <div class="wizard-container">
-        <!-- Progress Indicator -->
-        {{/* Define steps manually to avoid slice function issues */}}
-        {{$step1 := dict "Title" "Basic Info" "Description" "Student details"}}
-        {{$step2 := dict "Title" "Contact Info" "Description" "Guardian & phone"}}
-        {{$step3 := dict "Title" "Locations" "Description" "Pickup & dropoff"}}
-        {{$step4 := dict "Title" "Route Info" "Description" "Bus assignment"}}
-        {{$step5 := dict "Title" "Review" "Description" "Confirm details"}}
-        {{$steps := slice $step1 $step2 $step3 $step4 $step5}}
-        {{template "progress-indicator" (dict 
-          "Steps" $steps 
-          "CurrentStep" 1 
-          "TotalSteps" 5 
-          "ProgressPercent" 20
-          "ShowNavigation" true
-          "PreviousAction" "previousStep()"
-          "NextAction" "nextStep()"
-          "CompleteAction" "submitStudent()"
-          "CSPNonce" .CSPNonce
-        )}}
+    </div>
+  </section>
+  
+  <!-- Main Content -->
+  <div class="container">
+    <div class="wizard-container">
+      
+      <!-- Progress Indicator -->
+      <div class="progress-container">
+        <div class="progress">
+          <div class="progress-bar" style="width: 20%"></div>
+        </div>
         
-        <!-- Wizard Form -->
-        <form id="addStudentForm" method="POST" action="/add-student" class="wizard-form">
-          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-          
-          <!-- Step 1: Basic Information -->
-          <div class="wizard-step active" data-step="1">
-            <div class="form-section">
-              <h2 class="form-section-title">
-                <i class="bi bi-person-fill" aria-hidden="true"></i>
-                Basic Student Information
-              </h2>
-              
-              <div class="form-group">
-                <label for="studentID" class="form-label required">
-                  <i class="bi bi-hash" aria-hidden="true"></i>
-                  Student ID
-                </label>
-                <input type="text" 
-                       class="form-control form-control-lg" 
-                       id="studentID" 
-                       name="student_id" 
-                       required
-                       placeholder="e.g., STU-001"
-                       aria-describedby="studentIDHelp">
-                <small id="studentIDHelp" class="form-text">
-                  Enter a unique identifier for this student
-                </small>
-              </div>
-              
-              <div class="form-group">
-                <label for="studentName" class="form-label required">
-                  <i class="bi bi-person-badge" aria-hidden="true"></i>
-                  Full Name
-                </label>
-                <input type="text" 
-                       class="form-control form-control-lg" 
-                       id="studentName" 
-                       name="name" 
-                       required
-                       placeholder="e.g., John Smith">
-              </div>
-              
-              <div class="form-group">
-                <label for="positionNumber" class="form-label">
-                  <i class="bi bi-123" aria-hidden="true"></i>
-                  Position Number
-                </label>
-                <input type="number" 
-                       class="form-control form-control-lg" 
-                       id="positionNumber" 
-                       name="position_number" 
-                       min="1"
-                       max="100"
-                       placeholder="e.g., 5"
-                       aria-describedby="positionHelp">
-                <small id="positionHelp" class="form-text">
-                  Student's seating position on the bus (optional)
-                </small>
-              </div>
+        <div class="progress-steps">
+          <div class="progress-step active">
+            <div class="progress-step-number">1</div>
+            <div class="progress-step-title">Basic Info</div>
+            <div class="progress-step-description">Student details</div>
+          </div>
+          <div class="progress-step pending">
+            <div class="progress-step-number">2</div>
+            <div class="progress-step-title">Contact Info</div>
+            <div class="progress-step-description">Guardian & phone</div>
+          </div>
+          <div class="progress-step pending">
+            <div class="progress-step-number">3</div>
+            <div class="progress-step-title">Locations</div>
+            <div class="progress-step-description">Pickup & dropoff</div>
+          </div>
+          <div class="progress-step pending">
+            <div class="progress-step-number">4</div>
+            <div class="progress-step-title">Route Info</div>
+            <div class="progress-step-description">Bus assignment</div>
+          </div>
+          <div class="progress-step pending">
+            <div class="progress-step-number">5</div>
+            <div class="progress-step-title">Review</div>
+            <div class="progress-step-description">Confirm details</div>
+          </div>
+        </div>
+        
+        <div class="progress-info">
+          <span class="progress-text">Step 1 of 5</span>
+          <span class="progress-percentage">20% Complete</span>
+        </div>
+        
+        <div class="wizard-navigation">
+          <button type="button" class="btn btn-secondary" onclick="previousStep()" style="visibility: hidden;">
+            <i class="bi bi-arrow-left"></i> Previous
+          </button>
+          <button type="button" class="btn btn-primary" onclick="nextStep()">
+            Next <i class="bi bi-arrow-right"></i>
+          </button>
+          <button type="button" class="btn btn-primary" onclick="submitStudent()" style="display: none;">
+            <i class="bi bi-check-circle"></i> Complete
+          </button>
+        </div>
+      </div>
+      
+      <!-- Wizard Form -->
+      <form id="addStudentForm" method="POST" action="/add-student" class="wizard-form">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        
+        <!-- Step 1: Basic Information -->
+        <div class="wizard-step active" data-step="1">
+          <div class="form-section">
+            <h2 class="form-section-title">
+              <i class="bi bi-person-fill"></i>
+              Basic Student Information
+            </h2>
+            
+            <div class="form-group">
+              <label for="studentID" class="form-label required">
+                <i class="bi bi-hash"></i>
+                Student ID
+              </label>
+              <input type="text" 
+                     class="form-control" 
+                     id="studentID" 
+                     name="student_id" 
+                     required
+                     placeholder="e.g., STU-001"
+                     aria-describedby="studentIDHelp">
+              <small id="studentIDHelp" class="form-text">
+                Enter a unique identifier for this student
+              </small>
+            </div>
+            
+            <div class="form-group">
+              <label for="studentName" class="form-label required">
+                <i class="bi bi-person-badge"></i>
+                Full Name
+              </label>
+              <input type="text" 
+                     class="form-control" 
+                     id="studentName" 
+                     name="name" 
+                     required
+                     placeholder="e.g., John Smith">
+            </div>
+            
+            <div class="form-group">
+              <label for="positionNumber" class="form-label">
+                <i class="bi bi-123"></i>
+                Position Number
+              </label>
+              <input type="number" 
+                     class="form-control" 
+                     id="positionNumber" 
+                     name="position_number" 
+                     min="1"
+                     max="100"
+                     placeholder="e.g., 5"
+                     aria-describedby="positionHelp">
+              <small id="positionHelp" class="form-text">
+                Student's seating position on the bus (optional)
+              </small>
             </div>
           </div>
-          
-          <!-- Step 2: Contact Information -->
-          <div class="wizard-step" data-step="2">
-            <div class="form-section">
-              <h2 class="form-section-title">
-                <i class="bi bi-telephone-fill" aria-hidden="true"></i>
-                Contact Information
-              </h2>
-              
-              <div class="form-group">
-                <label for="guardianName" class="form-label required">
-                  <i class="bi bi-person-heart" aria-hidden="true"></i>
-                  Guardian Name
-                </label>
-                <input type="text" 
-                       class="form-control form-control-lg" 
-                       id="guardianName" 
-                       name="guardian" 
-                       required
-                       placeholder="e.g., Jane Smith">
-              </div>
-              
-              <div class="form-group">
-                <label for="phoneNumber" class="form-label required">
-                  <i class="bi bi-phone" aria-hidden="true"></i>
-                  Primary Phone Number
-                </label>
-                <input type="tel" 
-                       class="form-control form-control-lg" 
-                       id="phoneNumber" 
-                       name="phone_number" 
-                       required
-                       placeholder="(555) 123-4567"
-                       pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}|[0-9]{10}|\([0-9]{3}\) [0-9]{3}-[0-9]{4}">
-              </div>
-              
-              <div class="form-group">
-                <label for="altPhoneNumber" class="form-label">
-                  <i class="bi bi-phone-fill" aria-hidden="true"></i>
-                  Alternative Phone Number
-                </label>
-                <input type="tel" 
-                       class="form-control form-control-lg" 
-                       id="altPhoneNumber" 
-                       name="alt_phone_number" 
-                       placeholder="(555) 987-6543">
-              </div>
+        </div>
+        
+        <!-- Step 2: Contact Information -->
+        <div class="wizard-step" data-step="2">
+          <div class="form-section">
+            <h2 class="form-section-title">
+              <i class="bi bi-telephone-fill"></i>
+              Contact Information
+            </h2>
+            
+            <div class="form-group">
+              <label for="guardianName" class="form-label required">
+                <i class="bi bi-person-heart"></i>
+                Guardian Name
+              </label>
+              <input type="text" 
+                     class="form-control" 
+                     id="guardianName" 
+                     name="guardian" 
+                     required
+                     placeholder="e.g., Jane Smith">
+            </div>
+            
+            <div class="form-group">
+              <label for="phoneNumber" class="form-label required">
+                <i class="bi bi-phone"></i>
+                Primary Phone Number
+              </label>
+              <input type="tel" 
+                     class="form-control" 
+                     id="phoneNumber" 
+                     name="phone_number" 
+                     required
+                     placeholder="(555) 123-4567"
+                     pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}|[0-9]{10}|\([0-9]{3}\) [0-9]{3}-[0-9]{4}">
+            </div>
+            
+            <div class="form-group">
+              <label for="altPhoneNumber" class="form-label">
+                <i class="bi bi-phone-fill"></i>
+                Alternative Phone Number
+              </label>
+              <input type="tel" 
+                     class="form-control" 
+                     id="altPhoneNumber" 
+                     name="alt_phone_number" 
+                     placeholder="(555) 987-6543">
             </div>
           </div>
-          
-          <!-- Step 3: Locations -->
-          <div class="wizard-step" data-step="3">
-            <div class="form-section">
-              <h2 class="form-section-title">
-                <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
-                Pickup & Dropoff Locations
-              </h2>
+        </div>
+        
+        <!-- Step 3: Locations -->
+        <div class="wizard-step" data-step="3">
+          <div class="form-section">
+            <h2 class="form-section-title">
+              <i class="bi bi-geo-alt-fill"></i>
+              Pickup & Dropoff Locations
+            </h2>
+            
+            <div id="locationsContainer">
+              <!-- Pickup Location -->
+              <div class="location-container">
+                <h3 class="subsection-heading">
+                  <i class="bi bi-arrow-up-circle-fill text-info"></i>
+                  Pickup Location
+                </h3>
+                <div class="form-group">
+                  <label for="pickupAddress" class="form-label required">
+                    Address
+                  </label>
+                  <input type="text" 
+                         class="form-control" 
+                         id="pickupAddress" 
+                         name="pickup_address" 
+                         required
+                         placeholder="123 Main St, City, State ZIP">
+                </div>
+                <div class="form-group">
+                  <label for="pickupDescription" class="form-label">
+                    Location Notes
+                  </label>
+                  <textarea class="form-control" 
+                            id="pickupDescription" 
+                            name="pickup_description" 
+                            rows="2"
+                            placeholder="e.g., Blue house with white fence"></textarea>
+                </div>
+              </div>
               
-              <div id="locationsContainer">
-                <!-- Pickup Location -->
-                <div class="location-container">
-                  <h3 class="subsection-heading">
-                    <i class="bi bi-arrow-up-circle-fill text-info" aria-hidden="true"></i>
-                    Pickup Location
-                  </h3>
+              <!-- Dropoff Location -->
+              <div class="location-container">
+                <h3 class="subsection-heading">
+                  <i class="bi bi-arrow-down-circle-fill text-warning"></i>
+                  Dropoff Location
+                </h3>
+                <div class="form-group">
+                  <label class="form-check">
+                    <input type="checkbox" 
+                           class="form-check-input" 
+                           id="sameAsPickup" 
+                           onchange="toggleDropoffFields()">
+                    <span class="form-check-label">Same as pickup location</span>
+                  </label>
+                </div>
+                <div id="dropoffFields">
                   <div class="form-group">
-                    <label for="pickupAddress" class="form-label required">
+                    <label for="dropoffAddress" class="form-label required">
                       Address
                     </label>
                     <input type="text" 
-                           class="form-control form-control-lg" 
-                           id="pickupAddress" 
-                           name="pickup_address" 
+                           class="form-control" 
+                           id="dropoffAddress" 
+                           name="dropoff_address" 
                            required
-                           placeholder="123 Main St, City, State ZIP">
+                           placeholder="123 School Rd, City, State ZIP">
                   </div>
                   <div class="form-group">
-                    <label for="pickupDescription" class="form-label">
+                    <label for="dropoffDescription" class="form-label">
                       Location Notes
                     </label>
                     <textarea class="form-control" 
-                              id="pickupDescription" 
-                              name="pickup_description" 
+                              id="dropoffDescription" 
+                              name="dropoff_description" 
                               rows="2"
-                              placeholder="e.g., Blue house with white fence"></textarea>
-                  </div>
-                </div>
-                
-                <!-- Dropoff Location -->
-                <div class="location-container">
-                  <h3 class="subsection-heading">
-                    <i class="bi bi-arrow-down-circle-fill text-warning" aria-hidden="true"></i>
-                    Dropoff Location
-                  </h3>
-                  <div class="form-group">
-                    <label class="form-check">
-                      <input type="checkbox" 
-                             class="form-check-input" 
-                             id="sameAsPickup" 
-                             onchange="toggleDropoffFields()">
-                      <span class="form-check-label">Same as pickup location</span>
-                    </label>
-                  </div>
-                  <div id="dropoffFields">
-                    <div class="form-group">
-                      <label for="dropoffAddress" class="form-label required">
-                        Address
-                      </label>
-                      <input type="text" 
-                             class="form-control form-control-lg" 
-                             id="dropoffAddress" 
-                             name="dropoff_address" 
-                             required
-                             placeholder="123 School Rd, City, State ZIP">
-                    </div>
-                    <div class="form-group">
-                      <label for="dropoffDescription" class="form-label">
-                        Location Notes
-                      </label>
-                      <textarea class="form-control" 
-                                id="dropoffDescription" 
-                                name="dropoff_description" 
-                                rows="2"
-                                placeholder="e.g., Main school entrance"></textarea>
-                    </div>
+                              placeholder="e.g., Main school entrance"></textarea>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          
-          <!-- Step 4: Route Information -->
-          <div class="wizard-step" data-step="4">
-            <div class="form-section">
-              <h2 class="form-section-title">
-                <i class="bi bi-diagram-3-fill" aria-hidden="true"></i>
-                Route Assignment
-              </h2>
-              
+        </div>
+        
+        <!-- Step 4: Route Information -->
+        <div class="wizard-step" data-step="4">
+          <div class="form-section">
+            <h2 class="form-section-title">
+              <i class="bi bi-diagram-3-fill"></i>
+              Route Assignment
+            </h2>
+            
+            <div class="form-group">
+              <label for="routeID" class="form-label">
+                <i class="bi bi-map"></i>
+                Select Route
+              </label>
+              <select class="form-select" id="routeID" name="route_id">
+                <option value="">-- Select a route (optional) --</option>
+                {{range .Routes}}
+                  <option value="{{.RouteID}}">{{.RouteName}} - {{.Description}}</option>
+                {{end}}
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="driverSelect" class="form-label">
+                <i class="bi bi-person-badge-fill"></i>
+                Assigned Driver
+              </label>
+              <select class="form-select" id="driverSelect" name="driver">
+                <option value="">-- Select a driver (optional) --</option>
+                {{range .Drivers}}
+                  <option value="{{.Username}}">{{.Username}}</option>
+                {{end}}
+              </select>
+            </div>
+            
+            <div class="time-input-group">
               <div class="form-group">
-                <label for="routeID" class="form-label">
-                  <i class="bi bi-map" aria-hidden="true"></i>
-                  Select Route
+                <label for="pickupTime" class="form-label">
+                  <i class="bi bi-clock"></i>
+                  Pickup Time
                 </label>
-                <select class="form-control form-control-lg" id="routeID" name="route_id">
-                  <option value="">-- Select a route (optional) --</option>
-                  {{range .Routes}}
-                    <option value="{{.RouteID}}">{{.RouteName}} - {{.Description}}</option>
-                  {{end}}
-                </select>
+                <input type="time" 
+                       class="form-control" 
+                       id="pickupTime" 
+                       name="pickup_time">
               </div>
               
               <div class="form-group">
-                <label for="driverSelect" class="form-label">
-                  <i class="bi bi-person-badge-fill" aria-hidden="true"></i>
-                  Assigned Driver
+                <label for="dropoffTime" class="form-label">
+                  <i class="bi bi-clock-fill"></i>
+                  Dropoff Time
                 </label>
-                <select class="form-control form-control-lg" id="driverSelect" name="driver">
-                  <option value="">-- Select a driver (optional) --</option>
-                  {{range .Drivers}}
-                    <option value="{{.Username}}">{{.Username}}</option>
-                  {{end}}
-                </select>
-              </div>
-              
-              <div class="time-input-group">
-                <div class="form-group">
-                  <label for="pickupTime" class="form-label">
-                    <i class="bi bi-clock" aria-hidden="true"></i>
-                    Pickup Time
-                  </label>
-                  <input type="time" 
-                         class="form-control form-control-lg" 
-                         id="pickupTime" 
-                         name="pickup_time">
-                </div>
-                
-                <div class="form-group">
-                  <label for="dropoffTime" class="form-label">
-                    <i class="bi bi-clock-fill" aria-hidden="true"></i>
-                    Dropoff Time
-                  </label>
-                  <input type="time" 
-                         class="form-control form-control-lg" 
-                         id="dropoffTime" 
-                         name="dropoff_time">
-                </div>
-              </div>
-              
-              <div class="form-group">
-                <label class="form-check">
-                  <input type="checkbox" 
-                         class="form-check-input" 
-                         name="active" 
-                         value="true" 
-                         checked>
-                  <span class="form-check-label">
-                    <i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i>
-                    Student is active
-                  </span>
-                </label>
+                <input type="time" 
+                       class="form-control" 
+                       id="dropoffTime" 
+                       name="dropoff_time">
               </div>
             </div>
-          </div>
-          
-          <!-- Step 5: Review and Confirm -->
-          <div class="wizard-step" data-step="5">
-            <div class="form-section preview-section">
-              <h2 class="form-section-title">
-                <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
-                Review Student Information
-              </h2>
-              
-              <div id="reviewContent">
-                <!-- Preview content will be populated by JavaScript -->
-              </div>
-              
-              <div class="alert alert-info mt-3" role="alert">
-                <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
-                <strong>Please review all information carefully.</strong> 
-                You can go back to make changes or click "Complete" to add this student to the system.
-              </div>
+            
+            <div class="form-group">
+              <label class="form-check">
+                <input type="checkbox" 
+                       class="form-check-input" 
+                       name="active" 
+                       value="true" 
+                       checked>
+                <span class="form-check-label">
+                  <i class="bi bi-check-circle-fill text-success"></i>
+                  Student is active
+                </span>
+              </label>
             </div>
           </div>
-        </form>
-      </div>
-    </main>
+        </div>
+        
+        <!-- Step 5: Review and Confirm -->
+        <div class="wizard-step" data-step="5">
+          <div class="form-section preview-section">
+            <h2 class="form-section-title">
+              <i class="bi bi-check-circle-fill"></i>
+              Review Student Information
+            </h2>
+            
+            <div id="reviewContent">
+              <!-- Preview content will be populated by JavaScript -->
+            </div>
+            
+            <div class="alert alert-info mt-3" role="alert">
+              <i class="bi bi-info-circle-fill"></i>
+              <strong>Please review all information carefully.</strong> 
+              You can go back to make changes or click "Complete" to add this student to the system.
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
   </div>
   
-  <script src="/static/help_system.js"></script>
   <script nonce="{{.CSPNonce}}">
     let currentStep = 1;
     const totalSteps = 5;
@@ -761,19 +1146,19 @@
       let locations = '';
       if (formData.get('pickup_address')) {
         locations += `<div class="location-badge pickup">
-          <i class="bi bi-arrow-up-circle" aria-hidden="true"></i> 
+          <i class="bi bi-arrow-up-circle"></i> 
           Pickup: ${formData.get('pickup_address')}
         </div>`;
       }
       
       if (!document.getElementById('sameAsPickup').checked && formData.get('dropoff_address')) {
         locations += `<div class="location-badge dropoff">
-          <i class="bi bi-arrow-down-circle" aria-hidden="true"></i> 
+          <i class="bi bi-arrow-down-circle"></i> 
           Dropoff: ${formData.get('dropoff_address')}
         </div>`;
       } else if (document.getElementById('sameAsPickup').checked) {
         locations += `<div class="location-badge dropoff">
-          <i class="bi bi-arrow-down-circle" aria-hidden="true"></i> 
+          <i class="bi bi-arrow-down-circle"></i> 
           Dropoff: Same as pickup
         </div>`;
       }
@@ -860,91 +1245,27 @@
     });
   </script>
   
-  <!-- Include Contextual Help System -->
-  <script src="/static/contextual_help.js"></script>
+  <!-- Include Loading Indicators System -->
+  <script src="/static/loading_indicators.js"></script>
   
-  <!-- Include Auto-Save System -->
-  <script src="/static/auto_save.js"></script>
+  <!-- Include Session Timeout Warning System -->
+  <script src="/static/session_timeout_warning.js"></script>
   
-  <!-- Include Friendly Error System -->
-  <script src="/static/friendly_errors.js"></script>
+  <!-- Include Touch-Friendly System -->
+  <script src="/static/touch_friendly.js"></script>
   
-  <!-- Include Autocomplete System -->
-  <script src="/static/autocomplete.js"></script>
-  
-  <!-- Enable auto-save for this form -->
   <script nonce="{{.CSPNonce}}">
+    // Show loading indicator when fetching data
     document.addEventListener('DOMContentLoaded', function() {
-      // Mark the form for auto-save
-      const studentForm = document.getElementById('addStudentForm');
-      if (studentForm) {
-        studentForm.setAttribute('data-autosave', 'true');
-        // Re-initialize auto-save to pick up this form
-        if (window.autoSave) {
-          window.autoSave.findAutoSaveForms();
-        }
-      }
-      
-      // Initialize autocomplete for address field
-      if (window.AutoComplete) {
-        // Common addresses for autocomplete
-        const commonAddresses = [
-          '123 Main Street',
-          '456 Oak Avenue', 
-          '789 Elm Street',
-          '321 Pine Road',
-          '654 Maple Drive',
-          '987 Cedar Lane',
-          '147 Birch Boulevard',
-          '258 Spruce Court',
-          '369 Willow Way',
-          '741 Cherry Street'
-        ];
-        
-        new AutoComplete('pickupAddress', {
-          source: function(query, callback) {
-            // Filter addresses based on query
-            const filtered = commonAddresses.filter(addr => 
-              addr.toLowerCase().includes(query.toLowerCase())
-            );
-            
-            // Also fetch from server if available
-            fetch(`/api/search-addresses?q=${encodeURIComponent(query)}`)
-              .then(response => response.json())
-              .then(data => {
-                const combined = [...filtered, ...data];
-                callback(combined.slice(0, 10));
-              })
-              .catch(() => {
-                // Fallback to local addresses only
-                callback(filtered);
-              });
-          },
-          minChars: 1,
-          onSelect: function(address) {
-            // Could auto-fill city/state based on address
-            console.log('Selected address:', address);
+      // Add loading states to any forms
+      document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function() {
+          // Show progress loader for form submissions
+          if (window.loadingIndicators) {
+            loadingIndicators.showProgress('Adding student...');
           }
         });
-        
-        // Initialize autocomplete for guardian name
-        new AutoComplete('guardianName', {
-          source: function(query, callback) {
-            // Common names for demonstration
-            const commonNames = [
-              'John Smith', 'Jane Doe', 'Michael Johnson', 
-              'Sarah Williams', 'Robert Brown', 'Maria Garcia',
-              'David Martinez', 'Jennifer Davis', 'James Wilson'
-            ];
-            
-            const filtered = commonNames.filter(name => 
-              name.toLowerCase().includes(query.toLowerCase())
-            );
-            callback(filtered);
-          },
-          minChars: 2
-        });
-      }
+      });
     });
   </script>
 </body>
