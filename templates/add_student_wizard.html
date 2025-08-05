@@ -536,7 +536,7 @@
       gap: 1rem;
     }
     
-    /* Buttons */
+    /* Buttons - ensure proper display */
     .btn {
       padding: 0.75rem 1.5rem;
       border-radius: 25px;
@@ -550,6 +550,10 @@
       cursor: pointer;
       position: relative;
       overflow: hidden;
+    }
+    
+    .btn.hidden-display {
+      display: none !important;
     }
     
     .btn::before {
@@ -651,6 +655,19 @@
       }
     }
     
+    /* Utility classes to replace inline styles */
+    .hidden-visibility {
+      visibility: hidden !important;
+    }
+    
+    .hidden-display {
+      display: none !important;
+    }
+    
+    .opacity-half {
+      opacity: 0.5;
+    }
+    
     /* Responsive design */
     @media (max-width: 768px) {
       .hero-content h1 {
@@ -677,9 +694,39 @@
         width: 100%;
       }
     }
+    /* Dark theme text colors - embedded to avoid MIME type issues */
+    body, .container, .wizard-container {
+      color: white !important;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+      color: white !important;
+    }
+    
+    p, span, div, label, small, strong {
+      color: inherit;
+    }
+    
+    .text-white {
+      color: white !important;
+    }
+    
+    .text-muted {
+      color: rgba(255, 255, 255, 0.6) !important;
+    }
+    
+    a {
+      color: #667eea;
+    }
+    
+    a:hover {
+      color: #764ba2;
+    }
   </style>
   <!-- Dark Theme Text Colors -->
-  <link rel="stylesheet" href="/static/dark_theme_text.css">
+  <!-- IMPORTANT: The server must serve CSS files with MIME type 'text/css' not 'text/plain' -->
+  <!-- Configure your server to set: Content-Type: text/css for .css files -->
+  <!-- <link rel="stylesheet" href="/static/dark_theme_text.css"> -->
 </head>
 <body>
   <!-- Floating orbs -->
@@ -761,15 +808,15 @@
         </div>
         
         <div class="wizard-navigation">
-          <button type="button" class="btn btn-secondary" onclick="previousStep()" style="visibility: hidden;">
+          <button type="button" class="btn btn-secondary hidden-visibility" id="prevBtn">
             <i class="bi bi-arrow-left"></i>
             <span>Previous</span>
           </button>
-          <button type="button" class="btn btn-primary" onclick="nextStep()">
+          <button type="button" class="btn btn-primary" id="nextBtn">
             <span>Next</span>
             <i class="bi bi-arrow-right"></i>
           </button>
-          <button type="button" class="btn btn-primary" onclick="submitStudent()" style="display: none;">
+          <button type="button" class="btn btn-primary hidden-display" id="completeBtn">
             <i class="bi bi-check-circle"></i>
             <span>Complete</span>
           </button>
@@ -935,8 +982,7 @@
                   <label class="form-check">
                     <input type="checkbox" 
                            class="form-check-input" 
-                           id="sameAsPickup" 
-                           onchange="toggleDropoffFields()">
+                           id="sameAsPickup">
                     <span class="form-check-label">Same as pickup location</span>
                   </label>
                 </div>
@@ -1102,13 +1148,27 @@
       });
       
       // Update navigation buttons
-      const prevBtn = document.querySelector('[onclick="previousStep()"]');
-      const nextBtn = document.querySelector('[onclick="nextStep()"]');
-      const completeBtn = document.querySelector('[onclick="submitStudent()"]');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const completeBtn = document.getElementById('completeBtn');
       
-      if (prevBtn) prevBtn.style.visibility = window.currentStep > 1 ? 'visible' : 'hidden';
-      if (nextBtn) nextBtn.style.display = window.currentStep < totalSteps ? 'inline-flex' : 'none';
-      if (completeBtn) completeBtn.style.display = window.currentStep === totalSteps ? 'inline-flex' : 'none';
+      if (prevBtn) {
+        if (window.currentStep > 1) {
+          prevBtn.classList.remove('hidden-visibility');
+        } else {
+          prevBtn.classList.add('hidden-visibility');
+        }
+      }
+      
+      if (nextBtn && completeBtn) {
+        if (window.currentStep < totalSteps) {
+          nextBtn.classList.remove('hidden-display');
+          completeBtn.classList.add('hidden-display');
+        } else {
+          nextBtn.classList.add('hidden-display');
+          completeBtn.classList.remove('hidden-display');
+        }
+      }
       
       // Update progress text
       document.querySelector('.progress-text').textContent = `Step ${window.currentStep} of ${totalSteps}`;
@@ -1196,13 +1256,13 @@
       const dropoffInputs = dropoffFields.querySelectorAll('input, textarea');
       
       if (sameAsPickup) {
-        dropoffFields.style.opacity = '0.5';
+        dropoffFields.classList.add('opacity-half');
         dropoffInputs.forEach(input => {
           input.disabled = true;
           input.removeAttribute('required');
         });
       } else {
-        dropoffFields.style.opacity = '1';
+        dropoffFields.classList.remove('opacity-half');
         dropoffInputs.forEach(input => {
           input.disabled = false;
           if (input.id === 'dropoffAddress') {
@@ -1294,6 +1354,29 @@
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {
       window.updateProgress();
+      
+      // Add event listeners for navigation buttons
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const completeBtn = document.getElementById('completeBtn');
+      
+      if (prevBtn) {
+        prevBtn.addEventListener('click', window.previousStep);
+      }
+      
+      if (nextBtn) {
+        nextBtn.addEventListener('click', window.nextStep);
+      }
+      
+      if (completeBtn) {
+        completeBtn.addEventListener('click', window.submitStudent);
+      }
+      
+      // Add event listener for same as pickup checkbox
+      const sameAsPickupCheckbox = document.getElementById('sameAsPickup');
+      if (sameAsPickupCheckbox) {
+        sameAsPickupCheckbox.addEventListener('change', window.toggleDropoffFields);
+      }
       
       // Add validation feedback
       document.querySelectorAll('input[required], select[required]').forEach(field => {
