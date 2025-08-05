@@ -382,8 +382,41 @@
     }
     
     .form-select option {
-      background: #2c3e50;
-      color: white;
+      background: #2c3e50 !important;
+      color: white !important;
+    }
+    
+    /* Fix for select dropdown appearance */
+    select.form-control option,
+    select.form-select option {
+      background-color: #1a1a2e !important;
+      color: white !important;
+    }
+    
+    /* Additional dropdown fixes for better visibility */
+    select.form-control,
+    select.form-select {
+      background: rgba(255, 255, 255, 0.1) !important;
+      color: white !important;
+    }
+    
+    select.form-control:focus,
+    select.form-select:focus {
+      background: rgba(255, 255, 255, 0.15) !important;
+      color: white !important;
+    }
+    
+    /* Ensure dropdown options are visible */
+    select option {
+      background-color: #1a1a2e !important;
+      color: white !important;
+      padding: 0.5rem;
+    }
+    
+    select option:checked,
+    select option:hover {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      color: white !important;
     }
     
     textarea.form-control {
@@ -714,7 +747,6 @@
                    id="busID" 
                    name="bus_id" 
                    required
-                   pattern="[A-Z0-9-]+"
                    placeholder="e.g., BUS-001">
             <small class="form-text">
               Enter a unique identifier for this bus (letters, numbers, and hyphens only)
@@ -728,9 +760,32 @@
             </label>
             <select class="form-control form-control-lg" id="busYear" name="year">
               <option value="">Select year</option>
-              {{range $year := seq 2000 2025}}
-                <option value="{{$year}}">{{$year}}</option>
-              {{end}}
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+              <option value="2023">2023</option>
+              <option value="2022">2022</option>
+              <option value="2021">2021</option>
+              <option value="2020">2020</option>
+              <option value="2019">2019</option>
+              <option value="2018">2018</option>
+              <option value="2017">2017</option>
+              <option value="2016">2016</option>
+              <option value="2015">2015</option>
+              <option value="2014">2014</option>
+              <option value="2013">2013</option>
+              <option value="2012">2012</option>
+              <option value="2011">2011</option>
+              <option value="2010">2010</option>
+              <option value="2009">2009</option>
+              <option value="2008">2008</option>
+              <option value="2007">2007</option>
+              <option value="2006">2006</option>
+              <option value="2005">2005</option>
+              <option value="2004">2004</option>
+              <option value="2003">2003</option>
+              <option value="2002">2002</option>
+              <option value="2001">2001</option>
+              <option value="2000">2000</option>
             </select>
           </div>
         </div>
@@ -876,18 +931,19 @@
   
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="{{.CSPNonce}}">
-    let currentStep = 1;
+    // Make functions globally available
+    window.currentStep = 1;
     const totalSteps = 4;
     
-    function updateProgress() {
+    window.updateProgress = function() {
       // Update progress steps
       document.querySelectorAll('.progress-step').forEach((step, index) => {
         const stepNum = index + 1;
         step.classList.remove('active', 'completed');
         
-        if (stepNum < currentStep) {
+        if (stepNum < window.currentStep) {
           step.classList.add('completed');
-        } else if (stepNum === currentStep) {
+        } else if (stepNum === window.currentStep) {
           step.classList.add('active');
         }
       });
@@ -897,12 +953,12 @@
       const nextBtn = document.getElementById('nextBtn');
       const completeBtn = document.getElementById('completeBtn');
       
-      prevBtn.style.visibility = currentStep > 1 ? 'visible' : 'hidden';
-      nextBtn.style.display = currentStep < totalSteps ? 'inline-flex' : 'none';
-      completeBtn.style.display = currentStep === totalSteps ? 'inline-flex' : 'none';
+      prevBtn.style.visibility = window.currentStep > 1 ? 'visible' : 'hidden';
+      nextBtn.style.display = window.currentStep < totalSteps ? 'inline-flex' : 'none';
+      completeBtn.style.display = window.currentStep === totalSteps ? 'inline-flex' : 'none';
     }
     
-    function showStep(step) {
+    window.showStep = function(step) {
       document.querySelectorAll('.wizard-step').forEach(s => {
         s.classList.remove('active');
       });
@@ -920,43 +976,48 @@
       
       // Update review content on last step
       if (step === 4) {
-        updateReview();
+        window.updateReview();
       }
     }
     
-    function validateStep(step) {
+    window.validateStep = function(step) {
       const stepElement = document.querySelector(`.wizard-step[data-step="${step}"]`);
       const requiredFields = stepElement.querySelectorAll('[required]');
       
+      let isValid = true;
       for (let field of requiredFields) {
-        if (!field.value.trim()) {
+        // Check if field is empty or only whitespace
+        if (!field.value || !field.value.trim()) {
           field.classList.add('is-invalid');
-          field.focus();
-          return false;
+          if (isValid) {
+            field.focus();
+            isValid = false;
+          }
+        } else {
+          field.classList.remove('is-invalid');
         }
-        field.classList.remove('is-invalid');
       }
       
-      return true;
+      return isValid;
     }
     
-    function nextStep() {
-      if (validateStep(currentStep) && currentStep < totalSteps) {
-        currentStep++;
-        showStep(currentStep);
-        updateProgress();
+    window.nextStep = function() {
+      if (window.validateStep(window.currentStep) && window.currentStep < totalSteps) {
+        window.currentStep++;
+        window.showStep(window.currentStep);
+        window.updateProgress();
       }
     }
     
-    function previousStep() {
-      if (currentStep > 1) {
-        currentStep--;
-        showStep(currentStep);
-        updateProgress();
+    window.previousStep = function() {
+      if (window.currentStep > 1) {
+        window.currentStep--;
+        window.showStep(window.currentStep);
+        window.updateProgress();
       }
     }
     
-    function updateReview() {
+    window.updateReview = function() {
       const form = document.getElementById('addBusForm');
       const formData = new FormData(form);
       
@@ -999,7 +1060,7 @@
       `;
     }
     
-    function submitBus() {
+    window.submitBus = function() {
       if (confirm('Are you sure you want to add this bus to your fleet?')) {
         document.getElementById('addBusForm').submit();
       }
@@ -1007,12 +1068,12 @@
     
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {
-      updateProgress();
+      window.updateProgress();
       
       // Add validation feedback
       document.querySelectorAll('input[required], select[required]').forEach(field => {
         field.addEventListener('blur', function() {
-          if (!this.value.trim()) {
+          if (!this.value || !this.value.trim()) {
             this.classList.add('is-invalid');
           } else {
             this.classList.remove('is-invalid');
@@ -1026,10 +1087,10 @@
           const targetStep = index + 1;
           
           // Only allow going to completed steps or the current step
-          if (targetStep < currentStep) {
-            currentStep = targetStep;
-            showStep(currentStep);
-            updateProgress();
+          if (targetStep < window.currentStep) {
+            window.currentStep = targetStep;
+            window.showStep(window.currentStep);
+            window.updateProgress();
           }
         });
       });
