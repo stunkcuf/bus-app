@@ -624,7 +624,7 @@
         }
     </style>
 </head>
-<body>
+<body data-user-role="{{.Role}}">
     <!-- Floating orbs -->
     <div class="orb orb1"></div>
     <div class="orb orb2"></div>
@@ -766,13 +766,15 @@
     <script nonce="{{.CSPNonce}}">
         // Update progress as user completes steps
         function updateProgress() {
-            const totalSteps = {{len .Steps}};
+            const totalSteps = document.querySelectorAll('.step-card').length;
             const completedSteps = document.querySelectorAll('.step-card.completed').length;
             const percentage = Math.round((completedSteps / totalSteps) * 100);
             
             const progressBar = document.querySelector('.progress-bar-fill');
-            progressBar.style.width = percentage + '%';
-            progressBar.textContent = percentage + '% Complete';
+            if (progressBar) {
+                progressBar.style.width = percentage + '%';
+                progressBar.textContent = percentage + '% Complete';
+            }
         }
         
         // Mark steps as visited when clicking action buttons
@@ -785,7 +787,8 @@
                 // Save progress to localStorage
                 const stepNumber = stepCard.querySelector('.step-number').textContent;
                 const progress = JSON.parse(localStorage.getItem('guideProgress') || '{}');
-                progress['{{.Role}}_step_' + stepNumber] = true;
+                const roleKey = 'step_' + stepNumber;
+                progress[roleKey] = true;
                 localStorage.setItem('guideProgress', JSON.stringify(progress));
             });
         });
@@ -795,7 +798,8 @@
             const progress = JSON.parse(localStorage.getItem('guideProgress') || '{}');
             document.querySelectorAll('.step-card').forEach(card => {
                 const stepNumber = card.querySelector('.step-number').textContent;
-                if (progress['{{.Role}}_step_' + stepNumber]) {
+                const roleKey = 'step_' + stepNumber;
+                if (progress[roleKey]) {
                     card.classList.add('completed');
                 }
             });
@@ -823,8 +827,10 @@
         
         // Start interactive tour
         document.getElementById('startTourBtn').addEventListener('click', function() {
-            if (window.onboardingTour) {
-                window.onboardingTour.startTour('{{.Role}}');
+            if (window.onboardingTour && window.onboardingTour.startTour) {
+                // Pass the role from data attribute or use a default
+                const role = document.body.dataset.userRole || 'user';
+                window.onboardingTour.startTour(role);
             }
         });
     </script>
