@@ -37,7 +37,7 @@
   {{if .ShowNavigation}}
   <div class="progress-navigation">
     {{if gt .CurrentStep 1}}
-      <button type="button" class="btn btn-secondary btn-lg" onclick="{{.PreviousAction}}">
+      <button type="button" class="btn btn-secondary btn-lg" data-action="custom" data-onclick="{{.PreviousAction}}">
         <i class="bi bi-arrow-left-circle" aria-hidden="true"></i>
         Previous Step
       </button>
@@ -51,12 +51,12 @@
     </div>
     
     {{if lt .CurrentStep .TotalSteps}}
-      <button type="button" class="btn btn-primary btn-lg" onclick="{{.NextAction}}">
+      <button type="button" class="btn btn-primary btn-lg" data-action="custom" data-onclick="{{.NextAction}}">
         Next Step
         <i class="bi bi-arrow-right-circle" aria-hidden="true"></i>
       </button>
     {{else}}
-      <button type="button" class="btn btn-success btn-lg" onclick="{{.CompleteAction}}">
+      <button type="button" class="btn btn-success btn-lg" data-action="custom" data-onclick="{{.CompleteAction}}">
         <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
         Complete
       </button>

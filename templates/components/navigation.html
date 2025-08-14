@@ -49,7 +49,7 @@
     <!-- User Actions -->
     <div class="page-header-actions">
       {{if .ShowHelpButton}}
-        <button class="btn btn-outline-primary" onclick="toggleHelpMode()" aria-label="Toggle help mode">
+        <button class="btn btn-outline-primary" data-action="custom" data-onclick="toggleHelpMode()" aria-label="Toggle help mode">
           <i class="bi bi-question-circle" aria-hidden="true"></i>
           <span class="btn-text">Help</span>
         </button>

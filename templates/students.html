@@ -43,6 +43,7 @@
       overflow-x: hidden;
       position: relative;
       color: white;
+      padding-top: 70px;
     }
     
     /* Enhanced animated background */
@@ -84,9 +85,11 @@
       backdrop-filter: blur(var(--glass-blur));
       -webkit-backdrop-filter: blur(var(--glass-blur));
       border-bottom: 1px solid var(--glass-border);
-      padding: 1.2rem 0;
-      position: sticky;
+      padding: 0.75rem 0;
+      position: fixed;
       top: 0;
+      left: 0;
+      right: 0;
       z-index: 1000;
       box-shadow: var(--glass-shadow);
       transition: all 0.3s ease;
@@ -97,7 +100,7 @@
     }
     
     .navbar-brand {
-      color: white !important;
+      color: white;
       font-weight: 700;
       font-size: 1.5rem;
       display: flex;
@@ -194,7 +197,7 @@
     
     .btn-primary {
       background: var(--gradient-1);
-      color: white !important;
+      color: white;
       box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
     }
     
@@ -206,42 +209,42 @@
     .btn-outline-primary {
       background: transparent;
       border: 1px solid rgba(102, 126, 234, 0.5);
-      color: #a8b9ff !important;
+      color: #a8b9ff;
     }
     
     .btn-outline-primary:hover {
       background: rgba(102, 126, 234, 0.1);
       border-color: #667eea;
-      color: #c8d4ff !important;
+      color: #c8d4ff;
     }
     
     .btn-outline-danger {
       background: transparent;
       border: 1px solid rgba(239, 68, 68, 0.5);
-      color: #ff9999 !important;
+      color: #ff9999;
     }
     
     .btn-outline-danger:hover {
       background: rgba(239, 68, 68, 0.1);
       border-color: #ef4444;
-      color: #ffb3b3 !important;
+      color: #ffb3b3;
     }
     
     .btn-secondary {
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.2);
-      color: white !important;
+      color: white;
     }
     
     .btn-secondary:hover {
       background: rgba(255, 255, 255, 0.15);
       border-color: rgba(255, 255, 255, 0.3);
-      color: white !important;
+      color: white;
     }
     
     /* Ensure badge text is visible */
     .badge {
-      color: white !important;
+      color: white;
     }
     
     /* Small buttons */
@@ -843,7 +846,56 @@
     legend {
       color: white;
     }
-  </style>
+  
+    /* CSP-compliant style replacements */
+    .opacity-90 { opacity: 0.9; }
+    .opacity-80 { opacity: 0.8; }
+    .opacity-70 { opacity: 0.7; }
+    .opacity-60 { opacity: 0.6; }
+    .opacity-50 { opacity: 0.5; }
+    
+    .text-lg { font-size: 1.1rem; }
+    .text-xl { font-size: 1.5rem; }
+    .text-md { font-size: 1.25rem; }
+    .text-sm { font-size: 0.9rem; }
+    
+    .text-muted-sm {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+    
+    .empty-icon {
+      font-size: 4rem;
+      opacity: 0.5;
+    }
+    
+    .gradient-text-2 {
+      background: var(--gradient-2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-3 {
+      background: var(--gradient-3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-4 {
+      background: var(--gradient-4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .text-blue-light { color: #4facfe; }
+    
+    .info-box-light {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+    }
+    
+    .mb-4 { margin-bottom: 1.5rem; }
+</style>
     <!-- Dark Theme Text Colors -->
     <link rel="stylesheet" href="/static/dark_theme_text.css">
 </head>
@@ -973,15 +1025,13 @@
             {{end}}
             
             <!-- Locations -->
-            {{if .Locations}}
+            {{if and .Locations (ne .Locations "[]")}}
             <div class="locations-section">
-              <h4 class="small mb-2" style="opacity: 0.8;">Locations:</h4>
-              {{range .Locations}}
+              <h4 class="small mb-2" class="opacity-80">Locations:</h4>
               <span class="location-badge">
                 <i class="bi bi-geo-alt-fill"></i>
-                {{.Type}}: {{.Address}}
+                <span class="location-text" data-locations='{{.Locations}}'>View Locations</span>
               </span>
-              {{end}}
             </div>
             {{end}}
             
@@ -997,7 +1047,7 @@
                       data-dropoff-time="{{.DropoffTime}}" 
                       data-route-id="{{.RouteID}}" 
                       data-active="{{.Active}}"
-                      data-locations='{{.Locations | json}}'>
+                      data-locations='{{.Locations}}'>
                 <i class="bi bi-pencil"></i> Edit
               </button>
               <form method="POST" action="/remove-student" class="remove-student-form" style="display: inline;">
@@ -1146,9 +1196,9 @@
                 <input type="text" id="edit_guardian" name="guardian" class="form-control" required>
               </div>
               <div class="col-md-6 mb-3">
-                <label for="edit_route_id" class="form-label required">Route</label>
-                <select id="edit_route_id" name="route_id" class="form-select" required>
-                  <option value="">Select Route</option>
+                <label for="edit_route_id" class="form-label">Route</label>
+                <select id="edit_route_id" name="route_id" class="form-select">
+                  <option value="">No Route Assigned</option>
                   {{range .Data.Routes}}
                   <option value="{{.RouteID}}">{{.RouteName}}</option>
                   {{end}}
@@ -1214,6 +1264,32 @@
   
   <script nonce="{{.CSPNonce}}">
     document.addEventListener('DOMContentLoaded', function() {
+      // CSP-compliant event listeners
+      document.querySelectorAll('[data-action]').forEach(element => {
+        element.addEventListener('click', function(e) {
+          e.preventDefault();
+          const action = this.dataset.action;
+          
+          switch(action) {
+            case 'update-status':
+              updateStatus(this.dataset.id, this.dataset.type, this.dataset.value);
+              break;
+            case 'edit-bus':
+              editBus(this.dataset.busId);
+              break;
+            case 'delete-bus':
+              deleteBus(this.dataset.busId);
+              break;
+            case 'custom':
+              // Evaluate the original onclick content (careful with this)
+              try {
+                eval(this.dataset.onclick);
+              } catch (e) { /* Error handled silently */ }
+              break;
+          }
+        });
+      });
+
       // Calculate statistics
       {{if .Data.Students}}
       const students = [
@@ -1382,9 +1458,7 @@
               container.appendChild(div);
             }
           });
-        } catch (e) {
-          console.error('Error processing locations:', e);
-        }
+        } catch (e) { /* Error handled silently */ }
         
         // Ensure at least one location input for each type
         if (document.getElementById('editPickupLocations').children.length === 0) {
@@ -1397,6 +1471,21 @@
         const modal = new bootstrap.Modal(document.getElementById('editStudentModal'));
         modal.show();
       }
+      
+      // Parse and display locations
+      document.querySelectorAll('.location-text').forEach(function(elem) {
+        try {
+          const locations = JSON.parse(elem.dataset.locations || '[]');
+          if (locations.length > 0) {
+            const addresses = locations.map(loc => loc.address || loc.Address || '').filter(a => a);
+            if (addresses.length > 0) {
+              elem.textContent = addresses.join(' → ');
+            }
+          }
+        } catch (e) {
+          // If parsing fails, just leave the default text
+        }
+      });
       
       // Animate numbers
       function animateValue(element, start, end, duration) {
@@ -1455,5 +1544,8 @@
       });
     });
   </script>
+  <!-- jQuery and Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

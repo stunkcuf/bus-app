@@ -40,8 +40,7 @@ func setupDatabase() error {
 		return err
 	}
 
-	// Run comprehensive fixes after database is initialized
-	RunComprehensiveFix()
+	// Database fixes have been applied - removed obsolete fix function
 	
 	return nil
 }

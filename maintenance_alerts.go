@@ -51,7 +51,10 @@ func getMaintenanceAlertsForBuses(busIDs []string) ([]MaintenanceAlert, error) {
 			GROUP BY bus_id
 		)
 		SELECT 
-			b.*,
+			b.bus_id, b.status, b.model, b.capacity,
+			b.oil_status, b.tire_status, b.maintenance_notes,
+			b.current_mileage, b.last_oil_change, b.last_tire_service,
+			b.updated_at, b.created_at,
 			COALESCE(bm.last_maintenance_date, '1970-01-01'::timestamp) as last_maintenance,
 			EXTRACT(DAY FROM (NOW() - COALESCE(bm.last_maintenance_date, '1970-01-01'::timestamp))) as days_since_maintenance
 		FROM buses b

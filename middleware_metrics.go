@@ -97,6 +97,13 @@ func (rw *metricsResponseWriter) Write(b []byte) (int, error) {
 	return rw.ResponseWriter.Write(b)
 }
 
+// Flush implements http.Flusher interface
+func (rw *metricsResponseWriter) Flush() {
+	if flusher, ok := rw.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
 // updateEndpointMetrics updates metrics for a specific endpoint
 func (mc *MetricsCollector) updateEndpointMetrics(endpoint string, duration time.Duration, statusCode int) {
 	mc.mu.Lock()

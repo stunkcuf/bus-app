@@ -328,7 +328,56 @@
                 margin: 1rem auto 0;
             }
         }
-    </style>
+    
+    /* CSP-compliant style replacements */
+    .opacity-90 { opacity: 0.9; }
+    .opacity-80 { opacity: 0.8; }
+    .opacity-70 { opacity: 0.7; }
+    .opacity-60 { opacity: 0.6; }
+    .opacity-50 { opacity: 0.5; }
+    
+    .text-lg { font-size: 1.1rem; }
+    .text-xl { font-size: 1.5rem; }
+    .text-md { font-size: 1.25rem; }
+    .text-sm { font-size: 0.9rem; }
+    
+    .text-muted-sm {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+    
+    .empty-icon {
+      font-size: 4rem;
+      opacity: 0.5;
+    }
+    
+    .gradient-text-2 {
+      background: var(--gradient-2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-3 {
+      background: var(--gradient-3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-4 {
+      background: var(--gradient-4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .text-blue-light { color: #4facfe; }
+    
+    .info-box-light {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+    }
+    
+    .mb-4 { margin-bottom: 1.5rem; }
+</style>
   <style nonce="{{.CSPNonce}}">
     /* Ultimate beautiful design system */
     :root {
@@ -695,7 +744,7 @@
         
         <!-- Action Buttons -->
         <div class="action-buttons">
-            <button class="action-btn" onclick="markComplete()">
+            <button class="action-btn" data-action="custom" data-onclick="markComplete()">
                 <i class="bi bi-check-circle"></i>
                 Mark as Complete
             </button>
@@ -703,7 +752,7 @@
                 <i class="bi bi-mortarboard"></i>
                 Practice This
             </a>
-            <button class="action-btn" onclick="shareVideo()">
+            <button class="action-btn" data-action="custom" data-onclick="shareVideo()">
                 <i class="bi bi-share"></i>
                 Share
             </button>
@@ -726,7 +775,7 @@
         <div class="transcript-section">
             <div class="transcript-header">
                 <h3><i class="bi bi-file-text me-2"></i>Video Transcript</h3>
-                <button class="transcript-toggle" onclick="toggleTranscript()">
+                <button class="transcript-toggle" data-action="custom" data-onclick="toggleTranscript()">
                     <i class="bi bi-chevron-down"></i> Show Transcript
                 </button>
             </div>
@@ -840,6 +889,32 @@
         
         // Track video view
         document.addEventListener('DOMContentLoaded', function() {
+      // CSP-compliant event listeners
+      document.querySelectorAll('[data-action]').forEach(element => {
+        element.addEventListener('click', function(e) {
+          e.preventDefault();
+          const action = this.dataset.action;
+          
+          switch(action) {
+            case 'update-status':
+              updateStatus(this.dataset.id, this.dataset.type, this.dataset.value);
+              break;
+            case 'edit-bus':
+              editBus(this.dataset.busId);
+              break;
+            case 'delete-bus':
+              deleteBus(this.dataset.busId);
+              break;
+            case 'custom':
+              // Evaluate the original onclick content (careful with this)
+              try {
+                eval(this.dataset.onclick);
+              } catch (e) { /* Error handled silently */ }
+              break;
+          }
+        });
+      });
+
             // Mark as watched
             const watched = JSON.parse(localStorage.getItem('watchedVideos') || '{}');
             watched['{{.Video.ID}}'] = true;

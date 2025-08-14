@@ -532,17 +532,39 @@ func processExcelFile(w http.ResponseWriter, r *http.Request, file multipart.Fil
 		return
 	}
 
-	rows, err := f.GetRows(sheets[0])
+	// Use Rows() for streaming instead of GetRows() to avoid loading all data into memory
+	rows, err := f.Rows(sheets[0])
 	if err != nil {
 		http.Error(w, "Failed to read Excel data", http.StatusInternalServerError)
 		return
 	}
+	defer rows.Close()
 
-	// Process rows
+	// Process rows with batch inserts for better performance
 	var imported, failed int
-	for i, row := range rows {
-		if i == 0 {
+	rowNum := 0
+	batchSize := 100
+	var batch [][]interface{}
+
+	// Start transaction for better performance
+	tx, err := db.Begin()
+	if err != nil {
+		http.Error(w, "Failed to start transaction", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	for rows.Next() {
+		rowNum++
+		if rowNum == 1 {
 			// Skip header row
+			continue
+		}
+
+		row, err := rows.Columns()
+		if err != nil {
+			log.Printf("Error reading row %d: %v", rowNum, err)
+			failed++
 			continue
 		}
 
@@ -562,18 +584,47 @@ func processExcelFile(w http.ResponseWriter, r *http.Request, file multipart.Fil
 		startMile, _ := strconv.Atoi(startMileage)
 		endMile, _ := strconv.Atoi(endMileage)
 
-		// Insert into database
-		_, err := db.Exec(`
+		// Add to batch
+		batch = append(batch, []interface{}{date, busNum, startMile, endMile, time.Now()})
+
+		// Execute batch when it reaches the size limit
+		if len(batch) >= batchSize {
+			for _, data := range batch {
+				_, err := tx.Exec(`
+					INSERT INTO mileage_records (date, bus_number, start_mileage, end_mileage, created_at)
+					VALUES ($1, $2, $3, $4, $5)
+				`, data...)
+
+				if err != nil {
+					log.Printf("Failed to import row: %v", err)
+					failed++
+				} else {
+					imported++
+				}
+			}
+			batch = batch[:0] // Clear batch
+		}
+	}
+
+	// Process remaining batch
+	for _, data := range batch {
+		_, err := tx.Exec(`
 			INSERT INTO mileage_records (date, bus_number, start_mileage, end_mileage, created_at)
 			VALUES ($1, $2, $3, $4, $5)
-		`, date, busNum, startMile, endMile, time.Now())
+		`, data...)
 
 		if err != nil {
-			log.Printf("Failed to import row %d: %v", i+1, err)
+			log.Printf("Failed to import row: %v", err)
 			failed++
 		} else {
 			imported++
 		}
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		http.Error(w, "Failed to commit transaction", http.StatusInternalServerError)
+		return
 	}
 
 	// Return result
@@ -583,7 +634,7 @@ func processExcelFile(w http.ResponseWriter, r *http.Request, file multipart.Fil
 			"Success":  true,
 			"Imported": imported,
 			"Failed":   failed,
-			"Total":    len(rows) - 1,
+			"Total":    imported + failed,
 			"CSRFToken": getSessionCSRFToken(r),
 		},
 		"CSRFToken": getSessionCSRFToken(r),

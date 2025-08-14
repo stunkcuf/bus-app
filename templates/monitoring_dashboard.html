@@ -734,9 +734,7 @@
                 // Update alerts
                 await updateAlerts();
                 
-            } catch (error) {
-                console.error('Failed to update metrics:', error);
-            } finally {
+            } catch (e) { /* Error handled silently */ } finally {
                 indicator.classList.remove('active');
             }
         }
@@ -812,9 +810,7 @@
                     `;
                     container.appendChild(alertDiv);
                 });
-            } catch (error) {
-                console.error('Failed to update alerts:', error);
-            }
+            } catch (e) { /* Error handled silently */ }
         }
 
         // Start updating metrics

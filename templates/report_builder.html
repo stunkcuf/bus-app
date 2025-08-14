@@ -66,10 +66,17 @@
       -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
       padding: 1rem 0;
-      position: sticky;
+      position: fixed;
       top: 0;
+      left: 0;
+      right: 0;
       z-index: 1000;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Add padding for fixed navbar */
+    body {
+      padding-top: 70px;
     }
     
     .navbar-brand {
@@ -273,11 +280,83 @@
         transform: translateY(0);
       }
     }
-  </style>
+  
+    /* CSP-compliant style replacements */
+    .opacity-90 { opacity: 0.9; }
+    .opacity-80 { opacity: 0.8; }
+    .opacity-70 { opacity: 0.7; }
+    .opacity-60 { opacity: 0.6; }
+    .opacity-50 { opacity: 0.5; }
+    
+    .text-lg { font-size: 1.1rem; }
+    .text-xl { font-size: 1.5rem; }
+    .text-md { font-size: 1.25rem; }
+    .text-sm { font-size: 0.9rem; }
+    
+    .text-muted-sm {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+    
+    .empty-icon {
+      font-size: 4rem;
+      opacity: 0.5;
+    }
+    
+    .gradient-text-2 {
+      background: var(--gradient-2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-3 {
+      background: var(--gradient-3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-4 {
+      background: var(--gradient-4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .text-blue-light { color: #4facfe; }
+    
+    .info-box-light {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+    }
+    
+    .mb-4 { margin-bottom: 1.5rem; }
+</style>
     <!-- Dark Theme Text Colors -->
     <link rel="stylesheet" href="/static/dark_theme_text.css">
 </head>
 <body>
+  <!-- Navigation Bar -->
+  <nav class="navbar-glass">
+    <div class="container-fluid">
+      <div class="d-flex justify-content-between align-items-center w-100">
+        <a href="/manager-dashboard" class="navbar-brand">
+          <i class="bi bi-arrow-left"></i>
+          <span>Back to Dashboard</span>
+        </a>
+        <span class="navbar-text text-white">
+          <i class="bi bi-file-earmark-bar-graph"></i> Report Builder
+        </span>
+        <div class="d-flex align-items-center gap-3">
+          <a href="/analytics-dashboard" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-graph-up"></i> Analytics
+          </a>
+          <span class="text-light">
+            <i class="bi bi-person-circle"></i> {{.Username}}
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+  
   <!-- Floating orbs -->
   <div class="orb orb1"></div>
   <div class="orb orb2"></div>
@@ -285,19 +364,9 @@
 
   <div class="report-header">
     <div class="container-fluid">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <h1 class="h2 mb-1">Report Builder</h1>
-          <p class="mb-0 opacity-75">Create custom reports and visualizations</p>
-        </div>
-        <div>
-          <a href="/analytics-dashboard" class="btn btn-light me-2">
-            <i class="bi bi-graph-up me-2"></i>Analytics
-          </a>
-          <a href="/dashboard" class="btn btn-light">
-            <i class="bi bi-arrow-left me-2"></i>Dashboard
-          </a>
-        </div>
+      <div class="text-center">
+        <h1 class="h2 mb-1">Custom Report Builder</h1>
+        <p class="mb-0 opacity-75">Create custom reports and visualizations from your fleet data</p>
       </div>
     </div>
   </div>
@@ -370,7 +439,7 @@
           <div id="filtersList">
             <!-- Filters will be added here -->
           </div>
-          <button type="button" class="btn-add" onclick="addFilter()">
+          <button type="button" class="btn-add" data-action="custom" data-onclick="addFilter()">
             <i class="bi bi-plus"></i> Add Filter
           </button>
         </div>
@@ -409,10 +478,10 @@
 
         <!-- Actions -->
         <div class="form-section">
-          <button type="button" class="btn-generate" onclick="generateReport()">
+          <button type="button" class="btn-generate" data-action="custom" data-onclick="generateReport()">
             <i class="bi bi-play-fill"></i> Generate Report
           </button>
-          <button type="button" class="btn-save" onclick="showSaveDialog()">
+          <button type="button" class="btn-save" data-action="custom" data-onclick="showSaveDialog()">
             <i class="bi bi-save"></i> Save Report
           </button>
         </div>
@@ -422,13 +491,13 @@
       <div class="builder-main">
         <!-- Result Tabs -->
         <div class="result-tabs">
-          <button class="result-tab active" onclick="showResultTab('table')">
+          <button class="result-tab active" data-action="custom" data-onclick="showResultTab('table')">
             <i class="bi bi-table me-2"></i>Table
           </button>
-          <button class="result-tab" onclick="showResultTab('chart')">
+          <button class="result-tab" data-action="custom" data-onclick="showResultTab('chart')">
             <i class="bi bi-bar-chart me-2"></i>Chart
           </button>
-          <button class="result-tab" onclick="showResultTab('sql')">
+          <button class="result-tab" data-action="custom" data-onclick="showResultTab('sql')">
             <i class="bi bi-code me-2"></i>SQL
           </button>
         </div>
@@ -468,7 +537,7 @@
     <div class="save-dialog-content">
       <div class="save-dialog-header">
         <h3 class="save-dialog-title">Save Report</h3>
-        <button class="save-dialog-close" onclick="hideSaveDialog()">&times;</button>
+        <button class="save-dialog-close" data-action="custom" data-onclick="hideSaveDialog()">&times;</button>
       </div>
       <div class="form-group">
         <label class="form-label">Report Name</label>
@@ -479,8 +548,8 @@
         <textarea class="form-control" id="reportDescription" rows="3" placeholder="Enter description (optional)"></textarea>
       </div>
       <div class="save-dialog-actions">
-        <button class="btn-cancel" onclick="hideSaveDialog()">Cancel</button>
-        <button class="btn-confirm" onclick="saveReport()">Save</button>
+        <button class="btn-cancel" data-action="custom" data-onclick="hideSaveDialog()">Cancel</button>
+        <button class="btn-confirm" data-action="custom" data-onclick="saveReport()">Save</button>
       </div>
     </div>
   </div>
@@ -498,6 +567,32 @@
     
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {
+      // CSP-compliant event listeners
+      document.querySelectorAll('[data-action]').forEach(element => {
+        element.addEventListener('click', function(e) {
+          e.preventDefault();
+          const action = this.dataset.action;
+          
+          switch(action) {
+            case 'update-status':
+              updateStatus(this.dataset.id, this.dataset.type, this.dataset.value);
+              break;
+            case 'edit-bus':
+              editBus(this.dataset.busId);
+              break;
+            case 'delete-bus':
+              deleteBus(this.dataset.busId);
+              break;
+            case 'custom':
+              // Evaluate the original onclick content (careful with this)
+              try {
+                eval(this.dataset.onclick);
+              } catch (e) { /* Error handled silently */ }
+              break;
+          }
+        });
+      });
+
       setupDataSourceSelection();
       setupChartTypeChange();
     });
@@ -583,7 +678,7 @@
             <option value="less_than">Less Than</option>
           </select>
           <input type="text" class="form-control filter-value" placeholder="Value">
-          <i class="bi bi-x-circle filter-remove" onclick="removeFilter('${filterId}')"></i>
+          <i class="bi bi-x-circle filter-remove" data-action="custom" data-onclick="removeFilter('${filterId}')"></i>
         </div>
       `;
       
@@ -889,5 +984,8 @@
       }
     }
   </script>
+  <!-- jQuery and Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -332,14 +332,12 @@ class SessionTimeoutWarning {
             const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
             const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
             
-            if (hours < 1) {
+            // Only show timer when less than 30 minutes remaining
+            if (minutes < 30 && hours === 0) {
                 timer.classList.add('show', 'warning');
                 timer.querySelector('span').textContent = `${minutes}m remaining`;
-            } else if (hours < 2) {
-                timer.classList.add('show');
-                timer.classList.remove('warning');
-                timer.querySelector('span').textContent = `${hours}h ${minutes}m`;
             } else {
+                // Hide the timer when more than 30 minutes remaining
                 timer.classList.remove('show', 'warning');
             }
         }

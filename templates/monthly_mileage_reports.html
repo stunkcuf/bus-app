@@ -19,6 +19,11 @@
     <link rel="stylesheet" href="/static/autocomplete.css">
     
   <style nonce="{{.CSPNonce}}">
+    /* Add spacing for fixed navbar */
+    body {
+      padding-top: 70px;
+    }
+    
     /* Ultimate beautiful design system */
     :root {
       --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -75,8 +80,10 @@
       -webkit-backdrop-filter: blur(20px); */ /* Disabled to fix blur issue */
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
       padding: 1rem 0;
-      position: sticky;
+      position: fixed;
       top: 0;
+      left: 0;
+      right: 0;
       z-index: 1000;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
@@ -326,9 +333,12 @@
     <div class="container-fluid">
       <div class="d-flex justify-content-between align-items-center w-100">
         <a href="/manager-dashboard" class="navbar-brand">
-          <i class="bi bi-speedometer2"></i>
-          <span>Fleet Management System</span>
+          <i class="bi bi-arrow-left"></i>
+          <span>Back to Dashboard</span>
         </a>
+        <span class="navbar-text text-white">
+          <i class="bi bi-calendar3"></i> Monthly Mileage Reports
+        </span>
         <div class="d-flex align-items-center gap-3">
           <span class="text-white opacity-75">
             <i class="bi bi-person-circle me-2"></i>{{.User.Username}}
@@ -455,7 +465,7 @@
 
       {{if .Reports}}
       <div class="table-responsive">
-        <table class="table text-white">
+        <table class="table text-white" id="mileageTable" data-enhanced="true" data-name="mileage_reports">
                     <thead>
                         <tr>
                             <th>Period</th>
@@ -552,5 +562,20 @@
       {{end}}
     </div>
   </div>
+  <!-- jQuery and Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Table Enhancement Scripts -->
+  <script src="/static/table_enhancements.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (document.getElementById('mileageTable')) {
+        makeTableSortable('mileageTable');
+        addTableFilter('mileageTable', 'Search mileage reports...');
+        addExportButtons('mileageTable', 'mileage_reports');
+      }
+    });
+  </script>
 </body>
 </html>

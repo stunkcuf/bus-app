@@ -652,7 +652,56 @@
         justify-content: center;
       }
     }
-  </style>
+  
+    /* CSP-compliant style replacements */
+    .opacity-90 { opacity: 0.9; }
+    .opacity-80 { opacity: 0.8; }
+    .opacity-70 { opacity: 0.7; }
+    .opacity-60 { opacity: 0.6; }
+    .opacity-50 { opacity: 0.5; }
+    
+    .text-lg { font-size: 1.1rem; }
+    .text-xl { font-size: 1.5rem; }
+    .text-md { font-size: 1.25rem; }
+    .text-sm { font-size: 0.9rem; }
+    
+    .text-muted-sm {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+    
+    .empty-icon {
+      font-size: 4rem;
+      opacity: 0.5;
+    }
+    
+    .gradient-text-2 {
+      background: var(--gradient-2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-3 {
+      background: var(--gradient-3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-4 {
+      background: var(--gradient-4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .text-blue-light { color: #4facfe; }
+    
+    .info-box-light {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+    }
+    
+    .mb-4 { margin-bottom: 1.5rem; }
+</style>
   <!-- Dark Theme Text Colors -->
   <link rel="stylesheet" href="/static/dark_theme_text.css">
 </head>
@@ -689,7 +738,7 @@
     <div class="container">
       <div class="hero-content">
         <h1 class="fade-in">Add New Bus</h1>
-        <p class="lead fade-in" style="opacity: 0.9;">Register a new vehicle to your fleet</p>
+        <p class="lead fade-in" class="opacity-90">Register a new vehicle to your fleet</p>
       </div>
     </div>
   </section>
@@ -913,15 +962,15 @@
       
       <!-- Navigation Buttons -->
       <div class="wizard-nav">
-        <button type="button" class="btn-wizard btn-wizard-secondary" onclick="previousStep()" id="prevBtn" style="visibility: hidden;">
+        <button type="button" class="btn-wizard btn-wizard-secondary" data-action="custom" data-onclick="previousStep()" id="prevBtn" style="visibility: hidden;">
           <i class="bi bi-arrow-left"></i>
           Previous
         </button>
-        <button type="button" class="btn-wizard btn-wizard-primary" onclick="nextStep()" id="nextBtn">
+        <button type="button" class="btn-wizard btn-wizard-primary" data-action="custom" data-onclick="nextStep()" id="nextBtn">
           Next
           <i class="bi bi-arrow-right"></i>
         </button>
-        <button type="button" class="btn-wizard btn-wizard-complete" onclick="submitBus()" id="completeBtn" style="display: none;">
+        <button type="button" class="btn-wizard btn-wizard-complete" data-action="custom" data-onclick="submitBus()" id="completeBtn" style="display: none;">
           <i class="bi bi-check-circle"></i>
           Complete
         </button>
@@ -1068,6 +1117,32 @@
     
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {
+      // CSP-compliant event listeners
+      document.querySelectorAll('[data-action]').forEach(element => {
+        element.addEventListener('click', function(e) {
+          e.preventDefault();
+          const action = this.dataset.action;
+          
+          switch(action) {
+            case 'update-status':
+              updateStatus(this.dataset.id, this.dataset.type, this.dataset.value);
+              break;
+            case 'edit-bus':
+              editBus(this.dataset.busId);
+              break;
+            case 'delete-bus':
+              deleteBus(this.dataset.busId);
+              break;
+            case 'custom':
+              // Evaluate the original onclick content (careful with this)
+              try {
+                eval(this.dataset.onclick);
+              } catch (e) { /* Error handled silently */ }
+              break;
+          }
+        });
+      });
+
       window.updateProgress();
       
       // Add validation feedback

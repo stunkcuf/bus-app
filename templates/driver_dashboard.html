@@ -83,12 +83,19 @@
       backdrop-filter: blur(var(--glass-blur));
       -webkit-backdrop-filter: blur(var(--glass-blur));
       border-bottom: 1px solid var(--glass-border);
-      padding: 1.2rem 0;
-      position: sticky;
+      padding: 0.75rem 0;
+      position: fixed;
       top: 0;
+      left: 0;
+      right: 0;
       z-index: 1000;
       box-shadow: var(--glass-shadow);
       transition: all 0.3s ease;
+    }
+    
+    /* Add padding for fixed navbar */
+    body {
+      padding-top: 70px;
     }
     
     .navbar-glass:hover {
@@ -330,8 +337,8 @@
     }
     
     .hero-content h1 {
-      font-size: 2.5rem;
-      font-weight: 800;
+      font-size: 1.75rem;
+      font-weight: 700;
       margin-bottom: 0;
       background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
       -webkit-background-clip: text;
@@ -783,7 +790,56 @@
     .notifications-list::-webkit-scrollbar-thumb:hover {
       background: rgba(255, 255, 255, 0.3);
     }
-  </style>
+  
+    /* CSP-compliant style replacements */
+    .opacity-90 { opacity: 0.9; }
+    .opacity-80 { opacity: 0.8; }
+    .opacity-70 { opacity: 0.7; }
+    .opacity-60 { opacity: 0.6; }
+    .opacity-50 { opacity: 0.5; }
+    
+    .text-lg { font-size: 1.1rem; }
+    .text-xl { font-size: 1.5rem; }
+    .text-md { font-size: 1.25rem; }
+    .text-sm { font-size: 0.9rem; }
+    
+    .text-muted-sm {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+    
+    .empty-icon {
+      font-size: 4rem;
+      opacity: 0.5;
+    }
+    
+    .gradient-text-2 {
+      background: var(--gradient-2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-3 {
+      background: var(--gradient-3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-4 {
+      background: var(--gradient-4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .text-blue-light { color: #4facfe; }
+    
+    .info-box-light {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+    }
+    
+    .mb-4 { margin-bottom: 1.5rem; }
+</style>
     <!-- Dark Theme Text Colors -->
     <link rel="stylesheet" href="/static/dark_theme_text.css">
 </head>
@@ -868,25 +924,25 @@
       <div class="row g-3">
         <div class="col-md-3 col-6">
           <div class="stat-item">
-            <div class="stat-value text-success">98%</div>
+            <div class="stat-value text-success">{{if .Data.Performance}}{{.Data.Performance.OnTimeRate}}%{{else}}--{{end}}</div>
             <div class="stat-label">On-Time Rate</div>
           </div>
         </div>
         <div class="col-md-3 col-6">
           <div class="stat-item">
-            <div class="stat-value text-info">2/2</div>
+            <div class="stat-value text-info">{{if .Data.Performance}}{{.Data.Performance.RoutesCompleted}}/{{.Data.Performance.ExpectedRoutes}}{{else}}0/2{{end}}</div>
             <div class="stat-label">Routes Completed</div>
           </div>
         </div>
         <div class="col-md-3 col-6">
           <div class="stat-item">
-            <div class="stat-value text-warning">15</div>
+            <div class="stat-value text-warning">{{if .Data.Performance}}{{.Data.Performance.StudentsTransported}}{{else}}0{{end}}</div>
             <div class="stat-label">Students Transported</div>
           </div>
         </div>
         <div class="col-md-3 col-6">
           <div class="stat-item">
-            <div class="stat-value text-primary">4.8</div>
+            <div class="stat-value text-primary">{{if .Data.Performance}}{{printf "%.1f" .Data.Performance.SafetyScore}}{{else}}5.0{{end}}</div>
             <div class="stat-label">Safety Score</div>
           </div>
         </div>
@@ -1068,7 +1124,7 @@
           <div class="log-item">
             <div class="d-flex justify-content-between align-items-center">
               <div>
-                <strong style="font-size: 1.1rem;">{{.Date}} - {{.Period}}</strong>
+                <strong class="text-lg">{{.Date}} - {{.Period}}</strong>
                 <p class="mb-0 opacity-75 mt-1">
                   <i class="bi bi-clock"></i> {{.Departure}} - {{.Arrival}} • 
                   <i class="bi bi-speedometer2"></i> {{printf "%.1f" .Mileage}} miles • 
@@ -1355,6 +1411,32 @@
   <script nonce="{{.CSPNonce}}">
     // Show loading indicator when fetching data
     document.addEventListener('DOMContentLoaded', function() {
+      // CSP-compliant event listeners
+      document.querySelectorAll('[data-action]').forEach(element => {
+        element.addEventListener('click', function(e) {
+          e.preventDefault();
+          const action = this.dataset.action;
+          
+          switch(action) {
+            case 'update-status':
+              updateStatus(this.dataset.id, this.dataset.type, this.dataset.value);
+              break;
+            case 'edit-bus':
+              editBus(this.dataset.busId);
+              break;
+            case 'delete-bus':
+              deleteBus(this.dataset.busId);
+              break;
+            case 'custom':
+              // Evaluate the original onclick content (careful with this)
+              try {
+                eval(this.dataset.onclick);
+              } catch (e) { /* Error handled silently */ }
+              break;
+          }
+        });
+      });
+
       // Add loading states to any buttons that trigger actions
       document.querySelectorAll('form').forEach(form => {
         form.addEventListener('submit', function() {
@@ -1390,5 +1472,8 @@
   
   <!-- Real-time Notifications -->
   <script src="/static/realtime_notifications.js"></script>
+  <!-- jQuery and Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

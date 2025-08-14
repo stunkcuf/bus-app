@@ -52,8 +52,18 @@
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      padding: 1rem 0;
-      margin-bottom: 2rem;
+      padding: 0.75rem 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      margin-bottom: 0;
+    }
+    
+    /* Add padding for fixed navbar */
+    body {
+      padding-top: 70px;
     }
     
     .report-card {
@@ -111,6 +121,55 @@
       66% { transform: translate(20px, -10px) rotate(240deg); }
     }
     
+
+    /* CSP-compliant style replacements */
+    .opacity-90 { opacity: 0.9; }
+    .opacity-80 { opacity: 0.8; }
+    .opacity-70 { opacity: 0.7; }
+    .opacity-60 { opacity: 0.6; }
+    .opacity-50 { opacity: 0.5; }
+    
+    .text-lg { font-size: 1.1rem; }
+    .text-xl { font-size: 1.5rem; }
+    .text-md { font-size: 1.25rem; }
+    .text-sm { font-size: 0.9rem; }
+    
+    .text-muted-sm {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+    
+    .empty-icon {
+      font-size: 4rem;
+      opacity: 0.5;
+    }
+    
+    .gradient-text-2 {
+      background: var(--gradient-2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-3 {
+      background: var(--gradient-3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-4 {
+      background: var(--gradient-4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .text-blue-light { color: #4facfe; }
+    
+    .info-box-light {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+    }
+    
+    .mb-4 { margin-bottom: 1.5rem; }
 </style>
 </head>
 <body>
@@ -160,7 +219,7 @@
       <!-- Service Records -->
       <div class="col-md-4">
         <a href="/service-records" class="report-card">
-          <i class="bi bi-clipboard-check" style="color: #4facfe;"></i>
+          <i class="bi bi-clipboard-check" class="text-blue-light"></i>
           <h4>Service Records</h4>
           <p>View detailed service history</p>
         </a>
@@ -207,7 +266,7 @@
           <p class="mb-0 opacity-75">Active Drivers</p>
         </div>
         <div class="col-md-3">
-          <h2 style="color: #4facfe;">{{.TotalRoutes}}</h2>
+          <h2 class="text-blue-light">{{.TotalRoutes}}</h2>
           <p class="mb-0 opacity-75">Total Routes</p>
         </div>
         <div class="col-md-3">

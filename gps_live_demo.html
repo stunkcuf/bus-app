@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live GPS Demo</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: white;
+        }
+        #map {
+            height: 500px;
+            width: 100%;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        #status {
+            padding: 15px;
+            background: #16213e;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #667eea;
+        }
+        .connected {
+            color: #4ade80;
+        }
+        .disconnected {
+            color: #f87171;
+        }
+        #bus-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .bus-card {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #667eea;
+        }
+        .bus-card.active {
+            border-color: #4ade80;
+            background: #1a3a2e;
+        }
+        .bus-id {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .bus-info {
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #94a3b8;
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🚌 Live GPS Tracking Demo</h1>
+    
+    <div id="status" class="disconnected">
+        <strong>Status:</strong> <span id="status-text">Disconnected</span>
+        <br><small id="last-update">No updates yet</small>
+    </div>
+    
+    <div id="map"></div>
+    
+    <h2>Active Buses</h2>
+    <div id="bus-list"></div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([40.7128, -74.0060], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Store bus data and markers
+        const buses = {};
+        const markers = {};
+        
+        // Custom bus icon
+        const busIcon = L.divIcon({
+            html: '<div style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold; white-space: nowrap;">🚌</div>',
+            iconSize: [40, 30],
+            className: 'bus-marker'
+        });
+        
+        function updateBusDisplay(data) {
+            const busId = data.vehicle_id;
+            
+            // Update or create bus data
+            buses[busId] = {
+                ...data,
+                lastUpdate: new Date()
+            };
+            
+            // Update or create marker on map
+            if (markers[busId]) {
+                // Update existing marker
+                markers[busId].setLatLng([data.latitude, data.longitude]);
+                markers[busId].setPopupContent(`
+                    <strong>Bus ${busId}</strong><br>
+                    Driver: ${data.driver_id}<br>
+                    Route: ${data.route_id}<br>
+                    Speed: ${data.speed?.toFixed(1)} mph<br>
+                    Status: ${data.status}
+                `);
+            } else {
+                // Create new marker
+                const marker = L.marker([data.latitude, data.longitude], { icon: busIcon })
+                    .addTo(map)
+                    .bindPopup(`
+                        <strong>Bus ${busId}</strong><br>
+                        Driver: ${data.driver_id}<br>
+                        Route: ${data.route_id}<br>
+                        Speed: ${data.speed?.toFixed(1)} mph<br>
+                        Status: ${data.status}
+                    `);
+                markers[busId] = marker;
+            }
+            
+            // Update bus list display
+            updateBusList();
+            
+            // Update last update time
+            document.getElementById('last-update').textContent = 
+                `Last update: ${new Date().toLocaleTimeString()}`;
+        }
+        
+        function updateBusList() {
+            const listEl = document.getElementById('bus-list');
+            listEl.innerHTML = '';
+            
+            Object.entries(buses).forEach(([id, bus]) => {
+                const card = document.createElement('div');
+                card.className = bus.status === 'active' ? 'bus-card active' : 'bus-card';
+                card.innerHTML = `
+                    <div class="bus-id">Bus ${id}</div>
+                    <div class="bus-info">
+                        📍 ${bus.latitude?.toFixed(4)}, ${bus.longitude?.toFixed(4)}<br>
+                        🚗 ${bus.speed?.toFixed(1)} mph<br>
+                        👤 ${bus.driver_id}<br>
+                        📋 ${bus.route_id}<br>
+                        ⚡ ${bus.status}
+                    </div>
+                `;
+                card.onclick = () => {
+                    map.setView([bus.latitude, bus.longitude], 15);
+                    markers[id]?.openPopup();
+                };
+                listEl.appendChild(card);
+            });
+        }
+        
+        // Connect to SSE
+        function connect() {
+            console.log('Connecting to GPS stream...');
+            
+            const eventSource = new EventSource('/api/gps/stream', {
+                withCredentials: true
+            });
+            
+            eventSource.onopen = function() {
+                console.log('Connected!');
+                document.getElementById('status').className = 'connected pulse';
+                document.getElementById('status-text').textContent = 'Connected - Receiving Live Updates';
+            };
+            
+            eventSource.addEventListener('connected', function(e) {
+                console.log('Connection confirmed:', e.data);
+            });
+            
+            eventSource.addEventListener('gps_update', function(e) {
+                console.log('GPS Update:', e.data);
+                try {
+                    const data = JSON.parse(e.data);
+                    updateBusDisplay(data);
+                } catch (err) {
+                    console.error('Parse error:', err);
+                }
+            });
+            
+            eventSource.onerror = function(e) {
+                console.error('Connection error:', e);
+                document.getElementById('status').className = 'disconnected';
+                document.getElementById('status-text').textContent = 'Disconnected - Retrying...';
+                
+                // Don't close, let it auto-reconnect
+                if (e.readyState === EventSource.CLOSED) {
+                    setTimeout(connect, 5000);
+                }
+            };
+            
+            return eventSource;
+        }
+        
+        // Start connection when page loads
+        window.addEventListener('load', () => {
+            setTimeout(connect, 500);
+        });
+    </script>
+</body>
+</html>

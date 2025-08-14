@@ -136,8 +136,8 @@ func (ss *ScorecardService) gatherDriverStats(driver string, startDate, endDate 
 	err := ss.db.QueryRow(`
 		SELECT COUNT(*) as total_trips,
 		       COUNT(CASE WHEN departure_time IS NOT NULL AND arrival_time IS NOT NULL THEN 1 END) as on_time_trips,
-		       COALESCE(SUM(ending_mileage - beginning_mileage), 0) as total_mileage
-		FROM trip_logs
+		       COALESCE(SUM(end_mileage - start_mileage), 0) as total_mileage
+		FROM driver_logs
 		WHERE driver = $1 AND date BETWEEN $2 AND $3
 	`, driver, startDate, endDate).Scan(&stats.TotalTrips, &stats.OnTimeTrips, &stats.TotalMileage)
 	if err != nil {
@@ -158,8 +158,8 @@ func (ss *ScorecardService) gatherDriverStats(driver string, startDate, endDate 
 	var totalAttendance, accurateAttendance int
 	err = ss.db.QueryRow(`
 		SELECT COUNT(*) as total,
-		       COUNT(CASE WHEN attendance_json IS NOT NULL THEN 1 END) as recorded
-		FROM trip_logs
+		       COUNT(CASE WHEN attendance IS NOT NULL THEN 1 END) as recorded
+		FROM driver_logs
 		WHERE driver = $1 AND date BETWEEN $2 AND $3
 	`, driver, startDate, endDate).Scan(&totalAttendance, &accurateAttendance)
 	if err == nil && totalAttendance > 0 {

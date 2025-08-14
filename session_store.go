@@ -46,8 +46,8 @@ func NewMemorySessionStore() *MemorySessionStore {
 }
 
 func (m *MemorySessionStore) Get(token string) (*Session, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	
 	session, exists := m.sessions[token]
 	if !exists {
@@ -57,6 +57,11 @@ func (m *MemorySessionStore) Get(token string) (*Session, error) {
 	if time.Now().After(session.ExpiresAt) {
 		return nil, fmt.Errorf("session expired")
 	}
+	
+	// Update last access time and extend expiration
+	session.LastAccess = time.Now()
+	// Extend expiration on activity (sliding window)
+	session.ExpiresAt = time.Now().Add(24 * time.Hour)
 	
 	return session, nil
 }
@@ -166,8 +171,8 @@ func (f *FileSessionStore) save() error {
 }
 
 func (f *FileSessionStore) Get(token string) (*Session, error) {
-	f.mu.RLock()
-	defer f.mu.RUnlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	
 	session, exists := f.sessions[token]
 	if !exists {
@@ -178,8 +183,13 @@ func (f *FileSessionStore) Get(token string) (*Session, error) {
 		return nil, fmt.Errorf("session expired")
 	}
 	
-	// Update last access time
+	// Update last access time and extend expiration
 	session.LastAccess = time.Now()
+	// Extend expiration on activity (sliding window)
+	session.ExpiresAt = time.Now().Add(24 * time.Hour)
+	
+	// Save the updated session
+	f.save()
 	
 	return session, nil
 }

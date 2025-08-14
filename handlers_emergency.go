@@ -405,8 +405,10 @@ func assignResponderHandler(w http.ResponseWriter, r *http.Request) {
 
 func getActiveEmergencies() ([]EmergencyAlert, error) {
 	query := `
-		SELECT id, alert_id, type, severity, status, location, title, description,
-		       reported_by, vehicle_id, route_id, created_at, updated_at
+		SELECT id, alert_id, type, severity, status, 
+		       COALESCE(location_address, '') as location, title, description,
+		       COALESCE(reporter_id, 0) as reported_by, vehicle_id, route_id, created_at, 
+		       COALESCE(acknowledged_at, created_at) as updated_at
 		FROM emergency_alerts
 		WHERE status IN ('active', 'acknowledged')
 		ORDER BY 
@@ -428,18 +430,18 @@ func getActiveEmergencies() ([]EmergencyAlert, error) {
 	var alerts []EmergencyAlert
 	for rows.Next() {
 		var alert EmergencyAlert
-		var locationJSON []byte
+		var location string
 		var vehicleID, routeID sql.NullString
 		
 		err := rows.Scan(&alert.ID, &alert.AlertID, &alert.Type, &alert.Severity,
-			&alert.Status, &locationJSON, &alert.Title, &alert.Description,
+			&alert.Status, &location, &alert.Title, &alert.Description,
 			&alert.ReportedBy, &vehicleID, &routeID, &alert.CreatedAt, &alert.UpdatedAt)
 		
 		if err != nil {
 			continue
 		}
 		
-		json.Unmarshal(locationJSON, &alert.Location)
+		alert.Location.Address = location
 		
 		if vehicleID.Valid {
 			alert.VehicleID = vehicleID.String
@@ -465,8 +467,10 @@ func getActiveEmergencies() ([]EmergencyAlert, error) {
 
 func getEmergencyHistory(days int) ([]EmergencyAlert, error) {
 	query := `
-		SELECT id, alert_id, type, severity, status, location, title, description,
-		       reported_by, vehicle_id, route_id, created_at, updated_at, resolved_at
+		SELECT id, alert_id, type, severity, status, 
+		       COALESCE(location_address, '') as location, title, description,
+		       COALESCE(reporter_id, 0) as reported_by, vehicle_id, route_id, created_at, 
+		       COALESCE(acknowledged_at, created_at) as updated_at, resolved_at
 		FROM emergency_alerts
 		WHERE created_at > CURRENT_TIMESTAMP - INTERVAL '%d days'
 		ORDER BY created_at DESC
@@ -482,12 +486,12 @@ func getEmergencyHistory(days int) ([]EmergencyAlert, error) {
 	var alerts []EmergencyAlert
 	for rows.Next() {
 		var alert EmergencyAlert
-		var locationJSON []byte
+		var location string
 		var vehicleID, routeID sql.NullString
 		var resolvedAt sql.NullTime
 		
 		err := rows.Scan(&alert.ID, &alert.AlertID, &alert.Type, &alert.Severity,
-			&alert.Status, &locationJSON, &alert.Title, &alert.Description,
+			&alert.Status, &location, &alert.Title, &alert.Description,
 			&alert.ReportedBy, &vehicleID, &routeID, &alert.CreatedAt, 
 			&alert.UpdatedAt, &resolvedAt)
 		
@@ -495,7 +499,7 @@ func getEmergencyHistory(days int) ([]EmergencyAlert, error) {
 			continue
 		}
 		
-		json.Unmarshal(locationJSON, &alert.Location)
+		alert.Location.Address = location
 		
 		if vehicleID.Valid {
 			alert.VehicleID = vehicleID.String
@@ -622,20 +626,22 @@ func updateEmergencyStatus(alertID, status string, userID int, username, descrip
 
 func getEmergencyByID(alertID string) (*EmergencyAlert, error) {
 	var alert EmergencyAlert
-	var locationJSON []byte
+	var location string
 	var vehicleID, routeID sql.NullString
 	var resolvedAt sql.NullTime
 	
 	query := `
-		SELECT id, alert_id, type, severity, status, location, title, description,
-		       reported_by, vehicle_id, route_id, created_at, updated_at, resolved_at
+		SELECT id, alert_id, type, severity, status, 
+		       COALESCE(location_address, '') as location, title, description,
+		       COALESCE(reporter_id, 0) as reported_by, vehicle_id, route_id, created_at, 
+		       COALESCE(acknowledged_at, created_at) as updated_at, resolved_at
 		FROM emergency_alerts
 		WHERE alert_id = $1
 	`
 	
 	err := db.QueryRow(query, alertID).Scan(
 		&alert.ID, &alert.AlertID, &alert.Type, &alert.Severity,
-		&alert.Status, &locationJSON, &alert.Title, &alert.Description,
+		&alert.Status, &location, &alert.Title, &alert.Description,
 		&alert.ReportedBy, &vehicleID, &routeID, &alert.CreatedAt,
 		&alert.UpdatedAt, &resolvedAt,
 	)
@@ -644,7 +650,7 @@ func getEmergencyByID(alertID string) (*EmergencyAlert, error) {
 		return nil, err
 	}
 	
-	json.Unmarshal(locationJSON, &alert.Location)
+	alert.Location.Address = location
 	
 	if vehicleID.Valid {
 		alert.VehicleID = vehicleID.String
@@ -787,8 +793,10 @@ func assignResponder(alertID string, responder *EmergencyResponder) error {
 
 func getEmergencyAlerts(status string, limit int) ([]EmergencyAlert, error) {
 	query := `
-		SELECT id, alert_id, type, severity, status, location, title, description,
-		       reported_by, vehicle_id, route_id, created_at, updated_at
+		SELECT id, alert_id, type, severity, status, 
+		       COALESCE(location_address, '') as location, title, description,
+		       COALESCE(reporter_id, 0) as reported_by, vehicle_id, route_id, created_at, 
+		       COALESCE(acknowledged_at, created_at) as updated_at
 		FROM emergency_alerts
 	`
 	
@@ -807,18 +815,18 @@ func getEmergencyAlerts(status string, limit int) ([]EmergencyAlert, error) {
 	var alerts []EmergencyAlert
 	for rows.Next() {
 		var alert EmergencyAlert
-		var locationJSON []byte
+		var location string
 		var vehicleID, routeID sql.NullString
 		
 		err := rows.Scan(&alert.ID, &alert.AlertID, &alert.Type, &alert.Severity,
-			&alert.Status, &locationJSON, &alert.Title, &alert.Description,
+			&alert.Status, &location, &alert.Title, &alert.Description,
 			&alert.ReportedBy, &vehicleID, &routeID, &alert.CreatedAt, &alert.UpdatedAt)
 		
 		if err != nil {
 			continue
 		}
 		
-		json.Unmarshal(locationJSON, &alert.Location)
+		alert.Location.Address = location
 		
 		if vehicleID.Valid {
 			alert.VehicleID = vehicleID.String

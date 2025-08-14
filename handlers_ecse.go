@@ -188,7 +188,9 @@ func loadECSEServices() ([]ECSEService, error) {
 
 	var services []ECSEService
 	err := db.Select(&services, `
-		SELECT * FROM ecse_services 
+		SELECT id, student_id, service_type, frequency, duration, 
+		       provider, start_date, end_date, goals, created_at
+		FROM ecse_services 
 		WHERE end_date IS NULL OR end_date > CURRENT_DATE
 		ORDER BY student_id, service_type
 	`)
@@ -220,7 +222,9 @@ func getECSEStudentServices(studentID string) ([]ECSEService, error) {
 
 	var services []ECSEService
 	err := db.Select(&services, `
-		SELECT * FROM ecse_services 
+		SELECT id, student_id, service_type, frequency, duration, 
+		       provider, start_date, end_date, goals, created_at
+		FROM ecse_services 
 		WHERE student_id = $1 
 		ORDER BY start_date DESC
 	`, studentID)

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Public GPS Demo</title>
+    <style>
+        body {
+            margin: 20px;
+            font-family: monospace;
+            background: #000;
+            color: #0f0;
+        }
+        #log {
+            white-space: pre;
+            overflow-y: auto;
+            height: 500px;
+            border: 1px solid #0f0;
+            padding: 10px;
+            background: #111;
+        }
+        .update {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #0f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>GPS Public Test (No Auth)</h1>
+    <div id="status">Connecting...</div>
+    <div id="log"></div>
+    
+    <script>
+        const log = document.getElementById('log');
+        const status = document.getElementById('status');
+        
+        function addLog(msg) {
+            const time = new Date().toISOString().split('T')[1].substring(0, 12);
+            log.textContent = `[${time}] ${msg}\n` + log.textContent;
+            if (log.textContent.split('\n').length > 100) {
+                log.textContent = log.textContent.split('\n').slice(0, 100).join('\n');
+            }
+        }
+        
+        // Simulate GPS data for demo
+        function simulateGPS() {
+            const buses = ['101', '102', '103', '104', '105'];
+            let count = 0;
+            
+            status.textContent = 'Simulating GPS Data (Backend not accessible without auth)';
+            addLog('Starting GPS simulation...');
+            
+            setInterval(() => {
+                count++;
+                const busId = buses[Math.floor(Math.random() * buses.length)];
+                const data = {
+                    vehicle_id: busId,
+                    latitude: 40.7128 + (Math.random() - 0.5) * 0.01,
+                    longitude: -74.0060 + (Math.random() - 0.5) * 0.01,
+                    speed: 15 + Math.random() * 20,
+                    heading: Math.random() * 360,
+                    timestamp: new Date().toISOString(),
+                    driver_id: `Driver ${busId}`,
+                    route_id: `Route ${String.fromCharCode(65 + parseInt(busId) % 3)}`,
+                    status: 'active'
+                };
+                
+                addLog(`GPS UPDATE #${count}: Bus ${data.vehicle_id} @ ${data.latitude.toFixed(4)}, ${data.longitude.toFixed(4)} | ${data.speed.toFixed(1)} mph`);
+            }, 2000);
+        }
+        
+        // Try to connect to real SSE first
+        try {
+            const eventSource = new EventSource('/api/gps/stream', {
+                withCredentials: true
+            });
+            
+            eventSource.onopen = () => {
+                status.textContent = 'Connected to Live GPS Stream!';
+                addLog('Connected to backend SSE');
+            };
+            
+            eventSource.addEventListener('gps_update', (e) => {
+                const data = JSON.parse(e.data);
+                addLog(`LIVE GPS: Bus ${data.vehicle_id} @ ${data.latitude.toFixed(4)}, ${data.longitude.toFixed(4)} | ${data.speed.toFixed(1)} mph`);
+            });
+            
+            eventSource.onerror = () => {
+                addLog('SSE connection failed - switching to simulation');
+                eventSource.close();
+                simulateGPS();
+            };
+            
+        } catch (error) {
+            addLog('Cannot connect to SSE - starting simulation');
+            simulateGPS();
+        }
+    </script>
+</body>
+</html>

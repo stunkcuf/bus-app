@@ -272,14 +272,15 @@ func processMaintenanceAlerts() {
 // Check for upcoming maintenance
 func checkUpcomingMaintenance() {
 	rows, err := db.Query(`
-		SELECT DISTINCT v.vehicle_id, v.model, v.current_mileage,
+		SELECT DISTINCT v.vehicle_id, v.model, 
+			COALESCE(v.current_mileage, 0) as current_mileage,
 			MAX(mr.mileage) as last_service_mileage,
 			MAX(mr.service_date) as last_service_date
 		FROM vehicles v
 		LEFT JOIN maintenance_records mr ON v.vehicle_id = mr.vehicle_id
 		WHERE v.status = 'active'
 		GROUP BY v.vehicle_id, v.model, v.current_mileage
-		HAVING v.current_mileage - COALESCE(MAX(mr.mileage), 0) > 4500
+		HAVING COALESCE(v.current_mileage, 0) - COALESCE(MAX(mr.mileage), 0) > 4500
 	`)
 	if err != nil {
 		log.Printf("Error checking upcoming maintenance: %v", err)
@@ -307,7 +308,8 @@ func checkUpcomingMaintenance() {
 // Check for overdue maintenance
 func checkOverdueMaintenance() {
 	rows, err := db.Query(`
-		SELECT vehicle_id, model, current_mileage
+		SELECT vehicle_id, model, 
+			COALESCE(current_mileage, 0) as current_mileage
 		FROM vehicles
 		WHERE status = 'active'
 		AND vehicle_id NOT IN (

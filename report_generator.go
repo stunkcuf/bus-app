@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"database/sql"
 	"fmt"
 	"strconv"
 	"strings"
@@ -26,18 +27,18 @@ func NewReportGenerator(db *sqlx.DB) *ReportGenerator {
 func (rg *ReportGenerator) GenerateMaintenanceReport(vehicleID int, format string) ([]byte, string, error) {
 	// Fetch maintenance records
 	query := `
-		SELECT m.*, v.bus_number, v.year, v.make, v.model 
+		SELECT m.*, v.vehicle_id as bus_number, v.year, 'Vehicle' as make, v.model 
 		FROM maintenance_records m
-		JOIN vehicles v ON m.vehicle_id = v.id
+		JOIN vehicles v ON m.vehicle_id = v.vehicle_id
 		WHERE m.vehicle_id = $1
-		ORDER BY m.date DESC`
+		ORDER BY m.service_date DESC`
 	
 	var records []struct {
 		MaintenanceRecord
-		BusNumber string `db:"bus_number"`
-		Year      int    `db:"year"`
-		Make      string `db:"make"`
-		Model     string `db:"model"`
+		BusNumber string         `db:"bus_number"`
+		Year      sql.NullString `db:"year"`
+		Make      string         `db:"make"`
+		Model     sql.NullString `db:"model"`
 	}
 	
 	err := rg.db.Select(&records, query, vehicleID)
@@ -49,7 +50,15 @@ func (rg *ReportGenerator) GenerateMaintenanceReport(vehicleID int, format strin
 		return nil, "", fmt.Errorf("no maintenance records found for vehicle ID %d", vehicleID)
 	}
 	
-	vehicleInfo := fmt.Sprintf("%s - %d %s %s", records[0].BusNumber, records[0].Year, records[0].Make, records[0].Model)
+	yearStr := ""
+	if records[0].Year.Valid {
+		yearStr = records[0].Year.String
+	}
+	modelStr := ""
+	if records[0].Model.Valid {
+		modelStr = records[0].Model.String
+	}
+	vehicleInfo := fmt.Sprintf("%s - %s %s %s", records[0].BusNumber, yearStr, records[0].Make, modelStr)
 	
 	switch format {
 	case "pdf":
@@ -66,10 +75,10 @@ func (rg *ReportGenerator) GenerateMaintenanceReport(vehicleID int, format strin
 // generateMaintenancePDF creates a PDF report of maintenance records
 func (rg *ReportGenerator) generateMaintenancePDF(records []struct {
 	MaintenanceRecord
-	BusNumber string `db:"bus_number"`
-	Year      int    `db:"year"`
-	Make      string `db:"make"`
-	Model     string `db:"model"`
+	BusNumber string         `db:"bus_number"`
+	Year      sql.NullString `db:"year"`
+	Make      string         `db:"make"`
+	Model     sql.NullString `db:"model"`
 }, vehicleInfo string) ([]byte, error) {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetAutoPageBreak(true, 15)
@@ -233,10 +242,10 @@ func (rg *ReportGenerator) generateMaintenancePDF(records []struct {
 // generateMaintenanceExcel creates an Excel report of maintenance records
 func (rg *ReportGenerator) generateMaintenanceExcel(records []struct {
 	MaintenanceRecord
-	BusNumber string `db:"bus_number"`
-	Year      int    `db:"year"`
-	Make      string `db:"make"`
-	Model     string `db:"model"`
+	BusNumber string         `db:"bus_number"`
+	Year      sql.NullString `db:"year"`
+	Make      string         `db:"make"`
+	Model     sql.NullString `db:"model"`
 }, vehicleInfo string) ([]byte, error) {
 	f := excelize.NewFile()
 	sheet := "Maintenance History"

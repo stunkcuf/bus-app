@@ -288,7 +288,7 @@ type DriverLog struct {
 	Period       string    `json:"period" db:"period"`
 	Departure    string    `json:"departure_time" db:"departure_time"`
 	Arrival      string    `json:"arrival_time" db:"arrival_time"`
-	BeginMileage float64   `json:"begin_mileage" db:"begin_mileage"`
+	BeginMileage float64   `json:"begin_mileage" db:"start_mileage"`
 	EndMileage   float64   `json:"end_mileage" db:"end_mileage"`
 	Attendance   string    `json:"attendance" db:"attendance"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`

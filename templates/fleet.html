@@ -33,6 +33,7 @@
       min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       overflow-x: hidden;
+      padding-top: 70px;
     }
     
     /* Animated background */
@@ -63,15 +64,17 @@
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 1rem 0;
-      position: sticky;
+      padding: 0.75rem 0;
+      position: fixed;
       top: 0;
+      left: 0;
+      right: 0;
       z-index: 1000;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
     
     .navbar-brand {
-      color: white !important;
+      color: white;
       font-weight: 700;
       font-size: 1.5rem;
       display: flex;
@@ -582,19 +585,33 @@
     td select.form-select,
     td select.form-control {
       position: relative;
-      z-index: 999 !important;
+      z-index: 999;
     }
     
     /* When dropdown is focused/opened */
     .maintenance-status select:focus,
     td select.form-select:focus,
     td select.form-control:focus {
-      z-index: 1000 !important;
+      z-index: 1000;
     }
     
     /* Add some margin to prevent overlap */
     .fleet-table td {
       padding-bottom: 10px;
+    }
+    
+    /* Inline style replacements */
+    .hero-subtitle {
+      opacity: 0.9;
+    }
+    
+    .bus-id-large {
+      font-size: 1.1rem;
+    }
+    
+    .empty-icon {
+      font-size: 4rem;
+      opacity: 0.5;
     }
   </style>
     <!-- Dark Theme Text Colors -->
@@ -633,7 +650,7 @@
     <div class="container">
       <div class="hero-content">
         <h1 class="fade-in">Fleet Command Center</h1>
-        <p class="lead fade-in" style="opacity: 0.9;">Monitor and manage your entire bus fleet</p>
+        <p class="lead fade-in hero-subtitle">Monitor and manage your entire bus fleet</p>
       </div>
     </div>
   </section>
@@ -681,7 +698,7 @@
       
       {{if .Buses}}
       <div class="table-responsive">
-        <table class="fleet-table">
+        <table class="fleet-table" id="fleetTable" data-enhanced="true" data-name="fleet_buses">
           <thead>
             <tr>
               <th>Bus ID</th>
@@ -697,7 +714,7 @@
             {{range .Buses}}
             <tr>
               <td>
-                <strong style="font-size: 1.1rem;">{{.BusID}}</strong>
+                <strong class="bus-id-large">{{.BusID}}</strong>
               </td>
               <td>{{.GetModel}}</td>
               <td>
@@ -728,7 +745,7 @@
               </td>
               <td>
                 <div class="btn-group-neon">
-                  <button class="btn-table" onclick="editBus('{{.BusID}}')">
+                  <button class="btn-table edit-bus-btn" data-bus-id="{{.BusID}}">
                     <i class="bi bi-pencil"></i> Edit
                   </button>
                   <a href="/bus-maintenance/{{.BusID}}" class="btn-table">
@@ -743,7 +760,7 @@
       </div>
       {{else}}
       <div class="text-center py-5">
-        <i class="bi bi-bus-front" style="font-size: 4rem; opacity: 0.5;"></i>
+        <i class="bi bi-bus-front empty-icon"></i>
         <h3 class="mt-3">No Buses in Fleet</h3>
         <p class="opacity-75">Add your first bus to get started</p>
       </div>
@@ -824,6 +841,14 @@
     }
     
     document.addEventListener('DOMContentLoaded', function() {
+      // Add event listeners for edit buttons
+      document.querySelectorAll('.edit-bus-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const busId = this.dataset.busId;
+          editBus(busId);
+        });
+      });
+      
       // Animate stat values
       document.querySelectorAll('.stat-value').forEach(el => {
         const value = parseInt(el.textContent);
@@ -843,6 +868,19 @@
           row.style.setProperty('--mouse-y', `${y}px`);
         });
       });
+    });
+  </script>
+  
+  <!-- Table Enhancement Scripts -->
+  <script src="/static/table_enhancements.js"></script>
+  <script>
+    // Initialize enhanced table features
+    document.addEventListener('DOMContentLoaded', function() {
+      if (document.getElementById('fleetTable')) {
+        makeTableSortable('fleetTable');
+        addTableFilter('fleetTable', 'Search buses...');
+        addExportButtons('fleetTable', 'fleet_buses');
+      }
     });
   </script>
 </body>

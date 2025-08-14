@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Assign Routes</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        button { margin: 5px; padding: 10px; }
+        .result { margin-top: 10px; padding: 10px; background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>Testing Assign Routes Features</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Edit Button Functionality</h2>
+        <button onclick="testEditButton()">Test Edit Button</button>
+        <div id="edit-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Multi-Route Assignment</h2>
+        <button onclick="testMultiRoute()">Test Multi-Route Assignment</button>
+        <div id="multi-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Assignment Wizard</h2>
+        <button onclick="testWizard()">Test Assignment Wizard</button>
+        <div id="wizard-result" class="result"></div>
+    </div>
+
+    <script>
+        async function testEditButton() {
+            const result = document.getElementById('edit-result');
+            result.innerHTML = 'Testing edit button...<br>';
+            
+            try {
+                // Fetch assign routes page
+                const response = await fetch('/assign-routes');
+                const html = await response.text();
+                
+                // Check for edit buttons
+                const editButtons = html.match(/js-edit-route/g);
+                result.innerHTML += `Found ${editButtons ? editButtons.length : 0} edit buttons<br>`;
+                
+                // Check for modal
+                const hasModal = html.includes('editRouteModal');
+                result.innerHTML += `Modal exists: ${hasModal}<br>`;
+                
+                // Check for JavaScript file
+                const hasJS = html.includes('fix_assign_routes.js');
+                result.innerHTML += `JavaScript file loaded: ${hasJS}<br>`;
+                
+                result.innerHTML += '<strong>Edit button test complete</strong>';
+            } catch (error) {
+                result.innerHTML += `Error: ${error.message}`;
+            }
+        }
+        
+        async function testMultiRoute() {
+            const result = document.getElementById('multi-result');
+            result.innerHTML = 'Testing multi-route assignment...<br>';
+            
+            try {
+                // Test assigning multiple routes
+                const formData = new FormData();
+                formData.append('driver', 'test');
+                formData.append('bus_id', '7');
+                formData.append('route_ids[]', 'RT002');
+                formData.append('route_ids[]', 'RT004');
+                
+                const response = await fetch('/multi-route-assign', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                result.innerHTML += `Assignment response: ${response.status}<br>`;
+                
+                if (response.redirected) {
+                    result.innerHTML += `Redirected to: ${response.url}<br>`;
+                }
+                
+                // Check current assignments
+                const checkResponse = await fetch('/api/driver-assignments?driver=test');
+                if (checkResponse.ok) {
+                    const assignments = await checkResponse.json();
+                    result.innerHTML += `Current assignments: ${JSON.stringify(assignments)}<br>`;
+                }
+                
+                result.innerHTML += '<strong>Multi-route test complete</strong>';
+            } catch (error) {
+                result.innerHTML += `Error: ${error.message}`;
+            }
+        }
+        
+        async function testWizard() {
+            const result = document.getElementById('wizard-result');
+            result.innerHTML = 'Testing assignment wizard...<br>';
+            
+            try {
+                const response = await fetch('/route-assignment-wizard');
+                result.innerHTML += `Wizard page status: ${response.status}<br>`;
+                
+                if (response.ok) {
+                    const html = await response.text();
+                    const hasWizardSteps = html.includes('wizard') || html.includes('step');
+                    result.innerHTML += `Has wizard interface: ${hasWizardSteps}<br>`;
+                }
+                
+                result.innerHTML += '<strong>Wizard test complete</strong>';
+            } catch (error) {
+                result.innerHTML += `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

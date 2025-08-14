@@ -23,10 +23,11 @@ func editBusHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Load bus data
 	var bus Bus
+	log.Printf("Loading bus with ID: %s", busID)
 	err := db.QueryRow(`
-		SELECT bus_id, COALESCE(model, ''), COALESCE(capacity, 0), status, 
-			   COALESCE(current_mileage, 0), COALESCE(last_oil_change_miles, 0), 
-			   COALESCE(last_tire_change_miles, 0), created_at
+		SELECT bus_id, model, capacity, status, 
+			   current_mileage, last_oil_change, 
+			   last_tire_service, created_at
 		FROM buses 
 		WHERE bus_id = $1
 	`, busID).Scan(&bus.BusID, &bus.Model, &bus.Capacity, &bus.Status,
@@ -35,13 +36,16 @@ func editBusHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
+			log.Printf("Bus not found: %s", busID)
 			http.Error(w, "Bus not found", http.StatusNotFound)
 			return
 		}
-		log.Printf("Error loading bus: %v", err)
+		log.Printf("Error loading bus %s: %v", busID, err)
+		log.Printf("Error type: %T", err)
 		http.Error(w, "Failed to load bus", http.StatusInternalServerError)
 		return
 	}
+	log.Printf("Successfully loaded bus: %s", busID)
 
 	// Handle POST request to update bus
 	if r.Method == http.MethodPost {
@@ -106,8 +110,8 @@ func editBusHandler(w http.ResponseWriter, r *http.Request) {
 				capacity = $2, 
 				status = $3,
 				current_mileage = $4,
-				last_oil_change_miles = $5,
-				last_tire_change_miles = $6,
+				last_oil_change = $5,
+				last_tire_service = $6,
 				updated_at = NOW()
 			WHERE bus_id = $7
 		`, model, capacityInt, status, currentMileageInt, lastOilChangeInt, lastTireChangeInt, busID)

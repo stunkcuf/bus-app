@@ -44,6 +44,7 @@
       min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       overflow-x: hidden;
+      padding-top: 70px;
     }
     
     /* Animated background */
@@ -74,9 +75,11 @@
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 1rem 0;
-      position: sticky;
+      padding: 0.75rem 0;
+      position: fixed;
       top: 0;
+      left: 0;
+      right: 0;
       z-index: 1000;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
@@ -280,73 +283,130 @@
   <div class="orb orb2"></div>
   <div class="orb orb3"></div>
 
-    <div class="header">
-        <h1>
-            📋 Service Records
-        </h1>
-    </div>
+    <!-- Glass Navigation Bar -->
+    <nav class="navbar-glass">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center w-100">
+                <h1 class="navbar-brand mb-0">
+                    <i class="bi bi-clipboard-check"></i> Service Records
+                </h1>
+                <div class="d-flex gap-3">
+                    <a href="/manager-dashboard" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a href="/fleet" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-truck"></i> Fleet
+                    </a>
+                    <a href="/maintenance-records" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-wrench"></i> Maintenance
+                    </a>
+                    {{if eq .User.Role "manager"}}
+                    <a href="/assign-routes" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-map"></i> Routes
+                    </a>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+    </nav>
 
-    <div class="nav">
-        <a href="/manager-dashboard">Dashboard</a>
-        <a href="/fleet">Fleet</a>
-        <a href="/maintenance-records">Maintenance Records</a>
-        <a href="/service-records" style="border-bottom-color: #667eea;">Service Records</a>
-        {{if eq .User.Role "manager"}}
-        <a href="/assign-routes">Routes</a>
-        {{end}}
-    </div>
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-content">
+            <h1>
+                <i class="bi bi-clipboard-check"></i>
+                Service Management
+            </h1>
+            <p class="hero-subtitle">Track and manage all vehicle service records</p>
+        </div>
+    </section>
 
-    <div class="container">
-        <div class="notice">
-            <h4>About Service Records</h4>
-            <p>This data was imported from spreadsheets with unstructured columns. The system attempts to interpret and display the information meaningfully, but some data may appear in generic field formats.</p>
+    <div class="container-fluid py-4">
+        <!-- Info Notice -->
+        <div class="glass-card mb-4">
+            <div class="alert alert-info mb-0" style="background: rgba(79, 172, 254, 0.1); border: 1px solid rgba(79, 172, 254, 0.3); color: white;">
+                <h5 class="alert-heading"><i class="bi bi-info-circle"></i> About Service Records</h5>
+                <p class="mb-0">This data was imported from spreadsheets with unstructured columns. The system attempts to interpret and display the information meaningfully, but some data may appear in generic field formats.</p>
+            </div>
         </div>
 
-        <!-- Filters -->
-        <div class="filters">
-            <h3>Filter Service Records</h3>
+        <!-- Filters Glass Card -->
+        <div class="glass-card mb-4">
+            <h3 class="mb-4" style="color: white;"><i class="bi bi-funnel" style="color: #667eea;"></i> Filter Service Records</h3>
             <form method="GET" action="/service-records">
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <label for="vehicle_filter">Vehicle Search:</label>
-                        <input type="text" name="vehicle_filter" id="vehicle_filter" value="{{.SelectedVehicleFilter}}" placeholder="Vehicle info, number, or make">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="vehicle_filter" class="form-label text-white">Vehicle Search:</label>
+                        <input type="text" class="form-control" name="vehicle_filter" id="vehicle_filter" value="{{.SelectedVehicleFilter}}" placeholder="Vehicle info, number, or make">
                     </div>
 
-                    <div class="filter-group">
-                        <label for="start_date">Start Date:</label>
-                        <input type="date" name="start_date" id="start_date" value="{{.SelectedStartDate}}">
+                    <div class="col-md-3">
+                        <label for="start_date" class="form-label text-white">Start Date:</label>
+                        <input type="date" class="form-control" name="start_date" id="start_date" value="{{.SelectedStartDate}}">
                     </div>
 
-                    <div class="filter-group">
-                        <label for="end_date">End Date:</label>
-                        <input type="date" name="end_date" id="end_date" value="{{.SelectedEndDate}}">
+                    <div class="col-md-3">
+                        <label for="end_date" class="form-label text-white">End Date:</label>
+                        <input type="date" class="form-control" name="end_date" id="end_date" value="{{.SelectedEndDate}}">
                     </div>
 
-                    <div class="filter-actions">
-                        <button type="submit" class="btn btn-primary">Apply Filters</button>
-                        <a href="/service-records" class="btn btn-secondary">Clear</a>
+                    <div class="col-md-2 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-primary flex-fill">
+                            <i class="bi bi-search"></i> Apply
+                        </button>
+                        <a href="/service-records" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </a>
                     </div>
                 </div>
             </form>
         </div>
 
-        <!-- Summary Cards -->
-        <div class="summary-cards">
-            <div class="summary-card">
-                <h3>{{.TotalRecords}}</h3>
-                <p>Total Records</p>
+        <!-- Summary Metric Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <i class="bi bi-file-text"></i>
+                    </div>
+                    <div class="metric-content">
+                        <h3>{{.TotalRecords}}</h3>
+                        <p>Total Records</p>
+                    </div>
+                </div>
             </div>
-            <div class="summary-card">
-                <h3>{{.RecordsWithData}}</h3>
-                <p>With Data</p>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: var(--gradient-4);">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div class="metric-content">
+                        <h3>{{.RecordsWithData}}</h3>
+                        <p>With Data</p>
+                    </div>
+                </div>
             </div>
-            <div class="summary-card">
-                <h3>{{.UniqueVehicles}}</h3>
-                <p>Unique Vehicles</p>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: var(--gradient-3);">
+                        <i class="bi bi-truck"></i>
+                    </div>
+                    <div class="metric-content">
+                        <h3>{{.UniqueVehicles}}</h3>
+                        <p>Unique Vehicles</p>
+                    </div>
+                </div>
             </div>
-            <div class="summary-card">
-                <h3>{{.RecordsWithMaintDate}}</h3>
-                <p>With Maintenance Date</p>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: var(--gradient-5);">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+                    <div class="metric-content">
+                        <h3>{{.RecordsWithMaintDate}}</h3>
+                        <p>With Maint. Date</p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -464,5 +524,8 @@
             {{end}}
         </div>
     </div>
+  <!-- jQuery and Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

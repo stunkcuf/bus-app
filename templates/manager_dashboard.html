@@ -23,6 +23,7 @@
       color: white;
       position: relative;
       overflow-x: hidden;
+      padding-top: 70px;
     }
     
     /* Background decoration */
@@ -59,7 +60,7 @@
     }
     
     .navbar-brand {
-      color: white !important;
+      color: white;
       font-size: 1.5rem;
       font-weight: 700;
       text-decoration: none;
@@ -332,14 +333,6 @@
       box-sizing: border-box;
     }
     
-    body {
-      background: #1a1a2e;
-      background: linear-gradient(135deg, #16213e 0%, #0f3460 50%, #533483 100%);
-      min-height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      overflow-x: hidden;
-      color: white;
-    }
     
     /* Animated background */
     body::before {
@@ -369,15 +362,17 @@
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 1rem 0;
-      position: sticky;
+      padding: 0.75rem 0;
+      position: fixed;
       top: 0;
+      left: 0;
+      right: 0;
       z-index: 1000;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
     
     .navbar-brand {
-      color: white !important;
+      color: white;
       font-weight: 700;
       font-size: 1.5rem;
       display: flex;
@@ -546,11 +541,11 @@
     
     /* Text colors for dark theme */
     h1, h2, h3, h4, h5, h6, p, span, label, a, td, th, li {
-      color: white !important;
+      color: white;
     }
     
     .text-muted {
-      color: rgba(255, 255, 255, 0.7) !important;
+      color: rgba(255, 255, 255, 0.7);
     }
     
     /* Card styling */
@@ -617,6 +612,16 @@
         <i class="bi bi-speedometer2"></i>
         <span>Manager Dashboard</span>
       </a>
+      
+      <!-- Global Search -->
+      <form class="d-flex mx-auto" style="max-width: 400px;" action="/search" method="GET">
+        <div class="input-group">
+          <input type="text" name="q" class="form-control" placeholder="Search students, buses, routes..." style="border-radius: 20px 0 0 20px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white;">
+          <button class="btn btn-outline-light" type="submit" style="border-radius: 0 20px 20px 0; border: 1px solid rgba(255,255,255,0.3);">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+      </form>
       <div class="d-flex align-items-center gap-3">
         <a href="/getting-started" class="btn btn-outline-light btn-sm">
           <i class="bi bi-rocket-takeoff"></i> Getting Started
@@ -672,6 +677,23 @@
       </div>
     </div>
     
+    <!-- GPS Tracking Control -->
+    <div class="gps-control-section mb-4 fade-in">
+      <div class="d-flex align-items-center justify-content-between p-3" style="background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 15px;">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-geo-alt-fill me-3" style="font-size: 1.5rem; color: #10b981;"></i>
+          <div>
+            <h5 class="mb-0">GPS Tracking</h5>
+            <small class="text-muted">Enable real-time vehicle tracking</small>
+          </div>
+        </div>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="gpsToggle" style="width: 3em; height: 1.5em;">
+          <label class="form-check-label" for="gpsToggle" id="gpsStatus">Loading...</label>
+        </div>
+      </div>
+    </div>
+
     <!-- Quick Actions -->
     <h2 class="section-title fade-in">Quick Actions</h2>
     <div class="actions-grid">
@@ -762,20 +784,118 @@
         </div>
       </div>
       
-      <div class="activity-item">
-        <div class="activity-icon">
-          <i class="bi bi-person-plus text-info"></i>
-        </div>
-        <div class="activity-content">
-          <div class="activity-title">New driver registered</div>
-          <div class="activity-time">Jane Smith joined the fleet - 2 hours ago</div>
-        </div>
-      </div>
     </div>
   </div>
   
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/static/app.js"></script>
+  
+  <!-- GPS Tracking Control Script -->
+  <script>
+    // Check GPS status on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      const gpsToggle = document.getElementById('gpsToggle');
+      const gpsStatus = document.getElementById('gpsStatus');
+      
+      // Load current GPS status
+      fetch('/api/gps/status')
+        .then(response => response.json())
+        .then(data => {
+          gpsToggle.checked = data.enabled;
+          gpsStatus.textContent = data.enabled ? 'Enabled' : 'Disabled';
+          gpsStatus.style.color = data.enabled ? '#10b981' : '#6b7280';
+          
+          // If GPS is enabled, connect to SSE
+          if (data.enabled) {
+            connectGPSTracking();
+          }
+        })
+        .catch(error => {
+          gpsStatus.textContent = 'Error';
+          gpsStatus.style.color = '#ef4444';
+        });
+      
+      // Handle toggle changes
+      gpsToggle.addEventListener('change', function() {
+        const enabled = this.checked;
+        gpsStatus.textContent = 'Updating...';
+        
+        fetch('/api/gps/toggle', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ enabled: enabled })
+        })
+        .then(response => response.json())
+        .then(data => {
+          gpsStatus.textContent = enabled ? 'Enabled' : 'Disabled';
+          gpsStatus.style.color = enabled ? '#10b981' : '#6b7280';
+          
+          if (enabled) {
+            connectGPSTracking();
+            showNotification('GPS tracking enabled', 'success');
+          } else {
+            disconnectGPSTracking();
+            showNotification('GPS tracking disabled', 'info');
+          }
+        })
+        .catch(error => {
+          gpsToggle.checked = !enabled; // Revert toggle
+          gpsStatus.textContent = 'Error';
+          gpsStatus.style.color = '#ef4444';
+          showNotification('Failed to update GPS setting', 'error');
+        });
+      });
+    });
+    
+    let gpsEventSource = null;
+    
+    function connectGPSTracking() {
+      if (gpsEventSource) {
+        gpsEventSource.close();
+      }
+      
+      gpsEventSource = new EventSource('/api/gps/stream');
+      
+      gpsEventSource.addEventListener('connected', function(event) {
+        console.log('GPS tracking connected:', event.data);
+      });
+      
+      gpsEventSource.addEventListener('gps_update', function(event) {
+        const update = JSON.parse(event.data);
+        console.log('GPS update received:', update);
+        // Handle GPS updates here (update map, show notifications, etc.)
+      });
+      
+      gpsEventSource.addEventListener('heartbeat', function(event) {
+        console.log('GPS heartbeat:', event.data);
+      });
+      
+      gpsEventSource.onerror = function(error) {
+        if (gpsEventSource.readyState === EventSource.CLOSED) {
+          setTimeout(connectGPSTracking, 5000); // Reconnect after 5 seconds
+        }
+      };
+    }
+    
+    function disconnectGPSTracking() {
+      if (gpsEventSource) {
+        gpsEventSource.close();
+        gpsEventSource = null;
+        console.log('GPS tracking disconnected');
+      }
+    }
+    
+    function showNotification(message, type) {
+      // Use existing notification system if available
+      if (window.showToast) {
+        window.showToast(message, type);
+      } else {
+        console.log(`[${type}] ${message}`);
+      }
+    }
+  </script>
   
   <!-- Include Loading Indicators System -->
   <script src="/static/loading_indicators.js"></script>
@@ -840,5 +960,11 @@
   
   <!-- Real-time Notifications -->
   <script src="/static/realtime_notifications.js"></script>
+  
+  <!-- Fix for popup positioning -->
+  <script src="/static/fix_popups.js"></script>
+  <!-- jQuery and Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

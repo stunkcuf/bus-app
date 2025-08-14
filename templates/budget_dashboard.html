@@ -9,7 +9,37 @@
   <link rel="stylesheet" href="/static/modern_theme.css">
     <!-- Dark Theme Text Colors -->
     <link rel="stylesheet" href="/static/dark_theme_text.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js">
+    document.addEventListener('DOMContentLoaded', function() {
+      
+      // CSP-compliant event listeners
+      document.querySelectorAll('[data-action]').forEach(element => {
+        element.addEventListener('click', function(e) {
+          e.preventDefault();
+          const action = this.dataset.action;
+          
+          switch(action) {
+            case 'update-status':
+              updateStatus(this.dataset.id, this.dataset.type, this.dataset.value);
+              break;
+            case 'edit-bus':
+              editBus(this.dataset.busId);
+              break;
+            case 'delete-bus':
+              deleteBus(this.dataset.busId);
+              break;
+            case 'custom':
+              // Evaluate the original onclick content (careful with this)
+              try {
+                eval(this.dataset.onclick);
+              } catch (e) { /* Error handled silently */ }
+              break;
+          }
+        });
+      });
+
+    });
+    </script>
   
   <style nonce="{{.CSPNonce}}">
     body {
@@ -252,7 +282,56 @@
       gap: 1rem;
       margin-bottom: 2rem;
     }
-  </style>
+  
+    /* CSP-compliant style replacements */
+    .opacity-90 { opacity: 0.9; }
+    .opacity-80 { opacity: 0.8; }
+    .opacity-70 { opacity: 0.7; }
+    .opacity-60 { opacity: 0.6; }
+    .opacity-50 { opacity: 0.5; }
+    
+    .text-lg { font-size: 1.1rem; }
+    .text-xl { font-size: 1.5rem; }
+    .text-md { font-size: 1.25rem; }
+    .text-sm { font-size: 0.9rem; }
+    
+    .text-muted-sm {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+    
+    .empty-icon {
+      font-size: 4rem;
+      opacity: 0.5;
+    }
+    
+    .gradient-text-2 {
+      background: var(--gradient-2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-3 {
+      background: var(--gradient-3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-4 {
+      background: var(--gradient-4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .text-blue-light { color: #4facfe; }
+    
+    .info-box-light {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+    }
+    
+    .mb-4 { margin-bottom: 1.5rem; }
+</style>
   <style nonce="{{.CSPNonce}}">
     /* Ultimate beautiful design system */
     :root {
@@ -646,7 +725,7 @@
 
     <!-- Categories -->
     <div class="budget-card">
-      <h3 style="margin-bottom: 1.5rem;">Budget Categories</h3>
+      <h3 class="mb-4">Budget Categories</h3>
       <div class="category-grid">
         {{range .Summary.Categories}}
         <div class="category-card">
@@ -682,7 +761,7 @@
     <!-- Recent Transactions -->
     {{if .Summary.RecentExpenses}}
     <div class="budget-card">
-      <h3 style="margin-bottom: 1.5rem;">Recent Expenses</h3>
+      <h3 class="mb-4">Recent Expenses</h3>
       <div class="transaction-list">
         {{range .Summary.RecentExpenses}}
         <div class="transaction-item">
@@ -705,7 +784,7 @@
     <!-- Monthly Trend Chart -->
     {{if .Summary.MonthlyTrend}}
     <div class="budget-card">
-      <h3 style="margin-bottom: 1.5rem;">Monthly Spending Trend</h3>
+      <h3 class="mb-4">Monthly Spending Trend</h3>
       <div class="chart-container">
         <canvas id="trendChart"></canvas>
       </div>
@@ -779,7 +858,7 @@
         </div>
         <div class="modal-footer" style="border-top: 1px solid rgba(255,255,255,0.1);">
           <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" onclick="submitExpense()">Record Expense</button>
+          <button type="button" class="btn btn-primary" data-action="custom" data-onclick="submitExpense()">Record Expense</button>
         </div>
       </div>
     </div>

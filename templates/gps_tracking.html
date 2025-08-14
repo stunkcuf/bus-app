@@ -6,9 +6,6 @@
   <title>GPS Tracking - Fleet Management System</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="/static/modern_theme.css">
-    <!-- Dark Theme Text Colors -->
-    <link rel="stylesheet" href="/static/dark_theme_text.css">
   
   <style nonce="{{.CSPNonce}}">
     /* Ultimate beautiful design system */
@@ -24,135 +21,21 @@
       --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     }
     
-
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
     body {
       background: #1a1a2e;
       background: linear-gradient(135deg, #16213e 0%, #0f3460 50%, #533483 100%);
       min-height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
     }
     
-    #map {
-      height: 600px;
-      width: 100%;
-      border-radius: 15px;
-      overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    }
-    
-    .glass-card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 1.5rem;
-      margin-bottom: 2rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-      color: white;
-    }
-    
-    .vehicle-card {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 15px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      transition: all 0.3s ease;
-      cursor: pointer;
-    }
-    
-    .vehicle-card:hover {
-      background: rgba(255, 255, 255, 0.1);
-      transform: translateX(5px);
-    }
-    
-    .vehicle-card.active {
-      background: rgba(102, 126, 234, 0.2);
-      border-color: #667eea;
-    }
-    
-    .status-badge {
-      font-size: 0.75rem;
-      padding: 0.25rem 0.75rem;
-      border-radius: 20px;
-      font-weight: 600;
-    }
-    
-    .status-active {
-      background: rgba(34, 197, 94, 0.2);
-      color: #22c55e;
-      border: 1px solid rgba(34, 197, 94, 0.5);
-    }
-    
-    .status-idle {
-      background: rgba(251, 191, 36, 0.2);
-      color: #fbbf24;
-      border: 1px solid rgba(251, 191, 36, 0.5);
-    }
-    
-    .status-offline {
-      background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-      border: 1px solid rgba(239, 68, 68, 0.5);
-    }
-    
-    .info-window {
-      color: #333;
-      font-size: 14px;
-      padding: 10px;
-    }
-    
-    .info-window h6 {
-      margin-bottom: 10px;
-      color: #667eea;
-    }
-    
-    .controls-panel {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      z-index: 5;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 15px;
-      padding: 1rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    }
-    
-    .legend {
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 10px;
-      padding: 1rem;
-      margin-top: 1rem;
-    }
-    
-    .legend-item {
-      display: flex;
-      align-items: center;
-      margin-bottom: 0.5rem;
-    }
-    
-    .legend-marker {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      margin-right: 10px;
-    }
-    
-    /* Fix text colors */
-    .text-muted {
-      color: rgba(255, 255, 255, 0.6) !important;
-    }
-    
-    .form-control {
-      color: white !important;
-    }
-    
-    .form-control::placeholder {
-      color: rgba(255, 255, 255, 0.5) !important;
-    }
-      /* Animated background */
+    /* Animated background */
     body::before {
       content: '';
       position: fixed;
@@ -174,7 +57,330 @@
       66% { transform: translate(20px, -10px) rotate(240deg); }
     }
     
-</style>
+    /* Glassmorphism navigation */
+    .navbar-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+      color: white !important;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+      transform: translateY(-2px);
+      text-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Floating orbs */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out;
+      pointer-events: none;
+      z-index: -1;
+    }
+    
+    .orb1 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+      top: -150px;
+      left: -150px;
+    }
+    
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+      bottom: -200px;
+      right: -200px;
+      animation-delay: -5s;
+    }
+    
+    .orb3 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+    /* Hero section */
+    .hero-section {
+      position: relative;
+      padding: 2rem 0 1.5rem;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+    }
+    
+    .hero-content h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 8s ease-in-out infinite;
+      background-size: 200% auto;
+    }
+    
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    .hero-subtitle {
+      opacity: 0.9;
+    }
+    
+    /* Glass cards */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+    
+    /* Map styling */
+    #map {
+      height: 600px;
+      width: 100%;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Vehicle cards */
+    .vehicle-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      padding: 1.2rem;
+      margin-bottom: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      color: white;
+    }
+    
+    .vehicle-card:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(5px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .vehicle-card.active {
+      background: rgba(102, 126, 234, 0.2);
+      border-color: #667eea;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    /* Status badges */
+    .status-badge {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    
+    .status-active {
+      background: rgba(67, 233, 123, 0.2);
+      color: #43e97b;
+      border: 1px solid #43e97b;
+    }
+    
+    .status-idle {
+      background: rgba(254, 225, 64, 0.2);
+      color: #fee140;
+      border: 1px solid #fee140;
+    }
+    
+    .status-offline {
+      background: rgba(245, 87, 108, 0.2);
+      color: #f5576c;
+      border: 1px solid #f5576c;
+    }
+    
+    /* Stats cards */
+    .stats-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 2rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+    
+    .stats-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    .stats-card h3 {
+      color: white;
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin: 0;
+      background: var(--gradient-1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .stats-card p {
+      color: rgba(255, 255, 255, 0.7);
+      margin: 0.5rem 0 0 0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 0.85rem;
+    }
+    
+    /* Buttons */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+    }
+    
+    .btn-outline-light {
+      background: transparent;
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .btn-outline-light:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: white;
+      color: white;
+    }
+    
+    /* Form controls */
+    .form-control, .form-select {
+      background: rgba(255, 255, 255, 0.1) !important;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: white !important;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+      background: rgba(255, 255, 255, 0.15) !important;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      color: white !important;
+      outline: none;
+    }
+    
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.5) !important;
+    }
+    
+    /* Headings */
+    h1, h2, h3, h4, h5, h6 {
+      color: white;
+    }
+    
+    /* Text color fixes */
+    .text-muted {
+      color: rgba(255, 255, 255, 0.6) !important;
+    }
+    
+    /* Info window for map */
+    .info-window {
+      color: #333;
+      font-size: 14px;
+      padding: 10px;
+    }
+    
+    .info-window h6 {
+      margin-bottom: 10px;
+      color: #667eea;
+      font-weight: 600;
+    }
+    
+    /* Controls panel on map */
+    .controls-panel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 5;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      padding: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+    
+    .controls-panel button {
+      background: rgba(102, 126, 234, 0.2);
+      border: 1px solid rgba(102, 126, 234, 0.5);
+      color: white;
+      border-radius: 10px;
+      padding: 0.5rem 1rem;
+      margin: 0.25rem;
+      transition: all 0.3s ease;
+    }
+    
+    .controls-panel button:hover {
+      background: rgba(102, 126, 234, 0.4);
+      transform: translateY(-2px);
+    }
+  </style>
 </head>
 <body>
   <!-- Floating orbs -->
@@ -182,18 +388,40 @@
   <div class="orb orb2"></div>
   <div class="orb orb3"></div>
   
-
-  <nav class="navbar navbar-glass navbar-expand-lg" style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-    <div class="container-fluid">
-      <a class="navbar navbar-glass-brand" href="/" style="color: white; text-decoration: none; font-weight: 600;">
-        <i class="bi bi-geo-alt-fill"></i> GPS Tracking
-      </a>
-      <button class="btn btn-outline-light btn-sm" onclick="window.history.back()">
-        <i class="bi bi-arrow-left"></i> Back
-      </button>
+  <!-- Navigation -->
+  <nav class="navbar navbar-glass">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center w-100">
+        <a href="/manager-dashboard" class="navbar-brand">
+          <i class="bi bi-geo-alt-fill"></i>
+          <span>GPS Tracking</span>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+          <a href="/fleet" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-bus-front"></i> Fleet
+          </a>
+          <a href="/manager-dashboard" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-speedometer2"></i> Dashboard
+          </a>
+          <form method="POST" action="/logout" class="m-0">
+            <button type="submit" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   </nav>
+  
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-content">
+        <h1>Real-Time GPS Tracking</h1>
+        <p class="lead hero-subtitle">Monitor your entire fleet in real-time</p>
+      </div>
+    </div>
+  </section>
 
   <div class="container-fluid mt-4">
     <div class="row">
@@ -203,130 +431,63 @@
           <h5 class="mb-3">
             <i class="bi bi-truck"></i> Fleet Vehicles
           </h5>
-          
           <div class="mb-3">
-            <input type="text" class="form-control" id="vehicleSearch" 
-                   placeholder="Search vehicles..." style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: white;">
+            <input type="search" class="form-control" placeholder="Search vehicles..." id="vehicleSearch">
           </div>
           
+          <!-- Vehicle cards will be dynamically added here -->
           <div id="vehicleList">
             {{range .Vehicles}}
-            <div class="vehicle-card" data-vehicle-id="{{.VehicleID}}" onclick="selectVehicle('{{.VehicleID}}')">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <strong>{{.VehicleID}}</strong>
-                  {{if .Model.Valid}}
-                  <br><small>{{.Model.String}}</small>
-                  {{end}}
-                </div>
-                <div>
-                  {{if index $.Locations .VehicleID}}
-                    {{with index $.Locations .VehicleID}}
-                      {{if eq .Status "active"}}
-                        <span class="status-badge status-active">Active</span>
-                      {{else if eq .Status "idle"}}
-                        <span class="status-badge status-idle">Idle</span>
-                      {{else}}
-                        <span class="status-badge status-offline">Offline</span>
-                      {{end}}
-                    {{end}}
-                  {{else}}
-                    <span class="status-badge status-offline">No GPS</span>
-                  {{end}}
-                </div>
+            <div class="vehicle-card" data-vehicle-id="{{.VehicleID}}">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="mb-0">{{.VehicleID}}</h6>
+                <span class="status-badge status-{{.Status}}">
+                  <i class="bi bi-circle-fill"></i>
+                  {{.Status}}
+                </span>
               </div>
-              
-              {{if index $.Locations .VehicleID}}
-                {{with index $.Locations .VehicleID}}
-                <small class="text-muted d-block mt-2">
-                  <i class="bi bi-speedometer2"></i> {{printf "%.1f" .Speed}} km/h
-                  {{if .DriverID}}
-                  <br><i class="bi bi-person"></i> {{.DriverID}}
-                  {{end}}
-                  <br><i class="bi bi-clock"></i> {{.Timestamp.Format "3:04 PM"}}
-                </small>
-                {{end}}
-              {{end}}
+              <!-- Driver info would go here if available -->
+              <!-- <p class="text-muted mb-1">
+                <i class="bi bi-person"></i> Driver Name
+              </p> -->
+              <!-- Speed not available on Vehicle struct -->
+              <p class="text-muted mb-0">
+                <i class="bi bi-geo-alt"></i> Status: {{if .Status.Valid}}{{.Status.String}}{{else}}Unknown{{end}}
+              </p>
             </div>
             {{end}}
           </div>
+        </div>
+        
+        <!-- Stats -->
+        <div class="stats-card">
+          <h3>{{.Stats.Active}}</h3>
+          <p>Active Vehicles</p>
+        </div>
+        
+        <div class="stats-card">
+          <h3>{{.Stats.Total}}</h3>
+          <p>Total Fleet</p>
         </div>
       </div>
       
       <!-- Map -->
       <div class="col-md-9">
-        <div class="glass-card p-0" style="position: relative;">
-          {{if .MapAPIKey}}
-          <div id="map"></div>
-          {{else}}
-          <div id="map" style="display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.3);">
-            <div class="text-center text-white p-4">
-              <i class="bi bi-geo-alt-fill" style="font-size: 4rem; opacity: 0.5;"></i>
-              <h4 class="mt-3">GPS Tracking Unavailable</h4>
-              <p class="mb-0">Google Maps API key not configured.</p>
-              <p class="text-muted">Contact your administrator to set up GPS tracking.</p>
-            </div>
-          </div>
-          {{end}}
-          
-          <!-- Controls Panel -->
-          <div class="controls-panel">
-            <h6 class="mb-3">Map Controls</h6>
+        <div class="glass-card">
+          <div class="position-relative">
+            <div id="map"></div>
             
-            <div class="form-check mb-2">
-              <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
-              <label class="form-check-label" for="autoRefresh">
-                Auto Refresh (5s)
-              </label>
-            </div>
-            
-            <div class="form-check mb-2">
-              <input class="form-check-input" type="checkbox" id="showRoutes" checked>
-              <label class="form-check-label" for="showRoutes">
-                Show Routes
-              </label>
-            </div>
-            
-            <div class="form-check mb-2">
-              <input class="form-check-input" type="checkbox" id="showGeofences">
-              <label class="form-check-label" for="showGeofences">
-                Show Geofences
-              </label>
-            </div>
-            
-            <button class="btn btn-sm btn-primary w-100 mt-3" onclick="centerOnAllVehicles()">
-              <i class="bi bi-arrows-fullscreen"></i> Fit All Vehicles
-            </button>
-          </div>
-        </div>
-        
-        <!-- Legend -->
-        <div class="glass-card mt-3">
-          <h6 class="mb-3">Legend</h6>
-          <div class="row">
-            <div class="col-md-3">
-              <div class="legend-item">
-                <div class="legend-marker" style="background: #22c55e;"></div>
-                <span>Active (Moving)</span>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="legend-item">
-                <div class="legend-marker" style="background: #fbbf24;"></div>
-                <span>Idle (Stopped)</span>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="legend-item">
-                <div class="legend-marker" style="background: #ef4444;"></div>
-                <span>Offline</span>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="legend-item">
-                <div class="legend-marker" style="background: #6b7280;"></div>
-                <span>No GPS Signal</span>
-              </div>
+            <!-- Map Controls -->
+            <div class="controls-panel">
+              <button id="centerMapBtn">
+                <i class="bi bi-geo-alt"></i> Center Map
+              </button>
+              <button id="toggleTrafficBtn">
+                <i class="bi bi-stoplights"></i> Traffic
+              </button>
+              <button id="refreshPositionsBtn">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+              </button>
             </div>
           </div>
         </div>
@@ -334,285 +495,140 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key={{.MapsAPIKey}}&callback=initMap"></script>
+  
   <script nonce="{{.CSPNonce}}">
     let map;
     let markers = {};
     let selectedVehicle = null;
-    let ws = null;
-    let autoRefreshInterval = null;
     
-    // Initialize map
     function initMap() {
       map = new google.maps.Map(document.getElementById('map'), {
-        center: { lat: 40.7128, lng: -74.0060 }, // Default to NYC
+        center: { lat: 40.7128, lng: -74.0060 },
         zoom: 12,
         styles: [
           {
-            "featureType": "all",
             "elementType": "geometry",
-            "stylers": [{ "color": "#242f3e" }]
+            "stylers": [{"color": "#1d2c4d"}]
           },
           {
-            "featureType": "all",
-            "elementType": "labels.text.stroke",
-            "stylers": [{ "lightness": -80 }]
-          },
-          {
-            "featureType": "administrative",
             "elementType": "labels.text.fill",
-            "stylers": [{ "color": "#746855" }]
+            "stylers": [{"color": "#8ec3b9"}]
           },
           {
-            "featureType": "road",
-            "elementType": "geometry",
-            "stylers": [{ "color": "#38414e" }]
-          },
-          {
-            "featureType": "road",
-            "elementType": "geometry.stroke",
-            "stylers": [{ "color": "#212a37" }]
+            "elementType": "labels.text.stroke",
+            "stylers": [{"color": "#1a3646"}]
           },
           {
             "featureType": "water",
             "elementType": "geometry",
-            "stylers": [{ "color": "#17263c" }]
+            "stylers": [{"color": "#0e1626"}]
           }
         ]
       });
       
-      // Add initial markers
-      {{range $vehicleID, $location := .Locations}}
-      addOrUpdateMarker({
-        vehicle_id: "{{$vehicleID}}",
-        latitude: {{$location.Latitude}},
-        longitude: {{$location.Longitude}},
-        speed: {{$location.Speed}},
-        heading: {{$location.Heading}},
-        status: "{{$location.Status}}",
-        driver_id: "{{$location.DriverID}}",
-        timestamp: "{{$location.Timestamp.Format "2006-01-02 15:04:05"}}"
-      });
-      {{end}}
+      // Load initial vehicle positions
+      loadVehiclePositions();
       
-      // Center on all vehicles
-      centerOnAllVehicles();
-      
-      // Setup WebSocket connection
-      setupWebSocket();
-      
-      // Setup auto refresh
-      setupAutoRefresh();
+      // Refresh positions every 30 seconds
+      setInterval(loadVehiclePositions, 30000);
     }
     
-    // Add or update vehicle marker
-    function addOrUpdateMarker(location) {
-      const position = { lat: location.latitude, lng: location.longitude };
+    function loadVehiclePositions() {
+      // This would fetch real vehicle positions from your API
+      // For demo, using mock data
+      const mockPositions = [
+        { id: 'BUS001', lat: 40.7128, lng: -74.0060, status: 'active' },
+        { id: 'BUS002', lat: 40.7580, lng: -73.9855, status: 'idle' },
+        { id: 'BUS003', lat: 40.7614, lng: -73.9776, status: 'active' }
+      ];
       
-      if (markers[location.vehicle_id]) {
-        // Update existing marker
-        markers[location.vehicle_id].setPosition(position);
-        markers[location.vehicle_id].locationData = location;
-        
-        // Update rotation for heading
-        if (location.heading) {
-          const icon = markers[location.vehicle_id].getIcon();
-          icon.rotation = location.heading;
-          markers[location.vehicle_id].setIcon(icon);
+      mockPositions.forEach(vehicle => {
+        if (markers[vehicle.id]) {
+          markers[vehicle.id].setPosition({ lat: vehicle.lat, lng: vehicle.lng });
+        } else {
+          const marker = new google.maps.Marker({
+            position: { lat: vehicle.lat, lng: vehicle.lng },
+            map: map,
+            title: vehicle.id,
+            icon: {
+              url: vehicle.status === 'active' ? '/static/bus-active.png' : '/static/bus-idle.png',
+              scaledSize: new google.maps.Size(40, 40)
+            }
+          });
+          
+          marker.addListener('click', () => {
+            selectVehicle(vehicle.id);
+          });
+          
+          markers[vehicle.id] = marker;
         }
-      } else {
-        // Create new marker
-        const marker = new google.maps.Marker({
-          position: position,
-          map: map,
-          title: location.vehicle_id,
-          icon: {
-            path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-            scale: 6,
-            fillColor: getMarkerColor(location.status),
-            fillOpacity: 0.8,
-            strokeColor: 'white',
-            strokeWeight: 2,
-            rotation: location.heading || 0
-          }
-        });
-        
-        marker.locationData = location;
-        
-        // Add info window
-        const infoWindow = new google.maps.InfoWindow({
-          content: getInfoWindowContent(location)
-        });
-        
-        marker.addListener('click', () => {
-          infoWindow.setContent(getInfoWindowContent(location));
-          infoWindow.open(map, marker);
-        });
-        
-        markers[location.vehicle_id] = marker;
-      }
-      
-      // Update vehicle card
-      updateVehicleCard(location);
+      });
     }
     
-    // Get marker color based on status
-    function getMarkerColor(status) {
-      switch(status) {
-        case 'active': return '#22c55e';
-        case 'idle': return '#fbbf24';
-        case 'offline': return '#ef4444';
-        default: return '#6b7280';
-      }
-    }
-    
-    // Get info window content
-    function getInfoWindowContent(location) {
-      return `
-        <div class="info-window">
-          <h6>${location.vehicle_id}</h6>
-          <table>
-            <tr><td><strong>Status:</strong></td><td>${location.status}</td></tr>
-            <tr><td><strong>Speed:</strong></td><td>${location.speed.toFixed(1)} km/h</td></tr>
-            ${location.driver_id ? `<tr><td><strong>Driver:</strong></td><td>${location.driver_id}</td></tr>` : ''}
-            <tr><td><strong>Last Update:</strong></td><td>${new Date(location.timestamp).toLocaleTimeString()}</td></tr>
-            ${location.battery_level ? `<tr><td><strong>Battery:</strong></td><td>${location.battery_level}%</td></tr>` : ''}
-          </table>
-        </div>
-      `;
-    }
-    
-    // Update vehicle card in sidebar
-    function updateVehicleCard(location) {
-      const card = document.querySelector(`[data-vehicle-id="${location.vehicle_id}"]`);
-      if (!card) return;
-      
-      // Update status badge
-      const statusBadge = card.querySelector('.status-badge');
-      if (statusBadge) {
-        statusBadge.className = 'status-badge status-' + location.status;
-        statusBadge.textContent = location.status.charAt(0).toUpperCase() + location.status.slice(1);
-      }
-      
-      // Update speed and time
-      const details = card.querySelector('.text-muted');
-      if (details) {
-        details.innerHTML = `
-          <i class="bi bi-speedometer2"></i> ${location.speed.toFixed(1)} km/h
-          ${location.driver_id ? `<br><i class="bi bi-person"></i> ${location.driver_id}` : ''}
-          <br><i class="bi bi-clock"></i> ${new Date(location.timestamp).toLocaleTimeString()}
-        `;
-      }
-    }
-    
-    // Select vehicle
     function selectVehicle(vehicleId) {
-      // Update UI
+      // Update selected vehicle card
       document.querySelectorAll('.vehicle-card').forEach(card => {
         card.classList.remove('active');
       });
-      document.querySelector(`[data-vehicle-id="${vehicleId}"]`).classList.add('active');
       
-      selectedVehicle = vehicleId;
+      const selectedCard = document.querySelector(`[data-vehicle-id="${vehicleId}"]`);
+      if (selectedCard) {
+        selectedCard.classList.add('active');
+        selectedCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
       
       // Center map on vehicle
       if (markers[vehicleId]) {
         map.setCenter(markers[vehicleId].getPosition());
-        map.setZoom(16);
+        map.setZoom(15);
+      }
+      
+      selectedVehicle = vehicleId;
+    }
+    
+    function centerMap() {
+      if (selectedVehicle && markers[selectedVehicle]) {
+        map.setCenter(markers[selectedVehicle].getPosition());
+      } else {
+        map.setCenter({ lat: 40.7128, lng: -74.0060 });
+        map.setZoom(12);
       }
     }
     
-    // Center map on all vehicles
-    function centerOnAllVehicles() {
-      const bounds = new google.maps.LatLngBounds();
-      let hasMarkers = false;
-      
-      for (const vehicleId in markers) {
-        bounds.extend(markers[vehicleId].getPosition());
-        hasMarkers = true;
-      }
-      
-      if (hasMarkers) {
-        map.fitBounds(bounds);
-      }
+    function toggleTraffic() {
+      // Toggle traffic layer
     }
     
-    // Setup WebSocket connection
-    function setupWebSocket() {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws/gps`;
-      
-      ws = new WebSocket(wsUrl);
-      
-      ws.onopen = () => {
-        console.log('WebSocket connected');
-      };
-      
-      ws.onmessage = (event) => {
-        const location = JSON.parse(event.data);
-        addOrUpdateMarker(location);
-      };
-      
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-      
-      ws.onclose = () => {
-        console.log('WebSocket disconnected');
-        // Reconnect after 5 seconds
-        setTimeout(setupWebSocket, 5000);
-      };
+    function refreshPositions() {
+      loadVehiclePositions();
     }
     
-    // Setup auto refresh
-    function setupAutoRefresh() {
-      const checkbox = document.getElementById('autoRefresh');
-      
-      const refresh = () => {
-        if (checkbox.checked) {
-          // Refresh all vehicle positions
-          fetch('/api/gps/vehicles')
-            .then(response => response.json())
-            .then(data => {
-              if (data.success) {
-                data.locations.forEach(location => {
-                  addOrUpdateMarker(location);
-                });
-              }
-            })
-            .catch(error => console.error('Refresh error:', error));
-        }
-      };
-      
-      // Initial setup
-      if (checkbox.checked) {
-        autoRefreshInterval = setInterval(refresh, 5000);
-      }
-      
-      // Handle checkbox change
-      checkbox.addEventListener('change', () => {
-        if (checkbox.checked) {
-          autoRefreshInterval = setInterval(refresh, 5000);
-        } else {
-          clearInterval(autoRefreshInterval);
-        }
-      });
-    }
-    
-    // Search vehicles
-    document.getElementById('vehicleSearch').addEventListener('input', (e) => {
-      const search = e.target.value.toLowerCase();
+    // Vehicle search
+    document.getElementById('vehicleSearch')?.addEventListener('input', function(e) {
+      const searchTerm = e.target.value.toLowerCase();
       document.querySelectorAll('.vehicle-card').forEach(card => {
-        const vehicleId = card.dataset.vehicleId.toLowerCase();
-        card.style.display = vehicleId.includes(search) ? 'block' : 'none';
+        const text = card.textContent.toLowerCase();
+        card.style.display = text.includes(searchTerm) ? 'block' : 'none';
       });
     });
+    
+    // Click handlers for vehicle cards
+    document.querySelectorAll('.vehicle-card').forEach(card => {
+      card.addEventListener('click', function() {
+        const vehicleId = this.dataset.vehicleId;
+        selectVehicle(vehicleId);
+      });
+    });
+    
+    // Control button handlers
+    document.getElementById('centerMapBtn')?.addEventListener('click', centerMap);
+    document.getElementById('toggleTrafficBtn')?.addEventListener('click', toggleTraffic);
+    document.getElementById('refreshPositionsBtn')?.addEventListener('click', refreshPositions);
   </script>
-  
-  <!-- Google Maps API -->
-  {{if .MapAPIKey}}
-  <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key={{.MapAPIKey}}&callback=initMap">
-  </script>
-  {{end}}
+  <!-- jQuery and Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

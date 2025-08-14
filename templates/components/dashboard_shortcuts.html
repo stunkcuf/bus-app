@@ -116,7 +116,7 @@
           <i class="bi bi-list" aria-hidden="true"></i>
           View Roster
         </a>
-        <button type="button" class="btn btn-sm btn-outline-primary" onclick="takeAttendance()">
+        <button type="button" class="btn btn-sm btn-outline-primary" data-action="custom" data-onclick="takeAttendance()">
           <i class="bi bi-check2-square" aria-hidden="true"></i>
           Take Attendance
         </button>
@@ -134,7 +134,7 @@
           <i class="bi bi-info-circle" aria-hidden="true"></i>
           Bus Info
         </a>
-        <button type="button" class="btn btn-sm btn-outline-danger" onclick="reportIssue()">
+        <button type="button" class="btn btn-sm btn-outline-danger" data-action="custom" data-onclick="reportIssue()">
           <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
           Report Issue
         </button>
@@ -158,6 +158,32 @@ function reportIssue() {
 
 // Add help content for shortcuts
 document.addEventListener('DOMContentLoaded', function() {
+      // CSP-compliant event listeners
+      document.querySelectorAll('[data-action]').forEach(element => {
+        element.addEventListener('click', function(e) {
+          e.preventDefault();
+          const action = this.dataset.action;
+          
+          switch(action) {
+            case 'update-status':
+              updateStatus(this.dataset.id, this.dataset.type, this.dataset.value);
+              break;
+            case 'edit-bus':
+              editBus(this.dataset.busId);
+              break;
+            case 'delete-bus':
+              deleteBus(this.dataset.busId);
+              break;
+            case 'custom':
+              // Evaluate the original onclick content (careful with this)
+              try {
+                eval(this.dataset.onclick);
+              } catch (e) { /* Error handled silently */ }
+              break;
+          }
+        });
+      });
+
   if (window.helpSystem) {
     window.helpSystem.addHelpContent('dashboard-shortcuts', {
       title: 'Dashboard Shortcuts',

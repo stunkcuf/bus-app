@@ -191,7 +191,56 @@
                 box-shadow: 0 10px 40px rgba(239, 68, 68, 0.7);
             }
         }
-    </style>
+    
+    /* CSP-compliant style replacements */
+    .opacity-90 { opacity: 0.9; }
+    .opacity-80 { opacity: 0.8; }
+    .opacity-70 { opacity: 0.7; }
+    .opacity-60 { opacity: 0.6; }
+    .opacity-50 { opacity: 0.5; }
+    
+    .text-lg { font-size: 1.1rem; }
+    .text-xl { font-size: 1.5rem; }
+    .text-md { font-size: 1.25rem; }
+    .text-sm { font-size: 0.9rem; }
+    
+    .text-muted-sm {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+    
+    .empty-icon {
+      font-size: 4rem;
+      opacity: 0.5;
+    }
+    
+    .gradient-text-2 {
+      background: var(--gradient-2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-3 {
+      background: var(--gradient-3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-4 {
+      background: var(--gradient-4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .text-blue-light { color: #4facfe; }
+    
+    .info-box-light {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+    }
+    
+    .mb-4 { margin-bottom: 1.5rem; }
+</style>
   <style nonce="{{.CSPNonce}}">
     /* Ultimate beautiful design system */
     :root {
@@ -539,7 +588,7 @@
                     <span class="text-white small">
                         <i class="bi bi-person-circle"></i> {{if .User}}{{.User.Username}}{{else}}{{.Username}}{{end}}
                     </span>
-                    <button class="btn btn-sm btn-outline-light" onclick="mobileApp.openModal('menuModal')">
+                    <button class="btn btn-sm btn-outline-light" data-action="custom" data-onclick="mobileApp.openModal('menuModal')">
                         <i class="bi bi-three-dots-vertical"></i>
                     </button>
                 </div>
@@ -612,7 +661,7 @@
                     <span>{{.StudentCount}} students</span>
                 </div>
                 <div class="mt-3">
-                    <button class="mobile-btn mobile-btn-primary w-100" onclick="viewRoute('{{.RouteID}}')">
+                    <button class="mobile-btn mobile-btn-primary w-100" data-action="custom" data-onclick="viewRoute('{{.RouteID}}')">
                         <i class="bi bi-map"></i>
                         View Route Details
                     </button>
@@ -674,7 +723,7 @@
     </nav>
     
     <!-- Emergency SOS Button -->
-    <button class="emergency-sos" onclick="activateEmergencySOS()">
+    <button class="emergency-sos" data-action="custom" data-onclick="activateEmergencySOS()">
         <i class="bi bi-exclamation-triangle-fill"></i>
     </button>
     
@@ -684,7 +733,7 @@
         <h2 class="text-white mb-4">Menu</h2>
         
         <div class="mobile-list">
-            <div class="mobile-list-item" onclick="navigateTo('/mobile/vehicle-maintenance')">
+            <div class="mobile-list-item" data-action="custom" data-onclick="navigateTo('/mobile/vehicle-maintenance')">
                 <div class="mobile-list-icon">
                     <i class="bi bi-tools"></i>
                 </div>
@@ -697,7 +746,7 @@
                 </div>
             </div>
             
-            <div class="mobile-list-item" onclick="navigateTo('/mobile/fuel-tracking')">
+            <div class="mobile-list-item" data-action="custom" data-onclick="navigateTo('/mobile/fuel-tracking')">
                 <div class="mobile-list-icon">
                     <i class="bi bi-fuel-pump"></i>
                 </div>
@@ -710,7 +759,7 @@
                 </div>
             </div>
             
-            <div class="mobile-list-item" onclick="navigateTo('/mobile/notifications')">
+            <div class="mobile-list-item" data-action="custom" data-onclick="navigateTo('/mobile/notifications')">
                 <div class="mobile-list-icon">
                     <i class="bi bi-bell"></i>
                 </div>
@@ -723,7 +772,7 @@
                 </div>
             </div>
             
-            <div class="mobile-list-item" onclick="navigateTo('/mobile/settings')">
+            <div class="mobile-list-item" data-action="custom" data-onclick="navigateTo('/mobile/settings')">
                 <div class="mobile-list-icon">
                     <i class="bi bi-gear"></i>
                 </div>
@@ -736,7 +785,7 @@
                 </div>
             </div>
             
-            <div class="mobile-list-item" onclick="logout()">
+            <div class="mobile-list-item" data-action="custom" data-onclick="logout()">
                 <div class="mobile-list-icon" style="background: rgba(239, 68, 68, 0.2);">
                     <i class="bi bi-box-arrow-right" style="color: #ef4444;"></i>
                 </div>
@@ -752,7 +801,37 @@
     <div class="mobile-modal-backdrop"></div>
     
     <!-- Scripts -->
-    <script src="/static/mobile_app.js"></script>
+    <script src="/static/mobile_app.js">
+    document.addEventListener('DOMContentLoaded', function() {
+      
+      // CSP-compliant event listeners
+      document.querySelectorAll('[data-action]').forEach(element => {
+        element.addEventListener('click', function(e) {
+          e.preventDefault();
+          const action = this.dataset.action;
+          
+          switch(action) {
+            case 'update-status':
+              updateStatus(this.dataset.id, this.dataset.type, this.dataset.value);
+              break;
+            case 'edit-bus':
+              editBus(this.dataset.busId);
+              break;
+            case 'delete-bus':
+              deleteBus(this.dataset.busId);
+              break;
+            case 'custom':
+              // Evaluate the original onclick content (careful with this)
+              try {
+                eval(this.dataset.onclick);
+              } catch (e) { /* Error handled silently */ }
+              break;
+          }
+        });
+      });
+
+    });
+    </script>
     <script nonce="{{.CSPNonce}}">
         // Dashboard specific functions
         function refreshDashboard() {

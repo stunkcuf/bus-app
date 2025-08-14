@@ -1,463 +1,223 @@
-# Product Requirements Document (PRD)
-## Fleet Management System - School Transportation & Vehicle Tracking
+# Product Requirements Document
+## HS Bus Fleet Management System
 
-**Version:** 1.0  
-**Date:** January 2025  
-**Status:** Active Development
-
----
-
-## 1. Executive Summary
-
-The Fleet Management System is a comprehensive web-based platform designed to streamline school transportation operations, vehicle maintenance, and student attendance tracking. The system serves school districts and transportation departments by providing tools for managing bus fleets, tracking driver assignments, monitoring student ridership, and maintaining detailed vehicle service records.
-
-### Key Value Propositions:
-- **Operational Efficiency**: Streamlined route assignments and driver management
-- **Safety & Compliance**: Comprehensive maintenance tracking and student attendance monitoring
-- **Cost Management**: Detailed mileage tracking and fuel cost analysis
-- **Special Education Support**: Dedicated ECSE (Early Childhood Special Education) student tracking
-- **Data-Driven Insights**: Comprehensive reporting and analytics capabilities
+**Version**: 2.0  
+**Date**: January 2025  
+**Status**: Production
 
 ---
 
-## 2. Product Overview
+## Executive Summary
 
-### 2.1 Problem Statement
-School districts face significant challenges in managing their transportation operations:
-- Manual tracking of student attendance on buses is error-prone and time-consuming
-- Vehicle maintenance schedules are difficult to monitor across large fleets
-- Route optimization and driver assignments lack centralized management
-- Special education student transportation requires additional compliance tracking
-- Mileage and cost reporting for budgeting purposes is often incomplete or inaccurate
+HS Bus is a comprehensive fleet management system designed for school transportation departments. It streamlines operations by managing buses, drivers, students, routes, and maintenance in a single integrated platform.
 
-### 2.2 Solution
-A unified digital platform that integrates all aspects of school transportation management, from driver assignments to vehicle maintenance, with special attention to student safety and regulatory compliance.
+### Problem Statement
+School districts struggle with:
+- Manual tracking of student attendance and routes
+- Scattered vehicle maintenance records
+- Inefficient driver and route assignments
+- Lack of real-time operational visibility
+- Complex special education transportation requirements
 
-### 2.3 Success Metrics
-- **Adoption Rate**: 90% of drivers actively using the system within 3 months
-- **Efficiency Gain**: 30% reduction in time spent on administrative tasks
-- **Maintenance Compliance**: 100% of vehicles maintained on schedule
-- **Data Accuracy**: 95% accuracy in attendance and mileage reporting
-- **User Satisfaction**: 4.5/5 average user rating
+### Solution
+A unified web platform that digitizes all transportation operations with focus on safety, efficiency, and ease of use for non-technical staff.
 
 ---
 
-## 3. User Personas
+## User Personas
 
-### 3.1 Transportation Manager (Maria)
-**Role**: Oversees entire transportation department
+### Transportation Manager (Primary)
+- **Goals**: Monitor fleet, ensure compliance, manage budgets, approve drivers
+- **Pain Points**: Lack of real-time visibility, manual reporting, tracking maintenance
 
-**Goals**:
-- Monitor fleet status and driver assignments
-- Ensure regulatory compliance
-- Manage budgets and operational costs
-- Approve new driver registrations
+### School Bus Driver  
+- **Goals**: Track attendance, access student info, log trips and mileage
+- **Pain Points**: Paper-based processes, no centralized information
 
-**Pain Points**:
-- Lack of real-time visibility into fleet operations
-- Manual data compilation for reports
-- Difficulty tracking maintenance schedules
-
-### 3.2 School Bus Driver (James)
-**Role**: Transports students safely to/from school
-
-**Goals**:
-- Efficiently manage daily routes
-- Track student attendance accurately
-- Access student/guardian contact information
-- Log daily mileage and trip details
-
-**Pain Points**:
-- Paper-based attendance tracking
-- No centralized student information access
-- Manual trip logging processes
-
-### 3.3 Maintenance Coordinator (Robert)
-**Role**: Manages vehicle maintenance and repairs
-
-**Goals**:
-- Track maintenance schedules for all vehicles
-- Monitor vehicle health indicators
-- Manage service history and costs
-- Coordinate with external service providers
-
-**Pain Points**:
-- Scattered maintenance records
-- Reactive rather than preventive maintenance
-- Difficulty tracking costs across fleet
+### Maintenance Coordinator
+- **Goals**: Schedule maintenance, track repairs, manage costs
+- **Pain Points**: Scattered records, reactive maintenance
 
 ---
 
-## 4. Core Features & Requirements
+## Core Features
 
-### 4.1 User Management & Authentication
+### 1. Fleet & Vehicle Management
+- **Vehicle Inventory**: Track all buses and fleet vehicles
+- **Status Tracking**: Active, Maintenance, Out of Service with visual indicators
+- **Maintenance Logs**: Oil changes, tire service, inspections, repairs
+- **Mileage Tracking**: Current mileage and service intervals
+- **Cost Tracking**: Maintenance costs per vehicle
 
-#### Features:
-**User Registration & Login**
-- Self-service driver registration with manager approval workflow
-- Secure authentication with CSRF protection
-- Role-based access control (Manager, Driver)
-- Password reset functionality
+### 2. User & Driver Management
+- **Role-Based Access**: Manager and Driver roles
+- **Self-Registration**: Driver signup with manager approval
+- **Secure Authentication**: Password hashing, session management, CSRF protection
+- **Profile Management**: User settings and preferences
 
-#### Requirements:
-- ✓ Username must be 3-20 characters, alphanumeric only
-- ✓ Passwords minimum 6 characters
-- ✓ Session management with secure cookies
-- ✓ Manager approval required for new driver accounts
-- ✓ Audit trail for user actions
+### 3. Student Management
+- **Student Roster**: Complete profiles with guardian contacts
+- **Multiple Locations**: Support for different pickup/dropoff addresses
+- **Route Assignment**: Automatic ordering by pickup times
+- **Attendance Tracking**: Daily attendance with actual pickup times
+- **ECSE Support**: Special education student tracking with IEP status
 
-### 4.2 Fleet & Vehicle Management
+### 4. Route Management
+- **Route Creation**: Named routes with descriptions
+- **Triple Assignment**: Link driver-bus-route combinations
+- **Conflict Prevention**: Validation to prevent double bookings
+- **Visual Dashboard**: See all assignments at a glance
 
-#### Features:
-**Vehicle Inventory**
-- Comprehensive vehicle database (buses and other fleet vehicles)
-- Real-time status tracking (Active, Maintenance, Out of Service)
-- Vehicle details (ID, model, capacity, year, license plate)
+### 5. Daily Operations
+- **Driver Dashboard**: Today's route, students, and bus info
+- **Trip Logging**: Morning/afternoon trips with times and mileage
+- **Real-Time Updates**: Immediate data availability
+- **Mobile Responsive**: Optimized for tablet use in vehicles
 
-**Maintenance Tracking**
-- Oil change status indicators
-- Tire condition monitoring
-- Service history logs with categories (oil change, tire service, inspection, repair)
-- Mileage-based maintenance alerts
-- Cost tracking per service
+### 6. Reporting & Analytics
+- **Mileage Reports**: Monthly summaries with cost calculations
+- **Maintenance Reports**: Service history and upcoming maintenance
+- **Driver Performance**: Trip history and attendance records
+- **Data Visualization**: Charts and graphs for key metrics
+- **Excel Export**: Download reports for external analysis
+- **PDF Generation**: Professional formatted reports
 
-#### Requirements:
-- ✓ Support for both bus fleet and general company vehicles
-- ✓ Visual status indicators using color coding
-- ✓ Maintenance records must include date, category, mileage, and notes
-- ✓ Historical maintenance data retention
-- ✓ Export capabilities for maintenance reports
-
-### 4.3 Student Management
-
-#### Features:
-**Student Roster**
-- Complete student profiles with guardian information
-- Multiple phone numbers (primary and alternate)
-- Pickup/dropoff time scheduling
-- Multiple location support per student
-- Active/inactive status management
-
-**Route Assignment**
-- Automatic ordering by pickup/dropoff times
-- Position-based student organization
-- Route-specific student lists
-
-#### Requirements:
-- ✓ Unique student ID generation
-- ✓ Support for multiple pickup/dropoff locations
-- ✓ Guardian contact information mandatory
-- ✓ Time-based route optimization
-- ✓ Privacy protection for student data
-
-### 4.4 Route Management
-
-#### Features:
-**Route Creation & Configuration**
-- Named routes with descriptions
-- Route ID assignment
-- Active route tracking
-
-**Assignment Management**
-- Driver-Bus-Route triple assignment
-- Real-time availability checking
-- Prevent double assignments
-- Visual assignment dashboard
-
-#### Requirements:
-- ✓ Routes must have unique identifiers
-- ✓ Only one driver per bus per route
-- ✓ Validation to prevent conflicts
-- ✓ Historical assignment tracking
-- ✓ Route modification restrictions when assigned
-
-### 4.5 Daily Operations & Attendance
-
-#### Features:
-**Driver Dashboard**
-- Daily route log entry
-- Student attendance tracking
-- Actual pickup times recording
-- Mileage logging
-- Morning/afternoon route differentiation
-
-**Trip Management**
-- Departure and arrival time tracking
-- Per-student attendance marking
-- Actual vs. scheduled time comparison
-- Trip notes and observations
-
-#### Requirements:
-- ✓ Mobile-responsive interface for tablet use
-- ✓ Offline capability with sync
-- ✓ Time stamp validation
-- ✓ Mileage validation (ending > beginning)
-- ✓ Historical log access
-
-### 4.6 Special Education (ECSE) Support
-
-#### Features:
-**ECSE Student Tracking**
-- Comprehensive student profiles
-- IEP status monitoring
-- Service tracking (speech, OT, PT)
-- Transportation requirements
-- Assessment history
-- Attendance patterns
-
-**Data Import**
-- Excel file import capability
-- Multi-sheet processing
-- Data validation and error reporting
-- Duplicate detection
-
-#### Requirements:
-- ✓ FERPA compliance for data protection
-- ✓ Support for multiple disability categories
-- ✓ Service minute tracking
-- ✓ Parent communication logs
-- ✓ Progress monitoring capabilities
-
-### 4.7 Reporting & Analytics
-
-#### Features:
-**Mileage Reports**
-- Monthly mileage summaries
-- Cost calculations ($0.55/mile default)
-- Vehicle-specific reports
-- Fleet-wide analytics
-- Excel export functionality
-
-**Operational Reports**
-- Driver performance metrics
-- Route efficiency analysis
-- Maintenance cost tracking
-- Student ridership patterns
-- ECSE service delivery reports
-
-#### Requirements:
-- ✓ Real-time report generation
-- ✓ Customizable date ranges
-- ✓ Export to Excel/CSV
-- ✓ Print-friendly formats
-- ✓ Data visualization (charts/graphs)
-
-### 4.8 Data Import/Export
-
-#### Features:
-**Excel Import**
-- Mileage data bulk import
-- ECSE student data import
-- Validation and error handling
-- Import history tracking
-
-**Export Capabilities**
-- All reports exportable
-- Standard Excel formats
-- PDF generation for reports
-- Batch export options
-
-#### Requirements:
-- ✓ Support .xlsx and .xls formats
-- ✓ 10MB file size limit
-- ✓ Column mapping flexibility
-- ✓ Error report generation
-- ✓ Data backup before imports
+### 7. Data Import/Export
+- **Excel Import**: Bulk import students, vehicles, mileage data
+- **ECSE Import**: Special education student data from Excel
+- **Validation**: Error checking and duplicate detection
+- **Export Templates**: Pre-formatted Excel templates
 
 ---
 
-## 5. Technical Requirements
+## Technical Requirements
 
-### 5.1 Architecture
-- **Frontend**: HTML5, Bootstrap 5.3, Vanilla JavaScript
-- **Backend**: Server-side rendered templates
-- **Database**: Structured data storage for users, vehicles, students, routes
-- **Security**: CSRF protection, secure authentication, role-based access
+### Performance
+- Page load < 2 seconds
+- Support 100+ concurrent users
+- Handle 1000+ students, 100+ vehicles
 
-### 5.2 Performance
-- Page load time < 2 seconds
-- Support for 100+ concurrent users
-- Database queries optimized for large datasets (1000+ students, 100+ vehicles)
-
-### 5.3 Browser Support
-- Chrome (latest 2 versions)
-- Firefox (latest 2 versions)
-- Safari (latest 2 versions)
-- Edge (latest 2 versions)
+### Browser Support
+- Chrome, Firefox, Safari, Edge (latest 2 versions)
 - Mobile Safari (iOS 12+)
 - Chrome Mobile (Android 8+)
 
-### 5.4 Accessibility
-- WCAG 2.1 AA compliance
-- Keyboard navigation support
-- Screen reader compatibility
-- High contrast mode support
-
-### 5.5 Security
+### Security
 - HTTPS encryption required
-- Session timeout after 30 minutes of inactivity
+- Session timeout (30 minutes idle)
 - Password complexity enforcement
 - Regular security audits
-- Data encryption at rest
-
----
-
-## 6. Integration Requirements
-
-### 6.1 Current Integrations
-- Excel file import/export
-- Browser local time/date
-
-### 6.2 Future Integrations (Roadmap)
-- GPS tracking integration
-- Parent notification system
-- Student Information System (SIS) sync
-- Fuel card system integration
-- Maintenance shop management systems
-
----
-
-## 7. User Interface Requirements
-
-### 7.1 Design Principles
-- **Mobile-First**: Optimized for tablet use in vehicles
-- **Intuitive Navigation**: Role-specific dashboards
-- **Visual Feedback**: Color-coded status indicators
-- **Consistent Layout**: Familiar patterns across all screens
-- **Progressive Disclosure**: Advanced features hidden until needed
-
-### 7.2 Key UI Components
-- Dashboard widgets with real-time statistics
-- Drag-and-drop file upload areas
-- Sortable/filterable data tables
-- Modal dialogs for quick actions
-- Toast notifications for system feedback
-- Collapsible sections for space efficiency
-
----
-
-## 8. Compliance & Regulatory
-
-### 8.1 Data Privacy
 - FERPA compliance for student data
+
+### Accessibility
+- WCAG 2.1 AA compliance
+- Keyboard navigation
+- Screen reader compatible
+- High contrast mode
+
+---
+
+## User Interface Requirements
+
+### Design Principles
+- **Mobile-First**: Optimized for tablets
+- **Intuitive**: Minimal training required
+- **Visual Feedback**: Color-coded status indicators
+- **Consistent**: Familiar patterns throughout
+- **Accessible**: Large text, clear buttons for older users
+
+### Key UI Components
+- Dashboard widgets with statistics
+- Sortable/filterable data tables
+- Step-by-step wizards for complex tasks
+- Contextual help tooltips
+- Confirmation dialogs for destructive actions
+- Progress indicators for multi-step processes
+
+---
+
+## Success Metrics
+
+### Adoption
+- 90% driver adoption within 3 months
+- Daily active usage by all drivers
+
+### Efficiency  
+- 30% reduction in administrative time
+- 50% faster report generation
+
+### Accuracy
+- 95% attendance recording accuracy
+- 100% maintenance schedule compliance
+
+### Satisfaction
+- 4.5/5 average user rating
+- <48 hour issue resolution
+
+---
+
+## Rollout Strategy
+
+### Phase 1: Foundation ✅
+Core user management, fleet tracking, student roster, daily logs
+
+### Phase 2: Enhancement ✅
+Route management, maintenance tracking, ECSE module, basic reporting
+
+### Phase 3: Advanced Features ✅
+Testing infrastructure, performance optimization, advanced analytics
+
+### Phase 3.5: UX & Accessibility 🔄
+Simplified UI for non-technical users, comprehensive help system
+
+### Phase 4: Mobile & Real-Time (Q3 2025)
+Native mobile apps, GPS tracking, parent portal
+
+### Phase 5: Enterprise (Q4 2025)
+Multi-district support, API development, third-party integrations
+
+---
+
+## Compliance & Regulatory
+
+### Data Privacy
+- FERPA compliance for student records
 - COPPA compliance for students under 13
-- Data retention policies
-- Right to deletion requests
+- Data retention and deletion policies
 
-### 8.2 Transportation Regulations
+### Transportation
 - DOT compliance tracking
-- State-specific transportation requirements
-- Special education transportation mandates
-- Safety inspection scheduling
+- State transportation requirements
+- Special education mandates
 
 ---
 
-## 9. Success Criteria & KPIs
+## Future Enhancements
 
-### 9.1 Adoption Metrics
-- User registration rate
-- Daily active users (DAU)
-- Feature utilization rates
-- Mobile vs. desktop usage
-
-### 9.2 Operational Metrics
-- Average time to complete daily logs
-- Maintenance compliance rate
-- On-time route completion
-- Student attendance accuracy
-
-### 9.3 Business Metrics
-- Cost savings from optimized routes
-- Reduction in paper usage
-- Maintenance cost optimization
-- Fuel efficiency improvements
-
----
-
-## 10. Rollout Strategy
-
-### 10.1 Phase 1: Core Features (Months 1-2)
-- User management system
-- Basic fleet tracking
-- Driver daily logs
-- Student roster management
-
-### 10.2 Phase 2: Advanced Features (Months 3-4)
-- Route optimization
-- Maintenance scheduling
-- ECSE module
-- Basic reporting
-
-### 10.3 Phase 3: Analytics & Integration (Months 5-6)
-- Advanced analytics
-- Third-party integrations
-- Mobile app development
-- Parent portal
-
----
-
-## 11. Risk Mitigation
-
-### 11.1 Technical Risks
-- **Data Loss**: Regular automated backups, redundant storage
-- **System Downtime**: High availability architecture, disaster recovery plan
-- **Performance Issues**: Load testing, performance monitoring
-
-### 11.2 User Adoption Risks
-- **Training Needs**: Comprehensive training program, video tutorials
-- **Resistance to Change**: Phased rollout, champion users
-- **Technical Literacy**: Simplified UI, on-screen help
-
-### 11.3 Compliance Risks
-- **Data Breaches**: Security audits, encryption, access controls
-- **Regulatory Changes**: Regular compliance reviews, flexible architecture
-
----
-
-## 12. Future Enhancements (Roadmap)
-
-### Year 1
-- Native mobile applications (iOS/Android)
+### Near Term (2025)
+- Mobile applications
 - Real-time GPS tracking
 - Parent communication portal
 - Automated route optimization
 
-### Year 2
-- AI-powered maintenance predictions
-- Integration with school bell schedules
-- Student facial recognition for attendance
+### Long Term (2026+)
+- AI-powered predictive maintenance
 - Electric vehicle support
-
-### Year 3
-- Autonomous vehicle preparation
 - Carbon footprint tracking
-- Advanced analytics with ML
-- Multi-district consortium support
+- Autonomous vehicle preparation
 
 ---
 
-## 13. Appendices
+## Appendix
 
-### A. Glossary
+### Glossary
 - **ECSE**: Early Childhood Special Education
 - **IEP**: Individualized Education Program
 - **FERPA**: Family Educational Rights and Privacy Act
 - **DOT**: Department of Transportation
-- **CSRF**: Cross-Site Request Forgery
 
-### B. Wireframes
-[Reference to design documents]
-
-### C. API Documentation
-[Reference to technical documentation]
-
-### D. Data Dictionary
-[Reference to database schema documentation]
-
----
-
-**Document Control:**
-- **Author**: Product Management Team
-- **Last Updated**: January 2025
-- **Review Cycle**: Quarterly
-- **Distribution**: All Stakeholders
+### Related Documents
+- [README.md](README.md) - Quick start guide
+- [PLANNING.md](PLANNING.md) - Technical architecture
+- [TASKS.md](TASKS.md) - Development roadmap
+- [CLAUDE.md](CLAUDE.md) - AI assistant guide

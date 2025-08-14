@@ -544,6 +544,34 @@ func main() {
 	}
 	defer closeDatabase()
 	
+	// Create system settings table for GPS and other settings
+	if err := CreateSystemSettingsTable(); err != nil {
+		LogError("Failed to create system settings table", err)
+	}
+	
+	// Create error logs table for tracking panics
+	if err := CreateErrorLogsTable(); err != nil {
+		LogError("Failed to create error logs table", err)
+	}
+	
+	// Create ECSE tables if they don't exist
+	if err := CreateECSETables(); err != nil {
+		LogError("Failed to create ECSE tables", err)
+	}
+	
+	// Fix ECSE date issues
+	if err := FixECSEDateIssues(); err != nil {
+		LogError("Failed to fix ECSE date issues", err)
+	}
+	
+	// Initialize Server-Sent Events for GPS tracking
+	LogInfo("🛰️  Initializing GPS tracking system...")
+	InitSSE()
+	
+	// Start GPS simulation for demo purposes
+	LogInfo("🚌 Starting GPS simulation...")
+	startGPSSimulation()
+	
 	// Check for command line arguments
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
@@ -671,15 +699,37 @@ func main() {
 	compressionConfig.Enabled = os.Getenv("DISABLE_COMPRESSION") != "true"
 
 	// Chain middlewares: Metrics -> CSP -> Security -> WebSocketFix -> Router (Compression disabled for now)
-	handler := MetricsHandler(CSPMiddleware(SecurityHeaders(WebSocketFixMiddleware(mux))))
+	handler := MetricsHandler(CSPMiddleware(SecurityHeaders(mux)))
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = DefaultPort
 	}
+	
+	// Check if port is available before creating server
+	if err := CheckPortAvailable(port); err != nil {
+		LogError("Port not available", err)
+		// Try to resolve port conflict
+		if resolveErr := HandlePortConflict(port); resolveErr != nil {
+			LogError("Failed to resolve port conflict", resolveErr)
+			// Try to find an alternative port
+			portNum := 0
+			fmt.Sscanf(port, "%d", &portNum)
+			if portNum > 0 {
+				if availablePort, findErr := FindAvailablePort(portNum+1, 10); findErr == nil {
+					port = fmt.Sprintf("%d", availablePort)
+					LogInfo(fmt.Sprintf("🔄 Using alternative port: %s", port))
+				} else {
+					LogFatal("No available ports found", findErr)
+				}
+			} else {
+				LogFatal("Cannot start server", err)
+			}
+		}
+	}
 
 	server := &http.Server{
-		Addr:           fmt.Sprintf(":%s", port),
+		Addr:           fmt.Sprintf("0.0.0.0:%s", port),
 		Handler:        handler,
 		ReadTimeout:    ReadTimeout,
 		WriteTimeout:   WriteTimeout,
@@ -698,7 +748,23 @@ func main() {
 		log.Printf("Warning: Failed to check drivers: %v", err)
 	}
 
-	log.Printf("🚀 Server starting on port %s", port)
+	log.Printf("🚀 Server starting on 0.0.0.0:%s", port)
+	log.Printf("🌐 Access the application at:")
+	log.Printf("   - http://localhost:%s", port)
+	log.Printf("   - http://127.0.0.1:%s", port)
+	
+	// Start server in goroutine to check if it's actually listening
+	go func() {
+		time.Sleep(2 * time.Second)
+		resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%s/health", port))
+		if err != nil {
+			log.Printf("⚠️  Server health check failed: %v", err)
+		} else {
+			resp.Body.Close()
+			log.Printf("✅ Server is running and accepting connections!")
+		}
+	}()
+	
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("Server error: %v", err)
 	}
@@ -855,7 +921,6 @@ func setupRoutes() *http.ServeMux {
 	
 	// Debug endpoints are available through /api/debug-* routes in development mode
 	mux.HandleFunc("/api/debug/data", withRecovery(requireAuth(requireRole("manager")(debugDataHandler))))
-	mux.HandleFunc("/test-fleet", withRecovery(requireAuth(testFleetHandler)))
 
 	// Manager-only routes
 	setupManagerRoutes(mux)
@@ -870,6 +935,35 @@ func setupRoutes() *http.ServeMux {
 	mux.HandleFunc("/profile", withRecovery(requireAuth(requireDatabase(profileHandler))))
 	mux.HandleFunc("/settings", withRecovery(requireAuth(requireRole("manager")(requireDatabase(settingsHandler)))))
 	mux.HandleFunc("/help-demo", withRecovery(requireAuth(requireDatabase(helpDemoHandler))))
+	
+	// Search routes
+	mux.HandleFunc("/search", withRecovery(requireAuth(searchPageHandler)))
+	mux.HandleFunc("/api/search", withRecovery(requireAuth(globalSearchHandler)))
+	
+	// GPS Tracking routes
+	mux.HandleFunc("/live-tracking", withRecovery(requireAuth(liveTrackingHandler)))
+	mux.HandleFunc("/parent-tracking", withRecovery(requireAuth(parentTrackingHandler)))
+	mux.HandleFunc("/parent-notification-settings", withRecovery(requireAuth(parentNotificationSettingsHandler)))
+	mux.HandleFunc("/api/parent/bus-eta", withRecovery(requireAuth(getParentBusETAHandler)))
+	mux.HandleFunc("/gps-test", withRecovery(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "test_gps.html")
+	}))
+	mux.HandleFunc("/gps-simple", withRecovery(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "gps_simple.html")
+	}))
+	mux.HandleFunc("/gps-debug", withRecovery(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "gps_debug.html")
+	}))
+	mux.HandleFunc("/gps-demo", withRecovery(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "gps_live_demo.html")
+	}))
+	mux.HandleFunc("/gps-public", withRecovery(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "gps_public_demo.html")
+	}))
+	mux.HandleFunc("/api/gps/stream", withRecovery(requireAuth(gpsStreamHandler)))
+	mux.HandleFunc("/api/gps/update", withRecovery(updateGPSLocationHandler))
+	mux.HandleFunc("/api/gps/locations", withRecovery(requireAuth(getCurrentBusLocationsHandler)))
+	mux.HandleFunc("/api/gps/eta", withRecovery(requireAuth(calculateETAHandler)))
 	
 	// Help Center routes
 	mux.HandleFunc("/help-center", withRecovery(requireAuth(helpCenterHandler)))
@@ -888,6 +982,8 @@ func setupRoutes() *http.ServeMux {
 	// Progress Tracking routes
 	mux.HandleFunc("/api/progress", withRecovery(requireAuth(requireDatabase(progressTrackingHandler))))
 	mux.HandleFunc("/progress", withRecovery(requireAuth(requireDatabase(progressDashboardHandler))))
+	mux.HandleFunc("/budget-dashboard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(budgetDashboardPageHandler)))))
+	mux.HandleFunc("/progress-dashboard", withRecovery(requireAuth(requireDatabase(progressDashboardPageHandler))))
 	
 	// User Manual routes
 	mux.HandleFunc("/user-manual", withRecovery(requireAuth(userManualHandler)))
@@ -936,6 +1032,11 @@ func setupAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/route-assignments", withRecovery(requireAuth(requireDatabase(apiRouteAssignmentsHandler))))
 	mux.HandleFunc("/api/ecse-students", withRecovery(requireAuth(requireRole("manager")(requireDatabase(apiECSEStudentsHandler)))))
 	mux.HandleFunc("/api/maintenance-records", withRecovery(requireAuth(requireDatabase(apiMaintenanceRecordsHandler))))
+	
+	// Missing API endpoints - now added
+	mux.HandleFunc("/api/notifications", withRecovery(requireAuth(requireDatabase(apiNotificationsHandler))))
+	mux.HandleFunc("/api/search/students", withRecovery(requireAuth(requireDatabase(apiSearchStudentsHandler))))
+	mux.HandleFunc("/api/fleet/summary", withRecovery(requireAuth(requireDatabase(apiFleetSummaryHandler))))
 	
 	// Maintenance API routes
 	mux.HandleFunc("/api/check-maintenance", withRecovery(requireAuth(requireDatabase(checkMaintenanceDueHandler))))
@@ -998,8 +1099,10 @@ func setupAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/analytics/fleet", withRecovery(requireAuth(requireRole("manager")(AnalyticsHandler))))
 	mux.HandleFunc("/api/analytics/export", withRecovery(requireAuth(requireRole("manager")(requireDatabase(exportAnalyticsHandler)))))
 
-	// Real-time WebSocket endpoint
-	mux.HandleFunc("/ws", withRecovery(requireAuth(WebSocketHandler)))
+	// Server-Sent Events for real-time updates (replaces WebSocket)
+	// SSE doesn't have hijacker issues like WebSockets
+	mux.HandleFunc("/api/gps/status", requireAuth(gpsStatusHandler))
+	mux.HandleFunc("/api/gps/toggle", requireAuth(requireRole("manager")(toggleGPSHandler)))
 
 	// Emergency Response System
 	mux.HandleFunc("/emergency", withRecovery(requireAuth(requireDatabase(emergencyDashboardHandler))))
@@ -1022,11 +1125,11 @@ func setupAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/backup/restore", withRecovery(requireAuth(requireRole("manager")(restoreBackupHandler))))
 	
 	// GPS Tracking API
-	mux.HandleFunc("/api/gps/update", withRecovery(requireAuth(gpsUpdateHandler)))
 	mux.HandleFunc("/api/gps/history", withRecovery(requireAuth(gpsHistoryHandler)))
 	mux.HandleFunc("/api/gps/vehicles", withRecovery(requireAuth(gpsVehiclesHandler)))
 	mux.HandleFunc("/api/geofence", withRecovery(requireAuth(requireRole("manager")(geofenceHandler))))
-	mux.HandleFunc("/ws/gps", withRecovery(gpsWebSocketHandler))
+	// GPS SSE endpoint for real-time updates
+	mux.HandleFunc("/api/gps/update-sse", requireAuth(gpsUpdateSSEHandler))
 	
 	// Route Monitoring & Deviation Alerts
 	mux.HandleFunc("/route-monitoring", withRecovery(requireAuth(requireRole("manager")(requireDatabase(routeMonitoringHandler)))))
@@ -1064,6 +1167,8 @@ func setupAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/parent/api/bus-location", withRecovery(parentAPIBusLocationHandler))
 	mux.HandleFunc("/parent/api/notifications", withRecovery(parentAPINotificationsHandler))
 	mux.HandleFunc("/parent/api/notifications/read", withRecovery(parentAPIMarkNotificationReadHandler))
+	
+	// Missing pages - now implemented
 }
 
 // setupV1APIRoutes configures Version 1 API endpoints
@@ -1091,9 +1196,9 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/delete-user", withRecovery(requireAuth(requireRole("manager")(requireDatabase(deleteUserHandler)))))
 
 	// ECSE Management Routes
-	mux.HandleFunc("/view-ecse-reports", withRecovery(requireAuth(requireRole("manager")(requireDatabase(viewECSEReportsHandler)))))
+	// mux.HandleFunc("/view-ecse-reports", withRecovery(requireAuth(requireRole("manager")(requireDatabase(viewECSEReportsHandler)))))
 	mux.HandleFunc("/ecse-student/", withRecovery(requireAuth(requireRole("manager")(requireDatabase(viewECSEStudentHandler)))))
-	mux.HandleFunc("/edit-ecse-student", withRecovery(requireAuth(requireRole("manager")(requireDatabase(editECSEStudentHandler)))))
+	// mux.HandleFunc("/edit-ecse-student", withRecovery(requireAuth(requireRole("manager")(requireDatabase(editECSEStudentHandler)))))
 	mux.HandleFunc("/export-ecse", withRecovery(requireAuth(requireRole("manager")(requireDatabase(exportECSEHandler)))))
 
 	// Dashboard
@@ -1115,14 +1220,14 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/ecse-dashboard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(ecseDashboardHandler)))))
 	mux.HandleFunc("/ecse-student", withRecovery(requireAuth(requireRole("manager")(requireDatabase(ecseStudentDetailsHandler)))))
 	mux.HandleFunc("/add-ecse-service", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addECSEServiceHandler)))))
-	mux.HandleFunc("/import-ecse", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importECSEHandler)))))
+	// mux.HandleFunc("/import-ecse", withRecovery(requireAuth(requireRole("manager")(requireDatabase(importECSEHandler)))))
 	mux.HandleFunc("/add-sample-ecse-data", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addSampleECSEDataHandler)))))
 	mux.HandleFunc("/add-sample-fleet-data", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addSampleFleetDataHandler)))))
 	mux.HandleFunc("/add-sample-fuel-data", withRecovery(requireAuth(requireRole("manager")(requireDatabase(addSampleFuelDataHandler)))))
 	mux.HandleFunc("/generate-mileage-reports", withRecovery(requireAuth(requireRole("manager")(requireDatabase(generateMileageReportsFromLogsHandler)))))
 	// mux.HandleFunc("/fix-tables", withRecovery(requireAuth(requireRole("manager")(requireDatabase(fixTablesHandler))))) - removed
 	mux.HandleFunc("/data-status", withRecovery(requireAuth(requireRole("manager")(requireDatabase(dataStatusHandler)))))
-	mux.HandleFunc("/check-db", withRecovery(requireAuth(requireRole("manager")(requireDatabase(checkDatabaseHandler)))))
+	// mux.HandleFunc("/check-db", withRecovery(requireAuth(requireRole("manager")(requireDatabase(checkDatabaseHandler)))))
 	
 	// Fuel Management
 	mux.HandleFunc("/fuel-records", withRecovery(requireAuth(requireDatabase(fuelRecordsHandler))))
@@ -1169,7 +1274,9 @@ func setupManagerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/save-maintenance-wizard", withRecovery(requireAuth(requireDatabase(saveMaintenanceWizardHandler))))
 
 	// Route management
-	mux.HandleFunc("/assign-routes", withRecovery(requireAuth(requireRole("manager")(requireDatabase(assignRoutesHandler)))))
+	mux.HandleFunc("/assign-routes", withRecovery(requireAuth(requireRole("manager")(requireDatabase(handleAssignRoutesEnhanced)))))
+	mux.HandleFunc("/multi-route-assign", withRecovery(requireAuth(requireRole("manager")(handleMultiRouteAssign))))
+	mux.HandleFunc("/api/driver-assignments", withRecovery(requireAuth(getDriverAssignmentsAPI)))
 	mux.HandleFunc("/route-assignment-wizard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(routeAssignmentWizardHandler)))))
 	mux.HandleFunc("/assign-route-wizard", withRecovery(requireAuth(requireRole("manager")(requireDatabase(assignRouteWizardHandler)))))
 	mux.HandleFunc("/assign-route", withRecovery(requireAuth(requireRole("manager")(requireDatabase(assignRouteHandler)))))
@@ -1245,19 +1352,20 @@ func setupManagerRoutes(mux *http.ServeMux) {
 
 // setupDriverRoutes configures driver-specific routes
 func setupDriverRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/driver-dashboard", withRecovery(requireAuth(requireRole("driver")(requireDatabase(driverDashboardHandler)))))
+	mux.HandleFunc("/driver-dashboard", withRecovery(requireAuth(requireDatabase(driverDashboardHandler))))
 	mux.HandleFunc("/save-log", withRecovery(requireAuth(requireRole("driver")(requireDatabase(saveLogHandler)))))
 
 	// Reports page
 	mux.HandleFunc("/reports", withRecovery(requireAuth(requireDatabase(reportsHandler))))
 	mux.HandleFunc("/ecse-reports", withRecovery(requireAuth(requireRole("manager")(requireDatabase(ecseDashboardHandler)))))
 
-	// Student management
+	// Student management - both managers and drivers can manage students
 	mux.HandleFunc("/students", withRecovery(requireAuth(requireDatabase(studentsHandler))))
-	mux.HandleFunc("/add-student", withRecovery(requireAuth(requireRole("driver")(requireDatabase(addStudentHandler)))))
-	mux.HandleFunc("/add-student-wizard", withRecovery(requireAuth(requireRole("driver")(requireDatabase(addStudentWizardHandler)))))
-	mux.HandleFunc("/edit-student", withRecovery(requireAuth(requireRole("driver")(requireDatabase(editStudentHandler)))))
-	mux.HandleFunc("/remove-student", withRecovery(requireAuth(requireRole("driver")(requireDatabase(removeStudentHandler)))))
+	mux.HandleFunc("/debug-students", withRecovery(requireAuth(requireDatabase(debugStudentsHandler))))
+	mux.HandleFunc("/add-student", withRecovery(requireAuth(requireDatabase(addStudentHandler))))
+	mux.HandleFunc("/add-student-wizard", withRecovery(requireAuth(requireDatabase(addStudentWizardHandler))))
+	mux.HandleFunc("/edit-student", withRecovery(requireAuth(requireDatabase(editStudentHandler))))
+	mux.HandleFunc("/remove-student", withRecovery(requireAuth(requireDatabase(removeStudentHandler))))
 }
 
 // ============= UTILITY HANDLER =============
@@ -1393,20 +1501,41 @@ func validateCSRF(r *http.Request) bool {
 func gracefulShutdown(server *http.Server) {
 	// Wait for interrupt signal
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	<-sigChan
 
-	log.Println("Shutting down server...")
+	LogInfo("🛑 Initiating graceful shutdown...")
 
 	// Give connections 30 seconds to finish
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+	
+	// Stop accepting new connections
+	LogInfo("⏸️  Stopping new connections...")
+	
+	// Close database connections
+	go func() {
+		LogInfo("🗄️  Closing database connections...")
+		if db != nil {
+			db.Close()
+		}
+	}()
+	
+	// Log active sessions count
+	go func() {
+		LogInfo("💾 Active sessions will be terminated...")
+		// Sessions are stored in memory and will be lost on shutdown
+		// This is acceptable for this application
+	}()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Printf("Server forced to shutdown: %v", err)
+		LogError("Server forced to shutdown", err)
+	} else {
+		LogInfo("✅ Server shutdown complete")
 	}
-
-	log.Println("Server shutdown complete")
+	
+	// Final cleanup
+	LogInfo("🧹 Final cleanup complete")
 }
 
 // Helper functions

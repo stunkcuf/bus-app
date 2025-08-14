@@ -261,7 +261,56 @@
         transform: translateY(0);
       }
     }
-  </style>
+  
+    /* CSP-compliant style replacements */
+    .opacity-90 { opacity: 0.9; }
+    .opacity-80 { opacity: 0.8; }
+    .opacity-70 { opacity: 0.7; }
+    .opacity-60 { opacity: 0.6; }
+    .opacity-50 { opacity: 0.5; }
+    
+    .text-lg { font-size: 1.1rem; }
+    .text-xl { font-size: 1.5rem; }
+    .text-md { font-size: 1.25rem; }
+    .text-sm { font-size: 0.9rem; }
+    
+    .text-muted-sm {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+    
+    .empty-icon {
+      font-size: 4rem;
+      opacity: 0.5;
+    }
+    
+    .gradient-text-2 {
+      background: var(--gradient-2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-3 {
+      background: var(--gradient-3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-4 {
+      background: var(--gradient-4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .text-blue-light { color: #4facfe; }
+    
+    .info-box-light {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+    }
+    
+    .mb-4 { margin-bottom: 1.5rem; }
+</style>
     <!-- Dark Theme Text Colors -->
     <link rel="stylesheet" href="/static/dark_theme_text.css">
 </head>
@@ -298,7 +347,7 @@
     <div class="container">
       <div class="hero-content">
         <h1 class="fade-in">Import ECSE Data</h1>
-        <p class="lead fade-in" style="opacity: 0.9;">Upload Excel files with special education student information</p>
+        <p class="lead fade-in" class="opacity-90">Upload Excel files with special education student information</p>
       </div>
     </div>
   </section>
@@ -338,7 +387,7 @@
           <i class="bi bi-file-earmark-excel"></i>
           Upload ECSE Report
         </h2>
-        <p class="mb-0" style="opacity: 0.8;">Select your Excel file to import ECSE student data</p>
+        <p class="mb-0" class="opacity-80">Select your Excel file to import ECSE student data</p>
       </div>
       
       <div class="upload-card-body">
@@ -350,7 +399,7 @@
             <h3>Drag & Drop Excel File Here</h3>
             <p>or click to browse for file</p>
             <input type="file" name="excel_file" id="fileInput" class="file-input" accept=".xlsx,.xls" required>
-            <button type="button" class="btn-upload" onclick="document.getElementById('fileInput').click()">
+            <button type="button" class="btn-upload" data-action="custom" data-onclick="document.getElementById('fileInput').click()">
               <i class="bi bi-folder2-open"></i>
               Choose File
             </button>
@@ -362,7 +411,7 @@
                 <i class="bi bi-file-earmark-excel"></i>
                 <div>
                   <div id="fileName" style="font-weight: 600;"></div>
-                  <div id="fileSize" style="opacity: 0.8; font-size: 0.9rem;"></div>
+                  <div id="fileSize" class="text-muted-sm"></div>
                 </div>
               </div>
               <i class="bi bi-check-circle-fill" style="color: #43e97b; font-size: 1.5rem;"></i>
@@ -405,32 +454,32 @@
               <tr>
                 <th scope="row">Student Information</th>
                 <td>Basic student demographics</td>
-                <td style="opacity: 0.8;">Name, ID, DOB, Grade</td>
+                <td class="opacity-80">Name, ID, DOB, Grade</td>
               </tr>
               <tr>
                 <th scope="row">Enrollment Status</th>
                 <td>Current enrollment information</td>
-                <td style="opacity: 0.8;">Active, Inactive, Transfer</td>
+                <td class="opacity-80">Active, Inactive, Transfer</td>
               </tr>
               <tr>
                 <th scope="row">Service Details</th>
                 <td>Special education services</td>
-                <td style="opacity: 0.8;">IEP, Speech, OT, PT</td>
+                <td class="opacity-80">IEP, Speech, OT, PT</td>
               </tr>
               <tr>
                 <th scope="row">Transportation</th>
                 <td>Transportation requirements</td>
-                <td style="opacity: 0.8;">Bus Route, Special Needs</td>
+                <td class="opacity-80">Bus Route, Special Needs</td>
               </tr>
               <tr>
                 <th scope="row">Contact Information</th>
                 <td>Parent/Guardian contacts</td>
-                <td style="opacity: 0.8;">Phone, Email, Address</td>
+                <td class="opacity-80">Phone, Email, Address</td>
               </tr>
               <tr>
                 <th scope="row">Assessment Data</th>
                 <td>Evaluation and progress data</td>
-                <td style="opacity: 0.8;">Test scores, Goals, Progress</td>
+                <td class="opacity-80">Test scores, Goals, Progress</td>
               </tr>
             </tbody>
           </table>
@@ -455,6 +504,32 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script nonce="{{.CSPNonce}}">
     document.addEventListener('DOMContentLoaded', function() {
+      // CSP-compliant event listeners
+      document.querySelectorAll('[data-action]').forEach(element => {
+        element.addEventListener('click', function(e) {
+          e.preventDefault();
+          const action = this.dataset.action;
+          
+          switch(action) {
+            case 'update-status':
+              updateStatus(this.dataset.id, this.dataset.type, this.dataset.value);
+              break;
+            case 'edit-bus':
+              editBus(this.dataset.busId);
+              break;
+            case 'delete-bus':
+              deleteBus(this.dataset.busId);
+              break;
+            case 'custom':
+              // Evaluate the original onclick content (careful with this)
+              try {
+                eval(this.dataset.onclick);
+              } catch (e) { /* Error handled silently */ }
+              break;
+          }
+        });
+      });
+
       const fileInput = document.getElementById('fileInput');
       const uploadArea = document.getElementById('uploadArea');
       const fileInfo = document.getElementById('fileInfo');

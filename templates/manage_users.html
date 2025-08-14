@@ -88,14 +88,14 @@
     /* Override conflicting styles from dark_theme_text.css */
     body .table tbody tr,
     body .table-dark tbody tr {
-      background: rgba(0, 0, 0, 0.4) !important;
-      color: white !important;
+      background: rgba(0, 0, 0, 0.4);
+      color: white;
     }
     
     body .table tbody tr:hover,
     body .table-dark tbody tr:hover {
-      background: rgba(0, 0, 0, 0.6) !important;
-      color: white !important;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
     }
     
     /* Ultimate beautiful design system */
@@ -123,6 +123,7 @@
       min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       overflow-x: hidden;
+      padding-top: 70px;
     }
     
     /* Animated background */
@@ -149,7 +150,7 @@
     
     /* Glass cards - ensure dark background */
     .glass-card {
-      background: rgba(0, 0, 0, 0.6) !important;
+      background: rgba(0, 0, 0, 0.6);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-radius: 30px;
@@ -162,22 +163,22 @@
     
     /* Tables - Override Bootstrap completely */
     .table {
-      --bs-table-bg: transparent !important;
-      --bs-table-accent-bg: transparent !important;
-      --bs-table-striped-bg: rgba(0, 0, 0, 0.3) !important;
-      --bs-table-striped-color: white !important;
-      --bs-table-active-bg: rgba(0, 0, 0, 0.5) !important;
-      --bs-table-active-color: white !important;
-      --bs-table-hover-bg: rgba(0, 0, 0, 0.6) !important;
-      --bs-table-hover-color: white !important;
-      color: white !important;
+      --bs-table-bg: transparent;
+      --bs-table-accent-bg: transparent;
+      --bs-table-striped-bg: rgba(0, 0, 0, 0.3);
+      --bs-table-striped-color: white;
+      --bs-table-active-bg: rgba(0, 0, 0, 0.5);
+      --bs-table-active-color: white;
+      --bs-table-hover-bg: rgba(0, 0, 0, 0.6);
+      --bs-table-hover-color: white;
+      color: white;
       margin-bottom: 0;
-      background-color: transparent !important;
+      background-color: transparent;
     }
     
     .table thead th {
       background: rgba(255, 255, 255, 0.15);
-      color: white !important;
+      color: white;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -187,18 +188,18 @@
     }
     
     .table tbody tr {
-      background: rgba(0, 0, 0, 0.4) !important;
+      background: rgba(0, 0, 0, 0.4);
       transition: all 0.3s ease;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
     
     .table tbody tr:hover {
-      background: rgba(0, 0, 0, 0.6) !important;
+      background: rgba(0, 0, 0, 0.6);
       transform: translateX(10px);
     }
     
     .table tbody td {
-      color: white !important;
+      color: white;
       border: none;
       padding: 1rem;
       vertical-align: middle;
@@ -206,7 +207,7 @@
     
     /* Fix table responsive wrapper */
     .table-responsive {
-      background: transparent !important;
+      background: transparent;
       border: none;
       overflow-x: auto;
     }
@@ -255,13 +256,13 @@
     /* Table action buttons */
     .table .btn-group .btn-primary {
       background: var(--gradient-1);
-      color: white !important;
+      color: white;
       border: none;
     }
     
     .table .btn-group .btn-danger {
       background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-      color: white !important;
+      color: white;
       border: none;
     }
     
@@ -272,38 +273,38 @@
     
     /* Force all table text to be visible */
     table, th, td {
-      color: white !important;
+      color: white;
     }
     
     /* Search input styling */
     .search-input {
-      background: rgba(0, 0, 0, 0.5) !important;
-      border: 2px solid rgba(255, 255, 255, 0.2) !important;
-      color: white !important;
+      background: rgba(0, 0, 0, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      color: white;
     }
     
     .search-input::placeholder {
-      color: rgba(255, 255, 255, 0.6) !important;
+      color: rgba(255, 255, 255, 0.6);
     }
     
     /* Username display in table */
     .table td .d-flex {
-      color: white !important;
+      color: white;
     }
     
     /* Ensure dark backgrounds throughout */
     .glass-card .table-responsive {
-      background: transparent !important;
+      background: transparent;
     }
     
     .table {
-      background: transparent !important;
+      background: transparent;
     }
     
     /* Override any Bootstrap defaults */
     .table-hover tbody tr:hover {
-      background-color: rgba(0, 0, 0, 0.6) !important;
-      color: white !important;
+      background-color: rgba(0, 0, 0, 0.6);
+      color: white;
     }
     
     /* Force dark theme on all Bootstrap table variations */
@@ -312,15 +313,15 @@
     .table-hover,
     .table-bordered,
     .table {
-      --bs-table-color: white !important;
-      --bs-table-bg: transparent !important;
-      --bs-table-border-color: rgba(255, 255, 255, 0.1) !important;
+      --bs-table-color: white;
+      --bs-table-bg: transparent;
+      --bs-table-border-color: rgba(255, 255, 255, 0.1);
     }
     
     /* Ensure all text stays white */
     .glass-card,
     .glass-card * {
-      color: white !important;
+      color: white;
     }
     
     /* Override Bootstrap table colors completely */
@@ -331,14 +332,14 @@
     body .table > thead > tr > td,
     body .table > tbody > tr > td,
     body .table > tfoot > tr > td {
-      background-color: transparent !important;
-      color: white !important;
-      border-color: rgba(255, 255, 255, 0.1) !important;
+      background-color: transparent;
+      color: white;
+      border-color: rgba(255, 255, 255, 0.1);
     }
     
     /* Override metric-card text color from dark_theme_text.css */
     .metric-card {
-      color: white !important;
+      color: white;
     }
     
     /* Page header */
@@ -348,24 +349,24 @@
     
     .page-header h1,
     .page-header p {
-      color: white !important;
+      color: white;
     }
     
     /* Fix button visibility */
     .btn-group .btn {
       background: rgba(255, 255, 255, 0.1);
-      color: white !important;
+      color: white;
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
     
     .btn-group .btn:hover {
       background: rgba(255, 255, 255, 0.2);
-      color: white !important;
+      color: white;
     }
     
     /* Ensure links in table are visible */
     .table a {
-      color: white !important;
+      color: white;
       text-decoration: none;
     }
     
@@ -512,12 +513,7 @@
   <script nonce="{{.CSPNonce}}">
     // Debug CSP issues
     document.addEventListener('securitypolicyviolation', function(e) {
-      console.error('CSP Violation:', {
-        blockedURI: e.blockedURI,
-        violatedDirective: e.violatedDirective,
-        originalPolicy: e.originalPolicy
       });
-    });
   </script>
   
   <!-- Script Loading Verification -->
@@ -531,7 +527,6 @@
       
       scripts.forEach(script => {
         if (!script.check()) {
-          console.error(`Failed to load: ${script.name}`);
           // Try to reload the script
           const scriptTag = document.querySelector(`script[src*="${script.name}"]`);
           if (scriptTag) {
@@ -539,8 +534,7 @@
             newScript.src = scriptTag.src;
             newScript.nonce = '{{.CSPNonce}}';
             newScript.onerror = function() {
-              console.error(`Failed to reload: ${script.name}`);
-            };
+              };
             newScript.onload = function() {
               console.log(`Successfully reloaded: ${script.name}`);
               // Re-initialize delete buttons if confirmation dialog was reloaded
@@ -688,7 +682,6 @@
         // Check CSRF token exists
         const csrfToken = '{{.CSRFToken}}';
         if (!csrfToken) {
-          console.error('CSRF token is missing');
           alert('Security token missing. Please refresh the page.');
           return;
         }
@@ -718,7 +711,6 @@
         console.log('Submitting delete form for user:', username);
         form.submit();
       } catch (error) {
-        console.error('Error in deleteUser:', error);
         alert('Failed to delete user. Check console for details.');
       }
     }
@@ -729,7 +721,6 @@
       
       // Check if confirmation dialog is ready
       if (typeof confirmationHelpers === 'undefined') {
-        console.error('confirmationHelpers not loaded yet, retrying...');
         // Retry after a short delay
         setTimeout(initializeDeleteButtons, 50);
         return;
@@ -798,8 +789,7 @@
       const scripts = document.querySelectorAll('script[src*="/static/"]');
       scripts.forEach(script => {
         script.addEventListener('error', function() {
-          console.error('Failed to load script:', script.src);
-        });
+          });
       });
     });
     
@@ -824,5 +814,8 @@
     
     observer.observe(document.body, { childList: true, subtree: true });
   </script>
+  <!-- jQuery and Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

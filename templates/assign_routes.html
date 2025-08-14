@@ -483,6 +483,56 @@
       box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
       color: white;
     }
+    
+    /* Inline style replacements */
+    .hero-subtitle {
+      opacity: 0.9;
+    }
+    
+    .hero-description {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+    
+    .gradient-text-2 {
+      background: var(--gradient-2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-3 {
+      background: var(--gradient-3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gradient-text-4 {
+      background: var(--gradient-4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .route-info-box {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+    }
+    
+    .text-muted-light {
+      opacity: 0.8;
+    }
+    
+    .section-header-medium {
+      font-size: 1.5rem;
+    }
+    
+    .section-header-small {
+      font-size: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .text-blue-light {
+      color: #4facfe;
+    }
   </style>
     <!-- Dark Theme Text Colors -->
     <link rel="stylesheet" href="/static/dark_theme_text.css">
@@ -515,8 +565,8 @@
     <div class="container">
       <div class="hero-content">
         <h1 class="fade-in">Route Management</h1>
-        <p class="lead fade-in" style="opacity: 0.9;">Assign drivers to bus routes and manage route definitions</p>
-        <p class="fade-in" style="opacity: 0.8; font-size: 0.9rem;">
+        <p class="lead fade-in hero-subtitle">Assign drivers to bus routes and manage route definitions</p>
+        <p class="fade-in hero-description">
           <i class="bi bi-info-circle"></i> One driver with one bus can be assigned to multiple routes
         </p>
         <div class="mt-4 fade-in">
@@ -554,7 +604,7 @@
     <div class="glass-card fade-in">
       <div class="glass-card-header">
         <h2>
-          <i class="bi bi-signpost-2" style="background: var(--gradient-2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+          <i class="bi bi-signpost-2 gradient-text-2"></i>
           Route Definitions
         </h2>
         <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addRouteForm">
@@ -565,7 +615,7 @@
       
       <!-- Add Route Form (Collapsed) -->
       <div class="collapse" id="addRouteForm">
-        <div class="p-3 mb-3" style="background: rgba(255, 255, 255, 0.05); border-radius: 20px;">
+        <div class="p-3 mb-3 route-info-box">
           <form method="POST" action="/add-route">
             <input type="hidden" name="csrf_token" value="{{.Data.CSRFToken}}">
             <div class="row">
@@ -603,6 +653,36 @@
         </div>
       </div>
       
+      <!-- Edit Route Modal -->
+      <div class="modal fade" id="editRouteModal" tabindex="-1" aria-labelledby="editRouteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="editRouteModalLabel">Edit Route</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editRouteForm" method="POST" action="/edit-route">
+              <div class="modal-body">
+                <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+                <input type="hidden" name="route_id" id="edit_route_id">
+                <div class="mb-3">
+                  <label for="edit_route_name" class="form-label">Route Name</label>
+                  <input type="text" class="form-control" id="edit_route_name" name="route_name" required>
+                </div>
+                <div class="mb-3">
+                  <label for="edit_description" class="form-label">Description</label>
+                  <textarea class="form-control" id="edit_description" name="description" rows="3"></textarea>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      
       <!-- Routes List -->
       {{if .Data.RoutesWithStatus}}
       <div class="table-responsive">
@@ -624,7 +704,7 @@
                   </div>
                   <div>
                     <div class="fw-semibold">{{.RouteName}}</div>
-                    <small style="opacity: 0.8;">{{.RouteID}}{{if .Description}} • {{.Description}}{{end}}</small>
+                    <small class="text-muted-light">{{.RouteID}}{{if .Description}} • {{.Description}}{{end}}</small>
                   </div>
                 </div>
               </td>
@@ -682,7 +762,7 @@
         <div class="glass-card fade-in">
           <div class="glass-card-header">
             <h2>
-              <i class="bi bi-people-fill" style="background: var(--gradient-4); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+              <i class="bi bi-people-fill gradient-text-4"></i>
               Current Driver Assignments
             </h2>
           </div>
@@ -706,7 +786,7 @@
                       </div>
                       <div>
                         <div class="fw-semibold">{{.Driver}}</div>
-                        <small style="opacity: 0.8;">
+                        <small class="text-muted-light">
                           <i class="bi bi-bus-front"></i> Bus {{.BusID}} • 
                           <i class="bi bi-signpost-2"></i> {{.RouteName}}
                         </small>
@@ -747,8 +827,8 @@
       <div class="col-lg-4">
         <div class="glass-card fade-in">
           <div class="glass-card-header">
-            <h2 style="font-size: 1.5rem;">
-              <i class="bi bi-plus-circle" style="background: var(--gradient-3); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+            <h2 class="section-header-medium">
+              <i class="bi bi-plus-circle gradient-text-3"></i>
               Assign Driver
             </h2>
           </div>
@@ -819,8 +899,8 @@
         
         <!-- Fleet Status -->
         <div class="glass-card fade-in mt-4">
-          <h3 style="font-size: 1.25rem; margin-bottom: 1.5rem;">
-            <i class="bi bi-bus-front" style="color: #4facfe;"></i>
+          <h3 class="section-header-small">
+            <i class="bi bi-bus-front text-blue-light"></i>
             Fleet Status
           </h3>
           {{if .Data.AvailableBuses}}
@@ -834,7 +914,7 @@
                   </div>
                   <div>
                     <div class="fw-semibold">Bus #{{.BusID}}</div>
-                    <small style="opacity: 0.8;">{{if .Model}}{{.Model}}{{else}}Fleet Vehicle{{end}}</small>
+                    <small class="text-muted-light">{{if .Model}}{{.Model}}{{else}}Fleet Vehicle{{end}}</small>
                   </div>
                 </div>
                 <span class="status-available">Available</span>
@@ -891,6 +971,26 @@
         if (!confirm('Are you sure you want to remove this assignment?')) {
           e.preventDefault();
         }
+      });
+    });
+    
+    // Edit route functionality
+    document.querySelectorAll('.js-edit-route').forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const routeId = this.dataset.routeId;
+        const routeName = this.dataset.routeName;
+        const description = this.dataset.description || '';
+        
+        // Populate modal fields
+        document.getElementById('edit_route_id').value = routeId;
+        document.getElementById('edit_route_name').value = routeName;
+        document.getElementById('edit_description').value = description;
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('editRouteModal'));
+        modal.show();
       });
     });
     
@@ -970,5 +1070,10 @@
       background: rgba(255, 255, 255, 0.1) !important;
     }
   </style>
+  
+  <!-- Fix script for assign routes page -->
+  <script src="/static/fix_assign_routes.js"></script>
+  <script src="/static/assign_routes_enhanced.js"></script>
+  <script src="/static/fix_driver_bus_selection.js"></script>
 </body>
 </html>

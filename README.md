@@ -1,196 +1,122 @@
-# Bus Fleet Management System v2.0
+# HS Bus - Fleet Management System
 
-A secure web-based fleet management system for managing bus routes, drivers, students, and maintenance records. Built with Go and PostgreSQL.
+A comprehensive web-based fleet management system for school transportation operations. Built with Go and PostgreSQL.
 
-📚 **For complete documentation, see [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)**
+## Features
 
-## 🔒 Security Updates (v2.0)
+### Core Functionality
+- **Fleet Management**: Track buses and vehicles with maintenance schedules
+- **Driver Management**: User accounts, route assignments, and performance tracking  
+- **Student Tracking**: Roster management, attendance, and ECSE support
+- **Route Optimization**: Assign drivers to buses and routes efficiently
+- **Reporting**: Mileage reports, maintenance logs, and analytics dashboards
 
-This version includes significant security improvements:
-- **Password Hashing**: All passwords are now stored using bcrypt hashing
-- **CSRF Protection**: All forms include CSRF token validation
-- **Input Sanitization**: All user inputs are sanitized to prevent XSS attacks
-- **Secure Sessions**: Session management with secure cookies
-- **Rate Limiting**: Login attempts are rate-limited to prevent brute force attacks
+### Key Capabilities
+- 📱 Mobile-responsive design for tablet use in vehicles
+- 🔒 Secure authentication with role-based access (Manager/Driver)
+- 📊 Real-time dashboards with data visualization
+- 📥 Excel import/export for bulk data operations
+- 🚸 Special education (ECSE) student tracking
+- 📈 Advanced analytics and PDF report generation
 
-## 🚀 Getting Started
+## Quick Start
 
 ### Prerequisites
-
-- Go 1.23.0 or higher
-- PostgreSQL database (Railway or similar)
+- Go 1.21+ 
+- PostgreSQL database
 - Environment variables configured
-
-### Environment Variables
-
-```bash
-# Database connection (Railway provides DATABASE_URL)
-DATABASE_URL=postgres://user:password@host:port/dbname?sslmode=require
-
-# Or individual PostgreSQL variables
-PGHOST=your-db-host
-PGPORT=your-db-port
-PGUSER=your-db-user
-PGPASSWORD=your-db-password
-PGDATABASE=your-db-name
-
-# Application port (optional, defaults to 5000)
-PORT=5000
-```
 
 ### Installation
 
-1. Clone the repository:
+1. **Clone and setup**
 ```bash
-git clone <your-repo-url>
-cd bus-app
-```
-
-2. Install dependencies:
-```bash
+git clone <repository>
+cd hs-bus
 go mod download
 ```
 
-3. **IMPORTANT**: Migrate existing passwords to bcrypt hashes:
+2. **Configure environment**
 ```bash
-go run migrate_passwords.go
+# Create .env file with:
+DATABASE_URL=postgresql://user:password@host:port/dbname
+PORT=8080  # Optional, defaults to 8080 if not set
 ```
 
-This will:
-- Convert all plain text passwords to secure bcrypt hashes
-- Create a temporary admin account if needed (username: `temp_admin`, password: `TempAdmin123!`)
-
-4. Run the application:
+3. **Run the application**
 ```bash
 go run .
+# Or build and run:
+go build -o fleet.exe && ./fleet.exe
 ```
 
-## 🔐 Default Login
+4. **Access the system**
+- Navigate to `http://localhost:8080` (default port)
+- Default manager login: `admin` / `Headstart1`
+- Default driver login: `test` / `Headstart1`
 
-If you're starting fresh or after migration:
-- **Username**: `admin`
-- **Password**: `adminpass` (will be hashed on first run)
+## Project Structure
 
-Or if migration created a temporary admin:
-- **Username**: `temp_admin`
-- **Password**: `TempAdmin123!`
+```
+hs-bus/
+├── main.go                 # Application entry point
+├── handlers*.go            # HTTP request handlers
+├── models.go               # Data models
+├── database.go             # Database connection and queries
+├── templates/              # HTML templates
+│   ├── components/         # Reusable UI components  
+│   └── *.html             # Page templates
+├── static/                 # CSS, JavaScript, images
+└── migrations/             # Database schema files
+```
 
-**Important**: Change these default passwords immediately after first login!
+## Technology Stack
 
-## 📋 Features
+- **Backend**: Go 1.24+, sqlx, lib/pq
+- **Database**: PostgreSQL 15+
+- **Frontend**: Bootstrap 5.3, Vanilla JavaScript
+- **Security**: bcrypt, CSRF protection, secure sessions
+- **Deployment**: Railway, Docker support
 
-### For Managers
-- **User Management**: Create and manage driver/manager accounts
-- **Route Management**: Define routes and assign them to drivers
-- **Fleet Management**: Manage buses and their maintenance status
-- **Driver Monitoring**: View driver performance and logs
-- **Import Vehicles**: Import buses from company fleet inventory
+## Development
 
-### For Drivers
-- **Daily Logs**: Record trip details, mileage, and student attendance
-- **Student Management**: Manage student roster with pickup/dropoff locations
-- **Route Information**: View assigned route and bus details
-- **Recent Activity**: Track recent trips and attendance
-
-### Security Features
-- Secure password storage with bcrypt hashing
-- CSRF protection on all forms
-- Input validation and sanitization
-- Session timeout after 24 hours
-- Rate limiting on login attempts
-- Secure HTTP headers
-
-## 🛠️ Technical Details
-
-### Database Schema
-The system uses PostgreSQL with the following main tables:
-- `users` - System users (drivers and managers)
-- `buses` - Bus fleet information
-- `routes` - Route definitions
-- `students` - Student information
-- `route_assignments` - Driver-bus-route assignments
-- `driver_logs` - Daily trip logs
-- `bus_maintenance_logs` - Maintenance records
-- `vehicles` - Company vehicle inventory
-- `activities` - Special trips/activities
-
-### Technology Stack
-- **Backend**: Go 1.23.0
-- **Database**: PostgreSQL
-- **Frontend**: Bootstrap 5.3.0, Vanilla JavaScript
-- **Security**: bcrypt, CSRF tokens, secure sessions
-- **Deployment**: Railway (recommended)
-
-## 🚦 API Endpoints
-
-### Public Endpoints
-- `GET /` - Login page
-- `POST /` - Login submission
-- `GET /health` - Health check
-
-### Protected Endpoints (Require Authentication)
-- `GET/POST /new-user` - Create new user (managers only)
-- `GET/POST /edit-user` - Edit user (managers only)
-- `GET /dashboard` - Auto-routes to appropriate dashboard
-- `GET /manager-dashboard` - Manager dashboard
-- `GET /driver-dashboard` - Driver dashboard
-- `POST /save-log` - Save driver log
-- `GET /students` - Student management (drivers)
-- `POST /add-student` - Add new student
-- `POST /edit-student` - Edit student
-- `POST /remove-student` - Remove student
-- And many more...
-
-## 🔧 Maintenance
-
-### Regular Tasks
-1. **Monitor logs** for any security issues or errors
-2. **Review user accounts** periodically
-3. **Update passwords** regularly
-4. **Backup database** regularly
-5. **Check for Go security updates**
-
-### Troubleshooting
-
-#### "Invalid credentials" error after migration
-Run the password migration script:
+### Running locally
 ```bash
-go run migrate_passwords.go
+# Start with auto-reload (requires Air)
+air
+
+# Run tests
+go test ./...
+
+# Build for production
+go build -ldflags='-s -w' -o fleet.exe .
 ```
 
-#### Session expired errors
-Sessions expire after 24 hours. Users need to log in again.
+### Key Files
+- `main.go` - Routes and server configuration
+- `handlers*.go` - Business logic for each feature
+- `database.go` - Database operations
+- `models.go` - Data structures
 
-#### CSRF token errors
-Clear browser cookies and cache, then try again.
+## Documentation
 
-## 📱 Browser Support
+- [Product Requirements](PRD.md) - Feature specifications
+- [Planning Document](PLANNING.md) - Architecture and technical details  
+- [Task List](TASKS.md) - Development roadmap and progress
+- [Development Guide](CLAUDE.md) - Instructions for AI assistants
 
-- Chrome/Edge (latest)
-- Firefox (latest)
-- Safari (latest)
-- Mobile browsers supported
+## Current Status
 
-## 🤝 Contributing
+**Phase 3.5**: User Experience & Accessibility (January 2025)
+- ✅ Core fleet management operational
+- ✅ Advanced reporting and analytics  
+- ✅ Testing infrastructure with CI/CD
+- ✅ Performance optimizations
+- 🔄 Enhanced UI/UX for non-technical users
 
-1. Always hash passwords using bcrypt
-2. Include CSRF tokens in all forms
-3. Validate and sanitize all inputs
-4. Use prepared statements for database queries
-5. Test security features before deploying
+## License
 
-## 📄 License
+Proprietary - For internal use by educational institutions only.
 
-This project is designed for internal use by non-profit organizations.
+## Support
 
-## 🆘 Support
-
-For issues or questions:
-1. Check the logs in your deployment platform
-2. Verify environment variables are set correctly
-3. Ensure database migrations have run
-4. Verify password migration completed successfully
-
----
-
-**Remember**: Security is paramount. Always use strong passwords, keep the system updated, and monitor for suspicious activity.
+For issues or questions, check the logs in your deployment platform and verify environment variables are correctly configured.

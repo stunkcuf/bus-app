@@ -304,7 +304,7 @@ func getRouteMetrics() (*RouteMetrics, error) {
 	rows, err = db.Query(`
 		SELECT EXTRACT(HOUR FROM TO_TIMESTAMP(departure_time, 'HH24:MI')::time) as hour,
 		       COUNT(*) as count
-		FROM trip_logs
+		FROM driver_logs
 		WHERE date >= CURRENT_DATE - INTERVAL '7 days'
 		GROUP BY hour
 		ORDER BY hour
@@ -531,11 +531,11 @@ func getDriverPerformance() ([]DriverMetric, error) {
 	rows, err := db.Query(`
 		SELECT 
 			u.username,
-			COUNT(DISTINCT tl.id) as trip_count,
+			COUNT(DISTINCT dl.id) as trip_count,
 			COUNT(DISTINCT s.id) as student_count,
-			COALESCE(SUM(tl.ending_mileage - tl.beginning_mileage), 0) as miles_driven
+			COALESCE(SUM(dl.end_mileage - dl.start_mileage), 0) as miles_driven
 		FROM users u
-		LEFT JOIN trip_logs tl ON tl.driver = u.username
+		LEFT JOIN driver_logs dl ON dl.driver = u.username
 		LEFT JOIN students s ON s.driver = u.username AND s.active = true
 		WHERE u.role = 'driver' AND u.status = 'active'
 		GROUP BY u.username

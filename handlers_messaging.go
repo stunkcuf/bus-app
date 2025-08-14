@@ -505,7 +505,7 @@ func getAvailableContacts(currentUser *User) ([]MessagingUser, error) {
 		query = `
 			SELECT id, username, email, role, phone 
 			FROM users 
-			WHERE id != $1 AND approved = true
+			WHERE id != $1 AND status = 'active'
 			ORDER BY role, username
 		`
 		args = []interface{}{getUserID(currentUser.Username)}
@@ -514,7 +514,7 @@ func getAvailableContacts(currentUser *User) ([]MessagingUser, error) {
 		query = `
 			SELECT DISTINCT u.id, u.username, u.email, u.role, u.phone
 			FROM users u
-			WHERE u.id != $1 AND u.approved = true
+			WHERE u.id != $1 AND u.status = 'active'
 			AND (u.role = 'manager' OR 
 			     EXISTS (
 			         SELECT 1 FROM route_assignments ra1

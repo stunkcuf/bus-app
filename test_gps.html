@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GPS Test</title>
+</head>
+<body>
+    <h1>GPS Tracking Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="updates"></div>
+    
+    <script>
+        // Need to include credentials for authenticated endpoints
+        const eventSource = new EventSource('/api/gps/stream', {
+            withCredentials: true
+        });
+        const updates = document.getElementById('updates');
+        const status = document.getElementById('status');
+        
+        eventSource.onopen = function() {
+            status.innerHTML = '✅ Connected to GPS stream';
+        };
+        
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const update = document.createElement('div');
+            update.innerHTML = `
+                <strong>Bus ${data.vehicle_id}</strong>: 
+                Lat: ${data.latitude?.toFixed(4)}, 
+                Lng: ${data.longitude?.toFixed(4)}, 
+                Speed: ${data.speed?.toFixed(1)} mph,
+                Status: ${data.status}
+                <small>(${new Date(data.timestamp).toLocaleTimeString()})</small>
+            `;
+            updates.insertBefore(update, updates.firstChild);
+            if (updates.children.length > 10) {
+                updates.removeChild(updates.lastChild);
+            }
+        };
+        
+        eventSource.onerror = function() {
+            status.innerHTML = '❌ Connection lost - will retry...';
+        };
+    </script>
+</body>
+</html>

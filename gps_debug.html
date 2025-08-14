@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GPS Debug Monitor</title>
+    <style>
+        body { 
+            font-family: 'Courier New', monospace; 
+            margin: 20px; 
+            background: #1a1a1a;
+            color: #0f0;
+        }
+        #status { 
+            padding: 10px; 
+            margin: 10px 0; 
+            border: 1px solid #0f0;
+            background: #000;
+        }
+        .connected { 
+            color: #0f0;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .disconnected { color: #f00; }
+        .event {
+            padding: 5px;
+            margin: 2px 0;
+            background: #111;
+            border-left: 3px solid #0f0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .error { border-left-color: #f00; }
+        .raw { 
+            color: #888; 
+            font-size: 0.9em;
+        }
+        button {
+            background: #222;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        button:hover { background: #333; }
+        #stats {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #000;
+            border: 1px solid #0f0;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🛰️ GPS Debug Monitor</h1>
+    
+    <div id="stats">
+        <div>Events: <span id="eventCount">0</span></div>
+        <div>Errors: <span id="errorCount">0</span></div>
+        <div>Last: <span id="lastEvent">-</span></div>
+    </div>
+    
+    <div id="status" class="disconnected">🔴 Disconnected</div>
+    
+    <div>
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()">Disconnect</button>
+        <button onclick="clearLog()">Clear</button>
+        <button onclick="testPost()">Test POST</button>
+    </div>
+    
+    <div id="log"></div>
+    
+    <script>
+        let eventSource = null;
+        let eventCount = 0;
+        let errorCount = 0;
+        
+        function addLog(message, isError = false, raw = null) {
+            const div = document.createElement('div');
+            div.className = isError ? 'event error' : 'event';
+            
+            const time = new Date().toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit', 
+                fractionalSecondDigits: 3 
+            });
+            
+            let content = `[${time}] ${message}`;
+            if (raw) {
+                content += `\n<span class="raw">RAW: ${raw}</span>`;
+            }
+            
+            div.innerHTML = content;
+            document.getElementById('log').insertBefore(div, document.getElementById('log').firstChild);
+            
+            // Keep only last 50 events
+            const log = document.getElementById('log');
+            while (log.children.length > 50) {
+                log.removeChild(log.lastChild);
+            }
+            
+            // Update stats
+            if (!isError) {
+                eventCount++;
+                document.getElementById('eventCount').textContent = eventCount;
+                document.getElementById('lastEvent').textContent = time;
+            } else {
+                errorCount++;
+                document.getElementById('errorCount').textContent = errorCount;
+            }
+        }
+        
+        function connect() {
+            if (eventSource) {
+                eventSource.close();
+            }
+            
+            addLog('🔄 Attempting connection to /api/gps/stream...');
+            
+            try {
+                eventSource = new EventSource('/api/gps/stream', {
+                    withCredentials: true
+                });
+                
+                eventSource.onopen = function(e) {
+                    document.getElementById('status').className = 'connected';
+                    document.getElementById('status').textContent = '🟢 Connected';
+                    addLog('✅ Connection opened');
+                };
+                
+                // Generic message handler
+                eventSource.onmessage = function(e) {
+                    addLog(`📨 Generic message received (${e.data.length} bytes)`, false, e.data);
+                };
+                
+                // Specific event listeners
+                eventSource.addEventListener('connected', function(e) {
+                    addLog(`🔗 Connected event: ${e.data}`, false, e.data);
+                });
+                
+                eventSource.addEventListener('gps_update', function(e) {
+                    try {
+                        const data = JSON.parse(e.data);
+                        const info = `Bus ${data.vehicle_id} @ ${data.latitude?.toFixed(4)}, ${data.longitude?.toFixed(4)} | Speed: ${data.speed?.toFixed(1)} mph | Status: ${data.status}`;
+                        addLog(`📍 GPS Update: ${info}`, false, e.data);
+                    } catch (err) {
+                        addLog(`⚠️ GPS Update (parse error): ${err.message}`, true, e.data);
+                    }
+                });
+                
+                eventSource.addEventListener('heartbeat', function(e) {
+                    addLog(`💓 Heartbeat: ${e.data}`);
+                });
+                
+                eventSource.onerror = function(e) {
+                    document.getElementById('status').className = 'disconnected';
+                    document.getElementById('status').textContent = '🔴 Disconnected';
+                    
+                    if (e.readyState === EventSource.CLOSED) {
+                        addLog('❌ Connection closed', true);
+                    } else if (e.readyState === EventSource.CONNECTING) {
+                        addLog('🔄 Reconnecting...', true);
+                    } else {
+                        addLog(`❌ Connection error (readyState: ${e.readyState})`, true);
+                    }
+                };
+                
+            } catch (err) {
+                addLog(`❌ Failed to create EventSource: ${err.message}`, true);
+            }
+        }
+        
+        function disconnect() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+                document.getElementById('status').className = 'disconnected';
+                document.getElementById('status').textContent = '🔴 Disconnected';
+                addLog('👋 Manually disconnected');
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            eventCount = 0;
+            errorCount = 0;
+            document.getElementById('eventCount').textContent = '0';
+            document.getElementById('errorCount').textContent = '0';
+            document.getElementById('lastEvent').textContent = '-';
+        }
+        
+        function testPost() {
+            addLog('🚀 Sending test GPS update...');
+            
+            const testData = {
+                vehicle_id: 'TEST-001',
+                latitude: 40.7128 + (Math.random() - 0.5) * 0.01,
+                longitude: -74.0060 + (Math.random() - 0.5) * 0.01,
+                speed: Math.random() * 30,
+                heading: Math.random() * 360,
+                status: 'active',
+                driver_id: 'Test Driver',
+                route_id: 'Test Route'
+            };
+            
+            fetch('/api/gps/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(testData)
+            })
+            .then(res => res.json())
+            .then(data => {
+                addLog(`✅ POST Response: ${JSON.stringify(data)}`);
+            })
+            .catch(err => {
+                addLog(`❌ POST Error: ${err.message}`, true);
+            });
+        }
+        
+        // Auto-connect on load
+        window.addEventListener('load', function() {
+            setTimeout(connect, 500);
+        });
+    </script>
+</body>
+</html>

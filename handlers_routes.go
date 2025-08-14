@@ -103,6 +103,11 @@ func addRouteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse form data
+	if !validateCSRF(r) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+	
 	routeName := r.FormValue("route_name")
 	description := r.FormValue("description")
 
@@ -140,24 +145,29 @@ func editRouteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse JSON request
-	var req struct {
-		RouteID     string `json:"route_id"`
-		RouteName   string `json:"route_name"`
-		Description string `json:"description"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	// Parse form data
+	err := r.ParseForm()
+	if err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
+	// Validate CSRF token
+	if !validateCSRF(r) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+
+	routeID := r.FormValue("route_id")
+	routeName := r.FormValue("route_name")
+	description := r.FormValue("description")
+
 	// Update route
-	_, err := db.Exec(`
+	_, err = db.Exec(`
 		UPDATE routes 
 		SET route_name = $2, description = $3
 		WHERE route_id = $1
-	`, req.RouteID, req.RouteName, req.Description)
+	`, routeID, routeName, description)
 
 	if err != nil {
 		log.Printf("Error updating route: %v", err)
@@ -168,12 +178,8 @@ func editRouteHandler(w http.ResponseWriter, r *http.Request) {
 	// Clear cache
 	dataCache.clearRoutes()
 
-	// Return success
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": "Route updated successfully",
-	})
+	// Redirect back to routes page
+	http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
 }
 
 // deleteRouteHandler deletes a route
@@ -189,23 +195,32 @@ func deleteRouteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse JSON request
-	var req struct {
-		RouteID string `json:"route_id"`
+	// Parse form data
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+	// Validate CSRF token
+	if !validateCSRF(r) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+
+	routeID := r.FormValue("route_id")
+	if routeID == "" {
+		http.Error(w, "Route ID is required", http.StatusBadRequest)
 		return
 	}
 
 	// Check if route is assigned
 	var isAssigned bool
-	err := db.Get(&isAssigned, `
+	err = db.Get(&isAssigned, `
 		SELECT EXISTS(
 			SELECT 1 FROM route_assignments WHERE route_id = $1
 		)
-	`, req.RouteID)
+	`, routeID)
 
 	if err != nil {
 		log.Printf("Error checking route assignment: %v", err)
@@ -219,7 +234,7 @@ func deleteRouteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delete route
-	_, err = db.Exec("DELETE FROM routes WHERE route_id = $1", req.RouteID)
+	_, err = db.Exec("DELETE FROM routes WHERE route_id = $1", routeID)
 	if err != nil {
 		log.Printf("Error deleting route: %v", err)
 		http.Error(w, "Failed to delete route", http.StatusInternalServerError)
@@ -229,12 +244,8 @@ func deleteRouteHandler(w http.ResponseWriter, r *http.Request) {
 	// Clear cache
 	dataCache.clearRoutes()
 
-	// Return success
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": "Route deleted successfully",
-	})
+	// Redirect back to the assign routes page
+	http.Redirect(w, r, "/assign-routes", http.StatusSeeOther)
 }
 
 // viewMileageReportsHandler shows mileage reports

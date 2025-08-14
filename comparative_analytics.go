@@ -263,7 +263,7 @@ func (ca *ComparativeAnalytics) compareTripCount(currentStart, currentEnd, prevS
 	// Current period trips
 	var currentTrips int
 	err := ca.db.Get(&currentTrips, `
-		SELECT COUNT(*) FROM trip_logs WHERE date BETWEEN $1 AND $2
+		SELECT COUNT(*) FROM driver_logs WHERE date BETWEEN $1 AND $2
 	`, currentStart, currentEnd)
 	if err != nil {
 		return 0, 0, err
@@ -272,7 +272,7 @@ func (ca *ComparativeAnalytics) compareTripCount(currentStart, currentEnd, prevS
 	// Previous period trips
 	var prevTrips int
 	err = ca.db.Get(&prevTrips, `
-		SELECT COUNT(*) FROM trip_logs WHERE date BETWEEN $1 AND $2
+		SELECT COUNT(*) FROM driver_logs WHERE date BETWEEN $1 AND $2
 	`, prevStart, prevEnd)
 	if err != nil {
 		return 0, 0, err
@@ -465,7 +465,7 @@ func (ca *ComparativeAnalytics) GetTrendAnalysis(metricType string, periods int)
 		case "trips":
 			err = ca.db.Get(&value, `
 				SELECT COUNT(*)
-				FROM trip_logs
+				FROM driver_logs
 				WHERE EXTRACT(YEAR FROM date) = $1 AND EXTRACT(MONTH FROM date) = $2
 			`, periodStart.Year(), int(periodStart.Month()))
 

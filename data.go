@@ -821,11 +821,22 @@ func loadStudentsFromDB() ([]Student, error) {
 	}
 
 	var students []Student
-	// FIXED: Explicitly list columns
+	// FIXED: Use COALESCE to handle NULL values
 	err := db.Select(&students, `
-		SELECT student_id, name, locations, phone_number, alt_phone_number, 
-		       guardian, pickup_time, dropoff_time, position_number, 
-		       route_id, driver, active, created_at 
+		SELECT 
+			COALESCE(student_id, '') as student_id,
+			COALESCE(name, '') as name,
+			COALESCE(locations::text, '[]') as locations,
+			COALESCE(phone_number, '') as phone_number,
+			COALESCE(alt_phone_number, '') as alt_phone_number,
+			COALESCE(guardian, '') as guardian,
+			COALESCE(pickup_time::text, '') as pickup_time,
+			COALESCE(dropoff_time::text, '') as dropoff_time,
+			COALESCE(position_number, 0) as position_number,
+			COALESCE(route_id, '') as route_id,
+			COALESCE(driver, '') as driver,
+			COALESCE(active, false) as active,
+			COALESCE(created_at, CURRENT_TIMESTAMP) as created_at
 		FROM students 
 		WHERE active = true 
 		ORDER BY name
@@ -850,9 +861,20 @@ func loadStudentsFromDBPaginated(pagination PaginationParams, includeInactive bo
 	}
 	
 	query := fmt.Sprintf(`
-		SELECT student_id, name, locations, phone_number, alt_phone_number, 
-		       guardian, pickup_time, dropoff_time, position_number, 
-		       route_id, driver, active, created_at 
+		SELECT 
+			COALESCE(student_id, '') as student_id,
+			COALESCE(name, '') as name,
+			COALESCE(locations::text, '[]') as locations,
+			COALESCE(phone_number, '') as phone_number,
+			COALESCE(alt_phone_number, '') as alt_phone_number,
+			COALESCE(guardian, '') as guardian,
+			COALESCE(pickup_time::text, '') as pickup_time,
+			COALESCE(dropoff_time::text, '') as dropoff_time,
+			COALESCE(position_number, 0) as position_number,
+			COALESCE(route_id, '') as route_id,
+			COALESCE(driver, '') as driver,
+			COALESCE(active, false) as active,
+			COALESCE(created_at, CURRENT_TIMESTAMP) as created_at
 		FROM students 
 		%s 
 		ORDER BY name
@@ -1038,7 +1060,7 @@ func generateCurrentMonthMileageReports() ([]MonthlyMileageReport, error) {
 				COALESCE(b.model::text, 'Standard') as model,
 				'' as license_plate,
 				'Bus' as vehicle_type,
-				COALESCE(b.current_mileage::int, 0) as current_mileage
+				COALESCE(b.current_mileage, 0) as current_mileage
 			FROM buses b
 			WHERE b.status = 'active'
 			
@@ -1053,21 +1075,25 @@ func generateCurrentMonthMileageReports() ([]MonthlyMileageReport, error) {
 				COALESCE(v.model::text, 'Company Vehicle') as model,
 				COALESCE(v.license::text, '') as license_plate,
 				'Vehicle' as vehicle_type,
-				COALESCE(v.current_mileage::int, 0) as current_mileage
+				COALESCE(v.current_mileage, 0) as current_mileage
 			FROM vehicles v
 			WHERE v.status = 'active'
 		),
 		monthly_data AS (
 			-- Get mileage data from driver logs for current month
 			SELECT 
-				dl.vehicle_id,
+				dl.bus_id as vehicle_id,
 				MIN(dl.start_mileage) as beginning_miles,
 				MAX(dl.end_mileage) as ending_miles,
-				SUM(dl.total_miles) as total_miles
+				SUM(CASE 
+					WHEN dl.end_mileage > dl.start_mileage 
+					THEN dl.end_mileage - dl.start_mileage 
+					ELSE 0 
+				END) as total_miles
 			FROM driver_logs dl
-			WHERE dl.log_date >= $1 AND dl.log_date <= $2
-				AND dl.vehicle_id IS NOT NULL
-			GROUP BY dl.vehicle_id
+			WHERE dl.date >= $1 AND dl.date <= $2
+				AND dl.bus_id IS NOT NULL
+			GROUP BY dl.bus_id
 		)
 		SELECT 
 			av.vehicle_id,
@@ -1194,24 +1220,21 @@ func loadFleetVehiclesFromDB() ([]FleetVehicle, error) {
 	var vehicles []FleetVehicle
 	query := `
 		SELECT 
-			CASE 
-				WHEN vehicle_id LIKE 'FV%' THEN SUBSTRING(vehicle_id FROM 3)::INTEGER
-				ELSE NULL
-			END as id,
-			vehicle_number, 
+			COALESCE(id, 1) as id,
+			NULL::INTEGER as vehicle_number, 
 			NULL as sheet_name, 
 			CASE 
 				WHEN year ~ '^\d+$' THEN year::INTEGER
 				ELSE NULL
 			END as year,
-			make, model, 
-		    description, serial_number, license, location, tire_size,
+			NULL as make, model, 
+		    description, serial_number, license, base as location, tire_size,
 		    created_at, updated_at
 		FROM vehicles 
-		WHERE vehicle_type = 'fleet'
+		WHERE status = 'active'
 		ORDER BY 
-			CASE WHEN vehicle_number IS NOT NULL THEN vehicle_number ELSE 999999 END,
-			year DESC, make, model`
+			vehicle_id,
+			year DESC, model`
 
 	err := db.Select(&vehicles, query)
 	if err != nil {
@@ -1233,34 +1256,32 @@ func loadFleetVehiclesByFilters(year int, make string, location string) ([]Fleet
 
 	baseQuery := `
 		SELECT 
-			CASE 
-				WHEN vehicle_id LIKE 'FV%' THEN SUBSTRING(vehicle_id FROM 3)::INTEGER
-				ELSE NULL
-			END as id,
-			vehicle_number, 
+			COALESCE(id, 1) as id,
+			NULL::INTEGER as vehicle_number, 
 			NULL as sheet_name, 
 			CASE 
 				WHEN year ~ '^\d+$' THEN year::INTEGER
 				ELSE NULL
 			END as year,
-			make, model, 
-		    description, serial_number, license, location, tire_size,
+			NULL as make, model, 
+		    description, serial_number, license, base as location, tire_size,
 		    created_at, updated_at
 		FROM vehicles 
-		WHERE vehicle_type = 'fleet'`
+		WHERE status = 'active'`
 
 	if year > 0 {
 		conditions = append(conditions, " AND year = $"+fmt.Sprintf("%d", len(args)+1))
 		args = append(args, year)
 	}
 
-	if make != "" {
-		conditions = append(conditions, " AND UPPER(make) LIKE UPPER($"+fmt.Sprintf("%d", len(args)+1)+")")
-		args = append(args, "%"+make+"%")
-	}
+	// Make filter disabled as vehicles table doesn't have make column
+	// if make != "" {
+	// 	conditions = append(conditions, " AND UPPER(make) LIKE UPPER($"+fmt.Sprintf("%d", len(args)+1)+")")
+	// 	args = append(args, "%"+make+"%")
+	// }
 
 	if location != "" {
-		conditions = append(conditions, " AND UPPER(location) LIKE UPPER($"+fmt.Sprintf("%d", len(args)+1)+")")
+		conditions = append(conditions, " AND UPPER(base) LIKE UPPER($"+fmt.Sprintf("%d", len(args)+1)+")")
 		args = append(args, "%"+location+"%")
 	}
 
@@ -1270,8 +1291,8 @@ func loadFleetVehiclesByFilters(year int, make string, location string) ([]Fleet
 	}
 
 	query += ` ORDER BY 
-		CASE WHEN vehicle_number IS NOT NULL THEN vehicle_number ELSE 999999 END,
-		year DESC, make, model`
+		id,
+		year DESC, model`
 
 	err := db.Select(&vehicles, query, args...)
 	if err != nil {
@@ -1282,6 +1303,7 @@ func loadFleetVehiclesByFilters(year int, make string, location string) ([]Fleet
 }
 
 // loadMaintenanceRecordsFromDB loads all maintenance records from database
+// Note: This loads ALL records - consider using loadMaintenanceRecordsFromDBPaginated for better performance
 func loadMaintenanceRecordsFromDB() ([]MaintenanceRecord, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database not initialized")

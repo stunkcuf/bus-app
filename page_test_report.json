@@ -1,177 +1,359 @@
 {
-  "Timestamp": "2025-07-22T01:34:18.0364086-07:00",
-  "TotalPages": 14,
-  "WorkingPages": 1,
-  "BrokenPages": 13,
-  "Pages": [
-    {
-      "URL": "/fleet",
-      "Name": "Fleet Overview",
-      "DataCount": 0,
-      "TotalClaim": 0,
-      "Status": "No Data",
-      "Error": "",
-      "Notes": [
-        "Pagination detected"
-      ],
-      "HasData": false,
-      "Pagination": true
-    },
-    {
-      "URL": "/fleet-vehicles",
-      "Name": "Fleet Vehicles",
-      "DataCount": 0,
-      "TotalClaim": 0,
-      "Status": "No Data",
-      "Error": "",
-      "Notes": [
-        "Pagination detected"
-      ],
-      "HasData": false,
-      "Pagination": true
-    },
-    {
-      "URL": "/maintenance-records",
-      "Name": "Maintenance Records",
-      "DataCount": 0,
-      "TotalClaim": 458,
-      "Status": "No Data",
-      "Error": "",
-      "Notes": [
-        "Pagination detected"
-      ],
-      "HasData": false,
-      "Pagination": true
-    },
-    {
-      "URL": "/service-records",
-      "Name": "Service Records",
-      "DataCount": 0,
-      "TotalClaim": 55,
-      "Status": "No Data",
-      "Error": "",
-      "Notes": [
-        "Pagination detected"
-      ],
-      "HasData": false,
-      "Pagination": true
-    },
-    {
-      "URL": "/fuel-records",
-      "Name": "Fuel Records",
-      "DataCount": 0,
-      "TotalClaim": 0,
-      "Status": "No Data",
-      "Error": "",
-      "Notes": [],
-      "HasData": false,
-      "Pagination": false
-    },
-    {
-      "URL": "/students",
-      "Name": "Students",
-      "DataCount": 0,
-      "TotalClaim": 0,
-      "Status": "Error",
-      "Error": "HTTP 401",
-      "Notes": [],
-      "HasData": false,
-      "Pagination": false
-    },
-    {
-      "URL": "/ecse-dashboard",
-      "Name": "ECSE Dashboard",
-      "DataCount": 0,
-      "TotalClaim": 0,
-      "Status": "No Data",
-      "Error": "",
-      "Notes": [],
-      "HasData": false,
-      "Pagination": false
-    },
-    {
-      "URL": "/drivers",
-      "Name": "Drivers",
-      "DataCount": 0,
-      "TotalClaim": 0,
-      "Status": "Error",
-      "Error": "HTTP 404",
-      "Notes": [],
-      "HasData": false,
-      "Pagination": false
-    },
-    {
-      "URL": "/routes",
-      "Name": "Routes",
-      "DataCount": 0,
-      "TotalClaim": 0,
-      "Status": "Error",
-      "Error": "HTTP 404",
-      "Notes": [],
-      "HasData": false,
-      "Pagination": false
-    },
-    {
-      "URL": "/company-fleet",
-      "Name": "Company Fleet",
-      "DataCount": 0,
-      "TotalClaim": 0,
-      "Status": "No Data",
-      "Error": "",
-      "Notes": [
-        "Error message found: Error('Failed to update status');\r\n        }\r\n      } catch (error) {\r\n        showToast('Failed to update status. Please try again.', 'error');\r\n        console.error('Error:', error);\r\n      }\r\n    }\r\n    \r\n    \r\n    function showToast(message, type = 'info') {\r\n      const toast = document.createElement('div');\r\n      toast.className = `toast align-items-center text-white border-0`;\r\n      toast.style.background = type === 'error' ? \r\n        'linear-gradient(135deg, #f5576c 0%, #f093fb 100%)' : \r\n        'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)';\r\n      toast.setAttribute('role', 'alert');\r\n      toast.innerHTML = `\r\n        "
-      ],
-      "HasData": false,
-      "Pagination": false
-    },
-    {
-      "URL": "/dashboard",
-      "Name": "Main Dashboard",
-      "DataCount": 0,
-      "TotalClaim": 0,
-      "Status": "Error",
-      "Error": "HTTP 500",
-      "Notes": [],
-      "HasData": false,
-      "Pagination": false
-    },
-    {
-      "URL": "/monthly-mileage-reports",
-      "Name": "Monthly Mileage Reports",
-      "DataCount": 0,
-      "TotalClaim": 0,
-      "Status": "No Data",
-      "Error": "",
-      "Notes": [
-        "Pagination detected"
-      ],
-      "HasData": false,
-      "Pagination": true
-    },
-    {
-      "URL": "/fuel-analytics",
-      "Name": "Fuel Analytics",
-      "DataCount": 0,
-      "TotalClaim": 0,
-      "Status": "Working",
-      "Error": "",
-      "Notes": [
-        "Analytics charts present"
-      ],
-      "HasData": true,
-      "Pagination": false
-    },
-    {
-      "URL": "/vehicle-maintenance",
-      "Name": "Vehicle Maintenance",
-      "DataCount": 0,
-      "TotalClaim": 0,
-      "Status": "Error",
-      "Error": "HTTP 400",
-      "Notes": [],
-      "HasData": false,
-      "Pagination": false
-    }
+  "timestamp": "2025-08-14T00:54:45.036101",
+  "total_tested": 54,
+  "working": [
+    "/manager-dashboard",
+    "/driver-dashboard",
+    "/ecse-dashboard",
+    "/analytics-dashboard",
+    "/fleet",
+    "/company-fleet",
+    "/fleet-vehicles",
+    "/maintenance-records",
+    "/service-records",
+    "/maintenance-wizard",
+    "/assign-routes",
+    "/route-assignment-wizard",
+    "/gps-tracking",
+    "/students",
+    "/add-student-wizard",
+    "/monthly-mileage-reports",
+    "/report-builder",
+    "/approve-users",
+    "/manage-users",
+    "/change-password",
+    "/notification-preferences",
+    "/import-data-wizard",
+    "/fuel-records",
+    "/add-fuel-record",
+    "/fuel-analytics",
+    "/help-center",
+    "/getting-started",
+    "/quick-reference",
+    "/user-manual",
+    "/troubleshooting",
+    "/messaging",
+    "/db-pool-monitor",
+    "/add-bus-wizard"
   ],
-  "Summary": ""
+  "failed": [
+    "/emergency-dashboard",
+    "/parent-dashboard",
+    "/budget-dashboard",
+    "/progress-dashboard",
+    "/vehicle-maintenance",
+    "/maintenance-alerts",
+    "/parent-bus-tracking",
+    "/students-lazy",
+    "/import-ecse",
+    "/view-ecse-student",
+    "/driver-reports",
+    "/manager-reports",
+    "/view-ecse-reports",
+    "/driver-scorecards",
+    "/budget-report",
+    "/driver-profile",
+    "/parent-notification-settings",
+    "/import-mileage",
+    "/scheduled-exports",
+    "/video-tutorials",
+    "/db-monitor"
+  ],
+  "issues": [
+    {
+      "page": "/manager-dashboard",
+      "issues": [
+        "Contains 7 error references"
+      ]
+    },
+    {
+      "page": "/driver-dashboard",
+      "issues": [
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/emergency-dashboard",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/parent-dashboard",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/analytics-dashboard",
+      "issues": [
+        "Contains 2 'undefined' references"
+      ]
+    },
+    {
+      "page": "/budget-dashboard",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/progress-dashboard",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/company-fleet",
+      "issues": [
+        "Contains 4 error references"
+      ]
+    },
+    {
+      "page": "/fleet-vehicles",
+      "issues": [
+        "Contains 8 error references"
+      ]
+    },
+    {
+      "page": "/vehicle-maintenance",
+      "issues": [
+        "HTTP 400 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/maintenance-alerts",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/route-assignment-wizard",
+      "issues": [
+        "Contains 1 error references",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/gps-tracking",
+      "issues": [
+        "Contains 1 error references",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/parent-bus-tracking",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/students",
+      "issues": [
+        "Contains 17 'null' values"
+      ]
+    },
+    {
+      "page": "/students-lazy",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/import-ecse",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/view-ecse-student",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/driver-reports",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/manager-reports",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/view-ecse-reports",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/driver-scorecards",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/report-builder",
+      "issues": [
+        "Contains 2 error references",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/budget-report",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/manage-users",
+      "issues": [
+        "Contains 3 error references",
+        "Contains 7 'undefined' references"
+      ]
+    },
+    {
+      "page": "/change-password",
+      "issues": [
+        "Contains 6 error references"
+      ]
+    },
+    {
+      "page": "/driver-profile",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/notification-preferences",
+      "issues": [
+        "Contains 3 error references"
+      ]
+    },
+    {
+      "page": "/parent-notification-settings",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/import-mileage",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/import-data-wizard",
+      "issues": [
+        "Contains 22 error references"
+      ]
+    },
+    {
+      "page": "/scheduled-exports",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/user-manual",
+      "issues": [
+        "Contains 4 error references"
+      ]
+    },
+    {
+      "page": "/video-tutorials",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/troubleshooting",
+      "issues": [
+        "Contains 8 error references"
+      ]
+    },
+    {
+      "page": "/messaging",
+      "issues": [
+        "Contains 1 error references"
+      ]
+    },
+    {
+      "page": "/db-monitor",
+      "issues": [
+        "HTTP 404 error",
+        "Page appears empty or minimal content",
+        "Missing Bootstrap CSS",
+        "Missing jQuery/Bootstrap JS"
+      ]
+    },
+    {
+      "page": "/db-pool-monitor",
+      "issues": [
+        "Contains 3 error references"
+      ]
+    }
+  ]
 }

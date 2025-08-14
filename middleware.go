@@ -16,8 +16,48 @@ func withRecovery(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Printf("Panic recovered: %v\n%s", err, debug.Stack())
-				SendError(w, ErrInternal("An unexpected error occurred", nil))
+				// Get stack trace
+				stack := debug.Stack()
+				
+				// Log detailed panic information
+				log.Printf("[PANIC RECOVERED] %s %s - Error: %v", r.Method, r.URL.Path, err)
+				log.Printf("[PANIC STACK TRACE]\n%s", stack)
+				
+				// Try to get session info for debugging
+				if cookie, cookieErr := r.Cookie(SessionCookieName); cookieErr == nil {
+					if session, sessErr := GetSecureSession(cookie.Value); sessErr == nil && session != nil {
+						log.Printf("[PANIC CONTEXT] User: %s, Role: %s", session.Username, session.Role)
+					}
+				}
+				
+				// Log to database asynchronously
+				go func() {
+					defer func() {
+						if r := recover(); r != nil {
+							log.Printf("Failed to log panic to database: %v", r)
+						}
+					}()
+					
+					username := "anonymous"
+					if cookie, err := r.Cookie(SessionCookieName); err == nil {
+						if session, err := GetSecureSession(cookie.Value); err == nil && session != nil {
+							username = session.Username
+						}
+					}
+					
+					_, dbErr := db.Exec(`
+						INSERT INTO error_logs (timestamp, url, method, error, stack_trace, username, user_agent)
+						VALUES (NOW(), $1, $2, $3, $4, $5, $6)
+						ON CONFLICT DO NOTHING
+					`, r.URL.Path, r.Method, fmt.Sprint(err), string(stack), username, r.UserAgent())
+					
+					if dbErr != nil {
+						log.Printf("Error logging panic to database: %v", dbErr)
+					}
+				}()
+				
+				// Send user-friendly error response
+				SendError(w, ErrInternal("An unexpected error occurred. Our team has been notified.", nil))
 			}
 		}()
 		h(w, r)

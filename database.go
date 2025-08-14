@@ -53,12 +53,15 @@ func InitDB(dataSourceName string) error {
 		db.SetConnMaxIdleTime(5 * time.Minute)
 	}
 
-	// Test the connection
+	// Test the connection with retry
 	log.Println("Testing database connection...")
-	if err := db.Ping(); err != nil {
-		return fmt.Errorf("failed to ping database: %w", err)
+	if err := PingWithRetry(); err != nil {
+		return fmt.Errorf("failed to ping database after retries: %w", err)
 	}
 	log.Println("Database connection successful!")
+	
+	// Start database health monitoring
+	MonitorDatabaseHealth(30 * time.Second)
 
 	// Run migrations
 	log.Println("Running database migrations...")
@@ -79,46 +82,8 @@ func InitDB(dataSourceName string) error {
 		// Don't fail startup for index creation errors
 	}
 
-	// Fix database sync issues
-	log.Println("Fixing database sync issues...")
-	if err := FixDatabaseSyncIssues(); err != nil {
-		log.Printf("Warning: Failed to fix some database sync issues: %v", err)
-		// Don't fail startup, but log the warning
-	}
-
-	// Clean up invalid data
-	log.Println("Cleaning up invalid data...")
-	if err := CleanupInvalidData(); err != nil {
-		log.Printf("Warning: Failed to clean up some invalid data: %v", err)
-		// Don't fail startup, but log the warning
-	}
-
-	// Fix notifications table
-	log.Println("Fixing notifications table...")
-	if err := FixNotificationsTable(); err != nil {
-		log.Printf("Warning: Failed to fix notifications table: %v", err)
-		// Don't fail startup, but log the warning
-	}
-
-	// Fix users table
-	log.Println("Fixing users table...")
-	if err := FixUsersTable(); err != nil {
-		log.Printf("Warning: Failed to fix users table: %v", err)
-		// Don't fail startup, but log the warning
-	}
-
-	// Fix routes display
-	log.Println("Fixing routes display...")
-	if err := FixRoutesDisplay(); err != nil {
-		log.Printf("Warning: Failed to fix routes display: %v", err)
-		// Don't fail startup, but log the warning
-	}
-
-	// Fix route assignments
-	if err := FixRouteAssignments(); err != nil {
-		log.Printf("Warning: Failed to fix route assignments: %v", err)
-		// Don't fail startup, but log the warning
-	}
+	// Database fixes have been applied - removed obsolete fix functions
+	// The database schema is now stable
 
 	log.Println("Database initialization complete!")
 	return nil

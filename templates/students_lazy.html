@@ -1,64 +1,427 @@
 {{template "header" .}}
 
-<div class="container-fluid mt-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h2">
-                    <i class="fas fa-user-graduate"></i> Students
-                </h1>
-                {{if eq .User.Role "manager"}}
-                <a href="/add-student" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Add New Student
-                </a>
-                {{end}}
+<!-- Design System Styles -->
+<style nonce="{{.CSPNonce}}">
+    /* Core Design System Variables */
+    :root {
+        --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        --gradient-6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+        --gradient-7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        --gradient-8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+        --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+
+    /* Dark gradient background */
+    body {
+        background: linear-gradient(135deg, #16213e 0%, #0f3460 50%, #533483 100%);
+        min-height: 100vh;
+        color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        position: relative;
+    }
+
+    /* Animated background overlay */
+    body::before {
+        content: '';
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background-image: 
+            radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.3) 0%, transparent 50%);
+        animation: backgroundShift 20s ease-in-out infinite;
+        z-index: -1;
+    }
+
+    @keyframes backgroundShift {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        33% { transform: translate(30px, -30px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+
+    /* Hero Section */
+    .hero-section {
+        padding: 2rem 0 1.5rem;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .hero-content h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(to right, #fff, #a8edea, #fed6e3, #fff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: gradientShift 8s ease-in-out infinite;
+        background-size: 200% auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-content h1 i {
+        background: var(--gradient-1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    @keyframes gradientShift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+
+    /* Glass Card Container */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 2rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+        margin-bottom: 2rem;
+    }
+
+    .glass-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Control Bar Glass Effect */
+    .control-bar {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin-bottom: 2rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    /* Form Controls with Glass Effect */
+    .form-control, .form-select {
+        background: rgba(255, 255, 255, 0.1) !important;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 15px;
+        color: white !important;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        background: rgba(255, 255, 255, 0.15) !important;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+        outline: none;
+    }
+
+    .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    select option {
+        background-color: #1a1a2e !important;
+        color: white !important;
+    }
+
+    /* Buttons with Gradient and Shine Effect */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 25px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        border: none;
+        transition: all 0.3s ease;
+        z-index: 1;
+    }
+
+    .btn::before {
+        content: '';
+        position: absolute;
+        top: 0; left: -100%;
+        width: 100%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s;
+        z-index: 0;
+    }
+
+    .btn:hover::before {
+        left: 100%;
+    }
+
+    .btn-primary {
+        background: var(--gradient-1);
+        color: white;
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.7);
+    }
+
+    /* Table with Glass Effect */
+    .table {
+        color: white;
+        background: transparent;
+    }
+
+    .table thead th {
+        background: rgba(255, 255, 255, 0.15);
+        color: white;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 1rem;
+        border: none;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .table tbody tr {
+        background: rgba(255, 255, 255, 0.05);
+        transition: all 0.3s ease;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .table tbody tr:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateX(5px);
+    }
+
+    .table td {
+        padding: 1rem;
+        border: none;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Status Badge */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .status-badge.status-active {
+        background: rgba(67, 233, 123, 0.2);
+        color: #43e97b;
+        border: 1px solid #43e97b;
+    }
+
+    .status-badge.status-inactive {
+        background: rgba(250, 112, 154, 0.2);
+        color: #fa709a;
+        border: 1px solid #fa709a;
+    }
+
+    /* Loading Status */
+    .lazy-load-status {
+        background: var(--gradient-3);
+        color: white;
+        padding: 1rem;
+        border-radius: 15px;
+        text-align: center;
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
+    /* Empty State Styling */
+    .lazy-load-empty {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        border: 2px dashed rgba(255, 255, 255, 0.2);
+    }
+
+    .lazy-load-empty i {
+        font-size: 4rem;
+        background: var(--gradient-2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1rem;
+    }
+
+    .lazy-load-empty h4 {
+        color: white;
+        margin: 1rem 0;
+    }
+
+    .lazy-load-empty p {
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* Action Buttons in Table */
+    .btn-sm {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.875rem;
+    }
+
+    .btn-outline-primary {
+        background: transparent;
+        border: 2px solid #667eea;
+        color: #667eea;
+    }
+
+    .btn-outline-primary:hover {
+        background: var(--gradient-1);
+        color: white;
+        border-color: transparent;
+    }
+
+    .btn-outline-danger {
+        background: transparent;
+        border: 2px solid #f5576c;
+        color: #f5576c;
+    }
+
+    .btn-outline-danger:hover {
+        background: var(--gradient-2);
+        color: white;
+        border-color: transparent;
+    }
+</style>
+
+<!-- Floating Orbs -->
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<style nonce="{{.CSPNonce}}">
+    .orb {
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(40px);
+        opacity: 0.6;
+        animation: float 20s infinite ease-in-out;
+        pointer-events: none;
+        z-index: -1;
+    }
+
+    .orb1 {
+        width: 300px; height: 300px;
+        background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+        top: -150px; left: -150px;
+    }
+
+    .orb2 {
+        width: 400px; height: 400px;
+        background: radial-gradient(circle, rgba(240, 147, 251, 0.6), transparent);
+        bottom: -200px; right: -200px;
+        animation-delay: -5s;
+    }
+
+    .orb3 {
+        width: 250px; height: 250px;
+        background: radial-gradient(circle, rgba(79, 172, 254, 0.7), transparent);
+        top: 50%; left: 50%;
+        animation-delay: -10s;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        33% { transform: translate(30px, -30px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-content">
+            <h1>
+                <i class="fas fa-user-graduate"></i>
+                Student Management
+            </h1>
+        </div>
+    </section>
+
+    <!-- Main Content Card -->
+    <div class="glass-card">
+        <!-- Header with Action Button -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="h4 mb-0" style="color: white;">
+                <i class="fas fa-users" style="color: #667eea;"></i> 
+                All Students
+            </h2>
+            {{if eq .User.Role "manager"}}
+            <a href="/add-student" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Student
+            </a>
+            {{end}}
+        </div>
+
+        <!-- Lazy Load Status -->
+        <div class="lazy-load-status">
+            <i class="fas fa-spinner fa-spin"></i> Loading students...
+        </div>
+
+        <!-- Search and Filter Controls -->
+        <div class="control-bar">
+            <div class="flex-grow-1" style="min-width: 250px;">
+                <input type="text" 
+                       id="student-search" 
+                       class="form-control" 
+                       placeholder="🔍 Search by name or guardian...">
+            </div>
+            
+            <div style="min-width: 200px;">
+                <select id="status-filter" class="form-select">
+                    <option value="">All Students</option>
+                    <option value="active">✅ Active Only</option>
+                    <option value="inactive">⏸️ Inactive Only</option>
+                </select>
             </div>
 
-            <!-- Lazy Load Status -->
-            <div class="lazy-load-status">Loading students...</div>
-
-            <!-- Search and Filter Controls -->
-            <div class="lazy-load-controls">
-                <div class="lazy-load-search">
-                    <input type="text" 
-                           id="student-search" 
-                           class="form-control" 
-                           placeholder="Search by name or guardian...">
-                </div>
-                
-                <div class="lazy-load-filter">
-                    <select id="status-filter" class="form-control">
-                        <option value="">All Students</option>
-                        <option value="active">Active Only</option>
-                        <option value="inactive">Inactive Only</option>
-                    </select>
-                </div>
-
-                {{if eq .User.Role "manager"}}
-                <div class="lazy-load-filter">
-                    <select id="driver-filter" class="form-control">
-                        <option value="">All Drivers</option>
-                        {{range .Drivers}}
-                        <option value="{{.Username}}">{{.Name}}</option>
-                        {{end}}
-                    </select>
-                </div>
-                {{end}}
+            {{if eq .User.Role "manager"}}
+            <div style="min-width: 200px;">
+                <select id="driver-filter" class="form-select">
+                    <option value="">All Drivers</option>
+                    {{range .Drivers}}
+                    <option value="{{.Username}}">{{.Name}}</option>
+                    {{end}}
+                </select>
             </div>
+            {{end}}
+        </div>
 
-            <!-- Lazy Load Container -->
-            <div class="lazy-load-container" 
-                 id="students-table"
-                 data-lazy-load="true"
-                 data-lazy-load-endpoint="/api/lazy/students"
-                 data-lazy-load-type="student"
-                 data-lazy-load-per-page="25"
-                 data-lazy-load-search="#student-search"
-                 data-lazy-load-filters='[
-                     {"name": "status", "selector": "#status-filter"},
-                     {"name": "driver", "selector": "#driver-filter"}
-                 ]'>
-                
+        <!-- Lazy Load Container -->
+        <div class="lazy-load-container" 
+             id="students-table"
+             data-lazy-load="true"
+             data-lazy-load-endpoint="/api/lazy/students"
+             data-lazy-load-type="student"
+             data-lazy-load-per-page="25"
+             data-lazy-load-search="#student-search"
+             data-lazy-load-filters='[
+                 {"name": "status", "selector": "#status-filter"},
+                 {"name": "driver", "selector": "#driver-filter"}
+             ]'>
+            
+            <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
                         <tr>
@@ -76,13 +439,13 @@
                     </tbody>
                 </table>
             </div>
+        </div>
 
-            <!-- Empty State (shown when no results) -->
-            <div class="lazy-load-empty" style="display: none;">
-                <i class="fas fa-users-slash"></i>
-                <h4>No Students Found</h4>
-                <p>Try adjusting your search or filters.</p>
-            </div>
+        <!-- Empty State (shown when no results) -->
+        <div class="lazy-load-empty" style="display: none;">
+            <i class="fas fa-users-slash"></i>
+            <h4>No Students Found</h4>
+            <p>Try adjusting your search or filters.</p>
         </div>
     </div>
 </div>
